@@ -1,0 +1,93 @@
+# Flutter
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+*.class
+*.lock
+*.log
+*.pot
+*.properties
+*.pub-cache/
+*.pub/
+/build/
+/web_sdk/
+.dart_tool/
+flutter_export_environment.sh
+
+# iOS/macOS
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/*sync/
+**/ios/**/.sconsign.dblite
+**/ios/**/.tags*
+**/ios/**/.vagrant/
+**/ios/**/DerivedData/
+**/ios/**/Icon?
+**/ios/**/Icon??
+**/ios/**/Icon???
+**/ios/**/Icon????
+**/ios/**/Icon?????
+**/ios/**/.DS_Store
+**/ios/**/.dart_tool/
+**/ios/**/.flutter-plugins
+**/ios/**/.flutter-plugins-dependencies
+**/ios/**/.packages
+**/ios/**/.pub-cache/
+**/ios/**/.pub/
+**/ios/**/build/
+**/ios/**/Flutter/Flutter.framework
+**/ios/**/Flutter/Flutter.podspec
+**/ios/**/Flutter/Flutter.xcframework
+**/ios/**/Flutter/generated.xcconfig
+**/ios/**/Flutter/ephemeral.xcconfig
+**/ios/**/Flutter/app.flx
+**/ios/**/Flutter/app.zip
+**/ios/**/Flutter/app.bundle
+**/ios/**/Flutter/flutter_assets/
+**/ios/**/Flutter/flutter_export_environment.sh
+**/ios/**/ServiceDefinitions.json
+**/ios/**/Runner/GeneratedPluginRegistrant.*
+**/ios/**/.symlinks/
+**/ios/**/Flutter/Flutter.podspec
+**/ios/**/Flutter/.last_build_id
+**/ios/**/Flutter/Local Network.entitlements
+
+# Android
+**/android/**/GeneratedPluginRegistrant.java
+**/android/**/.gradle
+**/android/**/gradle-wrapper.jar
+**/android/**/gradlew
+**/android/**/gradlew.bat
+**/android/**/local.properties
+**/android/**/key.properties
+**/android/**/.DS_Store
+**/android/**/captures/
+**/android/**/build/
+
+# Web
+lib/generated_plugin_registrant.dart
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+
+# Misc
+/build/
+/dist/
+*.tgz
+*.tar.gz
