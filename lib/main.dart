@@ -3,9 +3,11 @@ import 'package:get/get.dart';
 import 'core/theme.dart';
 import 'screens/index.dart';
 
+import 'services/room_controller.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+  Get.put(RoomController());
   runApp(const MyApp());
 }
 

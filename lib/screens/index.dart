@@ -17,6 +17,8 @@ export 'explore/explore_screen.dart';
 // Rooms
 export 'rooms/rooms_screen.dart';
 export 'rooms/voice_room_call_screen.dart';
+export 'rooms/room_profile_screen.dart';
+export 'rooms/create_room_screen.dart';
 
 // Communities
 export 'communities/communities_screen.dart';

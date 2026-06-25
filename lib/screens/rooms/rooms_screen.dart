@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme.dart';
+import '../../models/room_model.dart';
+import '../../services/room_controller.dart';
+import 'create_room_screen.dart';
+import 'room_profile_screen.dart';
 import 'voice_room_call_screen.dart';
 
 class RoomsScreen extends StatefulWidget {
@@ -11,150 +15,177 @@ class RoomsScreen extends StatefulWidget {
 }
 
 class _RoomsScreenState extends State<RoomsScreen> {
-  late List<Map<String, dynamic>> _rooms;
+  final RoomController _controller = RoomController.to;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
-  void initState() {
-    super.initState();
-    _initializeRooms();
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  void _initializeRooms() {
-    _rooms = [
-      {
-        'id': 'room_001',
-        'name': 'Flutter Development Discussion',
-        'host': 'John Doe',
-        'participants': 234,
-        'type': 'Discussion',
-        'isLive': true,
-      },
-      {
-        'id': 'room_002',
-        'name': 'UPSC Preparation - Morning Session',
-        'host': 'Raj Kumar',
-        'participants': 567,
-        'type': 'Study',
-        'isLive': true,
-      },
-      {
-        'id': 'room_003',
-        'name': 'AI & Machine Learning Q&A',
-        'host': 'Sarah Smith',
-        'participants': 189,
-        'type': 'Discussion',
-        'isLive': true,
-      },
-      {
-        'id': 'room_004',
-        'name': 'Web Development Tips & Tricks',
-        'host': 'Alex Johnson',
-        'participants': 0,
-        'type': 'Hangout',
-        'isLive': false,
-      },
-      {
-        'id': 'room_005',
-        'name': 'Gaming Tournament - BGMI',
-        'host': 'Pro Gamer X',
-        'participants': 0,
-        'type': 'Hangout',
-        'isLive': false,
-      },
-      {
-        'id': 'room_006',
-        'name': 'Business Networking Evening',
-        'host': 'Corporate Trainer',
-        'participants': 0,
-        'type': 'Event',
-        'isLive': false,
-      },
-    ];
-  }
-
-  void _joinRoom(Map<String, dynamic> room) {
+  void _joinRoom(VoiceRoom room) {
     Get.to(
       () => VoiceRoomCallScreen(
-        roomId: room['id'],
-        roomName: room['name'],
-        userId: 'user_123', // TODO: Get from auth
-        userName: 'Current User', // TODO: Get from auth
+        roomId: room.id,
+        roomName: room.name,
+        userId: 'uid_anurag_101', // Fixed unique User ID
+        userName: 'anurag_kumar', // Copyable username
         isHost: false,
       ),
     );
   }
 
+  List<VoiceRoom> _filterRooms(List<VoiceRoom> rooms) {
+    if (_searchQuery.trim().isEmpty) return rooms;
+    final query = _searchQuery.toLowerCase().trim();
+
+    return rooms.where((room) {
+      final nameMatch = room.name.toLowerCase().contains(query);
+      final idMatch = room.id.toLowerCase().contains(query);
+      final categoryMatch = room.category.toLowerCase().contains(query);
+      final countryMatch = room.country.toLowerCase().contains(query);
+      final langMatch = room.language.toLowerCase().contains(query);
+      final tagMatch = room.tags.any((t) => t.toLowerCase().contains(query));
+
+      return nameMatch || idMatch || categoryMatch || countryMatch || langMatch || tagMatch;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final liveRooms = _rooms.where((r) => r['isLive']).toList();
-    final scheduledRooms = _rooms.where((r) => !r['isLive']).toList();
-
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            'Voice Rooms',
-            style: Theme.of(context).textTheme.headlineLarge,
+    return Scaffold(
+      backgroundColor: AppTheme.bgDark,
+      appBar: AppBar(
+        title: Text(
+          'Voice Rooms',
+          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        actions: [
+          // Wallet indicator
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Obx(() => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bgLight,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppTheme.borderColor),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${_controller.walletBalance.value}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () {
-                Get.snackbar(
-                  'Coming Soon',
-                  'Create room feature coming soon',
-                  snackPosition: SnackPosition.BOTTOM,
-                );
+          // Create Room Button
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor, size: 28),
+            onPressed: () => Get.to(() => const CreateRoomScreen()),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search Field
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) {
+                setState(() {
+                  _searchQuery = val;
+                });
               },
+              decoration: InputDecoration(
+                hintText: 'Search by Name, ID (#VX100...), Tag or Category',
+                prefixIcon: const Icon(Icons.search, color: AppTheme.textTertiary),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: AppTheme.textTertiary),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
             ),
-          ],
-          bottom: TabBar(
-            labelColor: AppTheme.primaryColor,
-            unselectedLabelColor: AppTheme.textTertiary,
-            indicatorColor: AppTheme.primaryColor,
-            tabs: [
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.radio_button_on, size: 16),
-                    const SizedBox(width: 8),
-                    Text('Live (${liveRooms.length})'),
-                  ],
-                ),
-              ),
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.calendar_today, size: 16),
-                    const SizedBox(width: 8),
-                    Text('Scheduled (${scheduledRooms.length})'),
-                  ],
-                ),
-              ),
-            ],
           ),
-        ),
-        body: TabBarView(
-          children: [
-            // Live Rooms
-            _buildRoomsList(context, liveRooms, isLive: true),
 
-            // Scheduled Rooms
-            _buildRoomsList(context, scheduledRooms, isLive: false),
-          ],
-        ),
+          // Tabs
+          Expanded(
+            child: Obx(() {
+              final filtered = _filterRooms(_controller.rooms);
+              final liveRooms = filtered.where((r) => r.isLive).toList();
+              final scheduledRooms = filtered.where((r) => !r.isLive).toList();
+
+              return DefaultTabController(
+                length: 2,
+                child: Column(
+                  children: [
+                    TabBar(
+                      labelColor: AppTheme.primaryColor,
+                      unselectedLabelColor: AppTheme.textTertiary,
+                      indicatorColor: AppTheme.primaryColor,
+                      tabs: [
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.radio_button_on, size: 16),
+                              const SizedBox(width: 8),
+                              Text('Live (${liveRooms.length})'),
+                            ],
+                          ),
+                        ),
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.calendar_today, size: 16),
+                              const SizedBox(width: 8),
+                              Text('Scheduled (${scheduledRooms.length})'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _buildRoomsList(liveRooms, isLive: true),
+                          _buildRoomsList(scheduledRooms, isLive: false),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildRoomsList(
-    BuildContext context,
-    List<Map<String, dynamic>> rooms, {
-    required bool isLive,
-  }) {
+  Widget _buildRoomsList(List<VoiceRoom> rooms, {required bool isLive}) {
     if (rooms.isEmpty) {
       return Center(
         child: Column(
@@ -167,8 +198,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              isLive ? 'No live rooms' : 'No scheduled rooms',
-              style: Theme.of(context).textTheme.bodyLarge,
+              isLive ? 'No live rooms found' : 'No scheduled rooms found',
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16),
             ),
           ],
         ),
@@ -176,157 +207,230 @@ class _RoomsScreenState extends State<RoomsScreen> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: rooms.length,
       itemBuilder: (context, index) {
         final room = rooms[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _buildRoomCard(context, room, isLive),
+          child: _buildRoomCard(room, isLive),
         );
       },
     );
   }
 
-  Widget _buildRoomCard(
-    BuildContext context,
-    Map<String, dynamic> room,
-    bool isLive,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor, width: 0.5),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildRoomCard(VoiceRoom room, bool isLive) {
+    return GestureDetector(
+      onTap: () => Get.to(() => RoomProfileScreen(roomId: room.id)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: room.isPermanent ? Colors.amber.withOpacity(0.5) : AppTheme.borderColor,
+            width: room.isPermanent ? 1.5 : 0.5,
+          ),
+          boxShadow: room.isPermanent
+              ? [
+                  BoxShadow(
+                    color: Colors.amber.withOpacity(0.05),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  )
+                ]
+              : null,
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Section (Room ID, Permanent Tag, Level)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        if (isLive)
-                          Container(
-                            decoration: BoxDecoration(
-                              color: AppTheme.errorColor,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            child: Text(
-                              'LIVE',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            room['name'],
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
                     Text(
-                      'Hosted by ${room['host']}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      room.id,
+                      style: TextStyle(
+                        color: room.isPermanent ? Colors.amber : AppTheme.primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(width: 8),
                     Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.1),
+                        color: room.isPermanent ? Colors.amber.withOpacity(0.15) : AppTheme.bgLight,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
                       child: Text(
-                        room['type'],
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.primaryColor,
-                              fontSize: 11,
-                            ),
+                        room.isPermanent ? 'Permanent' : 'Temporary',
+                        style: TextStyle(
+                          color: room.isPermanent ? Colors.amber : AppTheme.textTertiary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              if (isLive)
+                if (room.isPermanent)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.indigoAccent, width: 0.5),
+                    ),
+                    child: Text(
+                      'LV ${room.level}',
+                      style: const TextStyle(
+                        color: Colors.indigoAccent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Middle Section: Name, Owner, Category Badge
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Avatar
                 Container(
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
+                    shape: BoxShape.circle,
+                    color: AppTheme.bgLight,
+                    border: Border.all(color: AppTheme.borderColor),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  child: Text(
-                    '${room['participants']} listening',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(25),
+                    child: room.avatar != null
+                        ? Image.network(room.avatar!, fit: BoxFit.cover)
+                        : Center(
+                            child: Text(
+                              room.name.substring(0, 1).toUpperCase(),
+                              style: const TextStyle(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: isLive ? () => _joinRoom(room) : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                  ),
-                  child: Text(
-                    isLive ? 'Join Now' : 'Notify',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                const SizedBox(width: 12),
+
+                // Name & Host
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        room.name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                           color: Colors.white,
-                          fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Hosted by ${room.ownerName}',
+                        style: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      // Info row: Category, Country, Language
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              room.category,
+                              style: const TextStyle(color: AppTheme.primaryColor, fontSize: 10),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '• ${room.language} • ${room.country}',
+                            style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: () {
-                  Get.snackbar(
-                    'Saved',
-                    '${room['name']} saved',
-                    snackPosition: SnackPosition.BOTTOM,
-                  );
-                },
-                child: const Icon(Icons.bookmark_outline, size: 18),
-              ),
-            ],
-          ),
-        ],
+
+                // Live status or scheduled date
+                if (isLive)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Text(
+                      '${room.participantCount} in call',
+                      style: const TextStyle(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  )
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Bottom Section: Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: isLive ? () => _joinRoom(room) : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isLive
+                          ? (room.isPermanent ? Colors.amber : AppTheme.primaryColor)
+                          : AppTheme.bgLight,
+                      foregroundColor: isLive
+                          ? (room.isPermanent ? Colors.black87 : Colors.white)
+                          : AppTheme.textTertiary,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text(
+                      isLive ? 'Join Call' : 'Scheduled',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () => Get.to(() => RoomProfileScreen(roomId: room.id)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    side: const BorderSide(color: AppTheme.borderColor),
+                  ),
+                  child: const Icon(Icons.info_outline, size: 20, color: AppTheme.textSecondary),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
