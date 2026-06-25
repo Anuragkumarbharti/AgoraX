@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme.dart';
+import '../onboarding/permission_onboarding_screen.dart';
 import '../auth/login_screen.dart';
 import '../home/main_screen.dart';
 
@@ -38,13 +40,22 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateToNextScreen() {
-    Future.delayed(const Duration(seconds: 3), () {
-      // Check if user is logged in
-      bool isLoggedIn = false; // TODO: Check from local storage
+    Future.delayed(const Duration(seconds: 3), () async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final firstLaunchDone = prefs.getBool('firstLaunchDone') ?? false;
+        final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
-      if (isLoggedIn) {
-        Get.offAll(() => const MainScreen());
-      } else {
+        if (!firstLaunchDone) {
+          // First time ever opening the app → show permission onboarding
+          Get.offAll(() => const PermissionOnboardingScreen());
+        } else if (isLoggedIn) {
+          Get.offAll(() => const MainScreen());
+        } else {
+          Get.offAll(() => const LoginScreen());
+        }
+      } catch (_) {
+        // Fallback
         Get.offAll(() => const LoginScreen());
       }
     });

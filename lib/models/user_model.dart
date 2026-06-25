@@ -1,5 +1,4 @@
 class User {
-
   User({
     required this.id,
     required this.username,
@@ -15,11 +14,21 @@ class User {
     required this.isVerified,
     required this.isPremium,
     required this.reputation,
+    required this.sid,
+    this.level = 1,
+    this.xp = 0,
+    this.totalXp = 1000,
+    this.totalPosts = 0,
+    this.totalQuestions = 0,
+    this.badges = const [],
+    this.levelTitle = 'Newcomer',
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    final String parsedId = json['id'] ?? '';
+    final String generatedSid = json['sid'] ?? (parsedId.hashCode.abs() % 900000 + 100000).toString();
     return User(
-      id: json['id'] ?? '',
+      id: parsedId,
       username: json['username'] ?? '',
       email: json['email'] ?? '',
       displayName: json['displayName'] ?? '',
@@ -33,8 +42,17 @@ class User {
       isVerified: json['isVerified'] ?? false,
       isPremium: json['isPremium'] ?? false,
       reputation: json['reputation'] ?? 0,
+      sid: generatedSid,
+      level: json['level'] ?? 1,
+      xp: json['xp'] ?? 0,
+      totalXp: json['totalXp'] ?? 1000,
+      totalPosts: json['totalPosts'] ?? 0,
+      totalQuestions: json['totalQuestions'] ?? 0,
+      badges: List<String>.from(json['badges'] ?? []),
+      levelTitle: json['levelTitle'] ?? 'Newcomer',
     );
   }
+
   final String id;
   final String username;
   final String email;
@@ -49,21 +67,38 @@ class User {
   final bool isVerified;
   final bool isPremium;
   final int reputation;
+  final String sid;
+  // Gamification
+  final int level;
+  final int xp;
+  final int totalXp;
+  final int totalPosts;
+  final int totalQuestions;
+  final List<String> badges;
+  final String levelTitle;
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'username': username,
-    'email': email,
-    'displayName': displayName,
-    'avatar': avatar,
-    'coverPhoto': coverPhoto,
-    'bio': bio,
-    'interests': interests,
-    'communities': communities,
-    'followers': followers,
-    'following': following,
-    'isVerified': isVerified,
-    'isPremium': isPremium,
-    'reputation': reputation,
-  };
+        'id': id,
+        'username': username,
+        'email': email,
+        'displayName': displayName,
+        'avatar': avatar,
+        'coverPhoto': coverPhoto,
+        'bio': bio,
+        'interests': interests,
+        'communities': communities,
+        'followers': followers,
+        'following': following,
+        'isVerified': isVerified,
+        'isPremium': isPremium,
+        'reputation': reputation,
+        'sid': sid,
+        'level': level,
+        'xp': xp,
+        'totalXp': totalXp,
+        'totalPosts': totalPosts,
+        'totalQuestions': totalQuestions,
+        'badges': badges,
+        'levelTitle': levelTitle,
+      };
 }

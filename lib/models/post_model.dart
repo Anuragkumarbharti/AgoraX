@@ -7,6 +7,8 @@ class Post {
     required this.content,
     this.images,
     this.videos,
+    this.pdfs,
+    this.docUrls,
     required this.likes,
     required this.comments,
     required this.shares,
@@ -23,6 +25,8 @@ class Post {
       content: json['content'] ?? '',
       images: json['images'] != null ? List<String>.from(json['images']) : null,
       videos: json['videos'] != null ? List<String>.from(json['videos']) : null,
+      pdfs: json['pdfs'] != null ? List<String>.from(json['pdfs']) : null,
+      docUrls: json['docUrls'] != null ? List<String>.from(json['docUrls']) : null,
       likes: json['likes'] ?? 0,
       comments: json['comments'] ?? 0,
       shares: json['shares'] ?? 0,
@@ -37,6 +41,8 @@ class Post {
   final String content;
   final List<String>? images;
   final List<String>? videos;
+  final List<String>? pdfs;
+  final List<String>? docUrls;
   final int likes;
   final int comments;
   final int shares;
@@ -51,6 +57,8 @@ class Post {
     'content': content,
     'images': images,
     'videos': videos,
+    'pdfs': pdfs,
+    'docUrls': docUrls,
     'likes': likes,
     'comments': comments,
     'shares': shares,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../models/post_model.dart';
+import 'post_attachments_widget.dart';
 
 class PostCard extends StatelessWidget {
 
@@ -66,6 +67,7 @@ class PostCard extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
+            PostAttachmentsWidget(post: post),
             const SizedBox(height: 12),
 
             // Actions

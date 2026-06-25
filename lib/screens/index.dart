@@ -1,6 +1,9 @@
 // Splash
 export 'splash/splash_screen.dart';
 
+// Onboarding
+export 'onboarding/permission_onboarding_screen.dart';
+
 // Auth
 export 'auth/index.dart';
 
@@ -20,6 +23,7 @@ export 'communities/communities_screen.dart';
 
 // Profile
 export 'profile/profile_screen.dart';
+export 'profile/user_profile_screen.dart';
 
 // Settings
 export 'settings/settings_screen.dart';

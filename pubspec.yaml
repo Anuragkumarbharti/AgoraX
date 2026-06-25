@@ -74,6 +74,9 @@ dependencies:
   
   # Connectivity
   connectivity_plus: ^6.1.5
+  
+  # Local Preferences (first launch tracking)
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:
