@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
@@ -162,305 +163,284 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   Widget _buildSliverAppBar(User u) {
     return SliverAppBar(
-      expandedHeight: 190,
       pinned: true,
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: Colors.transparent,
       elevation: 0,
       iconTheme: const IconThemeData(color: Colors.white),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.share_outlined, color: Colors.white),
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: 'https://agorax.com/profile/${u.sid}'));
+            Get.snackbar(
+              'Link Copied 📋',
+              'Profile link copied to clipboard.',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: AppTheme.primaryColor.withOpacity(0.9),
+              colorText: Colors.white,
+            );
+          },
+        ),
         IconButton(
           icon: const Icon(Icons.more_vert, color: Colors.white),
           onPressed: () => _showOptionsSheet(),
         ),
       ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                _levelColor.withOpacity(0.7),
-                AppTheme.secondaryColor.withOpacity(0.5),
-                AppTheme.bgDark,
-              ],
-              stops: const [0, 0.5, 1],
-            ),
-          ),
-          child: Positioned.fill(
-            child: Opacity(
-              opacity: 0.05,
-              child: GridView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 8,
-                ),
-                itemCount: 64,
-                itemBuilder: (_, i) => Container(
-                  margin: const EdgeInsets.all(2),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
   Widget _buildProfileBody(User u) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Transform.translate(
-          offset: const Offset(0, -46),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Avatar row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _buildAvatar(u),
-                    const Spacer(),
-                    // Follow + Message buttons
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Row(
-                          children: [
-                            // Message button
-                            GestureDetector(
-                              onTap: () {
-                                setState(() => _isMessageSent = true);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        'Message sent to ${u.displayName}'),
-                                    backgroundColor: AppTheme.accentColor,
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 9),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.bgLight,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: AppTheme.borderColor,
-                                  ),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.mail_outline,
-                                        size: 16, color: AppTheme.textPrimary),
-                                    SizedBox(width: 5),
-                                    Text(
-                                      'Message',
-                                      style: TextStyle(
-                                        color: AppTheme.textPrimary,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Follow button
-                            GestureDetector(
-                              onTap: () =>
-                                  setState(() => _isFollowing = !_isFollowing),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 18, vertical: 9),
-                                decoration: BoxDecoration(
-                                  gradient: _isFollowing
-                                      ? null
-                                      : const LinearGradient(colors: [
-                                          AppTheme.primaryColor,
-                                          AppTheme.secondaryColor,
-                                        ]),
-                                  color: _isFollowing ? AppTheme.bgLight : null,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: _isFollowing
-                                      ? Border.all(
-                                          color: AppTheme.borderColor)
-                                      : null,
-                                ),
-                                child: Text(
-                                  _isFollowing ? 'Following' : 'Follow',
-                                  style: TextStyle(
-                                    color: _isFollowing
-                                        ? AppTheme.textSecondary
-                                        : Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Cover Photo Banner
+            Container(
+              height: 180,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    _levelColor.withOpacity(0.8),
+                    AppTheme.secondaryColor.withOpacity(0.6),
+                    const Color(0xFF0F172A),
                   ],
+                  stops: const [0, 0.5, 1],
                 ),
-                const SizedBox(height: 12),
-                // Name & verified
-                Row(
-                  children: [
-                    Text(
-                      u.displayName,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                      ),
+              ),
+              child: Opacity(
+                opacity: 0.05,
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 8,
+                  ),
+                  itemCount: 24,
+                  itemBuilder: (_, i) => Container(
+                    margin: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
                     ),
-                    if (u.isVerified) ...[
-                      const SizedBox(width: 6),
-                      const Icon(Icons.verified_rounded,
-                          color: Color(0xFF60A5FA), size: 20),
-                    ],
-                    if (u.isPremium) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [
-                            Color(0xFFFBBF24),
-                            Color(0xFFF59E0B)
-                          ]),
-                          borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ),
+            ),
+            // Avatar positioned overlapping
+            Positioned(
+              left: 20,
+              bottom: -40,
+              child: _buildAvatar(u),
+            ),
+            // Follow & Message buttons positioned overlapping
+            Positioned(
+              right: 20,
+              bottom: -20,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Message Button
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _isMessageSent = true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Message conversation started with ${u.displayName}'),
+                          backgroundColor: AppTheme.accentColor,
+                          behavior: SnackBarBehavior.floating,
                         ),
-                        child: const Text(
-                          '👑',
-                          style: TextStyle(fontSize: 10),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      '@${u.username}',
-                      style: const TextStyle(
-                        color: AppTheme.textTertiary,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: () => _copyToClipboard(u.username, 'Username'),
-                      child: const Icon(
-                        Icons.copy_rounded,
-                        color: AppTheme.textTertiary,
-                        size: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.textTertiary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Text(
-                      'ID: ${u.sid}',
-                      style: const TextStyle(
-                        color: AppTheme.textTertiary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: () => _copyToClipboard(u.sid, 'AgoraX ID'),
-                      child: const Icon(
-                        Icons.copy_rounded,
-                        color: AppTheme.textTertiary,
-                        size: 14,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Level chip
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: _levelColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: _levelColor.withOpacity(0.4)),
+                        color: AppTheme.bgLight,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.borderColor),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.bolt, size: 14, color: _levelColor),
-                          const SizedBox(width: 3),
+                          Icon(Icons.mail_outline, size: 16, color: AppTheme.textPrimary),
+                          SizedBox(width: 6),
                           Text(
-                            'Lv.${u.level} ${u.levelTitle}',
+                            'Message',
                             style: TextStyle(
-                              color: _levelColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${_formatNumber(u.reputation)} Reputation',
-                      style: const TextStyle(
-                        color: AppTheme.textTertiary,
-                        fontSize: 12,
+                  ),
+                  const SizedBox(width: 8),
+                  
+                  // Follow Button
+                  GestureDetector(
+                    onTap: () => setState(() => _isFollowing = !_isFollowing),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient: _isFollowing
+                            ? null
+                            : const LinearGradient(colors: [
+                                AppTheme.primaryColor,
+                                AppTheme.secondaryColor,
+                              ]),
+                        color: _isFollowing ? AppTheme.bgLight : null,
+                        borderRadius: BorderRadius.circular(10),
+                        border: _isFollowing ? Border.all(color: AppTheme.borderColor) : null,
                       ),
-                    ),
-                  ],
-                ),
-                if (u.bio != null && u.bio!.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    u.bio!,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 14,
-                      height: 1.5,
+                      child: Text(
+                        _isFollowing ? 'Following' : 'Follow',
+                        style: TextStyle(
+                          color: _isFollowing ? AppTheme.textSecondary : Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 16),
-                // XP Bar
-                _buildXpBar(u),
-                const SizedBox(height: 20),
-                // Stats
-                _buildStatsRow(u),
-                const SizedBox(height: 20),
-                // Badges
-                if (u.badges.isNotEmpty) _buildBadgesRow(u),
-                const SizedBox(height: 8),
-              ],
+              ),
             ),
+          ],
+        ),
+        const SizedBox(height: 50), // space for overlapping avatar
+        
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Single Username Display
+              Row(
+                children: [
+                  Text(
+                    u.displayName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (u.isVerified) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 20),
+                  ],
+                  if (u.isPremium) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [
+                          Color(0xFFFBBF24),
+                          Color(0xFFF59E0B)
+                        ]),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        '👑',
+                        style: TextStyle(fontSize: 10),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 4),
+              
+              // Unique ID Display
+              Row(
+                children: [
+                  Text(
+                    'ID: ${u.sid}',
+                    style: const TextStyle(
+                      color: AppTheme.textTertiary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => _copyToClipboard(u.sid, 'AgoraX ID'),
+                    child: const Icon(
+                      Icons.copy_rounded,
+                      color: AppTheme.textTertiary,
+                      size: 14,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // Level Badge & Reputation
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _levelColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _levelColor.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bolt, size: 14, color: _levelColor),
+                        const SizedBox(width: 3),
+                        Text(
+                          'Lv.${u.level} ${u.levelTitle}',
+                          style: TextStyle(
+                            color: _levelColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_formatNumber(u.reputation)} Reputation',
+                    style: const TextStyle(
+                      color: AppTheme.textTertiary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              if (u.bio != null && u.bio!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  u.bio!,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              
+              // XP Bar
+              _buildXpBar(u),
+              const SizedBox(height: 20),
+              
+              // Stats
+              _buildStatsRow(u),
+              const SizedBox(height: 20),
+              
+              // Badges
+              if (u.badges.isNotEmpty) _buildBadgesRow(u),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
       ],

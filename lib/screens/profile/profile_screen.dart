@@ -220,27 +220,43 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _buildSliverAppBar(bool innerBoxIsScrolled) {
     return SliverAppBar(
-      expandedHeight: 200,
       pinned: true,
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: Colors.transparent,
       elevation: 0,
+      automaticallyImplyLeading: false,
       actions: [
         IconButton(
-          icon: const Icon(Icons.share_outlined, color: AppTheme.textPrimary),
-          onPressed: () {},
+          icon: const Icon(Icons.share_outlined, color: Colors.white),
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: 'https://agorax.com/profile/${_user.sid}'));
+            Get.snackbar(
+              'Share Link Copied 🔗',
+              'Profile link copied to clipboard.',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: AppTheme.primaryColor.withOpacity(0.9),
+              colorText: Colors.white,
+            );
+          },
         ),
         IconButton(
-          icon:
-              const Icon(Icons.settings_outlined, color: AppTheme.textPrimary),
+          icon: const Icon(Icons.settings_outlined, color: Colors.white),
           onPressed: () => Get.to(() => const SettingsScreen()),
         ),
       ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
+    );
+  }
+
+  Widget _buildProfileBody() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
           children: [
-            // Cover gradient
+            // Cover Photo Banner
             Container(
+              height: 180,
+              width: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -253,249 +269,184 @@ class _ProfileScreenState extends State<ProfileScreen>
                   stops: const [0, 0.5, 1],
                 ),
               ),
-            ),
-            // Pattern overlay
-            Positioned.fill(
               child: Opacity(
-                opacity: 0.06,
+                opacity: 0.05,
                 child: GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 8,
                   ),
-                  itemCount: 80,
+                  itemCount: 24,
                   itemBuilder: (_, i) => Container(
                     margin: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.4),
+                      color: Colors.white.withOpacity(0.3),
                     ),
                   ),
                 ),
               ),
             ),
-            // Edit cover button
+            // Edit Cover Button
             Positioned(
               right: 16,
-              bottom: 16,
+              bottom: 12,
               child: GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Get.snackbar(
+                    'Edit Cover',
+                    'Cover image edit sheet coming soon',
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: Colors.white.withOpacity(0.2)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.camera_alt_outlined,
-                          size: 14, color: Colors.white),
+                      Icon(Icons.camera_alt_outlined, size: 12, color: Colors.white),
                       SizedBox(width: 4),
-                      Text('Edit Cover',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500)),
+                      Text(
+                        'Edit Cover',
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
+            // Avatar positioned overlapping
+            Positioned(
+              left: 20,
+              bottom: -40,
+              child: _buildAvatar(),
+            ),
+            // Edit Profile Button positioned overlapping
+            Positioned(
+              right: 20,
+              bottom: -20,
+              child: ElevatedButton.icon(
+                onPressed: () => _showEditProfileSheet(context),
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text('Edit'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.bgLight,
+                  foregroundColor: AppTheme.textPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: const BorderSide(color: AppTheme.borderColor),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildProfileBody() {
-    return Column(
-      children: [
-        // Avatar + Info section
-        Transform.translate(
-          offset: const Offset(0, -50),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Avatar row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _buildAvatar(),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: _levelColor.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                        color: _levelColor.withOpacity(0.4)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.bolt,
-                                          size: 14, color: _levelColor),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        'Lv.${_user.level} ${_user.levelTitle}',
-                                        style: TextStyle(
-                                          color: _levelColor,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (_user.isPremium) ...[
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(colors: [
-                                        Color(0xFFFBBF24),
-                                        Color(0xFFF59E0B)
-                                      ]),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Text(
-                                      '👑 PRO',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+        const SizedBox(height: 50), // space for overlapping avatar
+        
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Single Username Display
+              Row(
+                children: [
+                  Text(
+                    _user.displayName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
                     ),
-                    // Edit profile button
-                    ElevatedButton.icon(
-                      onPressed: () => _showEditProfileSheet(context),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Edit'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.bgLight,
-                        foregroundColor: AppTheme.textPrimary,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          side: const BorderSide(color: AppTheme.borderColor),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
+                  ),
+                  if (_user.isVerified) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 20),
                   ],
+                ],
+              ),
+              const SizedBox(height: 4),
+              
+              // Unique ID Display
+              Row(
+                children: [
+                  Text(
+                    'ID: ${_user.sid}',
+                    style: const TextStyle(
+                      color: AppTheme.textTertiary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => _copyToClipboard(_user.sid, 'AgoraX ID'),
+                    child: const Icon(
+                      Icons.copy_rounded,
+                      color: AppTheme.textTertiary,
+                      size: 14,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // Level Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _levelColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _levelColor.withOpacity(0.4)),
                 ),
-                const SizedBox(height: 12),
-                // Name & username
-                Row(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(Icons.bolt, size: 14, color: _levelColor),
+                    const SizedBox(width: 3),
                     Text(
-                      _user.displayName,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 22,
+                      'Lv.${_user.level} ${_user.levelTitle}',
+                      style: TextStyle(
+                        color: _levelColor,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    if (_user.isVerified) ...[
-                      const SizedBox(width: 6),
-                      const Icon(Icons.verified_rounded,
-                          color: Color(0xFF60A5FA), size: 20),
-                    ],
                   ],
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      '@${_user.username}',
-                      style: const TextStyle(
-                        color: AppTheme.textTertiary,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: () => _copyToClipboard(_user.username, 'Username'),
-                      child: const Icon(
-                        Icons.copy_rounded,
-                        color: AppTheme.textTertiary,
-                        size: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.textTertiary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Text(
-                      'ID: ${_user.sid}',
-                      style: const TextStyle(
-                        color: AppTheme.textTertiary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: () => _copyToClipboard(_user.sid, 'AgoraX ID'),
-                      child: const Icon(
-                        Icons.copy_rounded,
-                        color: AppTheme.textTertiary,
-                        size: 14,
-                      ),
-                    ),
-                  ],
+              ),
+              const SizedBox(height: 16),
+              
+              // Bio
+              Text(
+                _user.bio ?? '',
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14,
+                  height: 1.5,
                 ),
-                const SizedBox(height: 10),
-                // Bio
-                Text(
-                  _user.bio ?? '',
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // XP Bar
-                _buildXpBar(),
-                const SizedBox(height: 20),
-                // Stats
-                _buildStatsRow(),
-                const SizedBox(height: 20),
-                // Badges
-                _buildBadgesRow(),
-                const SizedBox(height: 8),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              
+              // XP Bar
+              _buildXpBar(),
+              const SizedBox(height: 20),
+              
+              // Stats Row
+              _buildStatsRow(),
+              const SizedBox(height: 20),
+              
+              // Badges
+              _buildBadgesRow(),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
       ],
