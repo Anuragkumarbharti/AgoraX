@@ -373,11 +373,12 @@ class RoomController extends GetxController {
 
   // Send a gift inside a room
   // This deducts coins from the user, updates the room XP, and triggers level-up popups if threshold is met
-  bool sendGiftToRoom(String roomId, {required int giftCost, required String giftName, required String fromUserName}) {
-    if (walletBalance.value < giftCost) {
+  bool sendGiftToRoom(String roomId, {required int giftCost, required String giftName, required String fromUserName, int count = 1}) {
+    final int totalCost = giftCost * count;
+    if (walletBalance.value < totalCost) {
       Get.snackbar(
         'Insufficient Coins',
-        'You need $giftCost Gold Coins to send this gift. You currently have ${walletBalance.value} coins.',
+        'You need $totalCost Gold Coins to send this gift (to $count members). You currently have ${walletBalance.value} coins.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.8),
         colorText: Colors.white,
@@ -385,14 +386,14 @@ class RoomController extends GetxController {
       return false;
     }
 
-    walletBalance.value -= giftCost;
+    walletBalance.value -= totalCost;
 
     final int index = rooms.indexWhere((r) => r.id == roomId);
     if (index != -1) {
       final VoiceRoom oldRoom = rooms[index];
 
-      // XP gained is equal to gift cost * 5
-      final int xpGain = giftCost * 5;
+      // XP gained is equal to totalCost * 5
+      final int xpGain = totalCost * 5;
       final int newXp = oldRoom.xp + xpGain;
       
       // Calculate level-up: Each level requires level * 1000 XP
@@ -441,7 +442,7 @@ class RoomController extends GetxController {
         badges: oldRoom.badges + (leveledUp ? 1 : 0),
         totalMembers: oldRoom.totalMembers,
         totalFollowers: oldRoom.totalFollowers,
-        totalGiftsReceived: oldRoom.totalGiftsReceived + giftCost,
+        totalGiftsReceived: oldRoom.totalGiftsReceived + totalCost,
         isPermanent: oldRoom.isPermanent,
         entryPermission: oldRoom.entryPermission,
         coOwnerIds: oldRoom.coOwnerIds,
@@ -467,11 +468,13 @@ class RoomController extends GetxController {
       } else {
         Get.snackbar(
           'Gift Sent! 🎁',
-          '$fromUserName sent a $giftName ($giftCost Coins) to the room! +$xpGain Room XP.',
+          count > 1
+              ? '$fromUserName sent $giftName to all $count occupied seats! Total cost: $totalCost Coins. +$xpGain Room XP.'
+              : '$fromUserName sent a $giftName ($giftCost Coins) to the room! +$xpGain Room XP.',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: const Color(0xFF6366F1).withOpacity(0.8),
           colorText: Colors.white,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 4),
         );
       }
     }

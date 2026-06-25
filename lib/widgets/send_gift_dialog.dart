@@ -21,10 +21,16 @@ class GiftItem {
 
 class SendGiftDialog extends StatefulWidget {
   final String roomId;
+  final int occupiedSeatsCount;
+  final String? targetUserId;
+  final String? targetUserName;
   
   const SendGiftDialog({
     Key? key,
     required this.roomId,
+    this.occupiedSeatsCount = 1,
+    this.targetUserId,
+    this.targetUserName,
   }) : super(key: key);
 
   @override
@@ -45,6 +51,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   GiftItem? _selectedGift;
   final RoomController _controller = RoomController.to;
+  bool _giftAll = false;
 
   @override
   void initState() {
@@ -55,11 +62,13 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   void _sendGift() {
     if (_selectedGift == null) return;
 
+    final countMultiplier = _giftAll ? widget.occupiedSeatsCount : 1;
     final success = _controller.sendGiftToRoom(
       widget.roomId,
       giftCost: _selectedGift!.cost,
       giftName: _selectedGift!.name,
       fromUserName: 'Current User',
+      count: countMultiplier,
     );
 
     if (success) {
@@ -69,6 +78,10 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final finalCost = _selectedGift != null
+        ? _selectedGift!.cost * (_giftAll ? widget.occupiedSeatsCount : 1)
+        : 0;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -94,11 +107,28 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Send Gift 🎁',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Send Gift 🎁',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      if (widget.targetUserName != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _giftAll ? 'To: All Seats' : 'To: ${widget.targetUserName}',
+                          style: const TextStyle(
+                            color: Colors.amber,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
+                      ]
+                    ],
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -220,6 +250,60 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               ),
             ),
             
+            // "Gift All Seats" Toggle
+            if (widget.occupiedSeatsCount > 1)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.bgLight,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Gift All Seats 🎙️',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _selectedGift != null
+                                ? '${_selectedGift!.cost} Coins × ${widget.occupiedSeatsCount} occupied seats = $finalCost Coins'
+                                : 'Send to all occupied seats',
+                            style: const TextStyle(
+                              color: AppTheme.textTertiary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _giftAll,
+                      onChanged: (val) {
+                        setState(() {
+                          _giftAll = val;
+                        });
+                      },
+                      activeColor: Colors.amber,
+                      activeTrackColor: Colors.amber.withOpacity(0.3),
+                      inactiveThumbColor: AppTheme.textTertiary,
+                      inactiveTrackColor: Colors.white10,
+                    ),
+                  ],
+                ),
+              ),
+
             // Bottom Action
             Padding(
               padding: const EdgeInsets.all(16),
@@ -252,7 +336,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           if (_selectedGift != null) ...[
                             const SizedBox(width: 6),
                             Text(
-                              '(${_selectedGift!.cost})',
+                              '($finalCost)',
                               style: const TextStyle(fontSize: 12, color: Colors.white70),
                             ),
                           ]

@@ -53,54 +53,65 @@ class _ProfileScreenState extends State<ProfileScreen>
   );
 
   final List<Post> _posts = List.generate(
-    8,
-    (i) => Post(
-      id: 'p$i',
-      userId: 'me',
-      communityId: 'flutter',
-      content: [
+    5,
+    (i) {
+      final contentList = [
         'Just shipped a new feature in AgoraX! Voice rooms are now 50% faster 🚀 #Flutter #Performance',
         'Building the UI for AgoraX voice rooms. Using CustomPainters for the audio waves makes it look so alive! 🌊',
         'Just added dark mode support to the design system. HSL colors for gradients are clean.',
         'Working on a new feature today. Any comments or suggestions on the UI design?',
         'Quick question: What state management library do you prefer in Flutter for large-scale applications?',
         'AgoraX is going live soon. Get ready to experience voice-first community hosting! 🎤',
-      ][i],
-      images: [
+      ];
+      final imagesList = [
         ['https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400'],
         null,
         null,
         null,
         null,
-      ][i],
-      videos: [
+      ];
+      final videosList = [
         null,
         ['https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4'],
         null,
         null,
         null,
-      ][i],
-      pdfs: [
+      ];
+      final pdfsList = [
         null,
         null,
         ['AgoraX_Architecture_Design.pdf'],
         null,
         null,
-      ][i],
-      docUrls: [
+      ];
+      final docUrlsList = [
         null,
         null,
         null,
         ['AgoraX_StateManagement_Proposal.docx'],
         null,
-      ][i],
-      likes: [42, 128, 64, 96, 210][i],
-      comments: [8, 24, 12, 48, 56][i],
-      shares: [2, 10, 4, 8, 15][i],
-      isLiked: i % 2 == 0,
-      isBookmarked: i % 3 == 0,
-      createdAt: DateTime.now().subtract(Duration(hours: i * 4)),
-    ),
+      ];
+      final likesList = [42, 128, 64, 96, 210];
+      final commentsList = [8, 24, 12, 48, 56];
+      final sharesList = [2, 10, 4, 8, 15];
+
+      return Post(
+        id: 'p$i',
+        userId: 'me',
+        communityId: 'flutter',
+        content: i < contentList.length ? contentList[i] : '',
+        images: i < imagesList.length ? imagesList[i] : null,
+        videos: i < videosList.length ? videosList[i] : null,
+        pdfs: i < pdfsList.length ? pdfsList[i] : null,
+        docUrls: i < docUrlsList.length ? docUrlsList[i] : null,
+        likes: i < likesList.length ? likesList[i] : 0,
+        comments: i < commentsList.length ? commentsList[i] : 0,
+        shares: i < sharesList.length ? sharesList[i] : 0,
+        isLiked: i % 2 == 0,
+        isBookmarked: i % 3 == 0,
+        createdAt: DateTime.now().subtract(Duration(hours: i * 4)),
+      );
+    },
   );
 
   final List<Question> _questions = List.generate(

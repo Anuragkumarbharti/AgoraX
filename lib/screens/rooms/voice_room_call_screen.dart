@@ -724,7 +724,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen> with TickerPr
                 GestureDetector(
                   onTap: () {
                     if (isOccupied) {
-                      _showModerationMenu(seat['userId'], seat['name'], seat['role'], index);
+                      if (seat['userId'] == widget.userId) {
+                        _showLeaveSeatMenu(index);
+                      } else {
+                        _showMiniProfileDialog(seat['userId'], seat['name'], seat['role'], index);
+                      }
                     } else {
                       _joinSeat(index);
                     }
@@ -790,7 +794,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen> with TickerPr
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            seat['role'],
+                            seat['role'] == 'Host' ? 'Host' : 'Speaker',
                             style: TextStyle(
                               fontSize: 7.5,
                               color: seat['role'] == 'Host' ? Colors.black87 : Colors.white,
@@ -868,7 +872,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen> with TickerPr
             label: 'Gift',
             color: Colors.amber,
             onTap: () {
-              Get.dialog(SendGiftDialog(roomId: widget.roomId));
+              final occupiedSeats = _seats.where((s) => s['userId'] != null).length;
+              Get.dialog(SendGiftDialog(
+                roomId: widget.roomId,
+                occupiedSeatsCount: occupiedSeats,
+              ));
             },
           ),
 
@@ -921,6 +929,445 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen> with TickerPr
           ),
         ],
       ),
+    );
+  }
+
+  void _showMiniProfileDialog(String targetUserId, String targetUserName, String role, int seatIndex) {
+    final occupiedSeats = _seats.where((s) => s['userId'] != null).length;
+    Get.dialog(
+      MiniProfileDialog(
+        roomId: widget.roomId,
+        targetUserId: targetUserId,
+        targetUserName: targetUserName,
+        role: role,
+        seatIndex: seatIndex,
+        isHost: widget.isHost || widget.userId == 'host_001',
+        occupiedSeatsCount: occupiedSeats,
+        onMoveToAudience: () => _leaveSeat(seatIndex),
+      ),
+      barrierColor: Colors.black54,
+    );
+  }
+}
+
+class MiniProfileDialog extends StatefulWidget {
+  final String roomId;
+  final String targetUserId;
+  final String targetUserName;
+  final String role;
+  final int seatIndex;
+  final bool isHost;
+  final int occupiedSeatsCount;
+  final VoidCallback? onMoveToAudience;
+
+  const MiniProfileDialog({
+    Key? key,
+    required this.roomId,
+    required this.targetUserId,
+    required this.targetUserName,
+    required this.role,
+    required this.seatIndex,
+    required this.isHost,
+    required this.occupiedSeatsCount,
+    this.onMoveToAudience,
+  }) : super(key: key);
+
+  @override
+  State<MiniProfileDialog> createState() => _MiniProfileDialogState();
+}
+
+class _MiniProfileDialogState extends State<MiniProfileDialog> {
+  bool _isFollowing = false;
+  bool _showModMenu = false;
+  final RoomController _controller = RoomController.to;
+
+  String _getAvatarUrl(String userId) {
+    if (userId.contains('co_001') || userId.contains('priya')) {
+      return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150';
+    } else if (userId.contains('adm_001') || userId.contains('vikram')) {
+      return 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150';
+    } else if (userId.contains('str_001') || userId.contains('siddharth')) {
+      return 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150';
+    } else {
+      return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
+    }
+  }
+
+  String _getNumericId(String userId) {
+    return (userId.hashCode.abs() % 90000000 + 10000000).toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final numericId = _getNumericId(widget.targetUserId);
+    final avatarUrl = _getAvatarUrl(widget.targetUserId);
+    final isMuted = _controller.mutedUsers[widget.roomId]?.contains(widget.targetUserId) ?? false;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: 320,
+        decoration: BoxDecoration(
+          color: AppTheme.bgDark.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AppTheme.borderColor, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Top cover gradient
+              Container(
+                height: 80,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(26),
+                    topRight: Radius.circular(26),
+                  ),
+                ),
+              ),
+              
+              // Overlapping Avatar
+              Transform.translate(
+                offset: const Offset(0, -40),
+                child: Column(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.bgDark, width: 4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                          )
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundColor: AppTheme.bgLight,
+                        backgroundImage: NetworkImage(avatarUrl),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Name & Copy button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          widget.targetUserName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () {
+                            Get.snackbar(
+                              'Copied! 📋',
+                              'Username "${widget.targetUserName}" copied to clipboard.',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.green.withOpacity(0.8),
+                              colorText: Colors.white,
+                            );
+                          },
+                          child: const Icon(
+                            Icons.copy_rounded,
+                            color: AppTheme.textTertiary,
+                            size: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    
+                    // Unique ID & Copy button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'ID: $numericId',
+                          style: const TextStyle(
+                            color: Colors.amber,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () {
+                            Get.snackbar(
+                              'Copied! 📋',
+                              'Unique ID "$numericId" copied to clipboard.',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.green.withOpacity(0.8),
+                              colorText: Colors.white,
+                            );
+                          },
+                          child: const Icon(
+                            Icons.copy_rounded,
+                            color: Colors.amber,
+                            size: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    
+                    // Role Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: widget.role == 'Host'
+                            ? Colors.amber.withOpacity(0.2)
+                            : AppTheme.primaryColor.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: widget.role == 'Host' ? Colors.amber : AppTheme.primaryColor,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        widget.role,
+                        style: TextStyle(
+                          color: widget.role == 'Host' ? Colors.amber : Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Transform.translate(
+                offset: const Offset(0, -24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      // Action buttons: Follow, Message, Gift
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Follow button
+                          _buildProfileButton(
+                            icon: _isFollowing ? Icons.check_circle : Icons.person_add_rounded,
+                            label: _isFollowing ? 'Following' : 'Follow',
+                            color: _isFollowing ? AppTheme.bgLight : AppTheme.primaryColor,
+                            borderColor: _isFollowing ? AppTheme.borderColor : Colors.transparent,
+                            textColor: _isFollowing ? AppTheme.textSecondary : Colors.white,
+                            onTap: () {
+                              setState(() {
+                                _isFollowing = !_isFollowing;
+                              });
+                              Get.snackbar(
+                                _isFollowing ? 'Following! 👥' : 'Unfollowed 👥',
+                                _isFollowing
+                                    ? 'You are now following ${widget.targetUserName}.'
+                                    : 'You stopped following ${widget.targetUserName}.',
+                                snackPosition: SnackPosition.BOTTOM,
+                              );
+                            },
+                          ),
+                          
+                          // Message button
+                          _buildProfileButton(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            label: 'Message',
+                            color: AppTheme.bgLight,
+                            borderColor: AppTheme.borderColor,
+                            textColor: Colors.white,
+                            onTap: () {
+                              Get.back();
+                              Get.snackbar(
+                                'Chat Launched 💬',
+                                'Direct messaging ${widget.targetUserName} (Simulated).',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: const Color(0xFF6366F1).withOpacity(0.8),
+                                colorText: Colors.white,
+                              );
+                            },
+                          ),
+                          
+                          // Gift button
+                          _buildProfileButton(
+                            icon: Icons.card_giftcard_rounded,
+                            label: 'Gift',
+                            color: Colors.amber,
+                            textColor: Colors.black87,
+                            onTap: () {
+                              Get.back();
+                              Get.dialog(
+                                SendGiftDialog(
+                                  roomId: widget.roomId,
+                                  occupiedSeatsCount: widget.occupiedSeatsCount,
+                                  targetUserId: widget.targetUserId,
+                                  targetUserName: widget.targetUserName,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Moderation section (Host only)
+                      if (widget.isHost || widget.targetUserId == 'host_001') ...[
+                        const Divider(color: AppTheme.borderColor),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _showModMenu = !_showModMenu;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Moderation Options',
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Icon(
+                                  _showModMenu ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                  color: AppTheme.textTertiary,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_showModMenu) ...[
+                          const SizedBox(height: 8),
+                          _buildModOption(
+                            icon: isMuted ? Icons.mic : Icons.mic_off,
+                            label: isMuted ? 'Unmute Speaker' : 'Mute Speaker',
+                            color: Colors.amber,
+                            onTap: () {
+                              _controller.toggleMuteUser(widget.roomId, widget.targetUserId);
+                              setState(() {}); // Refresh dialog
+                            },
+                          ),
+                          _buildModOption(
+                            icon: Icons.airline_seat_recline_normal,
+                            label: 'Move to Audience',
+                            color: Colors.deepOrangeAccent,
+                            onTap: () {
+                              Get.back();
+                              if (widget.onMoveToAudience != null) {
+                                widget.onMoveToAudience!();
+                              }
+                            },
+                          ),
+                          _buildModOption(
+                            icon: Icons.logout,
+                            label: 'Kick from Room',
+                            color: Colors.orange,
+                            onTap: () {
+                              Get.back();
+                              Get.snackbar(
+                                'Moderation Action',
+                                '${widget.targetUserName} has been kicked from the room.',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: AppTheme.warningColor.withOpacity(0.8),
+                              );
+                            },
+                          ),
+                          _buildModOption(
+                            icon: Icons.block,
+                            label: 'Ban Permanently',
+                            color: Colors.redAccent,
+                            onTap: () {
+                              _controller.banUser(widget.roomId, widget.targetUserId);
+                              Get.back();
+                            },
+                          ),
+                        ],
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    Color borderColor = Colors.transparent,
+    required Color textColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: textColor, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      visualDensity: VisualDensity.compact,
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: color, size: 20),
+      title: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontSize: 13),
+      ),
+      onTap: onTap,
     );
   }
 }
