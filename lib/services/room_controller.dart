@@ -86,6 +86,7 @@ class RoomChatMessage {
       repeatCount: repeatCount ?? this.repeatCount,
     );
   }
+}
 
 class RoomController extends GetxController {
   static RoomController get to => Get.find<RoomController>();
