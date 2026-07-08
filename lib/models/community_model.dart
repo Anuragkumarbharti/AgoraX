@@ -1,5 +1,56 @@
-class Community {
+class CommunityTask {
+  final String id;
+  final String title;
+  final String description;
+  final int target;
+  final int current;
+  final bool isCompleted;
 
+  CommunityTask({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.target,
+    this.current = 0,
+    this.isCompleted = false,
+  });
+
+  CommunityTask copyWith({
+    int? current,
+    bool? isCompleted,
+  }) {
+    return CommunityTask(
+      id: id,
+      title: title,
+      description: description,
+      target: target,
+      current: current ?? this.current,
+      isCompleted: isCompleted ?? this.isCompleted,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'description': description,
+        'target': target,
+        'current': current,
+        'isCompleted': isCompleted,
+      };
+
+  factory CommunityTask.fromJson(Map<String, dynamic> json) {
+    return CommunityTask(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      target: json['target'] ?? 1,
+      current: json['current'] ?? 0,
+      isCompleted: json['isCompleted'] ?? false,
+    );
+  }
+}
+
+class Community {
   Community({
     required this.id,
     required this.name,
@@ -7,14 +58,21 @@ class Community {
     this.image,
     this.banner,
     required this.category,
-    required this.type,
-    required this.owner,
-    required this.admins,
-    required this.members,
+    required this.type, // 'public', 'private', 'paid'
+    required this.owner, // ownerId
+    this.coOwnerIds = const [],
+    required this.admins, // adminIds
+    required this.members, // memberIds
     required this.memberCount,
     required this.isVerified,
-    this.price,
     required this.createdAt,
+    this.level = 1,
+    this.xp = 0,
+    this.creationType = 'coins', // 'coins' or 'apply'
+    this.isApproved = true,
+    this.isLogoUnlocked = true,
+    this.tasks = const [],
+    this.rules = 'Be respectful. No spamming or self-promotion.',
   });
 
   factory Community.fromJson(Map<String, dynamic> json) {
@@ -27,12 +85,19 @@ class Community {
       category: json['category'] ?? '',
       type: json['type'] ?? 'public',
       owner: json['owner'] ?? '',
+      coOwnerIds: List<String>.from(json['coOwnerIds'] ?? []),
       admins: List<String>.from(json['admins'] ?? []),
       members: List<String>.from(json['members'] ?? []),
       memberCount: json['memberCount'] ?? 0,
       isVerified: json['isVerified'] ?? false,
-      price: json['price']?.toDouble(),
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      level: json['level'] ?? 1,
+      xp: json['xp'] ?? 0,
+      creationType: json['creationType'] ?? 'coins',
+      isApproved: json['isApproved'] ?? true,
+      isLogoUnlocked: json['isLogoUnlocked'] ?? true,
+      tasks: (json['tasks'] as List?)?.map((t) => CommunityTask.fromJson(t)).toList() ?? [],
+      rules: json['rules'] ?? 'Be respectful. No spamming or self-promotion.',
     );
   }
   final String id;
@@ -41,29 +106,91 @@ class Community {
   final String? image;
   final String? banner;
   final String category;
-  final String type; // public, private, paid
+  final String type; 
   final String owner;
+  final List<String> coOwnerIds;
   final List<String> admins;
   final List<String> members;
   final int memberCount;
   final bool isVerified;
-  final double? price; // for paid communities
   final DateTime createdAt;
+  
+  // Starmaker/Role attributes
+  final int level;
+  final int xp;
+  final String creationType;
+  final bool isApproved;
+  final bool isLogoUnlocked;
+  final List<CommunityTask> tasks;
+  final String rules;
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'description': description,
-    'image': image,
-    'banner': banner,
-    'category': category,
-    'type': type,
-    'owner': owner,
-    'admins': admins,
-    'members': members,
-    'memberCount': memberCount,
-    'isVerified': isVerified,
-    'price': price,
-    'createdAt': createdAt.toIso8601String(),
-  };
+        'id': id,
+        'name': name,
+        'description': description,
+        'image': image,
+        'banner': banner,
+        'category': category,
+        'type': type,
+        'owner': owner,
+        'coOwnerIds': coOwnerIds,
+        'admins': admins,
+        'members': members,
+        'memberCount': memberCount,
+        'isVerified': isVerified,
+        'createdAt': createdAt.toIso8601String(),
+        'level': level,
+        'xp': xp,
+        'creationType': creationType,
+        'isApproved': isApproved,
+        'isLogoUnlocked': isLogoUnlocked,
+        'tasks': tasks.map((t) => t.toJson()).toList(),
+        'rules': rules,
+      };
+
+  Community copyWith({
+    String? name,
+    String? description,
+    String? image,
+    String? banner,
+    String? category,
+    String? type,
+    String? owner,
+    List<String>? coOwnerIds,
+    List<String>? admins,
+    List<String>? members,
+    int? memberCount,
+    bool? isVerified,
+    int? level,
+    int? xp,
+    String? creationType,
+    bool? isApproved,
+    bool? isLogoUnlocked,
+    List<CommunityTask>? tasks,
+    String? rules,
+  }) {
+    return Community(
+      id: id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      image: image ?? this.image,
+      banner: banner ?? this.banner,
+      category: category ?? this.category,
+      type: type ?? this.type,
+      owner: owner ?? this.owner,
+      coOwnerIds: coOwnerIds ?? this.coOwnerIds,
+      admins: admins ?? this.admins,
+      members: members ?? this.members,
+      memberCount: memberCount ?? this.memberCount,
+      isVerified: isVerified ?? this.isVerified,
+      createdAt: createdAt,
+      level: level ?? this.level,
+      xp: xp ?? this.xp,
+      creationType: creationType ?? this.creationType,
+      isApproved: isApproved ?? this.isApproved,
+      isLogoUnlocked: isLogoUnlocked ?? this.isLogoUnlocked,
+      tasks: tasks ?? this.tasks,
+      rules: rules ?? this.rules,
+    );
+  }
 }

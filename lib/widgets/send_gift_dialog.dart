@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../core/theme.dart';
 import '../services/room_controller.dart';
+import '../services/store_controller.dart';
 
 class GiftItem {
   final String id;
@@ -9,6 +10,8 @@ class GiftItem {
   final String icon;
   final int cost;
   final Color color;
+  final String currency; // 'gold' or 'silver'
+  final int stars;
 
   GiftItem({
     required this.id,
@@ -16,6 +19,8 @@ class GiftItem {
     required this.icon,
     required this.cost,
     required this.color,
+    this.currency = 'gold',
+    this.stars = 0,
   });
 }
 
@@ -24,6 +29,7 @@ class SendGiftDialog extends StatefulWidget {
   final int occupiedSeatsCount;
   final String? targetUserId;
   final String? targetUserName;
+  final Function(String giftName, String giftIcon, int giftCost, String currency)? onGiftSent;
   
   const SendGiftDialog({
     Key? key,
@@ -31,6 +37,7 @@ class SendGiftDialog extends StatefulWidget {
     this.occupiedSeatsCount = 1,
     this.targetUserId,
     this.targetUserName,
+    this.onGiftSent,
   }) : super(key: key);
 
   @override
@@ -39,6 +46,8 @@ class SendGiftDialog extends StatefulWidget {
 
 class _SendGiftDialogState extends State<SendGiftDialog> {
   final List<GiftItem> _gifts = [
+    GiftItem(id: 'gold_star', name: '2-Star Gift', icon: '⭐', cost: 1, color: Colors.yellow, currency: 'gold', stars: 2),
+    GiftItem(id: 'silver_star', name: '1-Star Gift', icon: '✨', cost: 100, color: Colors.grey, currency: 'silver', stars: 1),
     GiftItem(id: 'rose', name: 'Rose', icon: '🌹', cost: 10, color: Colors.redAccent),
     GiftItem(id: 'heart', name: 'Heart', icon: '❤️', cost: 50, color: Colors.pinkAccent),
     GiftItem(id: 'coffee', name: 'Coffee', icon: '☕', cost: 100, color: Colors.brown),
@@ -51,6 +60,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   GiftItem? _selectedGift;
   final RoomController _controller = RoomController.to;
+  final StoreController _storeCtrl = Get.find<StoreController>();
   bool _giftAll = false;
 
   @override
@@ -63,17 +73,48 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     if (_selectedGift == null) return;
 
     final countMultiplier = _giftAll ? widget.occupiedSeatsCount : 1;
-    final success = _controller.sendGiftToRoom(
-      widget.roomId,
-      giftCost: _selectedGift!.cost,
-      giftName: _selectedGift!.name,
-      fromUserName: 'Current User',
-      count: countMultiplier,
-    );
+    final totalCostVal = _selectedGift!.cost * countMultiplier;
 
-    if (success) {
-      Get.back(); // close dialog on success
+    // Check and deduct balance
+    if (_selectedGift!.currency == 'gold') {
+      if (_storeCtrl.coinsBalance.value < totalCostVal) {
+        Get.snackbar('Insufficient Gold 🪙', 'You need $totalCostVal Gold Coins.',
+            snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.withOpacity(0.9), colorText: Colors.white);
+        return;
+      }
+      _storeCtrl.coinsBalance.value -= totalCostVal;
+    } else {
+      if (_storeCtrl.silverCoinsBalance.value < totalCostVal) {
+        Get.snackbar('Insufficient Silver 🥈', 'You need $totalCostVal Silver Coins.',
+            snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.withOpacity(0.9), colorText: Colors.white);
+        return;
+      }
+      _storeCtrl.silverCoinsBalance.value -= totalCostVal;
     }
+
+    // Call RoomController if inside a room
+    if (widget.roomId.isNotEmpty) {
+      _controller.sendGiftToRoom(
+        widget.roomId,
+        giftCost: _selectedGift!.cost,
+        giftName: _selectedGift!.name,
+        fromUserName: 'Current User',
+        count: countMultiplier,
+        deductCoins: false, // Already deducted above
+      );
+    }
+
+    // Trigger callback
+    if (widget.onGiftSent != null) {
+      widget.onGiftSent!(
+        _selectedGift!.name,
+        _selectedGift!.icon,
+        _selectedGift!.cost,
+        _selectedGift!.currency,
+      );
+    }
+
+    Get.back(); // close dialog
   }
 
   @override
@@ -130,32 +171,68 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                       ]
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.bgLight,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.borderColor),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.monetization_on,
-                          color: Colors.amber,
-                          size: 18,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Gold Coins
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.bgLight,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.borderColor),
                         ),
-                        const SizedBox(width: 4),
-                        Obx(() => Text(
-                              '${_controller.walletBalance.value}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            )),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.monetization_on,
+                              color: Colors.amber,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            Obx(() => Text(
+                                  '${_storeCtrl.coinsBalance.value}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Silver Coins
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.bgLight,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.borderColor),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.monetization_on,
+                              color: Colors.grey,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            Obx(() => Text(
+                                  '${_storeCtrl.silverCoinsBalance.value}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -226,9 +303,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.monetization_on,
-                                color: Colors.amber,
+                                color: gift.currency == 'gold' ? Colors.amber : Colors.grey,
                                 size: 12,
                               ),
                               const SizedBox(width: 2),

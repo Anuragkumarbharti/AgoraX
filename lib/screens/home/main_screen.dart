@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../core/theme.dart';
+import '../../services/chat_controller.dart';
 import '../home/home_screen.dart';
 import '../explore/explore_screen.dart';
 import '../rooms/rooms_screen.dart';
-import '../communities/communities_screen.dart';
+import '../chat/chats_list_screen.dart';
 import '../profile/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -20,45 +22,73 @@ class _MainScreenState extends State<MainScreen> {
     const HomeScreen(),
     const ExploreScreen(),
     const RoomsScreen(),
-    const CommunitiesScreen(),
+    const ChatsListScreen(),
     const ProfileScreen(),
   ];
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    // Ensure ChatController is registered
+    if (!Get.isRegistered<ChatController>()) {
+      Get.put(ChatController());
+    }
+    final chatCtrl = Get.find<ChatController>();
+
+    return Scaffold(
       body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() => _selectedIndex = index);
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home_outlined),
-            activeIcon: const Icon(Icons.home_filled),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.search),
-            activeIcon: const Icon(Icons.search),
-            label: 'Explore',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.radio_button_checked_outlined),
-            activeIcon: const Icon(Icons.radio_button_checked),
-            label: 'Rooms',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.people_outline),
-            activeIcon: const Icon(Icons.people),
-            label: 'Communities',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person_outline),
-            activeIcon: const Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
+      bottomNavigationBar: Obx(() {
+        final unread = chatCtrl.totalUnread;
+        return BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() => _selectedIndex = index);
+          },
+          type: BottomNavigationBarType.fixed,
+          items: [
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home_filled),
+              label: 'Home',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.search),
+              activeIcon: Icon(Icons.search),
+              label: 'Explore',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.radio_button_checked_outlined),
+              activeIcon: Icon(Icons.radio_button_checked),
+              label: 'Rooms',
+            ),
+            BottomNavigationBarItem(
+              icon: Badge(
+                isLabelVisible: unread > 0,
+                label: Text(
+                  unread > 9 ? '9+' : '$unread',
+                  style: const TextStyle(fontSize: 10, color: Colors.white),
+                ),
+                backgroundColor: AppTheme.primaryColor,
+                child: const Icon(Icons.chat_bubble_outline_rounded),
+              ),
+              activeIcon: Badge(
+                isLabelVisible: unread > 0,
+                label: Text(
+                  unread > 9 ? '9+' : '$unread',
+                  style: const TextStyle(fontSize: 10, color: Colors.white),
+                ),
+                backgroundColor: AppTheme.primaryColor,
+                child: const Icon(Icons.chat_bubble_rounded),
+              ),
+              label: 'Messages',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        );
+      }),
     );
+  }
 }

@@ -18,7 +18,6 @@ class VoiceRoom {
     required this.createdAt,
     this.startedAt,
     this.endedAt,
-    // Expanded fields
     this.avatar,
     this.banner,
     required this.ownerName,
@@ -41,6 +40,42 @@ class VoiceRoom {
     this.extraCoOwnerSlots = 0,
     this.extraAdminSlots = 0,
     this.extraStarMemberSlots = 0,
+    
+    // New Roles Hierarchy IDs
+    this.founderId = 'uid_anurag_101',
+    required this.managerIds,
+    required this.moderatorIds,
+    required this.hostIds,
+    required this.mentorIds,
+    required this.judgeIds,
+    required this.performerIds,
+    required this.eliteMemberIds,
+    required this.vipMemberIds,
+    required this.memberIds,
+    required this.visitorIds,
+
+    // New Room Settings
+    this.bulletin = 'Welcome to VoxArena! Be respectful and have fun.',
+    this.greetings = 'Hello! Welcome to our Arena.',
+    this.roomTheme = 'Classic Dark',
+    this.wordFilter = '',
+    this.muteAll = false,
+    required this.blockList,
+    this.whoCanJoin = 'Everyone',
+    this.whoCanSpeak = 'Everyone',
+    this.seatPermissions = 'Everyone',
+    this.invitePermissions = 'Everyone',
+    this.giftSettings = 'Enabled',
+    this.recommendationSettings = 'Enabled',
+    this.musicSettings = 'Enabled',
+    this.recordingSettings = 'Enabled',
+    this.eventSettings = 'Enabled',
+    this.autoModeration = 'Enabled',
+
+    // New Special Mode State
+    this.activeMode = 'Social', // Social, Debate, Study, Coaching, Family, Music, Gaming, Community, Event
+    this.pinnedAnnouncement = 'Check out the active Poll in the menu!',
+    this.currentDebateRound = 1,
   });
 
   factory VoiceRoom.fromJson(Map<String, dynamic> json) {
@@ -62,7 +97,6 @@ class VoiceRoom {
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
       startedAt: json['startedAt'] != null ? DateTime.parse(json['startedAt']) : null,
       endedAt: json['endedAt'] != null ? DateTime.parse(json['endedAt']) : null,
-      // Expanded fields
       avatar: json['avatar'],
       banner: json['banner'],
       ownerName: json['ownerName'] ?? 'Anurag Kumar Bharti',
@@ -85,6 +119,42 @@ class VoiceRoom {
       extraCoOwnerSlots: json['extraCoOwnerSlots'] ?? 0,
       extraAdminSlots: json['extraAdminSlots'] ?? 0,
       extraStarMemberSlots: json['extraStarMemberSlots'] ?? 0,
+
+      // New Roles Hierarchy
+      founderId: json['founderId'] ?? 'uid_anurag_101',
+      managerIds: List<String>.from(json['managerIds'] ?? []),
+      moderatorIds: List<String>.from(json['moderatorIds'] ?? []),
+      hostIds: List<String>.from(json['hostIds'] ?? []),
+      mentorIds: List<String>.from(json['mentorIds'] ?? []),
+      judgeIds: List<String>.from(json['judgeIds'] ?? []),
+      performerIds: List<String>.from(json['performerIds'] ?? []),
+      eliteMemberIds: List<String>.from(json['eliteMemberIds'] ?? []),
+      vipMemberIds: List<String>.from(json['vipMemberIds'] ?? []),
+      memberIds: List<String>.from(json['memberIds'] ?? []),
+      visitorIds: List<String>.from(json['visitorIds'] ?? []),
+
+      // Settings
+      bulletin: json['bulletin'] ?? 'Welcome to VoxArena! Be respectful and have fun.',
+      greetings: json['greetings'] ?? 'Hello! Welcome to our Arena.',
+      roomTheme: json['roomTheme'] ?? 'Classic Dark',
+      wordFilter: json['wordFilter'] ?? '',
+      muteAll: json['muteAll'] ?? false,
+      blockList: List<String>.from(json['blockList'] ?? []),
+      whoCanJoin: json['whoCanJoin'] ?? 'Everyone',
+      whoCanSpeak: json['whoCanSpeak'] ?? 'Everyone',
+      seatPermissions: json['seatPermissions'] ?? 'Everyone',
+      invitePermissions: json['invitePermissions'] ?? 'Everyone',
+      giftSettings: json['giftSettings'] ?? 'Enabled',
+      recommendationSettings: json['recommendationSettings'] ?? 'Enabled',
+      musicSettings: json['musicSettings'] ?? 'Enabled',
+      recordingSettings: json['recordingSettings'] ?? 'Enabled',
+      eventSettings: json['eventSettings'] ?? 'Enabled',
+      autoModeration: json['autoModeration'] ?? 'Enabled',
+
+      // Special Mode State
+      activeMode: json['activeMode'] ?? 'Social',
+      pinnedAnnouncement: json['pinnedAnnouncement'] ?? 'Check out the active Poll in the menu!',
+      currentDebateRound: json['currentDebateRound'] ?? 1,
     );
   }
 
@@ -93,7 +163,7 @@ class VoiceRoom {
   final String description;
   final String hostId;
   final String communityId;
-  final String type; // discussion, study, debate, hangout, event
+  final String type; // Social Room, Debate Room, etc.
   final bool isLive;
   final int participantCount;
   final int maxParticipants;
@@ -106,7 +176,6 @@ class VoiceRoom {
   final DateTime? startedAt;
   final DateTime? endedAt;
 
-  // Expanded fields
   final String? avatar;
   final String? banner;
   final String ownerName;
@@ -130,6 +199,42 @@ class VoiceRoom {
   final int extraAdminSlots;
   final int extraStarMemberSlots;
 
+  // New Roles Hierarchy
+  final String founderId;
+  final List<String> managerIds;
+  final List<String> moderatorIds;
+  final List<String> hostIds;
+  final List<String> mentorIds;
+  final List<String> judgeIds;
+  final List<String> performerIds;
+  final List<String> eliteMemberIds;
+  final List<String> vipMemberIds;
+  final List<String> memberIds;
+  final List<String> visitorIds;
+
+  // New Room Settings
+  final String bulletin;
+  final String greetings;
+  final String roomTheme;
+  final String wordFilter;
+  final bool muteAll;
+  final List<String> blockList;
+  final String whoCanJoin;
+  final String whoCanSpeak;
+  final String seatPermissions;
+  final String invitePermissions;
+  final String giftSettings;
+  final String recommendationSettings;
+  final String musicSettings;
+  final String recordingSettings;
+  final String eventSettings;
+  final String autoModeration;
+
+  // Special Mode State
+  final String activeMode;
+  final String pinnedAnnouncement;
+  final int currentDebateRound;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -148,7 +253,6 @@ class VoiceRoom {
     'createdAt': createdAt.toIso8601String(),
     'startedAt': startedAt?.toIso8601String(),
     'endedAt': endedAt?.toIso8601String(),
-    // Expanded fields
     'avatar': avatar,
     'banner': banner,
     'ownerName': ownerName,
@@ -171,5 +275,41 @@ class VoiceRoom {
     'extraCoOwnerSlots': extraCoOwnerSlots,
     'extraAdminSlots': extraAdminSlots,
     'extraStarMemberSlots': extraStarMemberSlots,
+    
+    // New Roles Hierarchy
+    'founderId': founderId,
+    'managerIds': managerIds,
+    'moderatorIds': moderatorIds,
+    'hostIds': hostIds,
+    'mentorIds': mentorIds,
+    'judgeIds': judgeIds,
+    'performerIds': performerIds,
+    'eliteMemberIds': eliteMemberIds,
+    'vipMemberIds': vipMemberIds,
+    'memberIds': memberIds,
+    'visitorIds': visitorIds,
+
+    // Settings
+    'bulletin': bulletin,
+    'greetings': greetings,
+    'roomTheme': roomTheme,
+    'wordFilter': wordFilter,
+    'muteAll': muteAll,
+    'blockList': blockList,
+    'whoCanJoin': whoCanJoin,
+    'whoCanSpeak': whoCanSpeak,
+    'seatPermissions': seatPermissions,
+    'invitePermissions': invitePermissions,
+    'giftSettings': giftSettings,
+    'recommendationSettings': recommendationSettings,
+    'musicSettings': musicSettings,
+    'recordingSettings': recordingSettings,
+    'eventSettings': eventSettings,
+    'autoModeration': autoModeration,
+
+    // Special Mode State
+    'activeMode': activeMode,
+    'pinnedAnnouncement': pinnedAnnouncement,
+    'currentDebateRound': currentDebateRound,
   };
 }

@@ -1,12 +1,36 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/room_model.dart';
+import '../screens/rooms/voice_room_call_screen.dart';
+
+import 'store_controller.dart';
+
+class RoomChatMessage {
+  final String senderId;
+  final String senderName;
+  final String text;
+  final String? senderRole;
+  final String? senderAvatar;
+  final DateTime timestamp;
+  final bool isSystem;
+
+  RoomChatMessage({
+    required this.senderId,
+    required this.senderName,
+    required this.text,
+    this.senderRole,
+    this.senderAvatar,
+    required this.timestamp,
+    this.isSystem = false,
+  });
+}
 
 class RoomController extends GetxController {
   static RoomController get to => Get.find<RoomController>();
 
-  final RxInt walletBalance = 1000.obs;
+  RxInt get walletBalance => Get.find<StoreController>().coinsBalance;
   final RxList<VoiceRoom> rooms = <VoiceRoom>[].obs;
   
   // Track participant states per room (simulated local states)
@@ -15,27 +39,153 @@ class RoomController extends GetxController {
   // roomId -> list of banned user IDs
   final RxMap<String, List<String>> bannedUsers = <String, List<String>>{}.obs;
 
+  // roomId -> { userId -> { 'duration': String, 'timestamp': DateTime, 'unbanTime': DateTime? } }
+  final RxMap<String, Map<String, Map<String, dynamic>>> roomBannedUsersDetailed = <String, Map<String, Map<String, dynamic>>>{}.obs;
+
+  // Favorites and Recents tracking for discovery
+  final RxList<String> favoriteRoomIds = <String>[].obs;
+  final RxList<String> recentRoomIds = <String>[].obs;
+
+  // Room Chat messages (roomId -> list of messages)
+  final RxMap<String, RxList<RoomChatMessage>> roomChats = <String, RxList<RoomChatMessage>>{}.obs;
+
   @override
   void onInit() {
     super.onInit();
     _loadInitialRooms();
   }
 
+  void initializeChatForRoom(String roomId) {
+    if (!roomChats.containsKey(roomId)) {
+      roomChats[roomId] = <RoomChatMessage>[
+        RoomChatMessage(
+          senderId: 'system',
+          senderName: 'System',
+          text: 'Welcome to the Room! Please read the rules and stay respectful. 🎉',
+          timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+          isSystem: true,
+        ),
+        RoomChatMessage(
+          senderId: 'user_co_1',
+          senderName: 'Priya Sharma',
+          senderRole: 'Co-owner',
+          senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+          text: 'Hey everyone! Welcome to VoxArena. 😊',
+          timestamp: DateTime.now().subtract(const Duration(minutes: 4)),
+        ),
+        RoomChatMessage(
+          senderId: 'user_adm_1',
+          senderName: 'Vikram Aditya',
+          senderRole: 'Admin',
+          senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+          text: 'Glad to be here! Let\'s have a great conversation today.',
+          timestamp: DateTime.now().subtract(const Duration(minutes: 3)),
+        ),
+      ].obs;
+    }
+  }
+
+  void sendRoomMessage(String roomId, String text,
+      {String? senderId, String? senderName, String? senderRole, String? senderAvatar}) {
+    initializeChatForRoom(roomId);
+
+    // Add local message
+    roomChats[roomId]!.add(
+      RoomChatMessage(
+        senderId: senderId ?? 'uid_anurag_101',
+        senderName: senderName ?? 'You',
+        senderRole: senderRole ?? 'Owner',
+        senderAvatar: senderAvatar,
+        text: text,
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    // Simulate auto-responses based on keywords
+    if (text.toLowerCase().contains('hello') || text.toLowerCase().contains('hi')) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (roomChats.containsKey(roomId)) {
+          roomChats[roomId]!.add(
+            RoomChatMessage(
+              senderId: 'user_co_1',
+              senderName: 'Priya Sharma',
+              senderRole: 'Co-owner',
+              senderAvatar:
+                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+              text: 'Hello there! Welcome in! 👋',
+              timestamp: DateTime.now(),
+            ),
+          );
+        }
+      });
+    } else if (text.toLowerCase().contains('music') ||
+        text.toLowerCase().contains('song')) {
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (roomChats.containsKey(roomId)) {
+          roomChats[roomId]!.add(
+            RoomChatMessage(
+              senderId: 'user_star_1',
+              senderName: 'Rahul Roy',
+              senderRole: 'Star Member',
+              senderAvatar:
+                  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
+              text: 'Did someone say music? I\'m queueing up a song! 🎵',
+              timestamp: DateTime.now(),
+            ),
+          );
+        }
+      });
+    }
+  }
+
+  void toggleFavoriteRoom(String roomId) {
+    if (favoriteRoomIds.contains(roomId)) {
+      favoriteRoomIds.remove(roomId);
+      Get.snackbar(
+        'Removed from Favorites',
+        'Arena has been removed from your favorites.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.black.withOpacity(0.8),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } else {
+      favoriteRoomIds.add(roomId);
+      Get.snackbar(
+        'Added to Favorites',
+        'Arena has been added to your favorites!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.black.withOpacity(0.8),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  void addRecentRoom(String roomId) {
+    recentRoomIds.remove(roomId); // Bring to top
+    recentRoomIds.insert(0, roomId);
+    if (recentRoomIds.length > 10) {
+      recentRoomIds.removeLast();
+    }
+  }
+
   void _loadInitialRooms() {
     final now = DateTime.now();
     rooms.assignAll([
+      // 1. Social Room
       VoiceRoom(
         id: '#VX100001',
-        name: 'Coding Hub 🚀',
+        name: 'Coding Hub 🚀 (Social Room)',
         description: 'The ultimate space for Flutter & Dart developers to share, debug, and learn together.',
-        hostId: 'host_001',
-        ownerName: 'Anurag Kumar Bharti',
+        hostId: 'uid_anurag_101', 
+        ownerName: 'Anurag Kumar Bharti', 
         communityId: 'comm_001',
-        type: 'Public',
+        type: 'Social Room',
         isLive: true,
         participantCount: 142,
         maxParticipants: 500,
-        speakerIds: ['host_001', 'user_abc', 'user_xyz'],
+        speakerIds: ['uid_anurag_101', 'user_co_1', 'user_adm_1'],
         listenerIds: List.generate(139, (i) => 'listener_$i'),
         allowRecording: true,
         allowScreenShare: true,
@@ -47,7 +197,7 @@ class RoomController extends GetxController {
         totalMembers: 1200,
         totalFollowers: 3400,
         totalGiftsReceived: 24500,
-        category: 'Education Room',
+        category: 'Social Hub',
         country: 'India',
         language: 'Hindi & English',
         tags: ['flutter', 'dart', 'coding', 'tech'],
@@ -56,126 +206,136 @@ class RoomController extends GetxController {
           'No spamming or self-promotion without approval.',
           'Keep discussion relevant to software development.'
         ],
-        coOwnerIds: ['user_abc'],
-        adminIds: ['user_xyz', 'user_pqr'],
-        starMemberIds: ['user_st1', 'user_st2'],
-        avatar: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=150',
-        banner: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600',
+        founderId: 'uid_anurag_101',
+        coOwnerIds: ['user_co_1'],
+        adminIds: ['user_adm_1'],
+        starMemberIds: ['user_star_1'],
+        managerIds: ['user_man_1'],
+        moderatorIds: ['user_mod_1'],
+        hostIds: ['user_host_1'],
+        mentorIds: ['user_ment_1'],
+        judgeIds: ['user_jd_1'],
+        performerIds: ['user_perf_1'],
+        eliteMemberIds: ['user_elite_1'],
+        vipMemberIds: ['user_vip_1'],
+        memberIds: ['user_memb_1'],
+        visitorIds: ['user_vis_1'],
+        blockList: [],
+        bulletin: 'Welcome to Coding Hub! Check out the active pinned quiz.',
+        greetings: 'Welcome to the tech arena, programmer!',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Social',
+        pinnedAnnouncement: 'Quiz starts in 10 minutes!',
       ),
+      // 2. Debate Room
       VoiceRoom(
         id: '#VX100002',
-        name: 'Music Lovers Acoustic 🎸',
-        description: 'Singing, acoustic guitars, and chatting about our favorite bands and indie records.',
-        hostId: 'host_002',
-        ownerName: 'Siddharth Roy',
-        communityId: 'comm_002',
-        type: 'Public',
-        isLive: true,
-        participantCount: 89,
-        maxParticipants: 300,
-        speakerIds: ['host_002', 'musician_1'],
-        listenerIds: List.generate(87, (i) => 'listener_$i'),
-        allowRecording: false,
-        allowScreenShare: false,
-        createdAt: now.subtract(const Duration(days: 15)),
-        startedAt: now.subtract(const Duration(hours: 1)),
-        isPermanent: true,
-        level: 2,
-        xp: 1200,
-        totalMembers: 450,
-        totalFollowers: 890,
-        totalGiftsReceived: 5600,
-        category: 'Music Room',
-        country: 'India',
-        language: 'English',
-        tags: ['music', 'singing', 'acoustic', 'chill'],
-        rules: [
-          'Wait for your turn on the mic.',
-          'Support other musicians with virtual gifts!',
-          'Keep criticism constructive and polite.'
-        ],
-        coOwnerIds: [],
-        adminIds: ['admin_m1'],
-        starMemberIds: ['star_m1'],
-        avatar: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
-        banner: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600',
-      ),
-      VoiceRoom(
-        id: 'room_temp_1',
-        name: 'Chill Hangout Tonight',
-        description: 'Just checking in, casual late night chats. Everyone is welcome to grab a mic!',
-        hostId: 'host_temp_1',
-        ownerName: 'Priya Sharma',
-        communityId: 'comm_003',
-        type: 'Public',
-        isLive: true,
-        participantCount: 14,
-        maxParticipants: 50,
-        speakerIds: ['host_temp_1'],
-        listenerIds: List.generate(13, (i) => 'listener_temp_$i'),
-        allowRecording: true,
-        allowScreenShare: true,
-        createdAt: now.subtract(const Duration(hours: 2)),
-        startedAt: now.subtract(const Duration(minutes: 90)),
-        isPermanent: false,
-        level: 1,
-        xp: 0,
-        totalMembers: 0,
-        totalFollowers: 0,
-        totalGiftsReceived: 0,
-        category: 'Podcast Room',
-        country: 'India',
-        language: 'Hindi',
-        tags: ['chill', 'chat', 'night'],
-        rules: ['No abusive language.'],
-        coOwnerIds: [],
-        adminIds: [],
-        starMemberIds: [],
-      ),
-      VoiceRoom(
-        id: 'room_temp_2',
-        name: 'Debate: AI vs Human Creativity',
+        name: 'AI vs Human Creative Debate ⚖️',
         description: 'Is generative AI replacing artists and writers? Bring your strong arguments.',
-        hostId: 'host_temp_2',
+        hostId: 'user_host_1',
         ownerName: 'Vikram Aditya',
-        communityId: 'comm_004',
-        type: 'Public',
+        communityId: 'comm_002',
+        type: 'Debate Room',
         isLive: true,
         participantCount: 45,
         maxParticipants: 100,
-        speakerIds: ['host_temp_2', 'debater_1', 'debater_2'],
-        listenerIds: List.generate(42, (i) => 'listener_temp2_$i'),
+        speakerIds: ['user_host_1', 'debater_1', 'debater_2', 'uid_anurag_101'],
+        listenerIds: List.generate(41, (i) => 'listener_deb_$i'),
         allowRecording: true,
         allowScreenShare: true,
-        createdAt: now.subtract(const Duration(hours: 1)),
+        createdAt: now.subtract(const Duration(days: 2)),
         startedAt: now.subtract(const Duration(minutes: 45)),
-        isPermanent: false,
-        level: 1,
-        xp: 0,
-        totalMembers: 0,
-        totalFollowers: 0,
-        totalGiftsReceived: 0,
-        category: 'Debate Room',
+        isPermanent: true,
+        level: 2,
+        xp: 1500,
+        totalMembers: 450,
+        totalFollowers: 900,
+        totalGiftsReceived: 1200,
+        category: 'Debate Arena',
         country: 'India',
         language: 'English',
         tags: ['debate', 'ai', 'creativity', 'future'],
-        rules: [
-          'No personal attacks.',
-          'Speak for maximum 3 minutes at a time.',
-          'Let others complete their point.'
-        ],
-        coOwnerIds: [],
-        adminIds: [],
+        rules: ['Strictly respect timers.', 'No personal insults.'],
+        founderId: 'user_adm_1',
+        coOwnerIds: ['uid_anurag_101'], // User is co-owner
+        adminIds: ['user_adm_2'],
         starMemberIds: [],
+        managerIds: ['user_man_1'],
+        moderatorIds: ['user_mod_1'],
+        hostIds: ['user_host_1'],
+        mentorIds: [],
+        judgeIds: ['uid_anurag_101', 'user_jd_2'], // User is a judge
+        performerIds: [],
+        eliteMemberIds: [],
+        vipMemberIds: [],
+        memberIds: [],
+        visitorIds: [],
+        blockList: [],
+        bulletin: 'Debate Mode is Active. Round 2: 3 mins per candidate.',
+        greetings: 'Welcome to the Debate Arena. Listen, debate, decide!',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Debate',
+        pinnedAnnouncement: 'Current Speaker: Candidate 1 (AI Pros)',
       ),
+      // 3. Study Room
       VoiceRoom(
         id: '#VX100003',
-        name: 'Weekly Startup Pitch Session 💡',
-        description: 'Pitch your startup ideas and get feedback from experienced co-founders.',
-        hostId: 'host_003',
+        name: 'UPSC Aspirants Study Zone 📚',
+        description: 'Focus room for UPSC aspirants. Silent reading, group quizzes, and key notes.',
+        hostId: 'user_host_2',
         ownerName: 'Amit Mehra',
-        communityId: 'comm_005',
-        type: 'Public',
+        communityId: 'comm_003',
+        type: 'Study Room',
+        isLive: true,
+        participantCount: 78,
+        maxParticipants: 150,
+        speakerIds: ['user_host_2', 'user_ment_1'],
+        listenerIds: List.generate(76, (i) => 'listener_std_$i'),
+        allowRecording: true,
+        allowScreenShare: false,
+        createdAt: now.subtract(const Duration(days: 5)),
+        startedAt: now.subtract(const Duration(hours: 1)),
+        isPermanent: true,
+        level: 3,
+        xp: 2200,
+        totalMembers: 800,
+        totalFollowers: 1900,
+        totalGiftsReceived: 4500,
+        category: 'Study Hub',
+        country: 'India',
+        language: 'Hindi',
+        tags: ['study', 'upsc', 'focus', 'gk'],
+        rules: ['Keep mic muted unless asking a question.', 'Study notes only.'],
+        founderId: 'user_host_2',
+        coOwnerIds: [],
+        adminIds: ['uid_anurag_101'], // User is Admin
+        starMemberIds: [],
+        managerIds: [],
+        moderatorIds: [],
+        hostIds: ['user_host_2'],
+        mentorIds: ['user_ment_1'],
+        judgeIds: [],
+        performerIds: [],
+        eliteMemberIds: [],
+        vipMemberIds: [],
+        memberIds: [],
+        visitorIds: [],
+        blockList: [],
+        bulletin: 'Study Room Active: Note pinned in menu about Indian Polity.',
+        greetings: 'Welcome to the Silent Study Room.',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Study',
+        pinnedAnnouncement: 'Polity quiz starting at 4 PM!',
+      ),
+      // 4. Coaching Room
+      VoiceRoom(
+        id: '#VX100004',
+        name: 'Startup Funding Pitch Clinic 💡',
+        description: 'Pitch your startup ideas and get feedback from experienced co-founders.',
+        hostId: 'uid_anurag_101', // User is Founder/Host
+        ownerName: 'Anurag Kumar Bharti',
+        communityId: 'comm_004',
+        type: 'Coaching Room',
         isLive: false,
         participantCount: 0,
         maxParticipants: 200,
@@ -190,53 +350,653 @@ class RoomController extends GetxController {
         totalMembers: 300,
         totalFollowers: 670,
         totalGiftsReceived: 12000,
-        category: 'Business Room',
+        category: 'Coaching Hub',
         country: 'Global',
         language: 'English',
         tags: ['startup', 'pitch', 'funding', 'ideas'],
         rules: ['Strictly professional communication only.'],
+        founderId: 'uid_anurag_101',
         coOwnerIds: [],
-        adminIds: ['admin_b1'],
+        adminIds: ['user_adm_1'],
         starMemberIds: [],
-        avatar: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=150',
-        banner: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600',
+        managerIds: [],
+        moderatorIds: [],
+        hostIds: ['uid_anurag_101'],
+        mentorIds: ['user_ment_2'],
+        judgeIds: [],
+        performerIds: [],
+        eliteMemberIds: [],
+        vipMemberIds: [],
+        memberIds: [],
+        visitorIds: [],
+        blockList: [],
+        bulletin: 'Get your decks reviewed live by top mentors.',
+        greetings: 'Welcome to the VoxArena Pitch Clinic.',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Coaching',
+        pinnedAnnouncement: 'Next cohort opens next Monday!',
       ),
+      // 5. Family Room
       VoiceRoom(
-        id: 'room_temp_3',
-        name: 'Upcoming: Gaming Clan Q&A',
-        description: 'Discuss strategy and tournament lineups for esports next week.',
-        hostId: 'host_temp_3',
-        ownerName: 'Hydra OP',
+        id: '#VX100005',
+        name: 'Sharma Family Weekend Chat ❤️',
+        description: 'Private family gathering place for weekend gossip, updates and jokes.',
+        hostId: 'user_co_1',
+        ownerName: 'Priya Sharma',
+        communityId: 'comm_005',
+        type: 'Family Room',
+        isLive: true,
+        participantCount: 15,
+        maxParticipants: 30,
+        speakerIds: ['user_co_1', 'uid_anurag_101'],
+        listenerIds: List.generate(13, (i) => 'listener_fam_$i'),
+        allowRecording: false,
+        allowScreenShare: true,
+        createdAt: now.subtract(const Duration(days: 30)),
+        startedAt: now.subtract(const Duration(minutes: 15)),
+        isPermanent: true,
+        level: 5,
+        xp: 4500,
+        totalMembers: 45,
+        totalFollowers: 12,
+        totalGiftsReceived: 90000,
+        category: 'Family Gathering',
+        country: 'India',
+        language: 'Hindi',
+        tags: ['family', 'gossip', 'weekend', 'love'],
+        rules: ['Keep it friendly and warm.', 'Only for family members.'],
+        founderId: 'user_co_1',
+        coOwnerIds: ['uid_anurag_101'], // User is co-owner
+        adminIds: [],
+        starMemberIds: [],
+        managerIds: [],
+        moderatorIds: [],
+        hostIds: ['user_co_1'],
+        mentorIds: [],
+        judgeIds: [],
+        performerIds: [],
+        eliteMemberIds: [],
+        vipMemberIds: [],
+        memberIds: [],
+        visitorIds: [],
+        blockList: [],
+        bulletin: 'Happy Birthday Dadu! Send your greetings here.',
+        greetings: 'Namaste! Welcome home.',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Family',
+        pinnedAnnouncement: 'Grandparents anniversary video call tonight!',
+      ),
+      // 6. Music Room
+      VoiceRoom(
+        id: '#VX100006',
+        name: 'Unplugged Acoustic Lounge 🎸',
+        description: 'Sing your heart out! Performers sing, listeners chill and send gifts.',
+        hostId: 'user_host_1',
+        ownerName: 'Rahul Roy',
         communityId: 'comm_006',
-        type: 'Public',
+        type: 'Music Room',
+        isLive: true,
+        participantCount: 198,
+        maxParticipants: 500,
+        speakerIds: ['user_host_1', 'user_perf_1', 'uid_anurag_101'],
+        listenerIds: List.generate(195, (i) => 'listener_mus_$i'),
+        allowRecording: true,
+        allowScreenShare: false,
+        createdAt: now.subtract(const Duration(days: 12)),
+        startedAt: now.subtract(const Duration(hours: 2)),
+        isPermanent: true,
+        level: 6,
+        xp: 5900,
+        totalMembers: 1500,
+        totalFollowers: 3200,
+        totalGiftsReceived: 145000,
+        category: 'Music Stage',
+        country: 'India',
+        language: 'Hindi & English',
+        tags: ['music', 'unplugged', 'singing', 'guitar'],
+        rules: ['Wait for your slot in the queue.', 'Appreciate all performers.'],
+        founderId: 'user_host_1',
+        coOwnerIds: [],
+        adminIds: ['user_adm_1'],
+        starMemberIds: ['uid_anurag_101'], // User is star member
+        managerIds: [],
+        moderatorIds: [],
+        hostIds: ['user_host_1'],
+        mentorIds: [],
+        judgeIds: [],
+        performerIds: ['user_perf_1', 'uid_anurag_101'], // User is a performer!
+        eliteMemberIds: [],
+        vipMemberIds: [],
+        memberIds: [],
+        visitorIds: [],
+        blockList: [],
+        bulletin: 'Music Queue is Open! Tap Queue to reserve a song.',
+        greetings: 'Welcome to the unplugged stage, tune in!',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Music',
+        pinnedAnnouncement: 'Current Song: Dil Chahta Hai by Rahul',
+      ),
+      // 7. Gaming Room
+      VoiceRoom(
+        id: '#VX100007',
+        name: 'Esports Clan BGMI Match Room 🎮',
+        description: 'BGMI esports scrims, lineup matches, and lobby chats.',
+        hostId: 'user_host_3',
+        ownerName: 'Hydra OP',
+        communityId: 'comm_007',
+        type: 'Gaming Room',
+        isLive: true,
+        participantCount: 88,
+        maxParticipants: 100,
+        speakerIds: ['user_host_3', 'player_1', 'player_2', 'player_3'],
+        listenerIds: List.generate(84, (i) => 'listener_gam_$i'),
+        allowRecording: false,
+        allowScreenShare: true,
+        createdAt: now.subtract(const Duration(days: 3)),
+        startedAt: now.subtract(const Duration(minutes: 30)),
+        isPermanent: false,
+        level: 1,
+        xp: 150,
+        totalMembers: 200,
+        totalFollowers: 450,
+        totalGiftsReceived: 800,
+        category: 'Gaming Zone',
+        country: 'India',
+        language: 'Hindi',
+        tags: ['gaming', 'bgmi', 'esports', 'clan'],
+        rules: ['No abusive language.', 'Focus on match strategy.'],
+        founderId: 'user_host_3',
+        coOwnerIds: [],
+        adminIds: [],
+        starMemberIds: [],
+        managerIds: [],
+        moderatorIds: [],
+        hostIds: ['user_host_3'],
+        mentorIds: [],
+        judgeIds: [],
+        performerIds: [],
+        eliteMemberIds: [],
+        vipMemberIds: [],
+        memberIds: ['uid_anurag_101'], // User is member
+        visitorIds: [],
+        blockList: [],
+        bulletin: 'Lobby code will be shared on voice.',
+        greetings: 'Join the gaming battle station!',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Gaming',
+        pinnedAnnouncement: 'Custom Scrims at 9 PM!',
+      ),
+      // 8. Community Room
+      VoiceRoom(
+        id: '#VX100008',
+        name: 'VoxArena Global Plaza 🌐',
+        description: 'Open square for discussions, announcements, and global networking.',
+        hostId: 'uid_anurag_101', // User is Founder/Host
+        ownerName: 'Anurag Kumar Bharti',
+        communityId: 'comm_008',
+        type: 'Community Room',
+        isLive: true,
+        participantCount: 350,
+        maxParticipants: 1000,
+        speakerIds: ['uid_anurag_101', 'user_adm_1', 'user_adm_2'],
+        listenerIds: List.generate(347, (i) => 'listener_comm_$i'),
+        allowRecording: true,
+        allowScreenShare: true,
+        createdAt: now.subtract(const Duration(days: 45)),
+        startedAt: now.subtract(const Duration(hours: 4)),
+        isPermanent: true,
+        level: 8,
+        xp: 7500,
+        totalMembers: 5000,
+        totalFollowers: 9800,
+        totalGiftsReceived: 345000,
+        category: 'Community Plaza',
+        country: 'Global',
+        language: 'English',
+        tags: ['global', 'networking', 'talk', 'news'],
+        rules: ['Maintain standard community guidelines.'],
+        founderId: 'uid_anurag_101',
+        coOwnerIds: [],
+        adminIds: ['user_adm_1', 'user_adm_2'],
+        starMemberIds: [],
+        managerIds: [],
+        moderatorIds: [],
+        hostIds: ['uid_anurag_101'],
+        mentorIds: [],
+        judgeIds: [],
+        performerIds: [],
+        eliteMemberIds: [],
+        vipMemberIds: [],
+        memberIds: [],
+        visitorIds: [],
+        blockList: [],
+        bulletin: 'Weekly Townhall starts now.',
+        greetings: 'Welcome to the global townhall.',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Community',
+        pinnedAnnouncement: 'Rules update pinned in rules tab.',
+      ),
+      // 9. Private Room
+      VoiceRoom(
+        id: '#VX100009',
+        name: 'Secret Strategy Room 🔒',
+        description: 'Password protected workspace for internal debates and plans.',
+        hostId: 'uid_anurag_101', // User is Founder
+        ownerName: 'Anurag Kumar Bharti',
+        communityId: 'comm_009',
+        type: 'Private Room',
         isLive: false,
         participantCount: 0,
-        maxParticipants: 50,
+        maxParticipants: 10,
         speakerIds: [],
         listenerIds: [],
         allowRecording: false,
         allowScreenShare: true,
         createdAt: now,
-        isPermanent: false,
+        isPermanent: true,
         level: 1,
         xp: 0,
-        totalMembers: 0,
+        totalMembers: 3,
         totalFollowers: 0,
         totalGiftsReceived: 0,
-        category: 'Gaming Room',
-        country: 'India',
-        language: 'Hindi',
-        tags: ['esports', 'pubg', 'gaming', 'chill'],
-        rules: ['No toxicity.'],
+        category: 'Secret Room',
+        country: 'Global',
+        language: 'English',
+        tags: ['private', 'confidential', 'strategy'],
+        rules: ['Do not share conversation outside this room.'],
+        founderId: 'uid_anurag_101',
         coOwnerIds: [],
         adminIds: [],
         starMemberIds: [],
-      )
+        managerIds: [],
+        moderatorIds: [],
+        hostIds: [],
+        mentorIds: [],
+        judgeIds: [],
+        performerIds: [],
+        eliteMemberIds: [],
+        vipMemberIds: [],
+        memberIds: [],
+        visitorIds: [],
+        blockList: [],
+        bulletin: 'Internal design review room.',
+        greetings: 'Authorized personnel only.',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Social',
+        pinnedAnnouncement: 'NDA in effect.',
+      ),
+      // 10. Event Room
+      VoiceRoom(
+        id: '#VX100010',
+        name: 'VoxArena Annual Awards Ceremony 🏆',
+        description: 'Grand annual awards for creators, agencies, and top contributors of VoxArena.',
+        hostId: 'user_host_4',
+        ownerName: 'VoxArena Team',
+        communityId: 'comm_010',
+        type: 'Event Room',
+        isLive: true,
+        participantCount: 940,
+        maxParticipants: 2000,
+        speakerIds: ['user_host_4', 'user_perf_1', 'user_perf_2', 'uid_anurag_101'],
+        listenerIds: List.generate(936, (i) => 'listener_evt_$i'),
+        allowRecording: true,
+        allowScreenShare: true,
+        createdAt: now.subtract(const Duration(days: 1)),
+        startedAt: now.subtract(const Duration(minutes: 10)),
+        isPermanent: true,
+        level: 10,
+        xp: 9900,
+        totalMembers: 12000,
+        totalFollowers: 25000,
+        totalGiftsReceived: 980000,
+        category: 'Event Hall',
+        country: 'Global',
+        language: 'English',
+        tags: ['awards', 'gala', 'event', 'celebrate'],
+        rules: ['Applaud nicely in chat.', 'Enjoy the show!'],
+        founderId: 'user_host_4',
+        coOwnerIds: [],
+        adminIds: [],
+        starMemberIds: [],
+        managerIds: [],
+        moderatorIds: [],
+        hostIds: ['user_host_4'],
+        mentorIds: [],
+        judgeIds: [],
+        performerIds: ['user_perf_1', 'user_perf_2'],
+        eliteMemberIds: ['uid_anurag_101'], // User is Elite Member
+        vipMemberIds: [],
+        memberIds: [],
+        visitorIds: [],
+        blockList: [],
+        bulletin: 'Grand opening ceremony underway!',
+        greetings: 'Welcome to the VoxArena Gala!',
+        roomTheme: 'Classic Dark',
+        activeMode: 'Event',
+        pinnedAnnouncement: 'Next up: Best Creator Award at 4:30 PM',
+      ),
     ]);
   }
 
+  void changeUserRole(String roomId, String userId, String newRole) {
+    final int index = rooms.indexWhere((r) => r.id == roomId);
+    if (index != -1) {
+      final old = rooms[index];
+      
+      // Clear user from all other roles first
+      List<String> coOwners = List<String>.from(old.coOwnerIds)..remove(userId);
+      List<String> admins = List<String>.from(old.adminIds)..remove(userId);
+      List<String> starMembers = List<String>.from(old.starMemberIds)..remove(userId);
+      
+      List<String> managers = List<String>.from(old.managerIds)..remove(userId);
+      List<String> moderators = List<String>.from(old.moderatorIds)..remove(userId);
+      List<String> hosts = List<String>.from(old.hostIds)..remove(userId);
+      List<String> mentors = List<String>.from(old.mentorIds)..remove(userId);
+      List<String> judges = List<String>.from(old.judgeIds)..remove(userId);
+      List<String> performers = List<String>.from(old.performerIds)..remove(userId);
+      List<String> elites = List<String>.from(old.eliteMemberIds)..remove(userId);
+      List<String> vips = List<String>.from(old.vipMemberIds)..remove(userId);
+      List<String> members = List<String>.from(old.memberIds)..remove(userId);
+      List<String> visitors = List<String>.from(old.visitorIds)..remove(userId);
+
+      // Assign to the new role
+      if (newRole == 'Co-owner') coOwners.add(userId);
+      else if (newRole == 'Admin') admins.add(userId);
+      else if (newRole == 'Star Member') starMembers.add(userId);
+      else if (newRole == 'Manager') managers.add(userId);
+      else if (newRole == 'Moderator') moderators.add(userId);
+      else if (newRole == 'Host') hosts.add(userId);
+      else if (newRole == 'Mentor') mentors.add(userId);
+      else if (newRole == 'Judge') judges.add(userId);
+      else if (newRole == 'Performer') performers.add(userId);
+      else if (newRole == 'Elite Member') elites.add(userId);
+      else if (newRole == 'VIP Member') vips.add(userId);
+      else if (newRole == 'Member') members.add(userId);
+      else if (newRole == 'Visitor') visitors.add(userId);
+
+      rooms[index] = VoiceRoom(
+        id: old.id,
+        name: old.name,
+        description: old.description,
+        hostId: old.hostId,
+        communityId: old.communityId,
+        type: old.type,
+        isLive: old.isLive,
+        participantCount: old.participantCount,
+        maxParticipants: old.maxParticipants,
+        speakerIds: old.speakerIds,
+        listenerIds: old.listenerIds,
+        recordingUrl: old.recordingUrl,
+        allowRecording: old.allowRecording,
+        allowScreenShare: old.allowScreenShare,
+        createdAt: old.createdAt,
+        startedAt: old.startedAt,
+        endedAt: old.endedAt,
+        avatar: old.avatar,
+        banner: old.banner,
+        ownerName: old.ownerName,
+        category: old.category,
+        country: old.country,
+        language: old.language,
+        tags: old.tags,
+        rules: old.rules,
+        level: old.level,
+        xp: old.xp,
+        badges: old.badges,
+        totalMembers: old.totalMembers,
+        totalFollowers: old.totalFollowers,
+        totalGiftsReceived: old.totalGiftsReceived,
+        isPermanent: old.isPermanent,
+        entryPermission: old.entryPermission,
+        coOwnerIds: coOwners,
+        adminIds: admins,
+        starMemberIds: starMembers,
+        extraCoOwnerSlots: old.extraCoOwnerSlots,
+        extraAdminSlots: old.extraAdminSlots,
+        extraStarMemberSlots: old.extraStarMemberSlots,
+        founderId: old.founderId,
+        managerIds: managers,
+        moderatorIds: moderators,
+        hostIds: hosts,
+        mentorIds: mentors,
+        judgeIds: judges,
+        performerIds: performers,
+        eliteMemberIds: elites,
+        vipMemberIds: vips,
+        memberIds: members,
+        visitorIds: visitors,
+        bulletin: old.bulletin,
+        greetings: old.greetings,
+        roomTheme: old.roomTheme,
+        wordFilter: old.wordFilter,
+        muteAll: old.muteAll,
+        blockList: old.blockList,
+        whoCanJoin: old.whoCanJoin,
+        whoCanSpeak: old.whoCanSpeak,
+        seatPermissions: old.seatPermissions,
+        invitePermissions: old.invitePermissions,
+        giftSettings: old.giftSettings,
+        recommendationSettings: old.recommendationSettings,
+        musicSettings: old.musicSettings,
+        recordingSettings: old.recordingSettings,
+        eventSettings: old.eventSettings,
+        autoModeration: old.autoModeration,
+        activeMode: old.activeMode,
+        pinnedAnnouncement: old.pinnedAnnouncement,
+        currentDebateRound: old.currentDebateRound,
+      );
+
+      Get.snackbar(
+        'Role Updated',
+        'User role changed to $newRole successfully.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void removeUserRole(String roomId, String userId) {
+    changeUserRole(roomId, userId, 'Visitor');
+  }
+
+  void toggleMuteAll(String roomId) {
+    final int index = rooms.indexWhere((r) => r.id == roomId);
+    if (index != -1) {
+      final old = rooms[index];
+      final bool newMuteAll = !old.muteAll;
+      
+      rooms[index] = VoiceRoom(
+        id: old.id,
+        name: old.name,
+        description: old.description,
+        hostId: old.hostId,
+        communityId: old.communityId,
+        type: old.type,
+        isLive: old.isLive,
+        participantCount: old.participantCount,
+        maxParticipants: old.maxParticipants,
+        speakerIds: old.speakerIds,
+        listenerIds: old.listenerIds,
+        recordingUrl: old.recordingUrl,
+        allowRecording: old.allowRecording,
+        allowScreenShare: old.allowScreenShare,
+        createdAt: old.createdAt,
+        startedAt: old.startedAt,
+        endedAt: old.endedAt,
+        avatar: old.avatar,
+        banner: old.banner,
+        ownerName: old.ownerName,
+        category: old.category,
+        country: old.country,
+        language: old.language,
+        tags: old.tags,
+        rules: old.rules,
+        level: old.level,
+        xp: old.xp,
+        badges: old.badges,
+        totalMembers: old.totalMembers,
+        totalFollowers: old.totalFollowers,
+        totalGiftsReceived: old.totalGiftsReceived,
+        isPermanent: old.isPermanent,
+        entryPermission: old.entryPermission,
+        coOwnerIds: old.coOwnerIds,
+        adminIds: old.adminIds,
+        starMemberIds: old.starMemberIds,
+        extraCoOwnerSlots: old.extraCoOwnerSlots,
+        extraAdminSlots: old.extraAdminSlots,
+        extraStarMemberSlots: old.extraStarMemberSlots,
+        founderId: old.founderId,
+        managerIds: old.managerIds,
+        moderatorIds: old.moderatorIds,
+        hostIds: old.hostIds,
+        mentorIds: old.mentorIds,
+        judgeIds: old.judgeIds,
+        performerIds: old.performerIds,
+        eliteMemberIds: old.eliteMemberIds,
+        vipMemberIds: old.vipMemberIds,
+        memberIds: old.memberIds,
+        visitorIds: old.visitorIds,
+        bulletin: old.bulletin,
+        greetings: old.greetings,
+        roomTheme: old.roomTheme,
+        wordFilter: old.wordFilter,
+        muteAll: newMuteAll,
+        blockList: old.blockList,
+        whoCanJoin: old.whoCanJoin,
+        whoCanSpeak: old.whoCanSpeak,
+        seatPermissions: old.seatPermissions,
+        invitePermissions: old.invitePermissions,
+        giftSettings: old.giftSettings,
+        recommendationSettings: old.recommendationSettings,
+        musicSettings: old.musicSettings,
+        recordingSettings: old.recordingSettings,
+        eventSettings: old.eventSettings,
+        autoModeration: old.autoModeration,
+        activeMode: old.activeMode,
+        pinnedAnnouncement: old.pinnedAnnouncement,
+        currentDebateRound: old.currentDebateRound,
+      );
+
+      Get.snackbar(
+        'Room Setting Changed',
+        newMuteAll ? 'All speakers have been muted by management.' : 'Speakers can now unmute.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void updateRoomSettings(
+    String roomId, {
+    String? name,
+    String? description,
+    String? bulletin,
+    String? greetings,
+    String? theme,
+    String? whoCanJoin,
+    String? whoCanSpeak,
+    String? seatPermissions,
+    String? invitePermissions,
+    String? giftSettings,
+    String? recommendationSettings,
+    String? musicSettings,
+    String? recordingSettings,
+    String? eventSettings,
+    String? autoModeration,
+    String? wordFilter,
+    String? activeMode,
+    String? pinnedAnnouncement,
+    String? avatar,
+  }) {
+    final int index = rooms.indexWhere((r) => r.id == roomId);
+    if (index != -1) {
+      final old = rooms[index];
+      rooms[index] = VoiceRoom(
+        id: old.id,
+        name: name ?? old.name,
+        description: description ?? old.description,
+        hostId: old.hostId,
+        communityId: old.communityId,
+        type: old.type,
+        isLive: old.isLive,
+        participantCount: old.participantCount,
+        maxParticipants: old.maxParticipants,
+        speakerIds: old.speakerIds,
+        listenerIds: old.listenerIds,
+        recordingUrl: old.recordingUrl,
+        allowRecording: old.allowRecording,
+        allowScreenShare: old.allowScreenShare,
+        createdAt: old.createdAt,
+        startedAt: old.startedAt,
+        endedAt: old.endedAt,
+        avatar: avatar ?? old.avatar,
+        banner: old.banner,
+        ownerName: old.ownerName,
+        category: old.category,
+        country: old.country,
+        language: old.language,
+        tags: old.tags,
+        rules: old.rules,
+        level: old.level,
+        xp: old.xp,
+        badges: old.badges,
+        totalMembers: old.totalMembers,
+        totalFollowers: old.totalFollowers,
+        totalGiftsReceived: old.totalGiftsReceived,
+        isPermanent: old.isPermanent,
+        entryPermission: old.entryPermission,
+        coOwnerIds: old.coOwnerIds,
+        adminIds: old.adminIds,
+        starMemberIds: old.starMemberIds,
+        extraCoOwnerSlots: old.extraCoOwnerSlots,
+        extraAdminSlots: old.extraAdminSlots,
+        extraStarMemberSlots: old.extraStarMemberSlots,
+        founderId: old.founderId,
+        managerIds: old.managerIds,
+        moderatorIds: old.moderatorIds,
+        hostIds: old.hostIds,
+        mentorIds: old.mentorIds,
+        judgeIds: old.judgeIds,
+        performerIds: old.performerIds,
+        eliteMemberIds: old.eliteMemberIds,
+        vipMemberIds: old.vipMemberIds,
+        memberIds: old.memberIds,
+        visitorIds: old.visitorIds,
+        bulletin: bulletin ?? old.bulletin,
+        greetings: greetings ?? old.greetings,
+        roomTheme: theme ?? old.roomTheme,
+        wordFilter: wordFilter ?? old.wordFilter,
+        muteAll: old.muteAll,
+        blockList: old.blockList,
+        whoCanJoin: whoCanJoin ?? old.whoCanJoin,
+        whoCanSpeak: whoCanSpeak ?? old.whoCanSpeak,
+        seatPermissions: seatPermissions ?? old.seatPermissions,
+        invitePermissions: invitePermissions ?? old.invitePermissions,
+        giftSettings: giftSettings ?? old.giftSettings,
+        recommendationSettings: recommendationSettings ?? old.recommendationSettings,
+        musicSettings: musicSettings ?? old.musicSettings,
+        recordingSettings: recordingSettings ?? old.recordingSettings,
+        eventSettings: eventSettings ?? old.eventSettings,
+        autoModeration: autoModeration ?? old.autoModeration,
+        activeMode: activeMode ?? old.activeMode,
+        pinnedAnnouncement: pinnedAnnouncement ?? old.pinnedAnnouncement,
+        currentDebateRound: old.currentDebateRound,
+      );
+      
+      Get.snackbar(
+        'Success',
+        'Room settings updated successfully!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    }
+  }
+
   // Create a temporary room (Free)
-  void createTemporaryRoom({
+  bool createTemporaryRoom({
     required String name,
     required String description,
     required String category,
@@ -248,19 +1008,30 @@ class RoomController extends GetxController {
     String? avatar,
     String? banner,
   }) {
+    if (rooms.any((r) => r.hostId == 'uid_anurag_101' || r.founderId == 'uid_anurag_101')) {
+      Get.snackbar(
+        'Limit Exceeded',
+        'You can only own one voice room at a time.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+      return false;
+    }
+
     final String tempId = 'room_temp_${Random().nextInt(90000) + 10000}';
     final VoiceRoom newRoom = VoiceRoom(
       id: tempId,
       name: name,
       description: description,
-      hostId: 'current_user',
-      ownerName: 'Current User', // Simulated logged-in user
+      hostId: 'uid_anurag_101',
+      ownerName: 'Anurag Kumar Bharti', 
       communityId: 'comm_custom',
-      type: 'Public',
+      type: 'Social Room',
       isLive: true,
       participantCount: 1,
       maxParticipants: 50,
-      speakerIds: ['current_user'],
+      speakerIds: ['uid_anurag_101'],
       listenerIds: [],
       allowRecording: true,
       allowScreenShare: true,
@@ -269,7 +1040,7 @@ class RoomController extends GetxController {
       isPermanent: false,
       level: 1,
       xp: 0,
-      totalMembers: 0,
+      totalMembers: 1,
       totalFollowers: 0,
       totalGiftsReceived: 0,
       category: category,
@@ -278,9 +1049,21 @@ class RoomController extends GetxController {
       tags: tags,
       rules: rules,
       entryPermission: entryPermission,
+      founderId: 'uid_anurag_101',
       coOwnerIds: [],
       adminIds: [],
       starMemberIds: [],
+      managerIds: [],
+      moderatorIds: [],
+      hostIds: [],
+      mentorIds: [],
+      judgeIds: [],
+      performerIds: [],
+      eliteMemberIds: [],
+      vipMemberIds: [],
+      memberIds: [],
+      visitorIds: [],
+      blockList: [],
       avatar: avatar,
       banner: banner,
     );
@@ -291,6 +1074,7 @@ class RoomController extends GetxController {
       'Temporary Voice Room created successfully!',
       snackPosition: SnackPosition.BOTTOM,
     );
+    return true;
   }
 
   // Create a permanent room (Costs 599 Gold Coins)
@@ -306,6 +1090,17 @@ class RoomController extends GetxController {
     String? avatar,
     String? banner,
   }) {
+    if (rooms.any((r) => r.hostId == 'uid_anurag_101' || r.founderId == 'uid_anurag_101')) {
+      Get.snackbar(
+        'Limit Exceeded',
+        'You can only own one voice room at a time.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+      return false;
+    }
+
     if (walletBalance.value < 599) {
       Get.snackbar(
         'Insufficient Balance',
@@ -328,14 +1123,14 @@ class RoomController extends GetxController {
       id: permId,
       name: name,
       description: description,
-      hostId: 'current_user',
-      ownerName: 'Current User',
+      hostId: 'uid_anurag_101',
+      ownerName: 'Anurag Kumar Bharti',
       communityId: 'comm_custom',
-      type: 'Public',
+      type: 'Social Room',
       isLive: true,
       participantCount: 1,
       maxParticipants: 200,
-      speakerIds: ['current_user'],
+      speakerIds: ['uid_anurag_101'],
       listenerIds: [],
       allowRecording: true,
       allowScreenShare: true,
@@ -353,9 +1148,21 @@ class RoomController extends GetxController {
       tags: tags,
       rules: rules,
       entryPermission: entryPermission,
+      founderId: 'uid_anurag_101',
       coOwnerIds: [],
       adminIds: [],
       starMemberIds: [],
+      managerIds: [],
+      moderatorIds: [],
+      hostIds: [],
+      mentorIds: [],
+      judgeIds: [],
+      performerIds: [],
+      eliteMemberIds: [],
+      vipMemberIds: [],
+      memberIds: [],
+      visitorIds: [],
+      blockList: [],
       avatar: avatar ?? 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=150',
       banner: banner ?? 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600',
     );
@@ -372,21 +1179,21 @@ class RoomController extends GetxController {
   }
 
   // Send a gift inside a room
-  // This deducts coins from the user, updates the room XP, and triggers level-up popups if threshold is met
-  bool sendGiftToRoom(String roomId, {required int giftCost, required String giftName, required String fromUserName, int count = 1}) {
+  bool sendGiftToRoom(String roomId, {required int giftCost, required String giftName, required String fromUserName, int count = 1, String? targetUserId, bool deductCoins = true}) {
     final int totalCost = giftCost * count;
-    if (walletBalance.value < totalCost) {
-      Get.snackbar(
-        'Insufficient Coins',
-        'You need $totalCost Gold Coins to send this gift (to $count members). You currently have ${walletBalance.value} coins.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.8),
-        colorText: Colors.white,
-      );
-      return false;
+    if (deductCoins) {
+      if (walletBalance.value < totalCost) {
+        Get.snackbar(
+          'Insufficient Coins',
+          'You need $totalCost Gold Coins to send this gift (to $count members). You currently have ${walletBalance.value} coins.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.8),
+          colorText: Colors.white,
+        );
+        return false;
+      }
+      walletBalance.value -= totalCost;
     }
-
-    walletBalance.value -= totalCost;
 
     final int index = rooms.indexWhere((r) => r.id == roomId);
     if (index != -1) {
@@ -411,7 +1218,7 @@ class RoomController extends GetxController {
 
       final bool leveledUp = newLevel > oldRoom.level;
 
-      final VoiceRoom updatedRoom = VoiceRoom(
+      rooms[index] = VoiceRoom(
         id: oldRoom.id,
         name: oldRoom.name,
         description: oldRoom.description,
@@ -451,9 +1258,51 @@ class RoomController extends GetxController {
         extraCoOwnerSlots: oldRoom.extraCoOwnerSlots,
         extraAdminSlots: oldRoom.extraAdminSlots,
         extraStarMemberSlots: oldRoom.extraStarMemberSlots,
+        founderId: oldRoom.founderId,
+        managerIds: oldRoom.managerIds,
+        moderatorIds: oldRoom.moderatorIds,
+        hostIds: oldRoom.hostIds,
+        mentorIds: oldRoom.mentorIds,
+        judgeIds: oldRoom.judgeIds,
+        performerIds: oldRoom.performerIds,
+        eliteMemberIds: oldRoom.eliteMemberIds,
+        vipMemberIds: oldRoom.vipMemberIds,
+        memberIds: oldRoom.memberIds,
+        visitorIds: oldRoom.visitorIds,
+        bulletin: oldRoom.bulletin,
+        greetings: oldRoom.greetings,
+        roomTheme: oldRoom.roomTheme,
+        wordFilter: oldRoom.wordFilter,
+        muteAll: oldRoom.muteAll,
+        blockList: oldRoom.blockList,
+        whoCanJoin: oldRoom.whoCanJoin,
+        whoCanSpeak: oldRoom.whoCanSpeak,
+        seatPermissions: oldRoom.seatPermissions,
+        invitePermissions: oldRoom.invitePermissions,
+        giftSettings: oldRoom.giftSettings,
+        recommendationSettings: oldRoom.recommendationSettings,
+        musicSettings: oldRoom.musicSettings,
+        recordingSettings: oldRoom.recordingSettings,
+        eventSettings: oldRoom.eventSettings,
+        autoModeration: oldRoom.autoModeration,
+        activeMode: oldRoom.activeMode,
+        pinnedAnnouncement: oldRoom.pinnedAnnouncement,
+        currentDebateRound: oldRoom.currentDebateRound,
       );
 
-      rooms[index] = updatedRoom;
+      // Trigger system message about gift
+      final text = targetUserId != null
+          ? 'sent $giftName to member!'
+          : 'sent a $giftName to the stage!';
+      
+      initializeChatForRoom(roomId);
+      roomChats[roomId]!.add(RoomChatMessage(
+        senderId: 'system',
+        senderName: 'System',
+        text: '🎁 $fromUserName $text (+${totalCost * 5} Room XP)',
+        timestamp: DateTime.now(),
+        isSystem: true,
+      ));
 
       if (leveledUp) {
         Get.dialog(
@@ -551,6 +1400,36 @@ class RoomController extends GetxController {
         extraCoOwnerSlots: coSlots,
         extraAdminSlots: adminSlots,
         extraStarMemberSlots: starSlots,
+        founderId: oldRoom.founderId,
+        managerIds: oldRoom.managerIds,
+        moderatorIds: oldRoom.moderatorIds,
+        hostIds: oldRoom.hostIds,
+        mentorIds: oldRoom.mentorIds,
+        judgeIds: oldRoom.judgeIds,
+        performerIds: oldRoom.performerIds,
+        eliteMemberIds: oldRoom.eliteMemberIds,
+        vipMemberIds: oldRoom.vipMemberIds,
+        memberIds: oldRoom.memberIds,
+        visitorIds: oldRoom.visitorIds,
+        bulletin: oldRoom.bulletin,
+        greetings: oldRoom.greetings,
+        roomTheme: oldRoom.roomTheme,
+        wordFilter: oldRoom.wordFilter,
+        muteAll: oldRoom.muteAll,
+        blockList: oldRoom.blockList,
+        whoCanJoin: oldRoom.whoCanJoin,
+        whoCanSpeak: oldRoom.whoCanSpeak,
+        seatPermissions: oldRoom.seatPermissions,
+        invitePermissions: oldRoom.invitePermissions,
+        giftSettings: oldRoom.giftSettings,
+        recommendationSettings: oldRoom.recommendationSettings,
+        musicSettings: oldRoom.musicSettings,
+        recordingSettings: oldRoom.recordingSettings,
+        eventSettings: oldRoom.eventSettings,
+        autoModeration: oldRoom.autoModeration,
+        activeMode: oldRoom.activeMode,
+        pinnedAnnouncement: oldRoom.pinnedAnnouncement,
+        currentDebateRound: oldRoom.currentDebateRound,
       );
 
       Get.snackbar(
@@ -584,7 +1463,204 @@ class RoomController extends GetxController {
     if (!list.contains(userId)) {
       list.add(userId);
       bannedUsers[roomId] = List<String>.from(list);
+      
+      final int index = rooms.indexWhere((r) => r.id == roomId);
+      if (index != -1) {
+        final old = rooms[index];
+        final List<String> newSpeakers = List<String>.from(old.speakerIds)..remove(userId);
+        final List<String> newListeners = List<String>.from(old.listenerIds)..remove(userId);
+        
+        rooms[index] = VoiceRoom(
+          id: old.id,
+          name: old.name,
+          description: old.description,
+          hostId: old.hostId,
+          communityId: old.communityId,
+          type: old.type,
+          isLive: old.isLive,
+          participantCount: max(0, old.participantCount - 1),
+          maxParticipants: old.maxParticipants,
+          speakerIds: newSpeakers,
+          listenerIds: newListeners,
+          recordingUrl: old.recordingUrl,
+          allowRecording: old.allowRecording,
+          allowScreenShare: old.allowScreenShare,
+          createdAt: old.createdAt,
+          startedAt: old.startedAt,
+          endedAt: old.endedAt,
+          avatar: old.avatar,
+          banner: old.banner,
+          ownerName: old.ownerName,
+          category: old.category,
+          country: old.country,
+          language: old.language,
+          tags: old.tags,
+          rules: old.rules,
+          level: old.level,
+          xp: old.xp,
+          badges: old.badges,
+          totalMembers: old.totalMembers,
+          totalFollowers: old.totalFollowers,
+          totalGiftsReceived: old.totalGiftsReceived,
+          isPermanent: old.isPermanent,
+          entryPermission: old.entryPermission,
+          coOwnerIds: old.coOwnerIds,
+          adminIds: old.adminIds,
+          starMemberIds: old.starMemberIds,
+          extraCoOwnerSlots: old.extraCoOwnerSlots,
+          extraAdminSlots: old.extraAdminSlots,
+          extraStarMemberSlots: old.extraStarMemberSlots,
+          founderId: old.founderId,
+          managerIds: old.managerIds,
+          moderatorIds: old.moderatorIds,
+          hostIds: old.hostIds,
+          mentorIds: old.mentorIds,
+          judgeIds: old.judgeIds,
+          performerIds: old.performerIds,
+          eliteMemberIds: old.eliteMemberIds,
+          vipMemberIds: old.vipMemberIds,
+          memberIds: old.memberIds,
+          visitorIds: old.visitorIds,
+          bulletin: old.bulletin,
+          greetings: old.greetings,
+          roomTheme: old.roomTheme,
+          wordFilter: old.wordFilter,
+          muteAll: old.muteAll,
+          blockList: List<String>.from(old.blockList)..add(userId),
+          whoCanJoin: old.whoCanJoin,
+          whoCanSpeak: old.whoCanSpeak,
+          seatPermissions: old.seatPermissions,
+          invitePermissions: old.invitePermissions,
+          giftSettings: old.giftSettings,
+          recommendationSettings: old.recommendationSettings,
+          musicSettings: old.musicSettings,
+          recordingSettings: old.recordingSettings,
+          eventSettings: old.eventSettings,
+          autoModeration: old.autoModeration,
+          activeMode: old.activeMode,
+          pinnedAnnouncement: old.pinnedAnnouncement,
+          currentDebateRound: old.currentDebateRound,
+        );
+      }
+
       Get.snackbar('Moderation', 'User banned and kicked from room', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.withOpacity(0.8));
+    }
+  }
+
+  void banUserWithDuration(String roomId, String userId, String duration) {
+    DateTime now = DateTime.now();
+    DateTime? unbanTime;
+    if (duration == '1 Day') {
+      unbanTime = now.add(const Duration(days: 1));
+    } else if (duration == '3 Days') {
+      unbanTime = now.add(const Duration(days: 3));
+    } else if (duration == '7 Days') {
+      unbanTime = now.add(const Duration(days: 7));
+    } else if (duration == '1 Month') {
+      unbanTime = now.add(const Duration(days: 30));
+    } else {
+      unbanTime = null; // Forever
+    }
+
+    // Call base banUser to add them to lists
+    banUser(roomId, userId);
+
+    if (!roomBannedUsersDetailed.containsKey(roomId)) {
+      roomBannedUsersDetailed[roomId] = <String, Map<String, dynamic>>{};
+    }
+    roomBannedUsersDetailed[roomId]![userId] = {
+      'duration': duration,
+      'timestamp': now,
+      'unbanTime': unbanTime,
+    };
+  }
+
+  void unbanUser(String roomId, String userId) {
+    final list = bannedUsers[roomId] ?? [];
+    list.remove(userId);
+    bannedUsers[roomId] = List<String>.from(list);
+
+    if (roomBannedUsersDetailed.containsKey(roomId)) {
+      roomBannedUsersDetailed[roomId]!.remove(userId);
+    }
+
+    final int index = rooms.indexWhere((r) => r.id == roomId);
+    if (index != -1) {
+      final old = rooms[index];
+      final List<String> newBlockList = List<String>.from(old.blockList)..remove(userId);
+      rooms[index] = VoiceRoom(
+        id: old.id,
+        name: old.name,
+        description: old.description,
+        hostId: old.hostId,
+        communityId: old.communityId,
+        type: old.type,
+        isLive: old.isLive,
+        participantCount: old.participantCount,
+        maxParticipants: old.maxParticipants,
+        speakerIds: old.speakerIds,
+        listenerIds: old.listenerIds,
+        recordingUrl: old.recordingUrl,
+        allowRecording: old.allowRecording,
+        allowScreenShare: old.allowScreenShare,
+        createdAt: old.createdAt,
+        startedAt: old.startedAt,
+        endedAt: old.endedAt,
+        avatar: old.avatar,
+        banner: old.banner,
+        ownerName: old.ownerName,
+        category: old.category,
+        country: old.country,
+        language: old.language,
+        tags: old.tags,
+        rules: old.rules,
+        level: old.level,
+        xp: old.xp,
+        badges: old.badges,
+        totalMembers: old.totalMembers,
+        totalFollowers: old.totalFollowers,
+        totalGiftsReceived: old.totalGiftsReceived,
+        isPermanent: old.isPermanent,
+        entryPermission: old.entryPermission,
+        coOwnerIds: old.coOwnerIds,
+        adminIds: old.adminIds,
+        starMemberIds: old.starMemberIds,
+        extraCoOwnerSlots: old.extraCoOwnerSlots,
+        extraAdminSlots: old.extraAdminSlots,
+        extraStarMemberSlots: old.extraStarMemberSlots,
+        founderId: old.founderId,
+        managerIds: old.managerIds,
+        moderatorIds: old.moderatorIds,
+        hostIds: old.hostIds,
+        mentorIds: old.mentorIds,
+        judgeIds: old.judgeIds,
+        performerIds: old.performerIds,
+        eliteMemberIds: old.eliteMemberIds,
+        vipMemberIds: old.vipMemberIds,
+        memberIds: old.memberIds,
+        visitorIds: old.visitorIds,
+        bulletin: old.bulletin,
+        greetings: old.greetings,
+        roomTheme: old.roomTheme,
+        wordFilter: old.wordFilter,
+        muteAll: old.muteAll,
+        blockList: newBlockList,
+        whoCanJoin: old.whoCanJoin,
+        whoCanSpeak: old.whoCanSpeak,
+        seatPermissions: old.seatPermissions,
+        invitePermissions: old.invitePermissions,
+        giftSettings: old.giftSettings,
+        recommendationSettings: old.recommendationSettings,
+        musicSettings: old.musicSettings,
+        recordingSettings: old.recordingSettings,
+        eventSettings: old.eventSettings,
+        autoModeration: old.autoModeration,
+        activeMode: old.activeMode,
+        pinnedAnnouncement: old.pinnedAnnouncement,
+        currentDebateRound: old.currentDebateRound,
+      );
+      rooms.refresh();
+      Get.snackbar('Moderation', 'User removed from block list', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green.withOpacity(0.8));
     }
   }
 
@@ -633,6 +1709,36 @@ class RoomController extends GetxController {
         extraCoOwnerSlots: old.extraCoOwnerSlots,
         extraAdminSlots: old.extraAdminSlots,
         extraStarMemberSlots: old.extraStarMemberSlots,
+        founderId: old.founderId,
+        managerIds: old.managerIds,
+        moderatorIds: old.moderatorIds,
+        hostIds: old.hostIds,
+        mentorIds: old.mentorIds,
+        judgeIds: old.judgeIds,
+        performerIds: old.performerIds,
+        eliteMemberIds: old.eliteMemberIds,
+        vipMemberIds: old.vipMemberIds,
+        memberIds: old.memberIds,
+        visitorIds: old.visitorIds,
+        bulletin: old.bulletin,
+        greetings: old.greetings,
+        roomTheme: old.roomTheme,
+        wordFilter: old.wordFilter,
+        muteAll: old.muteAll,
+        blockList: old.blockList,
+        whoCanJoin: old.whoCanJoin,
+        whoCanSpeak: old.whoCanSpeak,
+        seatPermissions: old.seatPermissions,
+        invitePermissions: old.invitePermissions,
+        giftSettings: old.giftSettings,
+        recommendationSettings: old.recommendationSettings,
+        musicSettings: old.musicSettings,
+        recordingSettings: old.recordingSettings,
+        eventSettings: old.eventSettings,
+        autoModeration: old.autoModeration,
+        activeMode: old.activeMode,
+        pinnedAnnouncement: old.pinnedAnnouncement,
+        currentDebateRound: old.currentDebateRound,
       );
       Get.snackbar('Room joined', 'You are now a member of ${old.name}', snackPosition: SnackPosition.BOTTOM);
     }
@@ -641,6 +1747,239 @@ class RoomController extends GetxController {
   // Level Up logic helper
   int getXpForNextLevel(int currentLevel) {
     return currentLevel * 1000;
+  }
+
+  String getUserRole(VoiceRoom room, String userId) {
+    if (room.hostId == userId || room.founderId == userId) return 'Owner';
+    if (room.coOwnerIds.contains(userId)) return 'Co-owner';
+    if (room.adminIds.contains(userId)) return 'Admin';
+    if (room.starMemberIds.contains(userId)) return 'Star Member';
+    return 'Guest';
+  }
+
+  int getRoleWeight(String role) {
+    switch (role) {
+      case 'Owner':
+      case 'Founder':
+        return 10;
+      case 'Co-owner':
+        return 9;
+      case 'Admin':
+        return 8;
+      case 'Star Member':
+        return 7;
+      case 'Guest':
+      default:
+        return 1;
+    }
+  }
+
+  void promoteRoomMember(String roomId, String userId, String role) {
+    final idx = rooms.indexWhere((r) => r.id == roomId);
+    if (idx != -1) {
+      final old = rooms[idx];
+      List<String> coOwners = List.from(old.coOwnerIds);
+      List<String> admins = List.from(old.adminIds);
+
+      coOwners.remove(userId);
+      admins.remove(userId);
+
+      if (role == 'Co-owner') {
+        if (!coOwners.contains(userId)) coOwners.add(userId);
+      } else if (role == 'Admin') {
+        if (!admins.contains(userId)) admins.add(userId);
+      }
+
+      rooms[idx] = VoiceRoom(
+        id: old.id,
+        name: old.name,
+        description: old.description,
+        hostId: old.hostId,
+        communityId: old.communityId,
+        type: old.type,
+        isLive: old.isLive,
+        participantCount: old.participantCount,
+        maxParticipants: old.maxParticipants,
+        speakerIds: old.speakerIds,
+        listenerIds: old.listenerIds,
+        recordingUrl: old.recordingUrl,
+        allowRecording: old.allowRecording,
+        allowScreenShare: old.allowScreenShare,
+        createdAt: old.createdAt,
+        startedAt: old.startedAt,
+        endedAt: old.endedAt,
+        avatar: old.avatar,
+        banner: old.banner,
+        ownerName: old.ownerName,
+        category: old.category,
+        country: old.country,
+        language: old.language,
+        tags: old.tags,
+        rules: old.rules,
+        level: old.level,
+        xp: old.xp,
+        badges: old.badges,
+        totalMembers: old.totalMembers,
+        totalFollowers: old.totalFollowers,
+        totalGiftsReceived: old.totalGiftsReceived,
+        isPermanent: old.isPermanent,
+        entryPermission: old.entryPermission,
+        coOwnerIds: coOwners,
+        adminIds: admins,
+        starMemberIds: old.starMemberIds,
+        extraCoOwnerSlots: old.extraCoOwnerSlots,
+        extraAdminSlots: old.extraAdminSlots,
+        extraStarMemberSlots: old.extraStarMemberSlots,
+        founderId: old.founderId,
+        managerIds: old.managerIds,
+        moderatorIds: old.moderatorIds,
+        hostIds: old.hostIds,
+        mentorIds: old.mentorIds,
+        judgeIds: old.judgeIds,
+        performerIds: old.performerIds,
+        eliteMemberIds: old.eliteMemberIds,
+        vipMemberIds: old.vipMemberIds,
+        memberIds: old.memberIds,
+        visitorIds: old.visitorIds,
+        bulletin: old.bulletin,
+        greetings: old.greetings,
+        roomTheme: old.roomTheme,
+        wordFilter: old.wordFilter,
+        muteAll: old.muteAll,
+        blockList: old.blockList,
+        whoCanJoin: old.whoCanJoin,
+        whoCanSpeak: old.whoCanSpeak,
+        seatPermissions: old.seatPermissions,
+        invitePermissions: old.invitePermissions,
+        giftSettings: old.giftSettings,
+        recommendationSettings: old.recommendationSettings,
+        musicSettings: old.musicSettings,
+        recordingSettings: old.recordingSettings,
+        eventSettings: old.eventSettings,
+        autoModeration: old.autoModeration,
+        activeMode: old.activeMode,
+        pinnedAnnouncement: old.pinnedAnnouncement,
+        currentDebateRound: old.currentDebateRound,
+      );
+    }
+  }
+
+  OverlayEntry? _pipOverlayEntry;
+
+  void showPipBubble(String roomId, String roomName, String avatarUrl) {
+    if (_pipOverlayEntry != null) return;
+
+    double xPosition = Get.width - 80.0;
+    double yPosition = 120.0;
+
+    _pipOverlayEntry = OverlayEntry(
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateOverlay) {
+            return Positioned(
+              left: xPosition,
+              top: yPosition,
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  setStateOverlay(() {
+                    xPosition += details.delta.dx;
+                    yPosition += details.delta.dy;
+                  });
+                },
+                onTap: () {
+                  hidePipBubble();
+                  Get.to(
+                    () => VoiceRoomCallScreen(
+                      roomId: roomId,
+                      roomName: roomName,
+                      userId: 'uid_anurag_101',
+                      userName: 'anurag_kumar',
+                      isHost: roomId == '#VX100001',
+                    ),
+                  );
+                },
+                child: Material(
+                  color: Colors.transparent,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 66,
+                        height: 66,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.pinkAccent.withOpacity(0.2),
+                        ),
+                      ),
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.pinkAccent, width: 2),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black38, blurRadius: 6, offset: Offset(0, 3)),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(27),
+                          child: Image.network(
+                            avatarUrl.isNotEmpty ? avatarUrl : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.pinkAccent,
+                              child: const Icon(Icons.music_note, color: Colors.white, size: 24),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        right: 2,
+                        bottom: 2,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.green,
+                            border: Border.all(color: Colors.black87, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.pinkAccent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.mic, color: Colors.white, size: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    final overlayState = Navigator.of(Get.context!).overlay;
+    if (overlayState != null) {
+      overlayState.insert(_pipOverlayEntry!);
+    }
+  }
+
+  void hidePipBubble() {
+    if (_pipOverlayEntry != null) {
+      _pipOverlayEntry!.remove();
+      _pipOverlayEntry = null;
+    }
   }
 }
 
@@ -692,11 +2031,11 @@ class LevelUpDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'ROOM LEVEL UP! 🎉',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Colors.amber,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
-                  ),
+                  ) ?? const TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
@@ -705,7 +2044,7 @@ class LevelUpDialog extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
-                  ),
+                  ) ?? const TextStyle(color: Colors.white, fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

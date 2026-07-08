@@ -5,3 +5,4 @@ export 'otp_verification_screen.dart';
 export 'reset_password_screen.dart';
 export 'email_verification_screen.dart';
 export 'interests_screen.dart';
+export 'phone_auth_screen.dart';

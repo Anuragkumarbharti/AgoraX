@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme.dart';
+import '../vip/vip_purchase_screen.dart';
+import '../novel/novel_purchase_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -51,6 +53,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Change Password',
               'Update your password',
               onTap: () {},
+            ),
+            _buildSettingsTile(
+              context,
+              'VIP Membership',
+              'Manage your VIP status & cosmetics',
+              onTap: () => Get.to(() => const VipPurchaseScreen()),
+            ),
+            _buildSettingsTile(
+              context,
+              'Novel Membership',
+              'Unlock and manage prestigious luxury collectibles',
+              onTap: () => Get.to(() => const NovelPurchaseScreen()),
             ),
             const SizedBox(height: 24),
 

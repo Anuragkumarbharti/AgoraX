@@ -40,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateToNextScreen() {
-    Future.delayed(const Duration(seconds: 3), () async {
+    Future.delayed(const Duration(milliseconds: 800), () async {
       try {
         final prefs = await SharedPreferences.getInstance();
         final firstLaunchDone = prefs.getBool('firstLaunchDone') ?? false;

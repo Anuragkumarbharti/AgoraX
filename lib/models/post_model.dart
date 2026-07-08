@@ -66,4 +66,38 @@ class Post {
     'isBookmarked': isBookmarked,
     'createdAt': createdAt.toIso8601String(),
   };
+
+  Post copyWith({
+    String? id,
+    String? userId,
+    String? communityId,
+    String? content,
+    List<String>? images,
+    List<String>? videos,
+    List<String>? pdfs,
+    List<String>? docUrls,
+    int? likes,
+    int? comments,
+    int? shares,
+    bool? isLiked,
+    bool? isBookmarked,
+    DateTime? createdAt,
+  }) {
+    return Post(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      communityId: communityId ?? this.communityId,
+      content: content ?? this.content,
+      images: images ?? this.images,
+      videos: videos ?? this.videos,
+      pdfs: pdfs ?? this.pdfs,
+      docUrls: docUrls ?? this.docUrls,
+      likes: likes ?? this.likes,
+      comments: comments ?? this.comments,
+      shares: shares ?? this.shares,
+      isLiked: isLiked ?? this.isLiked,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

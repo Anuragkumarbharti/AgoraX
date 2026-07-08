@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../core/theme.dart';
 import '../../models/index.dart';
+import '../../models/event_model.dart' as model;
+import '../../services/event_controller.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/community_card.dart';
+import '../communities/communities_screen.dart';
+import '../events/events_screen.dart';
+import '../events/event_detail_screen.dart';
+import '../profile/daily_task_screen.dart';
+import '../../services/study_category_controller.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -14,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late ScrollController _scrollController;
   bool _showFloatingButton = true;
+  final EventController _eventController = Get.find<EventController>();
 
   @override
   void initState() {
@@ -32,6 +42,43 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  void _showNotifications() {
+    Get.bottomSheet(
+      Container(
+        color: AppTheme.bgLight,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Notifications',
+                style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            _notificationItem('🏆 Weekly Coding Challenge starting in 30 min!', '10m ago'),
+            _notificationItem('🎉 You earned a "Top Contributor" badge!', '2h ago'),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _notificationItem(String text, String time) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(text, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
+          Text(time, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(
@@ -42,11 +89,23 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+            onPressed: _showNotifications,
           ),
           IconButton(
-            icon: const Icon(Icons.mail_outline),
-            onPressed: () {},
+            icon: const Icon(Icons.emoji_events_outlined),
+            onPressed: () => Get.to(
+              () => const EventsScreen(),
+              transition: Transition.rightToLeft,
+              duration: const Duration(milliseconds: 300),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.groups_rounded),
+            onPressed: () => Get.to(
+              () => const CommunitiesScreen(),
+              transition: Transition.rightToLeft,
+              duration: const Duration(milliseconds: 300),
+            ),
           ),
         ],
       ),
@@ -57,6 +116,86 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Daily Learning Mission Card
+              _buildDailyLearningMissionCard(context),
+              const SizedBox(height: 24),
+
+              // Official Events & Ranking
+              _buildSectionHeader(context, 'Official & Ranking Events'),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 140,
+                child: Obx(() {
+                  final eventsList = _eventController.events;
+                  return ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: eventsList.length,
+                    itemBuilder: (context, index) {
+                      final e = eventsList[index];
+                      return GestureDetector(
+                        onTap: () => Get.to(() => EventDetailScreen(event: e)),
+                        child: Container(
+                          width: 240,
+                          margin: const EdgeInsets.only(right: 12),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppTheme.cardBg,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: e.isOfficial
+                                  ? AppTheme.primaryColor.withOpacity(0.3)
+                                  : AppTheme.borderColor.withOpacity(0.4),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: e.isOfficial ? AppTheme.primaryColor : Colors.white12,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      e.isOfficial ? '👑 OFFICIAL' : '🏫 COMMUNITY',
+                                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
+                                  Text(
+                                    e.entryFeeType == model.EntryFeeType.free ? 'FREE' : '₹${e.entryFeeAmount}',
+                                    style: TextStyle(
+                                      color: e.entryFeeType == model.EntryFeeType.free ? AppTheme.accentColor : const Color(0xFFFBBF24),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Spacer(),
+                              Text(
+                                e.title,
+                                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                e.prizePool,
+                                style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 10, fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }),
+              ),
+              const SizedBox(height: 32),
+
               // Trending Communities
               _buildSectionHeader(context, 'Trending Communities'),
               const SizedBox(height: 12),
@@ -148,9 +287,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSectionHeader(BuildContext context, String title) => Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.headlineSmall,
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.headlineSmall,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         TextButton(
           onPressed: () {},
@@ -206,4 +348,149 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+
+  Widget _buildDailyLearningMissionCard(BuildContext context) {
+    final studyCtrl = Get.find<StudyCategoryController>();
+    return Obx(() {
+      final selectedCat = studyCtrl.selectedCategory.value;
+      final isVideoWatched = studyCtrl.videoWatchedToday.value;
+      final isQuizDone = studyCtrl.quizCompletedToday.value;
+
+      String subtitleText = 'Unlock daily educational videos, quizzes, and earn rewards.';
+      String statusText = 'LOCKED';
+      Color statusColor = AppTheme.textTertiary;
+      IconData statusIcon = Icons.lock_outline_rounded;
+
+      if (selectedCat != null) {
+        subtitleText = '$selectedCat path';
+        if (isQuizDone) {
+          statusText = 'COMPLETED';
+          statusColor = AppTheme.accentColor;
+          statusIcon = Icons.check_circle_outline_rounded;
+        } else if (isVideoWatched) {
+          statusText = 'QUIZ UNLOCKED';
+          statusColor = AppTheme.primaryColor;
+          statusIcon = Icons.bolt_rounded;
+        } else {
+          statusText = 'IN PROGRESS';
+          statusColor = const Color(0xFFFBBF24);
+          statusIcon = Icons.play_circle_outline_rounded;
+        }
+      }
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selectedCat != null
+                ? statusColor.withOpacity(0.3)
+                : AppTheme.borderColor.withOpacity(0.4),
+          ),
+          boxShadow: [
+            if (selectedCat != null)
+              BoxShadow(
+                color: statusColor.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(statusIcon, color: statusColor, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'DAILY MISSION',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              selectedCat ?? 'Personalized Daily Learning',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitleText,
+              style: const TextStyle(
+                color: AppTheme.textTertiary,
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: selectedCat != null ? AppTheme.primaryColor : AppTheme.cardBg,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                onPressed: () {
+                  Get.to(() => const DailyTaskScreen());
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      selectedCat != null ? 'Open Daily Task  →' : 'Unlock Learning Path  →',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
 }

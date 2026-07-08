@@ -22,6 +22,10 @@ class User {
     this.totalQuestions = 0,
     this.badges = const [],
     this.levelTitle = 'Newcomer',
+    this.selectedStudyCategory,
+    this.categoryLockExpiry,
+    this.silverCoins = 0,
+    this.learningStreak = 0,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -50,6 +54,10 @@ class User {
       totalQuestions: json['totalQuestions'] ?? 0,
       badges: List<String>.from(json['badges'] ?? []),
       levelTitle: json['levelTitle'] ?? 'Newcomer',
+      selectedStudyCategory: json['selectedStudyCategory'],
+      categoryLockExpiry: json['categoryLockExpiry'] != null ? DateTime.tryParse(json['categoryLockExpiry']) : null,
+      silverCoins: json['silverCoins'] ?? 0,
+      learningStreak: json['learningStreak'] ?? 0,
     );
   }
 
@@ -77,6 +85,12 @@ class User {
   final List<String> badges;
   final String levelTitle;
 
+  // Study Category & Learning Mission
+  final String? selectedStudyCategory;
+  final DateTime? categoryLockExpiry;
+  final int silverCoins;
+  final int learningStreak;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'username': username,
@@ -100,5 +114,9 @@ class User {
         'totalQuestions': totalQuestions,
         'badges': badges,
         'levelTitle': levelTitle,
+        'selectedStudyCategory': selectedStudyCategory,
+        'categoryLockExpiry': categoryLockExpiry?.toIso8601String(),
+        'silverCoins': silverCoins,
+        'learningStreak': learningStreak,
       };
 }

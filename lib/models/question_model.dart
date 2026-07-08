@@ -74,4 +74,42 @@ class Question {
     'acceptedAnswerId': acceptedAnswerId,
     'createdAt': createdAt.toIso8601String(),
   };
+
+  Question copyWith({
+    String? id,
+    String? userId,
+    String? communityId,
+    String? title,
+    String? description,
+    List<String>? tags,
+    List<String>? images,
+    int? views,
+    int? answers,
+    int? upvotes,
+    bool? isUpvoted,
+    bool? isBookmarked,
+    bool? isAnonymous,
+    bool? isAnswered,
+    String? acceptedAnswerId,
+    DateTime? createdAt,
+  }) {
+    return Question(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      communityId: communityId ?? this.communityId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      tags: tags ?? this.tags,
+      images: images ?? this.images,
+      views: views ?? this.views,
+      answers: answers ?? this.answers,
+      upvotes: upvotes ?? this.upvotes,
+      isUpvoted: isUpvoted ?? this.isUpvoted,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
+      isAnonymous: isAnonymous ?? this.isAnonymous,
+      isAnswered: isAnswered ?? this.isAnswered,
+      acceptedAnswerId: acceptedAnswerId ?? this.acceptedAnswerId,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
