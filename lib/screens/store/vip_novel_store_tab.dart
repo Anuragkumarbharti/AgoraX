@@ -381,14 +381,14 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Avatar Frame & Ring',
+                      'Avatar Frame',
                       style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       isVip
-                          ? 'Continuous breathing, shining sweeps, and Crown decorations.'
-                          : 'Floating stardust, pulsing flame animations, and aurora sparkles.',
+                          ? 'Avatar Frame, Avatar Background, Entry Effect, Gift Effect, Chat Bubble, Badge, Tag Light, and Emoji Effects.'
+                          : 'Avatar Frame, Avatar Background, Entry Effect, Gift Effect, Chat Bubble, Badge, Tag Light, and Emoji Effects.',
                       style: GoogleFonts.poppins(color: Colors.white30, fontSize: 9.5),
                     ),
                     const SizedBox(height: 8),
@@ -419,11 +419,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
 
   Widget _buildVipBenefitsCard(Color color) {
     final benefits = [
-      'Glow username name everywhere',
-      'Exclusive VIP ${_selectedVipLevel} chat bubble',
-      'Special animated avatar frame and decorator',
-      'Glassmorphic custom profile themes',
-      'VIP badge and verified official tag',
+      'Animated Avatar Frame with real-time sync',
+      'Premium Chat Bubble for rooms and chats',
+      'Profile Avatar Background for your profile page',
+      'One-time Entry Effect for room joins',
+      'Badge and Tag Light identity for profile and chats',
     ];
 
     return Container(
@@ -458,11 +458,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
 
   Widget _buildNovelSpecsCard(Color color) {
     final specs = [
-      'Glowing username with custom sweep colors',
-      'Novel entry and portal effect on join Room',
-      'Access to Season Store items',
-      'Novel level custom avatar frame ring',
-      '3.5x Contribution Multiplier boost',
+      'Exclusive Avatar Frame with premium loop animation',
+      'Unique Avatar Background for the profile page',
+      'Novel Entry Effect for one-time room entrance animation',
+      'Novel Gift Effect and animated chat styling',
+      'Tag Light and Emoji Effects for premium identity',
     ];
 
     return Container(

@@ -34,7 +34,17 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
   late AnimationController _glowAnimCtrl;
 
   final List<String> categories = [
-    'Coins 🪙', 'VIP 💎', 'Novel 📖', 'Frames 🖼️', 'Borders ✨', 'Themes 🎨', 'Gifts 🎁', 'Offers ⚡', 'Limited 👑'
+    'Coins 🪙',
+    'VIP Membership 💎',
+    'Novel Membership 📖',
+    'Avatar Frames 🖼️',
+    'Avatar Backgrounds 🌌',
+    'Entry Effects ⚡',
+    'Gift Effects 🎁',
+    'Chat Bubbles 💬',
+    'Badges 🏅',
+    'Tag Lights ✨',
+    'Emoji Effects 😊',
   ];
 
   @override
@@ -462,7 +472,11 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
               } else if (index == 2) {
                 Get.to(() => const VipNovelStoreTab(initialIndex: 1));
               } else {
-                Get.snackbar('Explore', '${categories[index]} store tab coming soon!', snackPosition: SnackPosition.BOTTOM);
+                Get.snackbar(
+                  'Explore',
+                  '${categories[index]} are available inside the premium cosmetics flow.',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
               }
             },
             child: Container(
@@ -801,10 +815,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
 
   Widget _buildCosmeticsQuickGrid() {
     final list = [
-      {'name': 'Dragon Wings Aura', 'price': 300, 'icon': '⚔️'},
-      {'name': 'Sapphire Seat Glow', 'price': 250, 'icon': '🪑'},
-      {'name': 'Neon Echo Voice Mod', 'price': 180, 'icon': '🎙️'},
-      {'name': 'Imperial Name Glow', 'price': 400, 'icon': '✨'},
+      {'name': 'Avatar Frames', 'price': 300, 'icon': '🖼️'},
+      {'name': 'Avatar Backgrounds', 'price': 250, 'icon': '🌌'},
+      {'name': 'Entry Effects', 'price': 180, 'icon': '⚡'},
+      {'name': 'Gift Effects', 'price': 400, 'icon': '🎁'},
+      {'name': 'Chat Bubbles', 'price': 220, 'icon': '💬'},
+      {'name': 'Badges', 'price': 160, 'icon': '🏅'},
     ];
 
     return Column(

@@ -3,11 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/room_model.dart';
+import 'customization_controller.dart';
 import '../screens/rooms/voice_room_call_screen.dart';
 
 import 'store_controller.dart';
 
 class RoomChatMessage {
+  final String id;
   final String senderId;
   final String senderName;
   final String text;
@@ -15,8 +17,18 @@ class RoomChatMessage {
   final String? senderAvatar;
   final DateTime timestamp;
   final bool isSystem;
+  final String messageType;
+  final String? replyToMessageId;
+  final String? senderLevel;
+  final String? vipLabel;
+  final String? novelLabel;
+  final String? communityTag;
+  final String? roleTag;
+  final bool isActiveSpeaker;
+  final int repeatCount;
 
   RoomChatMessage({
+    String? id,
     required this.senderId,
     required this.senderName,
     required this.text,
@@ -24,8 +36,56 @@ class RoomChatMessage {
     this.senderAvatar,
     required this.timestamp,
     this.isSystem = false,
-  });
-}
+    this.messageType = 'chat',
+    this.replyToMessageId,
+    this.senderLevel,
+    this.vipLabel,
+    this.novelLabel,
+    this.communityTag,
+    this.roleTag,
+    this.isActiveSpeaker = false,
+    this.repeatCount = 1,
+  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
+
+  RoomChatMessage copyWith({
+    String? id,
+    String? senderId,
+    String? senderName,
+    String? text,
+    String? senderRole,
+    String? senderAvatar,
+    DateTime? timestamp,
+    bool? isSystem,
+    String? messageType,
+    String? replyToMessageId,
+    String? senderLevel,
+    String? vipLabel,
+    String? novelLabel,
+    String? communityTag,
+    String? roleTag,
+    bool? isActiveSpeaker,
+    int? repeatCount,
+  }) {
+    return RoomChatMessage(
+      id: id ?? this.id,
+      senderId: senderId ?? this.senderId,
+      senderName: senderName ?? this.senderName,
+      text: text ?? this.text,
+      senderRole: senderRole ?? this.senderRole,
+      senderAvatar: senderAvatar ?? this.senderAvatar,
+      timestamp: timestamp ?? this.timestamp,
+      isSystem: isSystem ?? this.isSystem,
+      messageType: messageType ?? this.messageType,
+      replyToMessageId: replyToMessageId ?? this.replyToMessageId,
+      senderLevel: senderLevel ?? this.senderLevel,
+      vipLabel: vipLabel ?? this.vipLabel,
+      novelLabel: novelLabel ?? this.novelLabel,
+      communityTag: communityTag ?? this.communityTag,
+      roleTag: roleTag ?? this.roleTag,
+      isActiveSpeaker: isActiveSpeaker ?? this.isActiveSpeaker,
+      repeatCount: repeatCount ?? this.repeatCount,
+    );
+  }
 
 class RoomController extends GetxController {
   static RoomController get to => Get.find<RoomController>();
@@ -48,6 +108,8 @@ class RoomController extends GetxController {
 
   // Room Chat messages (roomId -> list of messages)
   final RxMap<String, RxList<RoomChatMessage>> roomChats = <String, RxList<RoomChatMessage>>{}.obs;
+  final RxMap<String, bool> roomActivityQueuesBusy = <String, bool>{}.obs;
+  final RxMap<String, List<Map<String, dynamic>>> roomActivityQueues = <String, List<Map<String, dynamic>>>{}.obs;
 
   @override
   void onInit() {
@@ -64,6 +126,7 @@ class RoomController extends GetxController {
           text: 'Welcome to the Room! Please read the rules and stay respectful. 🎉',
           timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
           isSystem: true,
+          messageType: 'system',
         ),
         RoomChatMessage(
           senderId: 'user_co_1',
@@ -85,8 +148,118 @@ class RoomController extends GetxController {
     }
   }
 
-  void sendRoomMessage(String roomId, String text,
-      {String? senderId, String? senderName, String? senderRole, String? senderAvatar}) {
+  void addChatMessage(
+    String roomId,
+    RoomChatMessage message,
+  ) {
+    initializeChatForRoom(roomId);
+    roomChats[roomId]!.add(message);
+  }
+
+  void addSystemActivity(
+    String roomId,
+    String text, {
+    String? senderId = 'system',
+    String? senderName = 'System',
+    String? senderAvatar,
+    String? messageType = 'activity',
+    String? activityKey,
+  }) {
+    initializeChatForRoom(roomId);
+    final messages = roomChats[roomId]!;
+    if (messages.isNotEmpty) {
+      final last = messages.last;
+      if (last.isSystem && last.text == text && last.messageType == messageType) {
+        messages[messages.length - 1] = last.copyWith(repeatCount: last.repeatCount + 1);
+        return;
+      }
+    }
+
+    messages.add(
+      RoomChatMessage(
+        senderId: senderId ?? 'system',
+        senderName: senderName ?? 'System',
+        text: text,
+        senderAvatar: senderAvatar,
+        timestamp: DateTime.now(),
+        isSystem: true,
+        messageType: messageType ?? 'activity',
+        roleTag: activityKey,
+      ),
+    );
+  }
+
+  void deleteRoomMessage(String roomId, String messageId) {
+    final messages = roomChats[roomId];
+    if (messages == null) return;
+    messages.removeWhere((message) => message.id == messageId);
+  }
+
+  void emitRoomActivity(String roomId, String text, {String? activityKey}) {
+    addSystemActivity(roomId, text, activityKey: activityKey);
+  }
+
+  Future<void> queueEntranceEffect(
+    String roomId,
+    String userId,
+    String userName,
+  ) async {
+    final entryEffect = _getActiveEntranceEffect();
+    if (entryEffect == null) {
+      addSystemActivity(roomId, '🟢 $userName entered the room.');
+      return;
+    }
+
+    roomActivityQueues.putIfAbsent(roomId, () => []);
+    roomActivityQueues[roomId]!.add({
+      'userId': userId,
+      'userName': userName,
+      'effect': entryEffect,
+    });
+
+    if (roomActivityQueuesBusy[roomId] == true) return;
+    roomActivityQueuesBusy[roomId] = true;
+
+    while ((roomActivityQueues[roomId] ?? []).isNotEmpty) {
+      final next = roomActivityQueues[roomId]!.removeAt(0);
+      await Future.delayed(const Duration(milliseconds: 2200));
+      addSystemActivity(
+        roomId,
+        '🟢 ${next['userName']} entered the room.',
+        activityKey: 'entrance',
+      );
+    }
+
+    roomActivityQueuesBusy[roomId] = false;
+  }
+
+  String? _getActiveEntranceEffect() {
+    try {
+      final customizationController = Get.find<CustomizationController>();
+      final effect = customizationController.activeEntryEffect.value;
+      if (effect == 'None' || effect.isEmpty) return null;
+      if (!customizationController.isItemUnlocked(effect)) return null;
+      return effect;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void sendRoomMessage(
+    String roomId,
+    String text, {
+    String? senderId,
+    String? senderName,
+    String? senderRole,
+    String? senderAvatar,
+    String? replyToMessageId,
+    String? senderLevel,
+    String? vipLabel,
+    String? novelLabel,
+    String? communityTag,
+    String? roleTag,
+    bool isActiveSpeaker = false,
+  }) {
     initializeChatForRoom(roomId);
 
     // Add local message
@@ -98,6 +271,13 @@ class RoomController extends GetxController {
         senderAvatar: senderAvatar,
         text: text,
         timestamp: DateTime.now(),
+        replyToMessageId: replyToMessageId,
+        senderLevel: senderLevel,
+        vipLabel: vipLabel,
+        novelLabel: novelLabel,
+        communityTag: communityTag,
+        roleTag: roleTag,
+        isActiveSpeaker: isActiveSpeaker,
       ),
     );
 
@@ -793,11 +973,19 @@ class RoomController extends GetxController {
         backgroundColor: Colors.green.withOpacity(0.8),
         colorText: Colors.white,
       );
+      final roleMessage = switch (newRole) {
+        'Host' => '👑 $userId became Host.',
+        'Co-owner' => '⭐ $userId became Co-Host.',
+        'Moderator' => '🛡️ $userId became Moderator.',
+        _ => '🎉 $userId became $newRole.',
+      };
+      addSystemActivity(roomId, roleMessage, messageType: 'activity');
     }
   }
 
   void removeUserRole(String roomId, String userId) {
     changeUserRole(roomId, userId, 'Visitor');
+    addSystemActivity(roomId, '🔄 $userId switched to Seat 0.', messageType: 'activity');
   }
 
   void toggleMuteAll(String roomId) {
@@ -884,6 +1072,11 @@ class RoomController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orange.withOpacity(0.8),
         colorText: Colors.white,
+      );
+      addSystemActivity(
+        roomId,
+        newMuteAll ? '🔒 Room has been locked.' : '🔓 Room has been unlocked.',
+        messageType: 'activity',
       );
     }
   }
@@ -984,6 +1177,17 @@ class RoomController extends GetxController {
         pinnedAnnouncement: pinnedAnnouncement ?? old.pinnedAnnouncement,
         currentDebateRound: old.currentDebateRound,
       );
+
+      if (bulletin != null || pinnedAnnouncement != null) {
+        addSystemActivity(roomId, '📢 Host updated the room announcement.', messageType: 'activity');
+      }
+      if (eventSettings != null) {
+        addSystemActivity(
+          roomId,
+          eventSettings == 'Enabled' ? '🎊 Room event has started.' : '✅ Room event has ended.',
+          messageType: 'activity',
+        );
+      }
       
       Get.snackbar(
         'Success',
@@ -1449,10 +1653,10 @@ class RoomController extends GetxController {
     final list = mutedUsers[roomId] ?? [];
     if (list.contains(userId)) {
       list.remove(userId);
-      Get.snackbar('Moderation', 'User unmuted', snackPosition: SnackPosition.BOTTOM);
+      addSystemActivity(roomId, '🔊 $userId was unmuted by Host.', messageType: 'activity');
     } else {
       list.add(userId);
-      Get.snackbar('Moderation', 'User muted', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.amber.withOpacity(0.8));
+      addSystemActivity(roomId, '🔇 $userId was muted by Host.', messageType: 'activity');
     }
     mutedUsers[roomId] = List<String>.from(list);
   }
@@ -1543,7 +1747,7 @@ class RoomController extends GetxController {
         );
       }
 
-      Get.snackbar('Moderation', 'User banned and kicked from room', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.withOpacity(0.8));
+      addSystemActivity(roomId, '🚫 $userId was removed from the room.', messageType: 'activity');
     }
   }
 
@@ -1660,7 +1864,7 @@ class RoomController extends GetxController {
         currentDebateRound: old.currentDebateRound,
       );
       rooms.refresh();
-      Get.snackbar('Moderation', 'User removed from block list', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green.withOpacity(0.8));
+      addSystemActivity(roomId, '🔓 Room has been unlocked.', messageType: 'activity');
     }
   }
 

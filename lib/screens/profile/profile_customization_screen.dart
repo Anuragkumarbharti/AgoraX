@@ -31,23 +31,20 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
   String? _selectedCategory; // null = Main Category List page
   String _activeFilter = 'All'; // All, Owned, Equipped, VIP, Novel, Event, Limited
   String _searchQuery = '';
+  final Set<String> _ignoredWarningItems = <String>{};
 
   final List<Map<String, dynamic>> _categories = [
-    {'name': 'Avatar', 'icon': '👤', 'desc': 'Select premium profile pics'},
-    {'name': 'Avatar Frame', 'icon': '🖼️', 'desc': 'Select borders & rings'},
-    {'name': 'Avatar Effect', 'icon': '✨', 'desc': 'Glows, fire & particles'},
-    {'name': 'Chat Bubble', 'icon': '💬', 'desc': 'Custom messages styling'},
-    {'name': 'Entry Effect', 'icon': '⚡', 'desc': 'Entrance particles'},
-    {'name': 'Entry Animation', 'icon': '🎬', 'desc': 'Banner join animation'},
-    {'name': 'Badges', 'icon': '🏅', 'desc': 'Display up to 5 badges'},
-    {'name': 'Tags', 'icon': '🏷️', 'desc': 'Unique status tags'},
-    {'name': 'Name Effect', 'icon': '🎨', 'desc': 'Rainbow, gradients, glows'},
-    {'name': 'Profile Theme', 'icon': '🌈', 'desc': 'Layout coloration'},
-    {'name': 'Background', 'icon': '🖼️', 'desc': 'Wallpapers & wallpapers'},
-    {'name': 'Emoji Pack', 'icon': '😊', 'desc': 'Novel & VIP emojis'},
-    {'name': 'Gift Showcase', 'icon': '🎁', 'desc': 'Received premium gifts'},
-    {'name': 'VIP', 'icon': '👑', 'desc': 'Manage VIP memberships'},
-    {'name': 'Novel', 'icon': '📖', 'desc': 'Luxury collectible cabinet'},
+    {'name': 'Avatar Frame', 'icon': '🖼️', 'desc': 'Animated premium avatar frames'},
+    {'name': 'Avatar Background', 'icon': '🌌', 'desc': 'Animated profile backdrops'},
+    {'name': 'Entry Effect', 'icon': '⚡', 'desc': 'One-time room entrance effect'},
+    {'name': 'Gift Effect', 'icon': '🎁', 'desc': 'Premium animated gifts'},
+    {'name': 'Chat Bubble', 'icon': '💬', 'desc': 'Premium chat styling'},
+    {'name': 'Badge', 'icon': '🏅', 'desc': 'Profile-only premium badges'},
+    {'name': 'Tag Light', 'icon': '🏷️', 'desc': 'Animated tags beside usernames'},
+    {'name': 'VIP Membership', 'icon': '💎', 'desc': 'Unlock VIP cosmetics'},
+    {'name': 'Novel Membership', 'icon': '📖', 'desc': 'Unlock Novel cosmetics'},
+    {'name': 'Community Tag Light', 'icon': '👥', 'desc': 'Owner and moderator tags'},
+    {'name': 'Emoji Effects', 'icon': '😊', 'desc': 'Premium animated emoji packs'},
   ];
 
   // List of all customization items in the system with metadata from controller
@@ -128,7 +125,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _selectedCategory ?? 'Customization Panel',
+                _selectedCategory ?? 'Tools',
                 style: GoogleFonts.outfit(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -137,8 +134,8 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               ),
               Text(
                 _selectedCategory == null
-                    ? 'Elevate your profile identity and customize visual perks'
-                    : 'Manage active displays and styling options',
+                    ? 'Customize your profile and identity.'
+                    : 'Preview, equip, and manage premium tools instantly.',
                 style: GoogleFonts.poppins(
                   fontSize: 10,
                   color: Colors.white38,
@@ -226,18 +223,27 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
   // --- DETAILS SCREEN: ONE CATEGORY VIEW ---
   Widget _buildCategoryDetailPage() {
     final catName = _selectedCategory!;
+
+    if (catName == 'VIP Membership') {
+      Get.to(() => const VipPurchaseScreen());
+      return const SizedBox.shrink();
+    } else if (catName == 'Novel Membership') {
+      Get.to(() => const NovelPurchaseScreen());
+      return const SizedBox.shrink();
+    }
     
     // special layouts
-    if (catName == 'Badges') {
+    if (catName == 'Badge') {
       return _buildBadgesReorderPanel();
-    } else if (catName == 'Tags') {
+    } else if (catName == 'Tag Light' || catName == 'Community Tag Light') {
       return _buildTagsReorderPanel();
-    } else if (catName == 'Gift Showcase') {
+    } else if (catName == 'Gift Effect') {
       return _buildGiftsReorderPanel();
     }
  
     // Filter items
-    final dbItems = _customizationDb.where((element) => element['category'] == catName).toList();
+    final resolvedCategory = _resolveCategoryKey(catName);
+    final dbItems = _customizationDb.where((element) => element['category'] == resolvedCategory).toList();
     
     // Apply Active Filter
     List<Map<String, dynamic>> filteredItems = dbItems;
@@ -262,7 +268,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
     if (_searchQuery.isEmpty) {
       itemsToShow.add({
         'name': 'None',
-        'category': catName,
+        'category': resolvedCategory,
         'rarity': 'Common',
         'premium': 'None',
         'req': 'Default styling / No active cosmetic',
@@ -271,74 +277,294 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
     }
     itemsToShow.addAll(filteredItems);
  
-    return Column(
-      children: [
-        // 1. Search Bar & Horizontal filters
-        _buildSearchAndFiltersRow(),
-        
-        // Warnings alert banner
-        _buildCategoryWarningReminders(catName),
-        
-        // 2. Main Grid view
-        Expanded(
-          child: itemsToShow.isEmpty
-              ? Center(
-                  child: Text(
-                    'No customization items found.',
-                    style: GoogleFonts.poppins(color: Colors.white38, fontSize: 13),
+    return Obx(() {
+      final previewName = _getPreviewItemName(catName);
+
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final crossAxisCount = width < 380 ? 1 : width < 620 ? 2 : 3;
+          final childAspectRatio = width < 380 ? 1.05 : width < 620 ? 0.78 : 0.86;
+
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: _buildLivePreviewHero(catName, previewName),
+              ),
+              SliverToBoxAdapter(
+                child: _buildSearchAndFiltersRow(),
+              ),
+              SliverToBoxAdapter(
+                child: _buildCategoryWarningReminders(catName),
+              ),
+              if (itemsToShow.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      'No customization items found.',
+                      style: GoogleFonts.poppins(color: Colors.white38, fontSize: 13),
+                    ),
                   ),
                 )
-              : GridView.builder(
+              else
+                SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.70,
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: childAspectRatio,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = itemsToShow[index];
+                        return _buildCosmeticCard(item);
+                      },
+                      childCount: itemsToShow.length,
+                    ),
                   ),
-                  itemCount: itemsToShow.length,
-                  itemBuilder: (context, index) {
-                    final item = itemsToShow[index];
-                    return _buildCosmeticCard(item);
-                  },
                 ),
-        ),
-      ],
-    );
+            ],
+          );
+        },
+      );
+    });
   }
  
   bool _isCurrentlyEquipped(String category, String itemName) {
-    switch (category) {
+    final resolvedCategory = _resolveCategoryKey(category);
+    switch (resolvedCategory) {
       case 'Avatar': return _custCtrl.activeAvatar.value == itemName;
       case 'Avatar Frame': return _custCtrl.activeFrame.value == itemName;
       case 'Chat Bubble': return _custCtrl.activeBubble.value == itemName;
       case 'Entry Effect': return _custCtrl.activeEntryEffect.value == itemName;
-      case 'Entry Animation': return _custCtrl.activeEntryAnimation.value == itemName;
-      case 'Avatar Effect': return _custCtrl.activeAvatarEffect.value == itemName;
-      case 'Name Effect': return _custCtrl.activeNameEffect.value == itemName;
-      case 'Profile Theme': return _custCtrl.activeTheme.value == itemName;
       case 'Background': return _custCtrl.activeBackground.value == itemName;
-      case 'Status Effect': return _custCtrl.activeStatusStyle.value == itemName;
       case 'Emoji Pack': return _custCtrl.activeEmojiPack.value == itemName;
+      case 'Badges': return _custCtrl.activeBadges.contains(itemName);
+      case 'Tags': return _custCtrl.activeTags.contains(itemName);
+      case 'Gift Showcase': return _custCtrl.activeGifts.contains(itemName);
       default: return false;
     }
   }
 
   bool _isAnyItemEquippedInCategory(String category) {
-    switch (category) {
+    final resolvedCategory = _resolveCategoryKey(category);
+    switch (resolvedCategory) {
       case 'Avatar': return _custCtrl.activeAvatar.value != 'Default';
       case 'Avatar Frame': return _custCtrl.activeFrame.value != 'Normal';
       case 'Chat Bubble': return _custCtrl.activeBubble.value != 'Classic Bubble';
       case 'Entry Effect': return _custCtrl.activeEntryEffect.value != 'None';
-      case 'Entry Animation': return _custCtrl.activeEntryAnimation.value != 'None';
-      case 'Avatar Effect': return _custCtrl.activeAvatarEffect.value != 'None';
-      case 'Name Effect': return _custCtrl.activeNameEffect.value != 'None';
-      case 'Profile Theme': return _custCtrl.activeTheme.value != 'Dark';
       case 'Background': return _custCtrl.activeBackground.value != 'None';
-      case 'Status Effect': return _custCtrl.activeStatusStyle.value != 'None';
       case 'Emoji Pack': return _custCtrl.activeEmojiPack.value != 'Classic Emojis';
+      case 'Badges': return _custCtrl.activeBadges.isNotEmpty;
+      case 'Tags': return _custCtrl.activeTags.isNotEmpty;
+      case 'Gift Showcase': return _custCtrl.activeGifts.isNotEmpty;
       default: return false;
     }
+  }
+
+  String _resolveCategoryKey(String category) {
+    switch (category) {
+      case 'Avatar Background':
+        return 'Background';
+      case 'Badge':
+        return 'Badges';
+      case 'Tag Light':
+      case 'Community Tag Light':
+        return 'Tags';
+      case 'Gift Effect':
+        return 'Gift Showcase';
+      case 'Emoji Effects':
+        return 'Emoji Pack';
+      default:
+        return category;
+    }
+  }
+
+  String _getPreviewItemName(String category) {
+    final resolvedCategory = _resolveCategoryKey(category);
+    switch (resolvedCategory) {
+      case 'Avatar Frame':
+        return _custCtrl.activeFrame.value;
+      case 'Chat Bubble':
+        return _custCtrl.activeBubble.value;
+      case 'Entry Effect':
+        return _custCtrl.activeEntryEffect.value;
+      case 'Background':
+        return _custCtrl.activeBackground.value;
+      case 'Emoji Pack':
+        return _custCtrl.activeEmojiPack.value;
+      case 'Badges':
+        return _custCtrl.activeBadges.isNotEmpty ? _custCtrl.activeBadges.first : 'None';
+      case 'Tags':
+        return _custCtrl.activeTags.isNotEmpty ? _custCtrl.activeTags.first : 'None';
+      case 'Gift Showcase':
+        return _custCtrl.activeGifts.isNotEmpty ? _custCtrl.activeGifts.first : 'None';
+      default:
+        return 'None';
+    }
+  }
+
+  Widget _buildLivePreviewHero(String category, String previewName) {
+    final resolvedCategory = _resolveCategoryKey(category);
+    final previewIsEmpty = previewName == 'None';
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 520;
+
+        final previewBlock = Container(
+          width: 92,
+          height: 92,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                const Color(0xFF8B5CF6).withOpacity(0.25),
+                Colors.white.withOpacity(0.03),
+              ],
+            ),
+            border: Border.all(color: Colors.white.withOpacity(0.06)),
+          ),
+          child: Center(
+            child: previewIsEmpty
+                ? Icon(Icons.auto_awesome_rounded, color: Colors.white.withOpacity(0.25), size: 34)
+                : Transform.scale(
+                    scale: 1.35,
+                    child: _buildItemPreview(resolvedCategory, previewName),
+                  ),
+          ),
+        );
+
+        final previewText = Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Live Preview',
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFFC084FC),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                previewName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Preview updates instantly when you equip or change an item.',
+                style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10.5),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildPreviewPill(category),
+                  _buildPreviewPill('Equipped only'),
+                ],
+              ),
+            ],
+          ),
+        );
+
+        final previewButton = InkWell(
+          onTap: previewIsEmpty ? null : () => _triggerPreviewAction(resolvedCategory, previewName, false),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(previewIsEmpty ? 0.04 : 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.visibility_rounded, color: Colors.white70, size: 18),
+                const SizedBox(height: 4),
+                Text(
+                  'Preview',
+                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        return Container(
+          margin: const EdgeInsets.fromLTRB(20, 6, 20, 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF151525).withOpacity(0.95),
+                const Color(0xFF0F0F16).withOpacity(0.95),
+                const Color(0xFF1A1A2A).withOpacity(0.95),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.25)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF8B5CF6).withOpacity(0.10),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: isCompact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [previewBlock, const SizedBox(width: 14), Expanded(child: previewText)]),
+                    const SizedBox(height: 12),
+                    Align(alignment: Alignment.centerRight, child: previewButton),
+                  ],
+                )
+              : Row(
+                  children: [
+                    previewBlock,
+                    const SizedBox(width: 14),
+                    previewText,
+                    const SizedBox(width: 12),
+                    previewButton,
+                  ],
+                ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPreviewPill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w600),
+      ),
+    );
   }
 
   Widget _buildSearchAndFiltersRow() {
@@ -397,11 +623,16 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
   }
 
   Widget _buildCategoryWarningReminders(String catName) {
+    final resolvedCategory = _resolveCategoryKey(catName);
+
     return Obx(() {
       final now = DateTime.now();
-      final List<String> warnings = [];
+      final List<Map<String, String>> warnings = [];
 
       _custCtrl.itemExpiries.forEach((itemName, expiry) {
+        if (_ignoredWarningItems.contains(itemName)) {
+          return;
+        }
         if (expiry.isAfter(now)) {
           final diff = expiry.difference(now);
           if (diff.inDays <= 3) {
@@ -409,14 +640,17 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               (element) => element['name'] == itemName,
               orElse: () => <String, dynamic>{},
             );
-            if (item.isNotEmpty && item['category'] == catName) {
+            if (item.isNotEmpty && item['category'] == resolvedCategory) {
+              final premiumType = item['premium'] as String? ?? 'None';
+              String message;
               if (diff.inDays >= 1) {
-                warnings.add('$itemName expires in ${diff.inDays} days.');
+                message = '$itemName expires in ${diff.inDays} days.';
               } else if (diff.inHours >= 1) {
-                warnings.add('$itemName expires in ${diff.inHours} hours.');
+                message = '$itemName expires in ${diff.inHours} hours.';
               } else {
-                warnings.add('$itemName expires soon.');
+                message = '$itemName expires soon.';
               }
+              warnings.add({'name': itemName, 'message': message, 'premium': premiumType});
             }
           }
         }
@@ -439,14 +673,71 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               children: [
                 const Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 16),
                 const SizedBox(width: 8),
-                Text(
-                  'Subscription Renewal Warning',
-                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    'Subscription Renewal Warning',
+                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      for (final warning in warnings) {
+                        _ignoredWarningItems.add(warning['name'] ?? '');
+                      }
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white54,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Ignore All'),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            ...warnings.map((w) => Text('• $w', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10))),
+            ...warnings.map((warning) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '• ${warning['message']}',
+                        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _openPurchaseFlow(warning['premium'] ?? 'None', warning['name'] ?? ''),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFFC084FC),
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text('Renew'),
+                    ),
+                    const SizedBox(width: 4),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _ignoredWarningItems.add(warning['name'] ?? '');
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white54,
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text('Ignore'),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       );
@@ -478,7 +769,18 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
       final isFav = isVirtual ? false : _custCtrl.favorites.contains(name);
       final rColor = _getRarityColor(rarity);
 
-      return Container(
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _handleCardPrimaryAction(
+          category: cat,
+          name: name,
+          premiumType: premiumType,
+          isVirtual: isVirtual,
+          isOwned: isOwned,
+          isEquipped: isEquipped,
+          showRenewal: showRenewal,
+        ),
+        child: Container(
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.01),
           borderRadius: BorderRadius.circular(20),
@@ -581,21 +883,15 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 padding: EdgeInsets.zero,
                               ),
-                              onPressed: () {
-                                if (isEquipped) {
-                                  if (isVirtual) {
-                                    // Already default/none
-                                  } else {
-                                    _custCtrl.removeItem(cat);
-                                  }
-                                } else {
-                                  if (isVirtual) {
-                                    _custCtrl.removeItem(cat);
-                                  } else {
-                                    _custCtrl.equipItem(cat, name);
-                                  }
-                                }
-                              },
+                              onPressed: () => _handleCardPrimaryAction(
+                                category: cat,
+                                name: name,
+                                premiumType: premiumType,
+                                isVirtual: isVirtual,
+                                isOwned: isOwned,
+                                isEquipped: isEquipped,
+                                showRenewal: showRenewal,
+                              ),
                               child: Text(
                                 isEquipped 
                                     ? (isVirtual ? 'Default' : '❌ Unequip')
@@ -613,16 +909,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 padding: EdgeInsets.zero,
                               ),
-                              onPressed: () {
-                                _custCtrl.renewOrPurchaseItem(name, const Duration(days: 30));
-                                Get.snackbar(
-                                  '✨ Item Renewed',
-                                  '$name has been renewed for 30 days!',
-                                  snackPosition: SnackPosition.BOTTOM,
-                                  backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
-                                  colorText: Colors.white,
-                                );
-                              },
+                              onPressed: () => _openPurchaseFlow(premiumType, name),
                               child: Text(
                                 isExpired ? 'Buy Again' : 'Renew',
                                 style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
@@ -642,7 +929,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 padding: EdgeInsets.zero,
                               ),
-                              onPressed: () => _triggerDetailsAction(name, req, premiumType, isVirtual),
+                              onPressed: () => _openPurchaseFlow(premiumType, name),
                             ),
                           ),
                       ],
@@ -717,6 +1004,62 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         ),
       );
     });
+  }
+
+  void _handleCardPrimaryAction({
+    required String category,
+    required String name,
+    required String premiumType,
+    required bool isVirtual,
+    required bool isOwned,
+    required bool isEquipped,
+    required bool showRenewal,
+  }) {
+    if (isVirtual) {
+      _custCtrl.removeItem(category);
+      return;
+    }
+
+    if (showRenewal) {
+      _openPurchaseFlow(premiumType, name);
+      return;
+    }
+
+    if (!isOwned) {
+      if (premiumType == 'VIP' || premiumType == 'Novel') {
+        _openPurchaseFlow(premiumType, name);
+      } else {
+        _custCtrl.unlockItem(name).then((_) => _custCtrl.equipItem(category, name));
+      }
+      return;
+    }
+
+    if (isEquipped) {
+      _custCtrl.removeItem(category);
+    } else {
+      _custCtrl.equipItem(category, name);
+    }
+  }
+
+  void _openPurchaseFlow(String premiumType, String itemName) {
+    if (premiumType == 'VIP') {
+      Get.to(() => const VipPurchaseScreen());
+      return;
+    }
+    if (premiumType == 'Novel') {
+      Get.to(() => const NovelPurchaseScreen());
+      return;
+    }
+
+    if (itemName.isNotEmpty) {
+      _custCtrl.unlockItem(itemName).then((_) => Get.snackbar(
+        'Unlocked',
+        '$itemName is now available.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+        colorText: Colors.white,
+      ));
+    }
   }
 
   void _triggerPreviewAction(String category, String name, bool isVirtual) {
@@ -892,6 +1235,10 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         return const Text('🌈', style: TextStyle(fontSize: 28));
       case 'Background':
         return const Text('🖼️', style: TextStyle(fontSize: 28));
+      case 'Badges':
+        return const Text('🏅', style: TextStyle(fontSize: 28));
+      case 'Tags':
+        return const Text('🏷️', style: TextStyle(fontSize: 28));
       case 'Emoji Pack':
         return const Text('😊', style: TextStyle(fontSize: 28));
       case 'Gift Showcase':
@@ -908,72 +1255,75 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
     return Obx(() {
       final activeList = _custCtrl.activeBadges.toList();
 
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Active Badges Row showing Max 5 Ordering
-            Text(
-              'ACTIVE BADGES ORDER (DRAG TO SORT - MAX 5)',
-              style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              height: 220,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.02),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
+      return SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Active Badges Row showing Max 5 Ordering
+              Text(
+                'ACTIVE BADGE ORDER (DRAG TO SORT - MAX 5)',
+                style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              child: activeList.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No active badges. Equip badges below.',
-                        style: GoogleFonts.poppins(color: Colors.white24, fontSize: 12),
+              const SizedBox(height: 12),
+              Container(
+                height: 220,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.02),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.04)),
+                ),
+                child: activeList.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No active badges. Equip badges below.',
+                          style: GoogleFonts.poppins(color: Colors.white24, fontSize: 12),
+                        ),
+                      )
+                    : ReorderableListView(
+                        physics: const ClampingScrollPhysics(),
+                        children: List.generate(activeList.length, (index) {
+                          final bName = activeList[index];
+                          final dbBadge = allBadges.firstWhere((e) => e['name'] == bName, orElse: () => allBadges[0]);
+                          final rColor = _getRarityColor(dbBadge['rarity']);
+                          return ListTile(
+                            key: ValueKey('active_badge_$bName'),
+                            leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
+                            title: Row(
+                              children: [
+                                Text(dbBadge['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                const Spacer(),
+                                Text(
+                                  (dbBadge['rarity'] as String).toUpperCase(),
+                                  style: GoogleFonts.poppins(color: rColor, fontSize: 9, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
+                              onPressed: () => _custCtrl.toggleBadge(bName),
+                            ),
+                          );
+                        }),
+                        onReorder: (oldIndex, newIndex) {
+                          _custCtrl.reorderBadges(oldIndex, newIndex);
+                        },
                       ),
-                    )
-                  : ReorderableListView(
-                      physics: const ClampingScrollPhysics(),
-                      children: List.generate(activeList.length, (index) {
-                        final bName = activeList[index];
-                        final dbBadge = allBadges.firstWhere((e) => e['name'] == bName, orElse: () => allBadges[0]);
-                        final rColor = _getRarityColor(dbBadge['rarity']);
-                        return ListTile(
-                          key: ValueKey('active_badge_$bName'),
-                          leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
-                          title: Row(
-                            children: [
-                              Text(dbBadge['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                              const Spacer(),
-                              Text(
-                                (dbBadge['rarity'] as String).toUpperCase(),
-                                style: GoogleFonts.poppins(color: rColor, fontSize: 9, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
-                            onPressed: () => _custCtrl.toggleBadge(bName),
-                          ),
-                        );
-                      }),
-                      onReorder: (oldIndex, newIndex) {
-                        _custCtrl.reorderBadges(oldIndex, newIndex);
-                      },
-                    ),
-            ),
-            const SizedBox(height: 24),
+              ),
+              const SizedBox(height: 24),
 
-            // Available Unlocked Badges list
-            Text(
-              'AVAILABLE BADGES',
-              style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: ListView.builder(
+              // Available Unlocked Badges list
+              Text(
+                'AVAILABLE BADGES',
+                style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 10),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: allBadges.length,
                 itemBuilder: (context, index) {
                   final b = allBadges[index];
@@ -1034,8 +1384,8 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                   );
                 },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     });
@@ -1048,72 +1398,75 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
     return Obx(() {
       final activeList = _custCtrl.activeTags.toList();
 
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Active Tags Row showing Max 3 Ordering
-            Text(
-              'ACTIVE TAGS ORDER (DRAG TO SORT - MAX 3)',
-              style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              height: 180,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.02),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
+      return SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Active Tags Row showing Max 3 Ordering
+              Text(
+                'ACTIVE TAG LIGHT ORDER (DRAG TO SORT - MAX 5)',
+                style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              child: activeList.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No active tags. Equip tags below.',
-                        style: GoogleFonts.poppins(color: Colors.white24, fontSize: 12),
+              const SizedBox(height: 12),
+              Container(
+                height: 180,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.02),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.04)),
+                ),
+                child: activeList.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No active tag lights. Equip tag lights below.',
+                          style: GoogleFonts.poppins(color: Colors.white24, fontSize: 12),
+                        ),
+                      )
+                    : ReorderableListView(
+                        physics: const ClampingScrollPhysics(),
+                        children: List.generate(activeList.length, (index) {
+                          final tagName = activeList[index];
+                          final dbTag = allTags.firstWhere((e) => e['name'] == tagName, orElse: () => allTags[0]);
+                          final rColor = _getRarityColor(dbTag['rarity']);
+                          return ListTile(
+                            key: ValueKey('active_tag_$tagName'),
+                            leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
+                            title: Row(
+                              children: [
+                                Text(dbTag['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                const Spacer(),
+                                Text(
+                                  (dbTag['rarity'] as String).toUpperCase(),
+                                  style: GoogleFonts.poppins(color: rColor, fontSize: 9, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
+                              onPressed: () => _custCtrl.toggleTag(tagName),
+                            ),
+                          );
+                        }),
+                        onReorder: (oldIndex, newIndex) {
+                          _custCtrl.reorderTags(oldIndex, newIndex);
+                        },
                       ),
-                    )
-                  : ReorderableListView(
-                      physics: const ClampingScrollPhysics(),
-                      children: List.generate(activeList.length, (index) {
-                        final tagName = activeList[index];
-                        final dbTag = allTags.firstWhere((e) => e['name'] == tagName, orElse: () => allTags[0]);
-                        final rColor = _getRarityColor(dbTag['rarity']);
-                        return ListTile(
-                          key: ValueKey('active_tag_$tagName'),
-                          leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
-                          title: Row(
-                            children: [
-                              Text(dbTag['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                              const Spacer(),
-                              Text(
-                                (dbTag['rarity'] as String).toUpperCase(),
-                                style: GoogleFonts.poppins(color: rColor, fontSize: 9, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
-                            onPressed: () => _custCtrl.toggleTag(tagName),
-                          ),
-                        );
-                      }),
-                      onReorder: (oldIndex, newIndex) {
-                        _custCtrl.reorderTags(oldIndex, newIndex);
-                      },
-                    ),
-            ),
-            const SizedBox(height: 24),
+              ),
+              const SizedBox(height: 24),
 
-            // Available Unlocked Tags list
-            Text(
-              'AVAILABLE TAGS',
-              style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: ListView.builder(
+              // Available Unlocked Tags list
+              Text(
+                'AVAILABLE TAG LIGHTS',
+                style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 10),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: allTags.length,
                 itemBuilder: (context, index) {
                   final t = allTags[index];
@@ -1174,8 +1527,8 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                   );
                 },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     });
@@ -1188,72 +1541,75 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
     return Obx(() {
       final activeList = _custCtrl.activeGifts.toList();
 
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Active Gifts Showcase Row showing Max 3 Ordering
-            Text(
-              'ACTIVE SHOWCASE ORDER (DRAG TO SORT - MAX 3)',
-              style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              height: 180,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.02),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
+      return SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Active Gifts Showcase Row showing Max 3 Ordering
+              Text(
+                'ACTIVE GIFT EFFECT ORDER (DRAG TO SORT - MAX 3)',
+                style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              child: activeList.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Showcase is empty. Equip gifts below.',
-                        style: GoogleFonts.poppins(color: Colors.white24, fontSize: 12),
+              const SizedBox(height: 12),
+              Container(
+                height: 180,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.02),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.04)),
+                ),
+                child: activeList.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Gift effect stack is empty. Equip gift effects below.',
+                          style: GoogleFonts.poppins(color: Colors.white24, fontSize: 12),
+                        ),
+                      )
+                    : ReorderableListView(
+                        physics: const ClampingScrollPhysics(),
+                        children: List.generate(activeList.length, (index) {
+                          final giftName = activeList[index];
+                          final dbGift = allGifts.firstWhere((e) => e['name'] == giftName, orElse: () => allGifts[0]);
+                          final rColor = _getRarityColor(dbGift['rarity']);
+                          return ListTile(
+                            key: ValueKey('active_gift_$giftName'),
+                            leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
+                            title: Row(
+                              children: [
+                                Text(dbGift['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                const Spacer(),
+                                Text(
+                                  (dbGift['rarity'] as String).toUpperCase(),
+                                  style: GoogleFonts.poppins(color: rColor, fontSize: 9, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
+                              onPressed: () => _custCtrl.toggleGift(giftName),
+                            ),
+                          );
+                        }),
+                        onReorder: (oldIndex, newIndex) {
+                          _custCtrl.reorderGifts(oldIndex, newIndex);
+                        },
                       ),
-                    )
-                  : ReorderableListView(
-                      physics: const ClampingScrollPhysics(),
-                      children: List.generate(activeList.length, (index) {
-                        final giftName = activeList[index];
-                        final dbGift = allGifts.firstWhere((e) => e['name'] == giftName, orElse: () => allGifts[0]);
-                        final rColor = _getRarityColor(dbGift['rarity']);
-                        return ListTile(
-                          key: ValueKey('active_gift_$giftName'),
-                          leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
-                          title: Row(
-                            children: [
-                              Text(dbGift['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                              const Spacer(),
-                              Text(
-                                (dbGift['rarity'] as String).toUpperCase(),
-                                style: GoogleFonts.poppins(color: rColor, fontSize: 9, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
-                            onPressed: () => _custCtrl.toggleGift(giftName),
-                          ),
-                        );
-                      }),
-                      onReorder: (oldIndex, newIndex) {
-                        _custCtrl.reorderGifts(oldIndex, newIndex);
-                      },
-                    ),
-            ),
-            const SizedBox(height: 24),
+              ),
+              const SizedBox(height: 24),
 
-            // Available Unlocked Gifts list
-            Text(
-              'AVAILABLE SHOWCASE GIFTS',
-              style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: ListView.builder(
+              // Available Unlocked Gifts list
+              Text(
+                'AVAILABLE GIFT EFFECTS',
+                style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 10),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: allGifts.length,
                 itemBuilder: (context, index) {
                   final g = allGifts[index];
@@ -1314,8 +1670,8 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                   );
                 },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     });

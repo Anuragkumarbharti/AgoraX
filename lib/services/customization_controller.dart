@@ -10,16 +10,13 @@ class CustomizationController extends GetxController {
   static const String _keyFrame = 'cust_active_frame';
   static const String _keyBubble = 'cust_active_bubble';
   static const String _keyEntryEffect = 'cust_active_entry_effect';
-  static const String _keyEntryAnim = 'cust_active_entry_anim';
   static const String _keyAvatarEffect = 'cust_active_avatar_effect';
   static const String _keyNameEffect = 'cust_active_name_effect';
   static const String _keyTheme = 'cust_active_theme';
   static const String _keyBackground = 'cust_active_background';
-  static const String _keyStatusStyle = 'cust_active_status_style';
   static const String _keyBadges = 'cust_active_badges';
   static const String _keyFavorites = 'cust_favorites';
   static const String _keyUnlocked = 'cust_unlocked_items';
-  static const String _keyAvatar = 'cust_active_avatar';
   static const String _keyTags = 'cust_active_tags';
   static const String _keyEmojiPack = 'cust_active_emoji_pack';
   static const String _keyGifts = 'cust_active_gifts';
@@ -28,12 +25,10 @@ class CustomizationController extends GetxController {
   final RxString activeFrame = 'Normal'.obs;
   final RxString activeBubble = 'Classic Bubble'.obs;
   final RxString activeEntryEffect = 'None'.obs;
-  final RxString activeEntryAnimation = 'None'.obs;
   final RxString activeAvatarEffect = 'None'.obs;
   final RxString activeNameEffect = 'None'.obs;
   final RxString activeTheme = 'Dark'.obs;
   final RxString activeBackground = 'None'.obs;
-  final RxString activeStatusStyle = 'None'.obs;
   final RxString activeAvatar = 'Default'.obs;
   final RxString customAvatarPath = ''.obs;
   final RxString activeEmojiPack = 'Classic Emojis'.obs;
@@ -66,35 +61,6 @@ class CustomizationController extends GetxController {
     {'name': 'Phoenix Flame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
     {'name': 'Celestial Sky Frame', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
     {'name': 'Cosmic Emperor (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-
-    // 2. Avatar Images (Profile Pics)
-    {'name': 'Default', 'category': 'Avatar', 'rarity': 'Common', 'premium': 'None', 'req': 'Default profile picture'},
-    {'name': 'VIP Gold Crown', 'category': 'Avatar', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'Neon Gamer Tech', 'category': 'Avatar', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Galaxy Mage Cosmic', 'category': 'Avatar', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Cyberpunk Samurai', 'category': 'Avatar', 'rarity': 'Epic', 'premium': 'None', 'req': 'Unlock at Level 10'},
-    {'name': 'Crimson Dragon Lord', 'category': 'Avatar', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-
-    // 3. Avatar Effects (Avatar Aura)
-    {'name': 'None', 'category': 'Avatar Effect', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
-    // VIP Auras
-    {'name': 'Royal Aura', 'category': 'Avatar Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'Pulsing Glow', 'category': 'Avatar Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'}, // Neon fallback
-    {'name': 'Neon Aura', 'category': 'Avatar Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Golden Aura', 'category': 'Avatar Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Rainbow Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Emperor Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Auras
-    {'name': 'Galaxy Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Royal Palace Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Red Flame Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Dragon Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Stardust', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-    {'name': 'Cosmic Emperor Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 4. Chat Bubbles
     {'name': 'Classic Bubble', 'category': 'Chat Bubble', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
@@ -140,13 +106,6 @@ class CustomizationController extends GetxController {
     {'name': 'Celestial Portal', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
     {'name': 'Cosmic Rift', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
-    // 6. Entry Animations
-    {'name': 'None', 'category': 'Entry Animation', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
-    {'name': 'Slide In', 'category': 'Entry Animation', 'rarity': 'Rare', 'premium': 'None', 'req': 'Default'},
-    {'name': 'Teleport', 'category': 'Entry Animation', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Spin In', 'category': 'Entry Animation', 'rarity': 'Epic', 'premium': 'None', 'req': 'Level 15 Reward'},
-    {'name': 'Celestial Join', 'category': 'Entry Animation', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-
     // 7. Badges
     {'name': 'Legend', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'None', 'req': 'Achieve Hall of Fame'},
     {'name': 'Explorer', 'category': 'Badges', 'rarity': 'Common', 'premium': 'None', 'req': 'Default badge'},
@@ -190,47 +149,6 @@ class CustomizationController extends GetxController {
     {'name': 'Phoenix Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
     {'name': 'Celestial Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
     {'name': 'Cosmic Emperor Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-
-    // 9. Name Effects
-    {'name': 'None', 'category': 'Name Effect', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
-    // VIP Name Glows
-    {'name': 'Royal Blue Glow', 'category': 'Name Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'Neon Pink Glow', 'category': 'Name Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Gold Glow', 'category': 'Name Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Neon Glow', 'category': 'Name Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Rainbow Fire', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Rainbow Fire Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Emperor Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Name Glows
-    {'name': 'Galaxy Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Royal Palace Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Dragon Fire Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Flame Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Gold', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-    {'name': 'Cosmic Emperor Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-
-    // 10. Profile Themes
-    {'name': 'Dark', 'category': 'Profile Theme', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
-    // VIP Themes
-    {'name': 'Royal Theme', 'category': 'Profile Theme', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'Neon Theme', 'category': 'Profile Theme', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Golden Theme', 'category': 'Profile Theme', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Theme', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Theme', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Rainbow Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Emperor Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Themes
-    {'name': 'Galaxy Theme', 'category': 'Profile Theme', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Galaxy Purple', 'category': 'Profile Theme', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Royal Palace Theme', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Gold Palace', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Dragon Theme', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Emperor Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 11. Backgrounds
     {'name': 'None', 'category': 'Background', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
@@ -304,13 +222,10 @@ class CustomizationController extends GetxController {
     activeFrame.value = prefs.getString(_keyFrame) ?? 'Normal';
     activeBubble.value = prefs.getString(_keyBubble) ?? 'Classic Bubble';
     activeEntryEffect.value = prefs.getString(_keyEntryEffect) ?? 'None';
-    activeEntryAnimation.value = prefs.getString(_keyEntryAnim) ?? 'None';
     activeAvatarEffect.value = prefs.getString(_keyAvatarEffect) ?? 'None';
     activeNameEffect.value = prefs.getString(_keyNameEffect) ?? 'None';
     activeTheme.value = prefs.getString(_keyTheme) ?? 'Dark';
     activeBackground.value = prefs.getString(_keyBackground) ?? 'None';
-    activeStatusStyle.value = prefs.getString(_keyStatusStyle) ?? 'None';
-    activeAvatar.value = prefs.getString(_keyAvatar) ?? 'Default';
     customAvatarPath.value = prefs.getString('cust_custom_avatar_path') ?? '';
     activeEmojiPack.value = prefs.getString(_keyEmojiPack) ?? 'Classic Emojis';
 
@@ -406,13 +321,10 @@ class CustomizationController extends GetxController {
     await prefs.setString(_keyFrame, activeFrame.value);
     await prefs.setString(_keyBubble, activeBubble.value);
     await prefs.setString(_keyEntryEffect, activeEntryEffect.value);
-    await prefs.setString(_keyEntryAnim, activeEntryAnimation.value);
     await prefs.setString(_keyAvatarEffect, activeAvatarEffect.value);
     await prefs.setString(_keyNameEffect, activeNameEffect.value);
     await prefs.setString(_keyTheme, activeTheme.value);
     await prefs.setString(_keyBackground, activeBackground.value);
-    await prefs.setString(_keyStatusStyle, activeStatusStyle.value);
-    await prefs.setString(_keyAvatar, activeAvatar.value);
     await prefs.setString('cust_custom_avatar_path', customAvatarPath.value);
     await prefs.setString(_keyEmojiPack, activeEmojiPack.value);
 
@@ -542,9 +454,6 @@ class CustomizationController extends GetxController {
       case 'Entry Effect':
         activeEntryEffect.value = itemName;
         break;
-      case 'Entry Animation':
-        activeEntryAnimation.value = itemName;
-        break;
       case 'Avatar Effect':
         activeAvatarEffect.value = itemName;
         break;
@@ -556,9 +465,6 @@ class CustomizationController extends GetxController {
         break;
       case 'Background':
         activeBackground.value = itemName;
-        break;
-      case 'Status Effect':
-        activeStatusStyle.value = itemName;
         break;
       case 'Emoji Pack':
         activeEmojiPack.value = itemName;
@@ -592,9 +498,6 @@ class CustomizationController extends GetxController {
       case 'Entry Effect':
         activeEntryEffect.value = 'None';
         break;
-      case 'Entry Animation':
-        activeEntryAnimation.value = 'None';
-        break;
       case 'Avatar Effect':
         activeAvatarEffect.value = 'None';
         break;
@@ -606,9 +509,6 @@ class CustomizationController extends GetxController {
         break;
       case 'Background':
         activeBackground.value = 'None';
-        break;
-      case 'Status Effect':
-        activeStatusStyle.value = 'None';
         break;
       case 'Emoji Pack':
         activeEmojiPack.value = 'Classic Emojis';
@@ -749,13 +649,10 @@ class CustomizationController extends GetxController {
       if (activeFrame.value == itemName) activeFrame.value = 'Normal';
       if (activeBubble.value == itemName) activeBubble.value = 'Classic Bubble';
       if (activeEntryEffect.value == itemName) activeEntryEffect.value = 'None';
-      if (activeEntryAnimation.value == itemName) activeEntryAnimation.value = 'None';
       if (activeAvatarEffect.value == itemName) activeAvatarEffect.value = 'None';
       if (activeNameEffect.value == itemName) activeNameEffect.value = 'None';
       if (activeTheme.value == itemName) activeTheme.value = 'Dark';
       if (activeBackground.value == itemName) activeBackground.value = 'None';
-      if (activeStatusStyle.value == itemName) activeStatusStyle.value = 'None';
-      if (activeAvatar.value == itemName) activeAvatar.value = 'Default';
       if (activeEmojiPack.value == itemName) activeEmojiPack.value = 'Classic Emojis';
 
       if (activeBadges.contains(itemName)) activeBadges.remove(itemName);

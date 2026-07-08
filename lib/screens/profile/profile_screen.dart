@@ -1857,11 +1857,11 @@ class _ProfileScreenState extends State<ProfileScreen>
               Get.to(() => const ProfileCustomizationScreen());
             }),
             const Divider(color: Colors.white10, height: 12),
-            _storeCosmeticItem('Avatar Effect', activeEffect, () {
+            _storeCosmeticItem('Entry Effect', activeEffect, () {
               Get.to(() => const ProfileCustomizationScreen());
             }),
             const Divider(color: Colors.white10, height: 12),
-            _storeCosmeticItem('Profile Theme', activeTheme, () {
+            _storeCosmeticItem('Avatar Background', activeTheme, () {
               Get.to(() => const ProfileCustomizationScreen());
             }),
             const Divider(color: Colors.white10, height: 12),

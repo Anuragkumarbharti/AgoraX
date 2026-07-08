@@ -74,39 +74,39 @@ class _NovelPurchaseScreenState extends State<NovelPurchaseScreen> {
     switch (lvl) {
       case 1:
         return {'name': 'Classic Novel', 'color': const Color(0xFF2563EB), 'emoji': '🛡️', 'benefits': [
-          'Luxury Border', 'Luxury Badge', 'Luxury Mini Profile', 'Luxury Chat Bubble',
-          'Luxury Avatar Ring', 'Luxury Profile Theme', 'Luxury Banner'
+          'Avatar Frame access', 'Badge access', 'Chat Bubble access', 'Tag Light access',
+          'Avatar Background access', 'Gift Effect access', 'Novel Membership identity'
         ]};
       case 2:
         return {'name': 'Galaxy Novel', 'color': const Color(0xFF7C3AED), 'emoji': '🌌', 'benefits': [
-          'Everything in Novel 1', 'Galaxy Entrance Animation', 'Galaxy Profile Border',
-          'Galaxy Wallpaper Theme', 'Premium Name Glow', 'Galaxy Voice Room Card'
+          'Everything in Novel 1', 'Animated Avatar Frame', 'Galaxy Entry Effect',
+          'Galaxy Avatar Background', 'Animated Chat Bubble', 'Galaxy Emoji Effects'
         ]};
       case 3:
         return {'name': 'Royal Palace Novel', 'color': const Color(0xFFFFD700), 'emoji': '👑', 'benefits': [
-          'Everything in Novel 2', 'Royal Palace Crown', 'Gold Theme Layout',
-          'Royal Entry Announcement', 'Royal Username Effect', 'Luxury Gift Sparkle Effects'
+          'Everything in Novel 2', 'Royal Avatar Frame', 'Royal Avatar Background',
+          'Royal Entry Effect', 'Royal Gift Effect', 'Royal Tag Light'
         ]};
       case 4:
         return {'name': 'Dragon Fire Novel', 'color': const Color(0xFFDC2626), 'emoji': '🔥', 'benefits': [
-          'Everything in Novel 3', 'Dragon Fire animation background', 'Crimson Fire Border',
-          'Dragon Room Entrance Banner', 'Dragon Profile Particle Effects', 'Animated Join Status'
+          'Everything in Novel 3', 'Dragon Avatar Frame', 'Dragon Avatar Background',
+          'Dragon Entry Effect', 'Dragon Chat Bubble', 'Dragon Badge'
         ]};
       case 5:
         return {'name': 'Phoenix Flame Novel', 'color': const Color(0xFFF97316), 'emoji': '🦅', 'benefits': [
-          'Everything in Novel 4', 'Phoenix Wings Decoration', 'Flame Ring Aura',
-          'Luxury Audio Voice Effect', 'Phoenix Chat Bubble', 'Exclusive Theme wallpaper'
+          'Everything in Novel 4', 'Phoenix Avatar Frame', 'Phoenix Gift Effect',
+          'Phoenix Chat Bubble', 'Phoenix Emoji Effects', 'Phoenix Tag Light'
         ]};
       case 6:
         return {'name': 'Celestial Sky Novel', 'color': const Color(0xFF06B6D4), 'emoji': '💎', 'benefits': [
-          'Everything in Novel 5', 'Celestial Sky Diamond Glow', 'Celestial Entry Banner',
-          'Animated Profile Header', 'Exclusive Background BGM', 'Premium Dynamic Theme'
+          'Everything in Novel 5', 'Celestial Avatar Frame', 'Celestial Avatar Background',
+          'Celestial Entry Effect', 'Celestial Gift Effect', 'Celestial Community Tag Light'
         ]};
       case 7:
         return {'name': 'IMMORTAL NOVEL', 'color': const Color(0xFFFFD700), 'emoji': '🔮', 'benefits': [
-          'Immortal Crown & Cosmic Border', 'Cosmic Black + Gold Theme', 'Legendary Golden Glow',
-          'Immortal Entry & Exit Animation', 'Animated Cosmic Stars', 'Immortal Mini Profile Theme',
-          'Luxury Voice Room Card', 'Animated Gift Effects', 'Exclusive BGM & Dynamic Wallpaper'
+          'Immortal Avatar Frame', 'Immortal Avatar Background', 'Immortal Entry Effect',
+          'Immortal Gift Effect', 'Immortal Badge and Tag Light', 'Immortal Emoji Effects',
+          'Immortal Membership identity'
         ]};
       default:
         return {'name': 'Novel', 'color': Colors.blue, 'emoji': '✦', 'benefits': []};
