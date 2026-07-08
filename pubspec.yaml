@@ -21,6 +21,10 @@ dependencies:
   dio: ^5.4.0
   retrofit: ^4.1.0
   
+  # Supabase Backend & Encryption
+  supabase_flutter: ^2.5.8
+  encrypt: ^5.0.3
+  
   # JSON Serialization
   json_serializable: ^6.7.1
   

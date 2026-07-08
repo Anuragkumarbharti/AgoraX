@@ -10,6 +10,10 @@ import '../../models/question_model.dart';
 import '../../models/community_model.dart';
 import '../profile/user_profile_screen.dart';
 import '../../widgets/post_attachments_widget.dart';
+import '../../services/study_vault_controller.dart';
+import '../study_vault/study_vault_home_screen.dart';
+import '../study_vault/book_details_screen.dart';
+
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({Key? key}) : super(key: key);
@@ -27,7 +31,8 @@ class _ExploreScreenState extends State<ExploreScreen>
     'Posts',
     'Questions',
     'Communities',
-    'Users'
+    'Users',
+    'Study Vault'
   ];
 
   // ── Mock data ──
@@ -664,6 +669,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                   _buildQuestionsTab(),
                   _buildCommunitiesTab(),
                   _buildUsersTab(),
+                  _buildStudyVaultTab(),
                 ],
               ),
             ),
@@ -692,6 +698,51 @@ class _ExploreScreenState extends State<ExploreScreen>
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
+        GestureDetector(
+          onTap: () => Get.to(() => const StudyVaultHomeScreen()),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6366F1).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.auto_stories, color: Colors.white, size: 36),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '📚 Explore Study Vault',
+                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Buy, sell & read handwritten notes, project manuals, solved assignments and academic guides!',
+                        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 10.5, height: 1.3),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+              ],
+            ),
+          ),
+        ),
         if (filteredPosts.isNotEmpty) ...[
           _sectionHeader(query.isEmpty ? '🔥 Trending Posts' : 'Posts Found'),
           const SizedBox(height: 10),
@@ -1539,4 +1590,81 @@ class _ExploreScreenState extends State<ExploreScreen>
       ),
     );
   }
+
+  Widget _buildStudyVaultTab() {
+    if (!Get.isRegistered<StudyVaultController>()) {
+      Get.put(StudyVaultController());
+    }
+    final vaultCtrl = Get.find<StudyVaultController>();
+    final query = _searchController.text.trim().toLowerCase();
+
+    final filteredBooks = vaultCtrl.items.where((book) {
+      if (query.isNotEmpty) {
+        return book.title.toLowerCase().contains(query) ||
+            book.authorName.toLowerCase().contains(query) ||
+            book.branch.toLowerCase().contains(query) ||
+            book.tags.any((t) => t.toLowerCase().contains(query));
+      }
+      return book.status == 'Approved';
+    }).toList();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              query.isEmpty ? '📚 Browse Study Vault' : '🔍 Books & Notes Found',
+              style: GoogleFonts.outfit(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            if (query.isEmpty)
+              TextButton(
+                onPressed: () => Get.to(() => const StudyVaultHomeScreen()),
+                child: const Text('Go to Bookshelf ➔', style: TextStyle(color: AppTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
+              )
+          ],
+        ),
+        const SizedBox(height: 12),
+        filteredBooks.isEmpty
+            ? Container(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: const Center(child: Text('No books or notes matching query.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 12))),
+              )
+            : GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 0.65,
+                ),
+                itemCount: filteredBooks.length,
+                itemBuilder: (context, i) {
+                  final book = filteredBooks[i];
+                  return GestureDetector(
+                    onTap: () => Get.to(() => BookDetailsScreen(book: book)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          height: 110,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            image: DecorationImage(image: NetworkImage(book.coverImage), fit: BoxFit.cover),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(book.title, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        Text(book.sellingPrice == 0 ? 'FREE' : '₹${book.sellingPrice.toStringAsFixed(0)}', style: TextStyle(color: book.sellingPrice == 0 ? AppTheme.accentColor : const Color(0xFFFFD700), fontSize: 9.5, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  );
+                },
+              )
+      ],
+    );
+  }
 }
+

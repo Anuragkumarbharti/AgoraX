@@ -558,10 +558,9 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
     final finalPrice = rawBasePrice * multiplier;
 
     return Obx(() {
-      // Check remaining days alert banner
-      final bool isActive = isVip
-          ? _vipCtrl.vipLevel.value == selectedLvl
-          : _novelCtrl.novelLevel.value == selectedLvl;
+      final int activeLvl = isVip ? _vipCtrl.vipLevel.value : _novelCtrl.novelLevel.value;
+      final bool isLocked = selectedLvl < activeLvl && activeLvl > 0;
+      final bool isActive = selectedLvl == activeLvl && activeLvl > 0;
 
       final remaining = isVip
           ? _vipCtrl.getRemainingTime()
@@ -581,7 +580,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isActive ? 'Expires in ${remaining['displayText']}' : 'Ready to unlock',
+                  isLocked
+                      ? 'Higher Tier Active'
+                      : isActive 
+                          ? 'Expires in ${remaining['displayText']}' 
+                          : 'Ready to unlock',
                   style: GoogleFonts.poppins(color: Colors.white30, fontSize: 9.5),
                 ),
                 Text(
@@ -592,11 +595,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: color,
+                backgroundColor: isLocked ? Colors.grey : color,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
               ),
-              onPressed: () {
+              onPressed: isLocked ? null : () {
                 Get.to(() => CheckoutScreen(
                       productName: isVip ? 'VIP Level $selectedLvl' : 'Novel Level $selectedLvl',
                       category: isVip ? 'VIP' : 'Novel',
@@ -605,7 +608,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                     ));
               },
               child: Text(
-                isActive ? 'Renew Now' : 'Upgrade',
+                isLocked
+                    ? 'Locked'
+                    : isActive 
+                        ? 'Renew Now' 
+                        : 'Upgrade',
                 style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
               ),
             ),

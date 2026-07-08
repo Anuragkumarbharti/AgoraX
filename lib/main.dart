@@ -15,8 +15,15 @@ import 'services/premium_identity_controller.dart';
 import 'services/store_controller.dart';
 import 'services/razorpay_backend_service.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await Supabase.initialize(
+    url: const String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://placeholder-url.supabase.co'),
+    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'placeholder-anon-key'),
+  );
   Get.put(RoomController());
   Get.put(ChatController());
   Get.put(CommunityController());
@@ -53,6 +60,10 @@ class MyApp extends StatelessWidget {
           GetPage(
             name: '/checkout',
             page: () => const CheckoutScreen(productName: '', category: '', basePrice: 0, duration: ''),
+          ),
+          GetPage(
+            name: '/membership_center',
+            page: () => const MembershipCenterScreen(),
           ),
         ],
       );

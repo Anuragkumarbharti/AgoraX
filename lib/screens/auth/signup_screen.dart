@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get/get.dart';
 import '../../core/theme.dart';
 import 'login_screen.dart';
@@ -63,7 +64,7 @@ class _SignupScreenState extends State<SignupScreen>
     super.dispose();
   }
 
-  void _handleSignup() {
+  void _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_agreeToTerms) {
       Get.snackbar(
@@ -76,14 +77,31 @@ class _SignupScreenState extends State<SignupScreen>
       return;
     }
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      final response = await Supabase.instance.client.auth.signUp(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text.trim(),
+        data: {
+          'username': _emailCtrl.text.trim().split('@')[0],
+        },
+      );
       if (!mounted) return;
       setState(() => _isLoading = false);
       Get.offAll(() => EmailVerificationScreen(
             email: _emailCtrl.text,
-            userId: '123',
+            userId: response.user?.id ?? '123',
           ));
-    });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Get.snackbar(
+        'Registration Failed ⚠️',
+        e.toString().replaceAll('AuthException: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _handleSocialSignup(String provider) {

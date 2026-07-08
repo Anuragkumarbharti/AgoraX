@@ -660,8 +660,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final finalBase = basePrice - discount;
 
       if (_selectedPurchaseMethod == 'Gold') {
-        int goldPrice = (basePrice * 0.49).round();
-        int goldDiscount = (discount * 0.49).round();
+        int goldPrice = (basePrice * 0.50).round();
+        int goldDiscount = (discount * 0.50).round();
         int finalGoldAmount = goldPrice - goldDiscount;
 
         return Container(
@@ -757,7 +757,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           final finalAmount = basePrice - discount;
 
           if (_selectedPurchaseMethod == 'Gold') {
-            int goldPrice = (finalAmount * 0.49).round();
+            int goldPrice = (finalAmount * 0.50).round();
             if (_storeCtrl.coinsBalance.value < goldPrice) {
               Get.snackbar(
                 'Insufficient Balance ⚠️',

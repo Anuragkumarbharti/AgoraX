@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/chat_model.dart';
+import '../core/chat_crypto.dart';
 
 class ChatController extends GetxController {
   // Current logged-in user id (mock)
@@ -248,7 +250,7 @@ class ChatController extends GetxController {
     return msgs;
   }
 
-  void sendMessage(String conversationId, String content) {
+  void sendMessage(String conversationId, String content) async {
     if (content.trim().isEmpty) return;
 
     final int idxSearch = conversations.indexWhere((c) => c.id == conversationId);
@@ -259,6 +261,23 @@ class ChatController extends GetxController {
             'User',
             'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
           );
+
+    final String encrypted = ChatCrypto.encryptMessage(content.trim());
+
+    // Try inserting into Supabase
+    try {
+      final client = Supabase.instance.client;
+      if (client.auth.currentUser != null) {
+        await client.from('messages').insert({
+          'sender_id': client.auth.currentUser!.id,
+          'receiver_id': conv.otherUserId.length == 36 ? conv.otherUserId : null,
+          'encrypted_content': encrypted,
+          'is_private': true,
+        });
+      }
+    } catch (_) {
+      // Fail silently to allow simulated offline fallback
+    }
 
     final msg = ChatMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}',

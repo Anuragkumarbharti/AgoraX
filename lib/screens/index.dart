@@ -52,3 +52,14 @@ export 'store/gift_membership_screen.dart';
 export 'store/history_screen.dart';
 export 'store/admin_store_panel.dart';
 export 'store/payment_status_screen.dart';
+
+// Study Vault
+export 'study_vault/study_vault_home_screen.dart';
+export 'study_vault/book_details_screen.dart';
+export 'study_vault/study_vault_reader_screen.dart';
+export 'study_vault/my_library_screen.dart';
+export 'study_vault/seller_dashboard_screen.dart';
+export 'study_vault/upload_book_screen.dart';
+export 'study_vault/admin_vault_panel_screen.dart';
+export 'study_vault/membership_center_screen.dart';
+

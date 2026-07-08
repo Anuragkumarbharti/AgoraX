@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme.dart';
 import '../../services/chat_controller.dart';
+import '../../services/study_vault_controller.dart';
 import '../home/home_screen.dart';
 import '../explore/explore_screen.dart';
 import '../rooms/rooms_screen.dart';
@@ -28,6 +29,10 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Ensure StudyVaultController is registered
+    if (!Get.isRegistered<StudyVaultController>()) {
+      Get.put(StudyVaultController());
+    }
     // Ensure ChatController is registered
     if (!Get.isRegistered<ChatController>()) {
       Get.put(ChatController());

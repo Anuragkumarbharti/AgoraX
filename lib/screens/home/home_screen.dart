@@ -11,6 +11,10 @@ import '../events/events_screen.dart';
 import '../events/event_detail_screen.dart';
 import '../profile/daily_task_screen.dart';
 import '../../services/study_category_controller.dart';
+import '../../services/study_vault_controller.dart';
+import '../study_vault/study_vault_home_screen.dart';
+import '../study_vault/book_details_screen.dart';
+
 
 
 class HomeScreen extends StatefulWidget {
@@ -194,6 +198,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 }),
               ),
+              const SizedBox(height: 32),
+
+              // Trending in Study Vault
+              _buildTrendingStudyVault(context),
               const SizedBox(height: 32),
 
               // Trending Communities
@@ -493,4 +501,95 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     });
   }
+
+  Widget _buildTrendingStudyVault(BuildContext context) {
+    if (!Get.isRegistered<StudyVaultController>()) {
+      Get.put(StudyVaultController());
+    }
+    final vaultCtrl = Get.find<StudyVaultController>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Trending in Study Vault',
+                style: Theme.of(context).textTheme.headlineSmall,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            TextButton(
+              onPressed: () => Get.to(() => const StudyVaultHomeScreen()),
+              child: Text(
+                'View All',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 170,
+          child: Obx(() {
+            final approvedList = vaultCtrl.items.where((b) => b.status == 'Approved' && !b.isOfficial).toList();
+            if (approvedList.isEmpty) {
+              return const Center(child: Text('No books available', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)));
+            }
+
+            return ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: approvedList.length,
+              itemBuilder: (context, index) {
+                final book = approvedList[index];
+                return GestureDetector(
+                  onTap: () => Get.to(() => BookDetailsScreen(book: book)),
+                  child: Container(
+                    width: 100,
+                    margin: const EdgeInsets.only(right: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            image: DecorationImage(
+                              image: NetworkImage(book.coverImage),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          book.title,
+                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          book.sellingPrice == 0 ? 'FREE' : '₹${book.sellingPrice.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            color: book.sellingPrice == 0 ? AppTheme.accentColor : const Color(0xFFFFD700),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          }),
+        ),
+      ],
+    );
+  }
 }
+

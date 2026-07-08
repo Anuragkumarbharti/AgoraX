@@ -537,6 +537,9 @@ class _NovelPurchaseScreenState extends State<NovelPurchaseScreen> {
 
   bool _isPurchaseRestricted() {
     final currentLvl = _novelCtrl.novelLevel.value;
+    if (selectedLevel < currentLvl && currentLvl > 0) {
+      return true;
+    }
     final expiry = _novelCtrl.expiryDate.value;
     if (currentLvl == selectedLevel && expiry != null) {
       final diff = expiry.difference(DateTime.now());

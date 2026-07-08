@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/store_controller.dart';
+
 class NovelController extends GetxController {
   // SharedPreferences Keys
   static const String _keyNovelLevel = 'novel_level';
@@ -12,6 +14,11 @@ class NovelController extends GetxController {
   static const String _keyActiveStyle = 'novel_active_style';
   static const String _keyNovelHistory = 'novel_purchase_history';
   static const String _keyNovelNotifications = 'novel_notifications';
+  static const String _keyNovelLastClaim = 'novel_last_claim';
+  static const String _keyNovelFreeReadsWeek = 'novel_free_reads_week';
+  static const String _keyNovelFreeReadsDay = 'novel_free_reads_day';
+  static const String _keyNovelResetWeek = 'novel_reset_week';
+  static const String _keyNovelResetDay = 'novel_reset_day';
 
   // Observables
   final RxInt novelLevel = 0.obs; // 0 = None, 1 to 7
@@ -26,6 +33,24 @@ class NovelController extends GetxController {
   // History & Notifications
   final RxList<Map<String, dynamic>> purchaseHistory = <Map<String, dynamic>>[].obs;
   final RxList<Map<String, dynamic>> notifications = <Map<String, dynamic>>[].obs;
+
+  // Daily claim rewards
+  final Rxn<DateTime> lastClaimTime = Rxn<DateTime>();
+  final Map<int, int> dailyCoinRewards = {
+    1: 20,
+    2: 40,
+    3: 70,
+    4: 110,
+    5: 160,
+    6: 220,
+    7: 300,
+  };
+
+  // Free reads quotas tracking
+  final RxList<String> novelFreeReadsThisWeek = <String>[].obs;
+  final RxList<String> novelFreeReadsToday = <String>[].obs;
+  final Rxn<DateTime> lastWeekResetDate = Rxn<DateTime>();
+  final Rxn<DateTime> lastDayResetDate = Rxn<DateTime>();
 
   // Coupons
   final Map<String, double> couponDiscounts = {
@@ -49,16 +74,14 @@ class NovelController extends GetxController {
     final expiryStr = prefs.getString(_keyNovelExpiry);
     if (expiryStr != null) {
       expiryDate.value = DateTime.tryParse(expiryStr);
-      // Auto expire if time has passed
       if (expiryDate.value != null && DateTime.now().isAfter(expiryDate.value!)) {
         _handleExpiry();
       }
     } else {
-      // Seed default Novel 4 expiring in 4 days for simulation
-      novelLevel.value = 4;
-      expiryDate.value = DateTime.now().add(const Duration(days: 4));
-      activeNovelStyle.value = 4;
-      ownedNovels.assignAll([1, 2, 3, 4]);
+      novelLevel.value = 0;
+      activeNovelStyle.value = 0;
+      ownedNovels.clear();
+      expiryDate.value = null;
       await _saveState();
     }
 
@@ -69,7 +92,6 @@ class NovelController extends GetxController {
         ownedNovels.assignAll(decoded.cast<int>());
       } catch (_) {}
     } else if (novelLevel.value > 0) {
-      // Fallback
       ownedNovels.assignAll([novelLevel.value]);
     }
 
@@ -88,6 +110,39 @@ class NovelController extends GetxController {
         notifications.assignAll(decoded.map((e) => Map<String, dynamic>.from(e)));
       } catch (_) {}
     }
+
+    final claimStr = prefs.getString(_keyNovelLastClaim);
+    if (claimStr != null) {
+      lastClaimTime.value = DateTime.tryParse(claimStr);
+    }
+
+    final resetDayStr = prefs.getString(_keyNovelResetDay);
+    if (resetDayStr != null) {
+      lastDayResetDate.value = DateTime.tryParse(resetDayStr);
+    }
+
+    final resetWeekStr = prefs.getString(_keyNovelResetWeek);
+    if (resetWeekStr != null) {
+      lastWeekResetDate.value = DateTime.tryParse(resetWeekStr);
+    }
+
+    final weekListStr = prefs.getString(_keyNovelFreeReadsWeek);
+    if (weekListStr != null) {
+      try {
+        final decoded = json.decode(weekListStr) as List<dynamic>;
+        novelFreeReadsThisWeek.assignAll(decoded.cast<String>());
+      } catch (_) {}
+    }
+
+    final dayListStr = prefs.getString(_keyNovelFreeReadsDay);
+    if (dayListStr != null) {
+      try {
+        final decoded = json.decode(dayListStr) as List<dynamic>;
+        novelFreeReadsToday.assignAll(decoded.cast<String>());
+      } catch (_) {}
+    }
+
+    _checkAndResetFreeReadQuotas();
   }
 
   Future<void> _saveState() async {
@@ -104,14 +159,138 @@ class NovelController extends GetxController {
     } else {
       await prefs.remove(_keyNovelExpiry);
     }
+
+    if (lastClaimTime.value != null) {
+      await prefs.setString(_keyNovelLastClaim, lastClaimTime.value!.toIso8601String());
+    }
+
+    if (lastDayResetDate.value != null) {
+      await prefs.setString(_keyNovelResetDay, lastDayResetDate.value!.toIso8601String());
+    }
+
+    if (lastWeekResetDate.value != null) {
+      await prefs.setString(_keyNovelResetWeek, lastWeekResetDate.value!.toIso8601String());
+    }
+
+    await prefs.setString(_keyNovelFreeReadsWeek, json.encode(novelFreeReadsThisWeek.toList()));
+    await prefs.setString(_keyNovelFreeReadsDay, json.encode(novelFreeReadsToday.toList()));
   }
 
   void _handleExpiry() {
     novelLevel.value = 0;
     activeNovelStyle.value = 0;
     ownedNovels.clear();
+    novelFreeReadsToday.clear();
+    novelFreeReadsThisWeek.clear();
     expiryDate.value = null;
     _saveState();
+  }
+
+  // Daily Claim Logic
+  bool canClaimDailyCoins() {
+    if (novelLevel.value <= 0) return false;
+    final last = lastClaimTime.value;
+    if (last == null) return true;
+    return DateTime.now().difference(last).inHours >= 24;
+  }
+
+  int getDailyCoinsAmount() {
+    return dailyCoinRewards[novelLevel.value] ?? 0;
+  }
+
+  Future<bool> claimDailyCoins() async {
+    if (!canClaimDailyCoins()) return false;
+    final coins = getDailyCoinsAmount();
+    if (coins > 0) {
+      Get.find<StoreController>().addReceivedCoins(coins, 'Novel Level ${novelLevel.value} Daily Claim');
+      lastClaimTime.value = DateTime.now();
+      await _saveState();
+
+      if (Get.context != null) {
+        Get.snackbar(
+          '🪙 Daily Claim Success!',
+          'Claimed $coins Gold Coins successfully.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF10B981),
+          colorText: Colors.white,
+        );
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // Free reads quotas calculations
+  void _checkAndResetFreeReadQuotas() {
+    final now = DateTime.now();
+    // Day reset
+    if (lastDayResetDate.value == null || 
+        now.year != lastDayResetDate.value!.year || 
+        now.month != lastDayResetDate.value!.month || 
+        now.day != lastDayResetDate.value!.day) {
+      novelFreeReadsToday.clear();
+      lastDayResetDate.value = now;
+    }
+    // Week reset
+    if (lastWeekResetDate.value == null || 
+        now.difference(lastWeekResetDate.value!).inDays >= 7) {
+      novelFreeReadsThisWeek.clear();
+      lastWeekResetDate.value = now;
+    }
+  }
+
+  int getFreeReadsLimit() {
+    if (novelLevel.value == 4) return 3; // 3 books/week
+    if (novelLevel.value == 5) return 1; // 1 book/day
+    if (novelLevel.value == 6) return 2; // 2 books/day
+    if (novelLevel.value == 7) return 4; // 4 books/day
+    return 0;
+  }
+
+  bool hasFreeReadsLeft(String bookId) {
+    _checkAndResetFreeReadQuotas();
+    if (novelLevel.value == 4) {
+      if (novelFreeReadsThisWeek.contains(bookId)) return true;
+      return novelFreeReadsThisWeek.length < 3;
+    }
+    if (novelLevel.value == 5) {
+      if (novelFreeReadsToday.contains(bookId)) return true;
+      return novelFreeReadsToday.length < 1;
+    }
+    if (novelLevel.value == 6) {
+      if (novelFreeReadsToday.contains(bookId)) return true;
+      return novelFreeReadsToday.length < 2;
+    }
+    if (novelLevel.value == 7) {
+      if (novelFreeReadsToday.contains(bookId)) return true;
+      return novelFreeReadsToday.length < 4;
+    }
+    return false;
+  }
+
+  void consumeFreeRead(String bookId) {
+    _checkAndResetFreeReadQuotas();
+    if (novelLevel.value == 4) {
+      if (!novelFreeReadsThisWeek.contains(bookId)) {
+        novelFreeReadsThisWeek.add(bookId);
+        _saveState();
+      }
+    } else if (novelLevel.value == 5) {
+      if (!novelFreeReadsToday.contains(bookId)) {
+        novelFreeReadsToday.add(bookId);
+        _saveState();
+      }
+    } else if (novelLevel.value == 6) {
+      if (!novelFreeReadsToday.contains(bookId)) {
+        novelFreeReadsToday.add(bookId);
+        _saveState();
+      }
+    } else if (novelLevel.value == 7) {
+      if (!novelFreeReadsToday.contains(bookId)) {
+        novelFreeReadsToday.add(bookId);
+        _saveState();
+      }
+    }
   }
 
   // Swap equipped Novel collection style (Collector system)
@@ -121,13 +300,15 @@ class NovelController extends GetxController {
       activeNovelStyle.value = level;
       _saveState();
       
-      Get.snackbar(
-        '🎨 Collection Changed',
-        'Equipped Novel Level $level Visual Style!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFF1E1B4B).withOpacity(0.9),
-        colorText: Colors.white,
-      );
+      if (Get.context != null) {
+        Get.snackbar(
+          '🎨 Collection Changed',
+          'Equipped Novel Level $level Visual Style!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF1E1B4B).withOpacity(0.9),
+          colorText: Colors.white,
+        );
+      }
       return true;
     }
     return false;
@@ -163,12 +344,16 @@ class NovelController extends GetxController {
     int days = 30;
     switch (duration) {
       case '3 Days': days = 3; break;
+      case '3 Day': days = 3; break;
       case '7 Days': days = 7; break;
+      case '7 Day': days = 7; break;
       case '15 Days': days = 15; break;
+      case '15 Day': days = 15; break;
       case '1 Month': days = 30; break;
-      case '3 Months': days = 90; break;
       case '6 Months': days = 180; break;
+      case '6 Month': days = 180; break;
       case '12 Months': days = 365; break;
+      case 'Yearly': days = 365; break;
     }
 
     // Apply Coupon
@@ -253,14 +438,35 @@ class NovelController extends GetxController {
     });
   }
 
+  Future<void> resetMembership() async {
+    novelLevel.value = 0;
+    expiryDate.value = null;
+    activeNovelStyle.value = 0;
+    ownedNovels.clear();
+    novelFreeReadsToday.clear();
+    novelFreeReadsThisWeek.clear();
+    lastClaimTime.value = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyNovelLevel);
+    await prefs.remove(_keyNovelExpiry);
+    await prefs.remove(_keyOwnedNovels);
+    await prefs.remove(_keyActiveStyle);
+    await prefs.remove(_keyNovelLastClaim);
+    await prefs.remove(_keyNovelFreeReadsDay);
+    await prefs.remove(_keyNovelFreeReadsWeek);
+    await _saveState();
+  }
+
   void simulateExpiry() {
     _handleExpiry();
-    Get.snackbar(
-      '⚠️ Novel Subscription Expired',
-      'Simulation ended. Your premium customizations have been deactivated.',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
-      colorText: Colors.white,
-    );
+    if (Get.context != null) {
+      Get.snackbar(
+        '⚠️ Novel Subscription Expired',
+        'Simulation ended. Your premium customizations have been deactivated.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+    }
   }
 }

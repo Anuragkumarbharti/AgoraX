@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgoraX • Admin Portal</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <span class="logo-icon"><i class="fa-solid fa-graduation-cap"></i></span>
+                <span class="logo-text">Agora<span>X</span></span>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-tab="dashboard">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Analytics Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="approvals">
+                    <i class="fa-solid fa-square-check"></i>
+                    <span>Resource Approvals</span>
+                    <span class="badge" id="approvals-badge">3</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="payouts">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                    <span>UPI Settlements</span>
+                    <span class="badge warning" id="payouts-badge">2</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="piracy">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Anti-Piracy Portal</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="settings">
+                    <i class="fa-solid fa-gears"></i>
+                    <span>Backend Config</span>
+                </a>
+            </nav>
+            
+            <div class="user-profile">
+                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100" alt="Admin Avatar" class="avatar">
+                <div class="info">
+                    <span class="name">Anurag Kumar</span>
+                    <span class="role">Sovereign Admin</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Search resources, users, transaction IDs...">
+                </div>
+                <div class="header-actions">
+                    <button class="action-btn" title="Refresh local cache"><i class="fa-solid fa-rotate"></i></button>
+                    <button class="action-btn notification-bell" title="System alerts"><i class="fa-solid fa-bell"></i><span class="dot"></span></button>
+                </div>
+            </header>
+
+            <!-- TAB: Dashboard -->
+            <section class="tab-content active" id="tab-dashboard">
+                <div class="welcome-banner">
+                    <h1>Welcome back, Admin 👋</h1>
+                    <p>Track uploads, settle payments, and monitor study vault activity in real-time.</p>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="icon-wrap blue"><i class="fa-solid fa-users"></i></div>
+                        <div class="numbers">
+                            <h3>48,250</h3>
+                            <span>Active Users (MAU)</span>
+                        </div>
+                        <div class="trend positive"><i class="fa-solid fa-arrow-up"></i> 12.5%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon-wrap gold"><i class="fa-solid fa-coins"></i></div>
+                        <div class="numbers">
+                            <h3>1.2M</h3>
+                            <span>Coins Recharged</span>
+                        </div>
+                        <div class="trend positive"><i class="fa-solid fa-arrow-up"></i> 8.3%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon-wrap green"><i class="fa-solid fa-wallet"></i></div>
+                        <div class="numbers">
+                            <h3>₹4,85,900</h3>
+                            <span>Platform Net Revenue</span>
+                        </div>
+                        <div class="trend positive"><i class="fa-solid fa-arrow-up"></i> 14.2%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon-wrap purple"><i class="fa-solid fa-star"></i></div>
+                        <div class="numbers">
+                            <h3>VIP 4.2</h3>
+                            <span>Average Member tier</span>
+                        </div>
+                        <div class="trend positive"><i class="fa-solid fa-arrow-up"></i> 2.1%</div>
+                    </div>
+                </div>
+
+                <!-- Charts Area -->
+                <div class="charts-area">
+                    <div class="chart-container main-chart">
+                        <h3>Revenues & Coins Recharge Streams</h3>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <div class="chart-container side-chart">
+                        <h3>Subscription Splits</h3>
+                        <canvas id="subscriptionChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: Resource Approvals -->
+            <section class="tab-content" id="tab-approvals">
+                <div class="section-title">
+                    <h2>Pending Resource Approvals</h2>
+                    <p>Review handwritten notes, capstone projects, and papers uploaded by university students.</p>
+                </div>
+
+                <div class="grid-table" id="approvals-list">
+                    <!-- Dynamic approvals list injected here -->
+                </div>
+            </section>
+
+            <!-- TAB: UPI Settlements -->
+            <section class="tab-content" id="tab-payouts">
+                <div class="section-title">
+                    <h2>UPI Settlement Requests</h2>
+                    <p>Transfer earnings to student creators and uploader wallets based on book sales and read-visit payouts.</p>
+                </div>
+
+                <div class="grid-table" id="payouts-list">
+                    <!-- Dynamic payout list injected here -->
+                </div>
+            </section>
+
+            <!-- TAB: Anti-Piracy Portal -->
+            <section class="tab-content" id="tab-piracy">
+                <div class="section-title">
+                    <h2>Anti-Piracy & Copyright Reports</h2>
+                    <p>Monitor DMCA copyright strikes, review watermarked screenshots, and suspend violating accounts.</p>
+                </div>
+
+                <div class="reports-container">
+                    <div class="report-card">
+                        <div class="card-header">
+                            <span class="badge error">Active Strike</span>
+                            <span class="date">Reported Today</span>
+                        </div>
+                        <h3>Report: PDF Sharing on Telegram Group</h3>
+                        <p class="desc">Watermark match detected: <code>AgoraX • Rohan Sharma • CS-9941 • 192.168.1.1</code>. The user attempted to leak "Flutter DSA Cheatsheet" on public channels.</p>
+                        <div class="actions">
+                            <button class="btn danger" onclick="suspendUser('CS-9941')"><i class="fa-solid fa-user-slash"></i> Suspend Student Account</button>
+                            <button class="btn secondary"><i class="fa-solid fa-envelope"></i> Send Legal Warning</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: Settings & Config -->
+            <section class="tab-content" id="tab-settings">
+                <div class="section-title">
+                    <h2>Backend Configuration</h2>
+                    <p>Link this admin portal dashboard directly to your live Supabase cloud database instance.</p>
+                </div>
+
+                <div class="config-form">
+                    <div class="input-group">
+                        <label>Supabase Project URL</label>
+                        <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co" value="https://placeholder-url.supabase.co">
+                    </div>
+                    <div class="input-group">
+                        <label>Service Role API Key (Secure Access)</label>
+                        <input type="password" id="supabase-key" placeholder="eyJhbGciOi..." value="placeholder-anon-key">
+                    </div>
+                    <button class="btn primary" id="save-config-btn"><i class="fa-solid fa-save"></i> Save Configuration</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script Application -->
+    <script src="app.js"></script>
+</body>
+</html>

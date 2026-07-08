@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 import 'dart:async';
@@ -146,16 +147,14 @@ class StoreController extends GetxController {
 
   // Standard Coin Packs
   final List<CoinPack> coinPacks = [
-    CoinPack(id: 'coins_starter', name: 'Starter Pack', coins: 100, bonusCoins: 0, price: 99, tag: 'Limited Offer'),
-    CoinPack(id: 'coins_basic', name: 'Basic Pack', coins: 250, bonusCoins: 10, price: 199),
-    CoinPack(id: 'coins_silver', name: 'Silver Pack', coins: 500, bonusCoins: 40, price: 399, tag: 'Popular'),
-    CoinPack(id: 'coins_gold', name: 'Gold Pack', coins: 1000, bonusCoins: 120, price: 799),
-    CoinPack(id: 'coins_diamond', name: 'Diamond Pack', coins: 2500, bonusCoins: 400, price: 1999, tag: 'Best Value'),
-    CoinPack(id: 'coins_elite', name: 'Elite Pack', coins: 5000, bonusCoins: 900, price: 3999),
-    CoinPack(id: 'coins_legend', name: 'Legend Pack', coins: 10000, bonusCoins: 2000, price: 7999, tag: 'Limited Offer', isSpecial: true),
-    CoinPack(id: 'coins_royal', name: 'Royal Pack', coins: 25000, bonusCoins: 6000, price: 19999, isSpecial: true),
-    CoinPack(id: 'coins_supreme', name: 'Supreme Pack', coins: 50000, bonusCoins: 15000, price: 39999, isSpecial: true),
-    CoinPack(id: 'coins_immortal', name: 'Immortal Pack', coins: 100000, bonusCoins: 35000, price: 79999, tag: 'Crown Value', isSpecial: true),
+    CoinPack(id: 'coins_starter', name: 'Starter Pack', coins: 50, bonusCoins: 0, price: 100, tag: 'Limited Offer'),
+    CoinPack(id: 'coins_basic', name: 'Basic Pack', coins: 100, bonusCoins: 1, price: 200),
+    CoinPack(id: 'coins_silver', name: 'Silver Pack', coins: 250, bonusCoins: 5, price: 500, tag: 'Popular'),
+    CoinPack(id: 'coins_gold', name: 'Gold Pack', coins: 500, bonusCoins: 15, price: 1000),
+    CoinPack(id: 'coins_diamond', name: 'Diamond Pack', coins: 2500, bonusCoins: 100, price: 5000, tag: 'Best Value'),
+    CoinPack(id: 'coins_elite', name: 'Elite Pack', coins: 5000, bonusCoins: 225, price: 10000),
+    CoinPack(id: 'coins_legend', name: 'Legend Pack', coins: 10000, bonusCoins: 480, price: 20000, tag: 'Limited Offer', isSpecial: true),
+    CoinPack(id: 'coins_royal', name: 'Royal Pack', coins: 50000, bonusCoins: 2500, price: 100000, tag: 'Crown Value', isSpecial: true),
   ];
 
   @override
@@ -297,6 +296,17 @@ class StoreController extends GetxController {
     _saveData();
   }
 
+  void addReceivedCoins(int amount, String description) {
+    coinsBalance.value += amount;
+    coinTransactions.insert(0, CoinTransaction(
+      type: 'Received',
+      amount: amount,
+      description: description,
+      dateTime: DateTime.now(),
+    ));
+    _saveData();
+  }
+
   bool deductCoins(int amount, String description) {
     if (coinsBalance.value >= amount) {
       coinsBalance.value -= amount;
@@ -374,12 +384,10 @@ class StoreController extends GetxController {
     }
   }
 
-  // --- CASH RECHARGE ---
-  
-  // ₹100 = 49 Gold Coins
-  void rechargeGoldCoins(double inrAmount, String paymentId) {
+  // ₹100 = 50 Gold Coins
+  void rechargeGoldCoins(double inrAmount, String paymentId) async {
     if (inrAmount <= 0) return;
-    int coinsAdded = ((inrAmount * 49) / 100).round();
+    int coinsAdded = (inrAmount * 0.50).round();
     
     coinsBalance.value += coinsAdded;
     
@@ -404,6 +412,21 @@ class StoreController extends GetxController {
       description: 'Recharged ₹${inrAmount.toStringAsFixed(2)}',
       dateTime: DateTime.now(),
     ));
+
+    try {
+      final client = Supabase.instance.client;
+      if (client.auth.currentUser != null) {
+        await client.from('wallet_transactions').insert({
+          'wallet_id': client.auth.currentUser!.id,
+          'amount': inrAmount,
+          'currency': 'INR',
+          'type': 'Deposit',
+          'status': 'Completed',
+          'reference_id': paymentId,
+          'details': 'Recharged $coinsAdded Coins',
+        });
+      }
+    } catch (_) {}
     
     _saveData();
   }
@@ -443,9 +466,9 @@ class StoreController extends GetxController {
     final finalAmount = finalBase;
 
     if (purchaseMethod == 'Gold') {
-      // Proportional conversion: ₹100 = 49 Gold Coins.
-      // So GoldPrice = INRPrice * 0.49
-      int goldPrice = (finalAmount * 0.49).round();
+      // Proportional conversion: ₹100 = 50 Gold Coins.
+      // So GoldPrice = INRPrice * 0.50
+      int goldPrice = (finalAmount * 0.50).round();
       if (coinsBalance.value < goldPrice) {
         Get.snackbar(
           'Purchase Failed ⚠️',
@@ -459,6 +482,30 @@ class StoreController extends GetxController {
       
       // Deduct coins
       coinsBalance.value -= goldPrice;
+      
+      try {
+        final client = Supabase.instance.client;
+        if (client.auth.currentUser != null) {
+          await client.from('wallet_transactions').insert({
+            'wallet_id': client.auth.currentUser!.id,
+            'amount': goldPrice.toDouble(),
+            'currency': 'Coins',
+            'type': 'Payout',
+            'status': 'Completed',
+            'details': 'Purchased $name',
+          });
+
+          await client.from('purchase_history').insert({
+            'user_id': client.auth.currentUser!.id,
+            'item_id': name,
+            'item_type': category,
+            'price': goldPrice.toDouble(),
+            'currency': 'Coins',
+            'duration': duration,
+          });
+        }
+      } catch (_) {}
+
       coinTransactions.insert(0, CoinTransaction(
         type: 'Used',
         amount: goldPrice,
@@ -472,10 +519,10 @@ class StoreController extends GetxController {
       orderId: orderId,
       name: name,
       category: category,
-      amount: purchaseMethod == 'Gold' ? (basePrice * 0.49).roundToDouble() : basePrice,
-      discount: purchaseMethod == 'Gold' ? (discount * 0.49).roundToDouble() : discount,
+      amount: purchaseMethod == 'Gold' ? (basePrice * 0.50).roundToDouble() : basePrice,
+      discount: purchaseMethod == 'Gold' ? (discount * 0.50).roundToDouble() : discount,
       gst: 0.0, // Taxes are already included, hidden from breakdown
-      finalAmount: purchaseMethod == 'Gold' ? (finalAmount * 0.49).roundToDouble() : finalAmount,
+      finalAmount: purchaseMethod == 'Gold' ? (finalAmount * 0.50).roundToDouble() : finalAmount,
       dateTime: DateTime.now(),
       paymentMethod: purchaseMethod == 'Gold' ? 'Gold Coins Wallet' : paymentMethod,
       status: 'Completed',
@@ -488,6 +535,20 @@ class StoreController extends GetxController {
     // Update Stats for Admin Panel
     if (purchaseMethod == 'INR') {
       totalRevenue.value += finalAmount;
+      
+      try {
+        final client = Supabase.instance.client;
+        if (client.auth.currentUser != null) {
+          await client.from('purchase_history').insert({
+            'user_id': client.auth.currentUser!.id,
+            'item_id': name,
+            'item_type': category,
+            'price': finalAmount,
+            'currency': 'INR',
+            'duration': duration,
+          });
+        }
+      } catch (_) {}
     }
     totalSalesCount.value++;
 
@@ -514,13 +575,44 @@ class StoreController extends GetxController {
         final vipLvl = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
         final vipCtrl = Get.find<VipController>();
         vipCtrl.vipLevel.value = vipLvl;
-        vipCtrl.expiryDate.value = DateTime.now().add(const Duration(days: 30));
+        vipCtrl.activeFrame.value = 'VIP$vipLvl';
+        int days = 30;
+        switch (duration) {
+          case '3 Days': days = 3; break;
+          case '3 Day': days = 3; break;
+          case '7 Days': days = 7; break;
+          case '7 Day': days = 7; break;
+          case '15 Days': days = 15; break;
+          case '15 Day': days = 15; break;
+          case '1 Month': days = 30; break;
+          case '6 Months': days = 180; break;
+          case '6 Month': days = 180; break;
+          case 'Yearly': days = 365; break;
+        }
+        vipCtrl.expiryDate.value = DateTime.now().add(Duration(days: days));
         vipCtrl.isAutoRenewEnabled.value = true;
       } else if (category == 'Novel') {
         final novelLvl = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
         final novelCtrl = Get.find<NovelController>();
         novelCtrl.novelLevel.value = novelLvl;
-        novelCtrl.expiryDate.value = DateTime.now().add(const Duration(days: 30));
+        if (!novelCtrl.ownedNovels.contains(novelLvl)) {
+          novelCtrl.ownedNovels.add(novelLvl);
+        }
+        novelCtrl.activeNovelStyle.value = novelLvl;
+        int days = 30;
+        switch (duration) {
+          case '3 Days': days = 3; break;
+          case '3 Day': days = 3; break;
+          case '7 Days': days = 7; break;
+          case '7 Day': days = 7; break;
+          case '15 Days': days = 15; break;
+          case '15 Day': days = 15; break;
+          case '1 Month': days = 30; break;
+          case '6 Months': days = 180; break;
+          case '6 Month': days = 180; break;
+          case 'Yearly': days = 365; break;
+        }
+        novelCtrl.expiryDate.value = DateTime.now().add(Duration(days: days));
       } else if (category == 'Coins') {
         final coinMatch = RegExp(r'(\d+,?\d*) Coins').firstMatch(name);
         if (coinMatch != null) {

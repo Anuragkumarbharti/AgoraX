@@ -21,7 +21,13 @@ import '../../services/customization_controller.dart';
 import '../../services/study_category_controller.dart';
 import '../../services/career_progression_controller.dart';
 import '../../services/premium_identity_controller.dart';
+import '../../services/study_vault_controller.dart';
 import '../store/store_home_screen.dart';
+import '../study_vault/study_vault_home_screen.dart';
+import '../study_vault/my_library_screen.dart';
+import '../study_vault/seller_dashboard_screen.dart';
+import '../study_vault/admin_vault_panel_screen.dart';
+import '../study_vault/membership_center_screen.dart';
 import '../vip/vip_purchase_screen.dart';
 import '../novel/novel_purchase_screen.dart';
 import '../career/career_hub_screen.dart';
@@ -1040,8 +1046,11 @@ class _ProfileScreenState extends State<ProfileScreen>
               // Store equipped items card
               _buildStoreCustomizationCard(),
               
-              // Navigation Hub grid
+               // Navigation Hub grid
               _buildNavigationHub(),
+
+              // Study Vault Deck (Library & Dashboards)
+              _buildStudyVaultDeck(),
 
               // Wallet Statistics Bar matching the mockup
               _buildWalletStatisticsBar(),
@@ -1816,20 +1825,25 @@ class _ProfileScreenState extends State<ProfileScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Text('🛒', style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'EQUIPPED DECORATIONS',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        letterSpacing: 1.1,
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Text('🛒', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'EQUIPPED DECORATIONS',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            letterSpacing: 1.1,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => Get.to(() => const StoreHomeScreen()),
@@ -1975,6 +1989,126 @@ class _ProfileScreenState extends State<ProfileScreen>
             itemCount: navItems.length,
             itemBuilder: (context, i) {
               final item = navItems[i];
+              return InkWell(
+                onTap: () => Get.to(item['target'] as Widget Function()),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF13131A),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.03)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: (item['color'] as Color).withOpacity(0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(item['icon'] as IconData, color: item['color'] as Color, size: 16),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              item['title'] as String,
+                              style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              item['sub'] as String,
+                              style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 8),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudyVaultDeck() {
+    final vaultItems = [
+      {
+        'title': 'Study Vault',
+        'sub': 'Explore Bookshelf',
+        'icon': Icons.auto_stories,
+        'color': const Color(0xFFFFD700),
+        'target': () => const StudyVaultHomeScreen(),
+      },
+      {
+        'title': 'My Library',
+        'sub': 'Purchased & VIP Books',
+        'icon': Icons.menu_book_rounded,
+        'color': const Color(0xFF10B981),
+        'target': () => const MyLibraryScreen(),
+      },
+      {
+        'title': 'Seller Dashboard',
+        'sub': 'Manage uploads & earnings',
+        'icon': Icons.dashboard_customize_rounded,
+        'color': const Color(0xFF3B82F6),
+        'target': () => const SellerDashboardScreen(),
+      },
+      {
+        'title': 'Admin Panel',
+        'sub': 'Approvals & Payouts',
+        'icon': Icons.admin_panel_settings_rounded,
+        'color': const Color(0xFFEC4899),
+        'target': () => const AdminVaultPanelScreen(),
+      },
+      {
+        'title': 'Membership Center',
+        'sub': 'Upgrade VIP & Novel',
+        'icon': Icons.card_membership_rounded,
+        'color': const Color(0xFF8B5CF6),
+        'target': () => const MembershipCenterScreen(),
+      },
+    ];
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4.0, bottom: 10.0),
+            child: Text(
+              'STUDY VAULT DECK',
+              style: GoogleFonts.outfit(
+                color: Colors.white30,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 2.2,
+            ),
+            itemCount: vaultItems.length,
+            itemBuilder: (context, i) {
+              final item = vaultItems[i];
               return InkWell(
                 onTap: () => Get.to(item['target'] as Widget Function()),
                 borderRadius: BorderRadius.circular(16),

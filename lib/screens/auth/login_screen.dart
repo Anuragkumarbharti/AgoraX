@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get/get.dart';
 import '../../core/theme.dart';
 import 'signup_screen.dart';
@@ -54,14 +55,30 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  void _handleLogin() {
+
+
+  void _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text.trim(),
+      );
       if (!mounted) return;
       setState(() => _isLoading = false);
       Get.offAll(() => const MainScreen());
-    });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Get.snackbar(
+        'Login Failed ⚠️',
+        e.toString().replaceAll('AuthException: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _handleSocialLogin(String provider) {

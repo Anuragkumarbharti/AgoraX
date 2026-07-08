@@ -351,6 +351,9 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
 
   bool _isPurchaseRestricted() {
     final currentLvl = _vipCtrl.vipLevel.value;
+    if (selectedLevel < currentLvl && currentLvl > 0) {
+      return true;
+    }
     final expiry = _vipCtrl.expiryDate.value;
     if (currentLvl == selectedLevel && expiry != null) {
       final diff = expiry.difference(DateTime.now());
