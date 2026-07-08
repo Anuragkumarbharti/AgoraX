@@ -1002,9 +1002,10 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               ),
           ],
         ),
-      );
-    });
-  }
+      ),
+    );
+  });
+}
 
   void _handleCardPrimaryAction({
     required String category,
