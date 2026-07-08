@@ -7,7 +7,7 @@ import '../../core/theme.dart';
 import '../../services/novel_controller.dart';
 import '../../widgets/novel_badge_widget.dart';
 import '../../widgets/novel_avatar_decorator.dart';
-
+import '../../services/room_controller.dart';
 class NovelPurchaseScreen extends StatefulWidget {
   const NovelPurchaseScreen({Key? key}) : super(key: key);
 
@@ -174,6 +174,13 @@ class _NovelPurchaseScreenState extends State<NovelPurchaseScreen> {
             couponCode: discountPercentage > 0 ? appliedCoupon : null,
             friendUsername: giftFriend,
           );
+          if (RoomController.to.activeRoomId != null) {
+            RoomController.to.addSystemActivity(
+              RoomController.to.activeRoomId!,
+              '📚 Anurag Kumar unlocked Novel $selectedLevel.',
+              activityKey: 'novel-unlock',
+            );
+          }
 
           // Success Dialog
           showDialog(

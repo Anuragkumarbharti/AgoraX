@@ -7,7 +7,7 @@ import '../../services/razorpay_backend_service.dart';
 import '../../widgets/vip_badge_widget.dart';
 import '../../widgets/vip_avatar_decorator.dart';
 import '../store/checkout_screen.dart';
-
+import '../../services/room_controller.dart';
 class VipPurchaseScreen extends StatefulWidget {
   const VipPurchaseScreen({Key? key}) : super(key: key);
 
@@ -1050,6 +1050,13 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
     Get.back(); // close loading dialog
 
     await _vipCtrl.purchaseVip(selectedLevel, selectedDuration, price);
+    if (RoomController.to.activeRoomId != null) {
+      RoomController.to.addSystemActivity(
+        RoomController.to.activeRoomId!,
+        '💎 Anurag Kumar unlocked VIP $selectedLevel.',
+        activityKey: 'vip-unlock',
+      );
+    }
     Get.back(); // exit VIP purchase screen
   }
 

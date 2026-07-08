@@ -23,6 +23,8 @@ import '../../widgets/mini_profile_widget.dart';
 import '../../services/premium_identity_controller.dart';
 import '../../services/customization_controller.dart';
 import '../../widgets/index.dart';
+import '../../widgets/vip_entry_animation.dart';
+import '../../widgets/novel_entry_animation.dart';
 
 class FloatingReaction {
   final Key key;
@@ -90,7 +92,18 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   bool _isChatAtBottom = true;
   DateTime _messageCooldownUntil = DateTime.fromMillisecondsSinceEpoch(0);
   bool _showEntranceOverlay = false;
-  String? _activeEntranceEffectName;
+  final RxList<Map<String, dynamic>> _entranceQueue = <Map<String, dynamic>>[].obs;
+  final RxBool _isEntrancePlaying = false.obs;
+  final RxString _currentEntranceUser = ''.obs;
+  final RxInt _currentEntranceVipLevel = 0.obs;
+  final RxInt _currentEntranceNovelLevel = 0.obs;
+  
+  bool _showEmojiPanel = false;
+  final RxBool _showMentionAutocomplete = false.obs;
+  final RxList<Map<String, String>> _mentionSuggestions = <Map<String, String>>[].obs;
+  
+  final RxList<String> _followedUsers = <String>[].obs;
+  final RxList<String> _blockedUsers = <String>[].obs;
 
   // Floating Reactions
   final RxList<FloatingReaction> _reactions = <FloatingReaction>[].obs;
@@ -146,6 +159,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     _zegoService = ZegoCloudService();
     _permissionService = PermissionService();
     _controller = RoomController.to;
+    _controller.activeRoomId = widget.roomId;
     _controller.hidePipBubble();
 
     _glowController = AnimationController(
@@ -316,8 +330,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       });
 
       _controller.initializeChatForRoom(widget.roomId);
-      _prepareLocalEntranceOverlay();
-      _controller.queueEntranceEffect(widget.roomId, widget.userId, widget.userName);
+      onUserJoin(widget.userId, widget.userName);
+      _startSimulatedUsersTimer();
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -558,26 +572,278 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
   }
 
-  void _prepareLocalEntranceOverlay() {
-    final customizationController = Get.find<CustomizationController>();
-    final effect = customizationController.activeEntryEffect.value;
-    if (effect.isEmpty || effect == 'None' || !customizationController.isItemUnlocked(effect)) {
-      _activeEntranceEffectName = null;
-      _showEntranceOverlay = false;
-      return;
-    }
+  void onUserJoin(String userId, String userName) {
+    final identity = PremiumIdentityController.getIdentity(userId, userName);
+    final vipLevel = identity.vipLevel;
+    final novelLevel = identity.novelLevel;
+    final bool hasEffect = vipLevel > 0 || novelLevel > 0;
 
-    _activeEntranceEffectName = effect;
+    if (hasEffect) {
+      _entranceQueue.add({
+        'userId': userId,
+        'userName': userName,
+        'vipLevel': vipLevel,
+        'novelLevel': novelLevel,
+      });
+      _processEntranceQueue();
+    } else {
+      _controller.addSystemActivity(
+        widget.roomId,
+        '🟢 $userName entered the room.',
+        senderId: userId,
+        senderName: userName,
+        activityKey: 'room-enter',
+      );
+    }
+  }
+
+  void _processEntranceQueue() async {
+    if (_isEntrancePlaying.value || _entranceQueue.isEmpty) return;
+
+    _isEntrancePlaying.value = true;
+    final task = _entranceQueue.first;
+
+    _currentEntranceUser.value = task['userName'];
+    _currentEntranceVipLevel.value = task['vipLevel'];
+    _currentEntranceNovelLevel.value = task['novelLevel'];
+
     setState(() {
       _showEntranceOverlay = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 2800), () {
-      if (!mounted) return;
-      setState(() {
-        _showEntranceOverlay = false;
-      });
+    await Future.delayed(const Duration(milliseconds: 3200));
+
+    if (!mounted) return;
+
+    setState(() {
+      _showEntranceOverlay = false;
     });
+
+    _controller.addSystemActivity(
+      widget.roomId,
+      '🟢 ${_currentEntranceUser.value} entered the room.',
+      senderId: task['userId'],
+      senderName: task['userName'],
+      activityKey: 'room-enter',
+    );
+
+    _entranceQueue.removeAt(0);
+    _isEntrancePlaying.value = false;
+
+    _processEntranceQueue();
+  }
+
+  Timer? _simulatedUsersTimer;
+
+  void _startSimulatedUsersTimer() {
+    _simulatedUsersTimer = Timer.periodic(const Duration(seconds: 24), (timer) {
+      if (!mounted) return;
+      final names = [
+        {'name': 'Aleena Queen', 'vip': '4', 'novel': '0'},
+        {'name': 'Shan King', 'vip': '7', 'novel': '0'},
+        {'name': 'Rahul Roy', 'vip': '0', 'novel': '3'},
+        {'name': 'Divya Sharma', 'vip': '0', 'novel': '5'},
+      ];
+      final user = names[Random().nextInt(names.length)];
+      final uName = user['name']!;
+
+      onUserJoin('uid_${uName.toLowerCase().replaceAll(' ', '_')}', uName);
+    });
+  }
+
+  final RxInt _taskProgress = 0.obs;
+  final RxBool _isTask1Claimed = false.obs;
+  final RxBool _isTask2Claimed = false.obs;
+
+  void _showRoomTasksDialog() {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A).withOpacity(0.95),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                blurRadius: 20,
+              )
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.stars_rounded, color: Colors.amber, size: 24),
+                  const SizedBox(width: 8),
+                  Text(
+                    'ROOM TASKS',
+                    style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+                    onPressed: () => Get.back(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Obx(() => _buildTaskItem(
+                title: 'Complete a Room Task',
+                description: 'Complete room check-in task for AgoraX.',
+                progress: _isTask1Claimed.value ? '1/1' : '0/1',
+                isClaimed: _isTask1Claimed.value,
+                onClaim: () {
+                  _isTask1Claimed.value = true;
+                  _taskProgress.value = min(400, _taskProgress.value + 200);
+                  Get.back();
+
+                  _controller.addSystemActivity(
+                    widget.roomId,
+                    '🏆 ${widget.userName} completed a Room Task.',
+                    activityKey: 'task-complete',
+                  );
+
+                  _controller.addSystemActivity(
+                    widget.roomId,
+                    '🎉 ${widget.userName} reached Level 26.',
+                    activityKey: 'level-up',
+                  );
+
+                  Get.snackbar(
+                    'Task Claimed! 🏆',
+                    'You completed check-in! +200 Room Star points and +50 user XP.',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+                    colorText: Colors.white,
+                  );
+                },
+              )),
+              const SizedBox(height: 12),
+              Obx(() => _buildTaskItem(
+                title: 'Send a Premium Gift',
+                description: 'Send any gift of 10+ Gold coins value.',
+                progress: _isTask2Claimed.value ? '1/1' : '0/1',
+                isClaimed: _isTask2Claimed.value,
+                onClaim: () {
+                  _isTask2Claimed.value = true;
+                  _taskProgress.value = min(400, _taskProgress.value + 200);
+                  Get.back();
+
+                  _controller.addSystemActivity(
+                    widget.roomId,
+                    '🏆 ${widget.userName} completed a Room Task.',
+                    activityKey: 'task-complete',
+                  );
+
+                  Get.snackbar(
+                    'Task Claimed! 🏆',
+                    'Gift task completed! +200 Room Star points and +50 user XP.',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+                    colorText: Colors.white,
+                  );
+                },
+              )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaskItem({
+    required String title,
+    required String description,
+    required String progress,
+    required bool isClaimed,
+    required VoidCallback onClaim,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(description, style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            children: [
+              Text(progress, style: GoogleFonts.poppins(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              ElevatedButton(
+                onPressed: isClaimed ? null : onClaim,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isClaimed ? Colors.white12 : const Color(0xFF8B5CF6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  minimumSize: const Size(60, 24),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  isClaimed ? 'Claimed' : 'Claim',
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _checkMentionAutocomplete(String text) {
+    if (text.endsWith('@')) {
+      final list = _seats
+          .where((s) => s['userId'] != null && s['userId'] != widget.userId)
+          .map((s) => {'userId': s['userId'] as String, 'name': s['name'] as String})
+          .toList();
+      _mentionSuggestions.assignAll(list);
+      _showMentionAutocomplete.value = list.isNotEmpty;
+    } else if (text.contains('@')) {
+      final parts = text.split('@');
+      final query = parts.last.toLowerCase();
+      if (query.contains(' ')) {
+        _showMentionAutocomplete.value = false;
+        return;
+      }
+      final list = _seats
+          .where((s) => s['userId'] != null && s['userId'] != widget.userId)
+          .map((s) => {'userId': s['userId'] as String, 'name': s['name'] as String})
+          .where((u) => u['name']!.toLowerCase().contains(query))
+          .toList();
+      _mentionSuggestions.assignAll(list);
+      _showMentionAutocomplete.value = list.isNotEmpty;
+    } else {
+      _showMentionAutocomplete.value = false;
+    }
+  }
+
+  void _selectMentionSuggestion(String name) {
+    final text = _chatInputController.text;
+    final int atIndex = text.lastIndexOf('@');
+    if (atIndex != -1) {
+      final newText = text.substring(0, atIndex) + '@${name.replaceAll(' ', '_')} ';
+      _chatInputController.text = newText;
+      _chatInputController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _chatInputController.text.length),
+      );
+    }
+    _showMentionAutocomplete.value = false;
   }
 
   String _applyProfanityFilter(String text) {
@@ -679,33 +945,53 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   Widget _buildChatMessageTile(RoomChatMessage msg) {
     if (msg.isSystem) {
+      final String emojiPrefix = msg.text.substring(0, min(2, msg.text.length)).trim();
+      final Color accentColor = _getSystemEventColor(emojiPrefix);
+
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         child: AnimatedOpacity(
           opacity: 1,
-          duration: const Duration(milliseconds: 240),
+          duration: const Duration(milliseconds: 280),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF1F1B3A).withOpacity(0.85),
-                  const Color(0xFF111827).withOpacity(0.85),
+                  const Color(0xFF0F172A).withOpacity(0.75),
+                  const Color(0xFF1E293B).withOpacity(0.55),
                 ],
               ),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFC084FC).withOpacity(0.18)),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: accentColor.withOpacity(0.18), width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFFC084FC)),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    emojiPrefix.isNotEmpty ? emojiPrefix : '⚙️',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     msg.repeatCount > 1 ? '${msg.text} x${msg.repeatCount}' : msg.text,
                     style: GoogleFonts.poppins(
-                      color: Colors.white.withOpacity(0.82),
-                      fontSize: 10,
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -720,59 +1006,81 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     final identity = PremiumIdentityController.getIdentity(msg.senderId, msg.senderName);
     final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
     final isMine = msg.senderId == widget.userId;
-    final canDeleteAny = _canDeleteAnyMessage(room);
+    final canDelete = _canDeleteAnyMessage(room) || isMine;
 
-    final avatarUrl = msg.senderAvatar ?? msg.senderAvatar;
+    final avatarUrl = msg.senderAvatar;
     final roleColor = _getRoleBadgeColor(msg.senderRole ?? 'Guest');
+    final bool isSpeaking = msg.isActiveSpeaker;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
       child: GestureDetector(
-        onLongPress: () => _showMessageMenu(msg, canDeleteAny),
-        onSecondaryTapDown: (_) => _showMessageMenu(msg, canDeleteAny),
+        onLongPress: () => _showMessageMenu(msg, canDelete),
+        onSecondaryTapDown: (_) => _showMessageMenu(msg, canDelete),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             GestureDetector(
               onTap: () => _showProfilePopup(msg),
-              child: Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: msg.isActiveSpeaker ? const Color(0xFF22C55E).withOpacity(0.35) : Colors.transparent,
-                      blurRadius: 12,
-                      spreadRadius: 1,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (isSpeaking)
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0xFF10B981),
+                            blurRadius: 8,
+                            spreadRadius: 2.0,
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                  border: Border.all(color: roleColor.withOpacity(0.55), width: 1.4),
-                ),
-                child: ClipOval(
-                  child: avatarUrl != null
-                      ? Image.network(
-                          avatarUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildDefaultAvatar(msg.senderName, roleColor),
-                        )
-                      : _buildDefaultAvatar(msg.senderName, roleColor),
-                ),
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSpeaking ? const Color(0xFF10B981) : roleColor.withOpacity(0.55),
+                        width: 1.8,
+                      ),
+                    ),
+                    child: ClipOval(
+                      child: avatarUrl != null
+                          ? Image.network(
+                              avatarUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildDefaultAvatar(msg.senderName, roleColor),
+                            )
+                          : _buildDefaultAvatar(msg.senderName, roleColor),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isMine ? const Color(0xFF121826).withOpacity(0.95) : Colors.black.withOpacity(0.30),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  color: isMine ? const Color(0xFF1E1B4B).withOpacity(0.9) : const Color(0xFF0F172A).withOpacity(0.7),
+                  borderRadius: BorderRadius.only(
+                    topRight: const Radius.circular(20),
+                    bottomLeft: const Radius.circular(20),
+                    bottomRight: const Radius.circular(20),
+                    topLeft: isMine ? const Radius.circular(20) : Radius.zero,
+                  ),
+                  border: Border.all(color: Colors.white.withOpacity(0.04)),
                   boxShadow: [
                     BoxShadow(
-                      color: isMine ? const Color(0xFF8B5CF6).withOpacity(0.10) : Colors.black.withOpacity(0.14),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -786,36 +1094,52 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       children: [
                         Text(
                           msg.senderName,
-                          style: GoogleFonts.poppins(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.outfit(
+                            color: isMine ? const Color(0xFFC084FC) : Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        if ((msg.senderRole ?? '').isNotEmpty)
-                          _buildTinyTag(msg.senderRole!, roleColor),
-                        if (msg.senderLevel != null) _buildTinyTag(msg.senderLevel!, const Color(0xFF38BDF8)),
+                        _buildTinyTag(msg.senderLevel ?? 'LV 25', const Color(0xFF38BDF8)),
                         if (msg.vipLabel != null) _buildTinyTag(msg.vipLabel!, const Color(0xFFFFD700)),
                         if (msg.novelLabel != null) _buildTinyTag(msg.novelLabel!, const Color(0xFFF97316)),
-                        if (msg.communityTag != null) _buildTinyTag(msg.communityTag!, const Color(0xFF22C55E)),
-                        if (msg.roleTag != null) _buildTinyTag(msg.roleTag!, const Color(0xFFC084FC)),
+                        if (msg.communityTag != null) _buildTinyTag(msg.communityTag!, const Color(0xFF10B981)),
+                        if ((msg.senderRole ?? '').isNotEmpty && msg.senderRole != 'Guest')
+                          _buildTinyTag(msg.senderRole!, roleColor),
                       ],
                     ),
+                    const SizedBox(height: 6),
                     if (msg.replyToMessageId != null) ...[
-                      const SizedBox(height: 6),
                       Container(
                         width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.03),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: Colors.white.withOpacity(0.04)),
                         ),
                         child: Text(
                           'Replying to previous message',
-                          style: GoogleFonts.poppins(color: Colors.white54, fontSize: 9),
+                          style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9),
                         ),
                       ),
                     ],
+                    Text.rich(
+                      _buildRichTextWithMentions(msg.text),
+                      style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.95), fontSize: 12),
+                    ),
                     const SizedBox(height: 6),
-                    Text.rich(_buildRichTextWithMentions(msg.text)),
-                    const SizedBox(height: 6),
+                    if (identity.vipLevel > 0 || identity.novelLevel > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: identity.buildBadges(context, fontSize: 8.0).take(4).toList(),
+                          ),
+                        ),
+                      ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -824,17 +1148,10 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                           style: GoogleFonts.poppins(color: Colors.white38, fontSize: 8.5),
                         ),
                         Text(
-                          'Copy',
+                          'Reply / Copy',
                           style: GoogleFonts.poppins(color: Colors.white24, fontSize: 8.5),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 4),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: identity.buildBadges(context, fontSize: 7.6).take(4).toList(),
-                      ),
                     ),
                   ],
                 ),
@@ -844,6 +1161,33 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         ),
       ),
     );
+  }
+
+  Color _getSystemEventColor(String emoji) {
+    switch (emoji) {
+      case '🟢': return const Color(0xFF10B981);
+      case '👋': return const Color(0xFF6B7280);
+      case '🎤': return const Color(0xFF8B5CF6);
+      case '💺': return const Color(0xFFEF4444);
+      case '🔄': return const Color(0xFFF59E0B);
+      case '👑': return const Color(0xFFFBBF24);
+      case '⭐': return const Color(0xFFF59E0B);
+      case '🛡️': return const Color(0xFF3B82F6);
+      case '🔇': return const Color(0xFFEF4444);
+      case '🔊': return const Color(0xFF10B981);
+      case '🚫': return const Color(0xFFDC2626);
+      case '🎁': return const Color(0xFFEC4899);
+      case '🎉': return const Color(0xFF10B981);
+      case '💎': return const Color(0xFFFBBF24);
+      case '📚': return const Color(0xFFF97316);
+      case '🏆': return const Color(0xFF10B981);
+      case '📢': return const Color(0xFF38BDF8);
+      case '🔒': return const Color(0xFFEF4444);
+      case '🔓': return const Color(0xFF10B981);
+      case '🎊': return const Color(0xFFFF007F);
+      case '✅': return const Color(0xFF10B981);
+      default: return const Color(0xFFC084FC);
+    }
   }
 
   Widget _buildTinyTag(String label, Color color) {
@@ -987,74 +1331,221 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       levelTitle: 'Voice Member',
     );
 
+    final isSpeaking = msg.isActiveSpeaker;
+    final roleColor = _getRoleBadgeColor(msg.senderRole ?? 'Guest');
+
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: AppTheme.bgDark.withOpacity(0.98),
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+          border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
         ),
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundImage: msg.senderAvatar != null ? NetworkImage(msg.senderAvatar!) : null,
-                  child: msg.senderAvatar == null ? Text(msg.senderName.isNotEmpty ? msg.senderName[0] : '?') : null,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (isSpeaking)
+                      Container(
+                        width: 58,
+                        height: 58,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0xFF10B981),
+                              blurRadius: 10,
+                              spreadRadius: 2.0,
+                            ),
+                          ],
+                        ),
+                      ),
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSpeaking ? const Color(0xFF10B981) : roleColor.withOpacity(0.55),
+                          width: 2.0,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: msg.senderAvatar != null
+                            ? Image.network(
+                                msg.senderAvatar!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _buildDefaultAvatar(msg.senderName, roleColor),
+                              )
+                            : _buildDefaultAvatar(msg.senderName, roleColor),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(msg.senderName, style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          Text(
+                            msg.senderName,
+                            style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 6),
+                          if (identity.idLevel >= 25)
+                            const Icon(Icons.verified_rounded, color: Colors.blueAccent, size: 16),
+                        ],
+                      ),
                       const SizedBox(height: 4),
-                      Text('Tap to open full profile or interact.', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          _buildTinyTag(msg.senderLevel ?? 'LV ${identity.idLevel}', const Color(0xFF38BDF8)),
+                          if (msg.vipLabel != null) _buildTinyTag(msg.vipLabel!, const Color(0xFFFFD700)),
+                          if (msg.novelLabel != null) _buildTinyTag(msg.novelLabel!, const Color(0xFFF97316)),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            const SizedBox(height: 20),
+            GridView.count(
+              shrinkWrap: true,
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1.25,
+              physics: const NeverScrollableScrollPhysics(),
               children: [
-                _buildTinyTag('Follow / Unfollow', const Color(0xFF8B5CF6)),
-                _buildTinyTag('Private Message', const Color(0xFF38BDF8)),
-                _buildTinyTag('Send Gift', const Color(0xFFF97316)),
-                _buildTinyTag('Block', Colors.redAccent),
-                _buildTinyTag('Report', Colors.orangeAccent),
+                Obx(() {
+                  final isFollowing = _followedUsers.contains(msg.senderId);
+                  return _buildActionButton(
+                    icon: isFollowing ? Icons.person_remove_rounded : Icons.person_add_rounded,
+                    label: isFollowing ? 'Unfollow' : 'Follow',
+                    color: const Color(0xFF8B5CF6),
+                    onTap: () {
+                      Get.back();
+                      if (isFollowing) {
+                        _followedUsers.remove(msg.senderId);
+                        Get.snackbar('Unfollowed', 'You unfollowed ${msg.senderName}.', snackPosition: SnackPosition.BOTTOM);
+                      } else {
+                        _followedUsers.add(msg.senderId);
+                        Get.snackbar('Followed', 'You followed ${msg.senderName}!', snackPosition: SnackPosition.BOTTOM);
+                      }
+                    },
+                  );
+                }),
+                _buildActionButton(
+                  icon: Icons.chat_bubble_rounded,
+                  label: 'Message',
+                  color: const Color(0xFF38BDF8),
+                  onTap: () {
+                    Get.back();
+                    final conversation = Conversation(
+                      id: 'room-${widget.roomId}-${msg.senderId}',
+                      otherUserId: msg.senderId,
+                      otherUserName: msg.senderName,
+                      otherUserAvatar: msg.senderAvatar ?? _getUserDp(msg.senderId),
+                      lastMessage: '',
+                      lastMessageTime: DateTime.now(),
+                      level: PremiumIdentityController.getIdentity(msg.senderId, msg.senderName).idLevel,
+                    );
+                    Get.to(() => ChatScreen(conversation: conversation));
+                  },
+                ),
+                _buildActionButton(
+                  icon: Icons.card_giftcard_rounded,
+                  label: 'Gift',
+                  color: const Color(0xFFF97316),
+                  onTap: () {
+                    Get.back();
+                    Get.dialog(
+                      SendGiftDialog(
+                        roomId: widget.roomId,
+                        targetUserId: msg.senderId,
+                        targetUserName: msg.senderName,
+                        occupiedSeatsCount: _seats.where((s) => s['userId'] != null).length,
+                      ),
+                    );
+                  },
+                ),
+                Obx(() {
+                  final isBlocked = _blockedUsers.contains(msg.senderId);
+                  return _buildActionButton(
+                    icon: Icons.block_rounded,
+                    label: isBlocked ? 'Unblock' : 'Block',
+                    color: Colors.redAccent,
+                    onTap: () {
+                      Get.back();
+                      if (isBlocked) {
+                        _blockedUsers.remove(msg.senderId);
+                        Get.snackbar('Unblocked', '${msg.senderName} has been unblocked.', snackPosition: SnackPosition.BOTTOM);
+                      } else {
+                        _blockedUsers.add(msg.senderId);
+                        Get.snackbar('Blocked', '${msg.senderName} has been blocked locally.', snackPosition: SnackPosition.BOTTOM);
+                      }
+                    },
+                  );
+                }),
+                _buildActionButton(
+                  icon: Icons.flag_rounded,
+                  label: 'Report',
+                  color: Colors.orangeAccent,
+                  onTap: () {
+                    Get.back();
+                    Get.snackbar('Report Submitted', 'We will review ${msg.senderName}\'s activity.', snackPosition: SnackPosition.BOTTOM);
+                  },
+                ),
+                _buildActionButton(
+                  icon: Icons.account_circle_rounded,
+                  label: 'Profile',
+                  color: Colors.white60,
+                  onTap: () {
+                    Get.back();
+                    Get.to(() => UserProfileScreen(user: user));
+                  },
+                ),
               ],
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Get.back();
-                      Get.to(() => UserProfileScreen(user: user));
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                    child: const Text('Open Profile'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Get.back();
-                      Get.snackbar('Follow', msg.senderName, snackPosition: SnackPosition.BOTTOM);
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1F2937)),
-                    child: const Text('Follow / Unfollow'),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.2), width: 1),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -1130,9 +1621,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   @override
   void dispose() {
+    _controller.activeRoomId = null;
     _speakingSimulationTimer?.cancel();
     _debateTimer?.cancel();
     _marqueeTimer?.cancel();
+    _simulatedUsersTimer?.cancel();
     _glowController.dispose();
     _chatInputController.dispose();
     _chatScrollController.dispose();
@@ -1223,6 +1716,27 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
             // Floating reactions animations stack overlay
             _buildFloatingReactionsOverlay(),
+
+            // Entrance Effects Overlay Queue layer
+            Obx(() {
+              if (!_showEntranceOverlay) return const SizedBox.shrink();
+              return Positioned(
+                top: 80,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: _currentEntranceVipLevel.value > 0
+                      ? VipEntryAnimation(
+                          username: _currentEntranceUser.value,
+                          vipLevel: _currentEntranceVipLevel.value,
+                        )
+                      : NovelEntryAnimation(
+                          username: _currentEntranceUser.value,
+                          novelLevel: _currentEntranceNovelLevel.value,
+                        ),
+                ),
+              );
+            }),
           ],
         ),
       ),
@@ -1893,27 +2407,29 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         children: [
           Row(
             children: [
-              // Capsule 1: Star 0/400
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F203C).withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFFF4081).withOpacity(0.3), width: 1),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.star_border_rounded,
-                        color: Color(0xFFFF4081), size: 15),
-                    const SizedBox(width: 6),
-                    Text(
-                      '0/400',
-                      style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
+              GestureDetector(
+                onTap: _showRoomTasksDialog,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F203C).withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFF4081).withOpacity(0.3), width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.star_border_rounded,
+                          color: Color(0xFFFF4081), size: 15),
+                      const SizedBox(width: 6),
+                      Obx(() => Text(
+                        '$_taskProgress/400',
+                        style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600),
+                      )),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -3724,6 +4240,71 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       ),
       child: Column(
         children: [
+          // Mention Suggestions Row
+          Obx(() {
+            if (!_showMentionAutocomplete.value) return const SizedBox.shrink();
+            return Container(
+              height: 40,
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _mentionSuggestions.length,
+                itemBuilder: (context, index) {
+                  final u = _mentionSuggestions[index];
+                  return GestureDetector(
+                    onTap: () => _selectMentionSuggestion(u['name']!),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '@${u['name']}',
+                        style: GoogleFonts.poppins(color: const Color(0xFFC084FC), fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
+
+          // Emoji Panel
+          if (_showEmojiPanel)
+            Container(
+              height: 80,
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: GridView.count(
+                crossAxisCount: 6,
+                mainAxisSpacing: 4,
+                crossAxisSpacing: 4,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                children: ['😊', '❤️', '😂', '🔥', '👏', '🎉', '🌟', '👑', '💎', '🦄', '😮', '👍'].map((emoji) {
+                  return GestureDetector(
+                    onTap: () {
+                      _chatInputController.text = '${_chatInputController.text}$emoji';
+                      _chatInputController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _chatInputController.text.length),
+                      );
+                    },
+                    child: Center(
+                      child: Text(emoji, style: const TextStyle(fontSize: 20)),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
           if (_replyTarget != null)
             Container(
               width: double.infinity,
@@ -3771,6 +4352,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       Expanded(
                         child: TextField(
                           controller: _chatInputController,
+                          onChanged: _checkMentionAutocomplete,
                           style: const TextStyle(
                               color: Colors.white, fontSize: 12),
                           decoration: const InputDecoration(
@@ -3785,14 +4367,17 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       ),
                       GestureDetector(
                         onTap: () {
-                          _chatInputController.text = '${_chatInputController.text} 😊';
-                          _chatInputController.selection = TextSelection.fromPosition(
-                            TextPosition(offset: _chatInputController.text.length),
-                          );
+                          setState(() {
+                            _showEmojiPanel = !_showEmojiPanel;
+                          });
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10),
-                          child: Icon(Icons.emoji_emotions_rounded, color: Colors.white54, size: 16),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Icon(
+                            Icons.emoji_emotions_rounded,
+                            color: _showEmojiPanel ? const Color(0xFF8B5CF6) : Colors.white54,
+                            size: 16,
+                          ),
                         ),
                       ),
                     ],

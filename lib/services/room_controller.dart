@@ -91,6 +91,8 @@ class RoomChatMessage {
 class RoomController extends GetxController {
   static RoomController get to => Get.find<RoomController>();
 
+  String? activeRoomId;
+
   RxInt get walletBalance => Get.find<StoreController>().coinsBalance;
   final RxList<VoiceRoom> rooms = <VoiceRoom>[].obs;
   
@@ -154,7 +156,71 @@ class RoomController extends GetxController {
     RoomChatMessage message,
   ) {
     initializeChatForRoom(roomId);
-    roomChats[roomId]!.add(message);
+    final messages = roomChats[roomId]!;
+
+    if (message.isSystem && messages.isNotEmpty) {
+      final last = messages.last;
+      if (last.isSystem) {
+        // 1. Merge consecutive entry/leave events
+        // Format for entry: "🟢 {Username} entered the room."
+        // Format for leave: "👋 {Username} left the room."
+        final bool isEntry = message.text.contains('entered the room');
+        final bool isLeave = message.text.contains('left the room');
+        final bool wasEntry = last.text.contains('entered the room');
+        final bool wasLeave = last.text.contains('left the room');
+
+        if ((isEntry && wasEntry) || (isLeave && wasLeave)) {
+          final String keyword = isEntry ? ' entered the room.' : ' left the room.';
+          final String emoji = isEntry ? '🟢 ' : '👋 ';
+
+          // Clean names
+          final lastClean = last.text.replaceFirst(emoji, '').replaceFirst(keyword, '');
+          final newClean = message.text.replaceFirst(emoji, '').replaceFirst(keyword, '');
+
+          // Get names set
+          final Set<String> names = lastClean.split(', ').toSet();
+          if (!names.contains(newClean)) {
+            names.add(newClean);
+            final updatedText = '$emoji${names.join(', ')}$keyword';
+            messages[messages.length - 1] = last.copyWith(text: updatedText, repeatCount: last.repeatCount + 1);
+            return;
+          } else {
+            // Already contains name, merge by incrementing repeat count or just ignore
+            messages[messages.length - 1] = last.copyWith(repeatCount: last.repeatCount + 1);
+            return;
+          }
+        }
+
+        // 2. Merge consecutive identical gift messages
+        // Format: "🎁 {Username} sent {Gift Name} × {Count} to {Receiver}."
+        if (message.text.startsWith('🎁') && last.text.startsWith('🎁')) {
+          final giftRegex = RegExp(r'^🎁\s+(.*?)\s+sent\s+(.*?)\s+×\s+(\d+)\s+to\s+(.*?)\.$');
+          final matchLast = giftRegex.firstMatch(last.text);
+          final matchNew = giftRegex.firstMatch(message.text);
+
+          if (matchLast != null && matchNew != null) {
+            final senderLast = matchLast.group(1);
+            final giftLast = matchLast.group(2);
+            final countLast = int.tryParse(matchLast.group(3) ?? '1') ?? 1;
+            final receiverLast = matchLast.group(4);
+
+            final senderNew = matchNew.group(1);
+            final giftNew = matchNew.group(2);
+            final countNew = int.tryParse(matchNew.group(3) ?? '1') ?? 1;
+            final receiverNew = matchNew.group(4);
+
+            if (senderLast == senderNew && giftLast == giftNew && receiverLast == receiverNew) {
+              final totalCount = countLast + countNew;
+              final updatedText = '🎁 $senderNew sent $giftNew × $totalCount to $receiverNew.';
+              messages[messages.length - 1] = last.copyWith(text: updatedText);
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    messages.add(message);
   }
 
   void addSystemActivity(
@@ -167,27 +233,17 @@ class RoomController extends GetxController {
     String? activityKey,
   }) {
     initializeChatForRoom(roomId);
-    final messages = roomChats[roomId]!;
-    if (messages.isNotEmpty) {
-      final last = messages.last;
-      if (last.isSystem && last.text == text && last.messageType == messageType) {
-        messages[messages.length - 1] = last.copyWith(repeatCount: last.repeatCount + 1);
-        return;
-      }
-    }
-
-    messages.add(
-      RoomChatMessage(
-        senderId: senderId ?? 'system',
-        senderName: senderName ?? 'System',
-        text: text,
-        senderAvatar: senderAvatar,
-        timestamp: DateTime.now(),
-        isSystem: true,
-        messageType: messageType ?? 'activity',
-        roleTag: activityKey,
-      ),
+    final msg = RoomChatMessage(
+      senderId: senderId ?? 'system',
+      senderName: senderName ?? 'System',
+      text: text,
+      senderAvatar: senderAvatar,
+      timestamp: DateTime.now(),
+      isSystem: true,
+      messageType: messageType ?? 'activity',
+      roleTag: activityKey,
     );
+    addChatMessage(roomId, msg);
   }
 
   void deleteRoomMessage(String roomId, String messageId) {
@@ -1384,7 +1440,7 @@ class RoomController extends GetxController {
   }
 
   // Send a gift inside a room
-  bool sendGiftToRoom(String roomId, {required int giftCost, required String giftName, required String fromUserName, int count = 1, String? targetUserId, bool deductCoins = true}) {
+  bool sendGiftToRoom(String roomId, {required int giftCost, required String giftName, required String fromUserName, int count = 1, String? targetUserId, String? targetUserName, bool deductCoins = true}) {
     final int totalCost = giftCost * count;
     if (deductCoins) {
       if (walletBalance.value < totalCost) {
@@ -1496,18 +1552,21 @@ class RoomController extends GetxController {
       );
 
       // Trigger system message about gift
-      final text = targetUserId != null
-          ? 'sent $giftName to member!'
-          : 'sent a $giftName to the stage!';
+      final String receiver = targetUserName ?? (count > 1 ? 'all seats' : 'the stage');
+      final String giftText = '🎁 $fromUserName sent $giftName × $count to $receiver.';
       
-      initializeChatForRoom(roomId);
-      roomChats[roomId]!.add(RoomChatMessage(
-        senderId: 'system',
-        senderName: 'System',
-        text: '🎁 $fromUserName $text (+${totalCost * 5} Room XP)',
-        timestamp: DateTime.now(),
-        isSystem: true,
-      ));
+      addChatMessage(
+        roomId,
+        RoomChatMessage(
+          senderId: 'system',
+          senderName: 'System',
+          text: giftText,
+          timestamp: DateTime.now(),
+          isSystem: true,
+          messageType: 'gift',
+          roleTag: 'gift',
+        ),
+      );
 
       if (leveledUp) {
         Get.dialog(

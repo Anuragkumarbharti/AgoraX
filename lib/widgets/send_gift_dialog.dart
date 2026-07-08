@@ -98,8 +98,10 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         widget.roomId,
         giftCost: _selectedGift!.cost,
         giftName: _selectedGift!.name,
-        fromUserName: 'Current User',
+        fromUserName: 'Anurag Kumar',
         count: countMultiplier,
+        targetUserId: widget.targetUserId,
+        targetUserName: widget.targetUserName,
         deductCoins: false, // Already deducted above
       );
     }
