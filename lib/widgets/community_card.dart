@@ -26,7 +26,7 @@ class CommunityCard extends StatelessWidget {
           children: [
             // Avatar/Image
             Container(
-              height: 80,
+              height: 65,
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor.withOpacity(0.2),
                 borderRadius: const BorderRadius.only(
@@ -37,7 +37,7 @@ class CommunityCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   community.name.substring(0, 1),
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: AppTheme.primaryColor,
                       ),
                 ),
@@ -47,7 +47,7 @@ class CommunityCard extends StatelessWidget {
             // Content
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -76,7 +76,7 @@ class CommunityCard extends StatelessWidget {
                       '${community.memberCount}K members',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 4),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(

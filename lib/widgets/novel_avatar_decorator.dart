@@ -104,7 +104,7 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
         );
 
       case 2:
-        // Novel 2 (Purple Galaxy Orbit with stars)
+        // Novel II: Galaxy Collection - Purple Nebula Orbit
         return Stack(
           alignment: Alignment.center,
           children: [
@@ -119,16 +119,16 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
                     shape: BoxShape.circle,
                     gradient: SweepGradient(
                       colors: const [
-                        Color(0xFF7C3AED),
-                        Color(0xFFC084FC),
-                        Color(0xFF4C1D95),
-                        Color(0xFF7C3AED),
+                        Color(0xFF3B0764), // Deep Purple
+                        Color(0xFFD946EF), // Nebula Pink
+                        Color(0xFF0F172A), // Midnight Blue
+                        Color(0xFF3B0764),
                       ],
                       transform: GradientRotation(_rotationController.value * 2 * math.pi),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF7C3AED).withOpacity(0.35 + 0.15 * _pulseController.value),
+                        color: const Color(0xFFD946EF).withOpacity(0.35 + 0.15 * _pulseController.value),
                         blurRadius: 10 + 5 * _pulseController.value,
                         spreadRadius: 1.5,
                       )
@@ -145,143 +145,81 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
                 );
               },
             ),
-            // Floating Orbiting Star
-            AnimatedBuilder(
-              animation: _rotationController,
-              builder: (context, child) {
-                final angle = _rotationController.value * 2 * math.pi;
-                final radius = widget.size / 2;
-                return Positioned(
-                  left: radius + (radius - 2) * math.cos(angle) - 6,
-                  top: radius + (radius - 2) * math.sin(angle) - 6,
-                  child: const Text('⭐', style: TextStyle(fontSize: 10)),
-                );
-              },
+            // Orbiting Galaxy Rings
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _rotationController,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: GalaxyOrbitPainter(
+                        animationValue: _rotationController.value,
+                        pulseValue: _pulseController.value,
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
           ],
         );
 
       case 3:
-        // Novel 3 (Royal Gold Palace + Floating Crown)
+        // Novel III: Royal Palace Collection - Marble and Emerald Palace
         return Stack(
           alignment: Alignment.center,
-          clipBehavior: Clip.none,
           children: [
-            // Golden Aura pulsing + rotating sweep
-            AnimatedBuilder(
-              animation: Listenable.merge([_rotationController, _pulseController]),
-              builder: (context, child) {
-                final pulse = _pulseController.value;
-                return Container(
-                  width: widget.size,
-                  height: widget.size,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: SweepGradient(
-                      colors: const [
-                        Color(0xFFFFD700),
-                        Color(0xFFD97706),
-                        Color(0xFFFFD700),
-                      ],
-                      transform: GradientRotation(_rotationController.value * 2 * math.pi),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFD97706).withOpacity(0.25 + 0.20 * pulse),
-                        blurRadius: 10 + 6 * pulse,
-                        spreadRadius: 1 + 2 * pulse,
-                      )
-                    ],
-                  ),
-                  child: Container(
-                    decoration: const BoxDecoration(color: Color(0xFF09090B), shape: BoxShape.circle),
-                    padding: const EdgeInsets.all(2.5),
-                    child: mainAvatar,
-                  ),
-                );
-              },
+            Container(
+              width: widget.size,
+              height: widget.size,
+              padding: const EdgeInsets.all(6),
+              child: mainAvatar,
             ),
-            // Floating Gold Crown
-            Positioned(
-              top: -18,
-              child: AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  final scale = 1.0 + (0.08 * _pulseController.value);
-                  return Transform.scale(
-                    scale: scale,
-                    child: const Text(
-                      '👑',
-                      style: TextStyle(
-                        fontSize: 26,
-                        shadows: [
-                          Shadow(color: Color(0xFFFFD700), blurRadius: 12),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: MarblePalacePainter(pulseValue: _pulseController.value),
+                    );
+                  },
+                ),
               ),
             ),
           ],
         );
 
       case 4:
-        // Novel 4 (Dragon Fire Red Border + Wings + Fire Aura)
+        // Novel IV: Dragon Collection - Obsidian Dragon Wings & Molten Magma
         return Stack(
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: [
-            // Left Wing Pulsing
-            AnimatedBuilder(
-              animation: _pulseController,
-              builder: (context, child) {
-                final offset = -14.0 - (3.0 * _pulseController.value);
-                return Positioned(
-                  left: offset,
-                  child: const Text('🔥', style: TextStyle(fontSize: 20)),
-                );
-              },
-            ),
-            // Right Wing Pulsing
-            AnimatedBuilder(
-              animation: _pulseController,
-              builder: (context, child) {
-                final offset = -14.0 - (3.0 * _pulseController.value);
-                return Positioned(
-                  right: offset,
-                  child: Transform.scale(
-                    scaleX: -1,
-                    child: const Text('🔥', style: TextStyle(fontSize: 20)),
-                  ),
-                );
-              },
-            ),
-            // Crimson Flame Border
+            // Glowing lava border
             AnimatedBuilder(
               animation: Listenable.merge([_rotationController, _pulseController]),
               builder: (context, child) {
                 return Container(
                   width: widget.size,
                   height: widget.size,
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(4.5),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: SweepGradient(
                       colors: const [
-                        Color(0xFFDC2626),
-                        Color(0xFFEF4444),
-                        Color(0xFF7F1D1D),
+                        Color(0xFFDC2626), // Crimson
+                        Color(0xFFF97316), // Molten Orange
+                        Color(0xFF09090B), // Obsidian
                         Color(0xFFDC2626),
                       ],
                       transform: GradientRotation(_rotationController.value * 2 * math.pi),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFDC2626).withOpacity(0.4 + 0.20 * _pulseController.value),
+                        color: const Color(0xFFF97316).withOpacity(0.4 + 0.20 * _pulseController.value),
                         blurRadius: 12.0 + (6.0 * _pulseController.value),
-                        spreadRadius: 2,
+                        spreadRadius: 2.5,
                       )
                     ],
                   ),
@@ -293,27 +231,29 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
                 );
               },
             ),
+            // Flapping Dragon Wings on sides
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: DragonWingsPainter(pulseValue: _pulseController.value),
+                    );
+                  },
+                ),
+              ),
+            ),
           ],
         );
 
       case 5:
-        // Novel 5 (Phoenix Wings + Pulse flame + Orbiting particles)
+        // Novel V: Phoenix Collection - Feather Wings & Rising Feather Embers
         return Stack(
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: [
-            // Phoenix feather wing decoration
-            Positioned(
-              left: -16,
-              child: const Text('🪶', style: TextStyle(fontSize: 24, color: Colors.orangeAccent)),
-            ),
-            Positioned(
-              right: -16,
-              child: Transform.scale(
-                scaleX: -1,
-                child: const Text('🪶', style: TextStyle(fontSize: 24, color: Colors.orangeAccent)),
-              ),
-            ),
+            // Solar Sweep Border
             AnimatedBuilder(
               animation: Listenable.merge([_rotationController, _pulseController]),
               builder: (context, child) {
@@ -325,18 +265,18 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
                     shape: BoxShape.circle,
                     gradient: SweepGradient(
                       colors: const [
-                        Color(0xFFEA580C),
-                        Color(0xFFF97316),
-                        Color(0xFFFDBA74),
+                        Color(0xFFEA580C), // Phoenix Orange
+                        Color(0xFF4C1D95), // Violet
+                        Color(0xFFFACC15), // Solar Yellow
                         Color(0xFFEA580C),
                       ],
                       transform: GradientRotation(_rotationController.value * 2 * math.pi),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFF97316).withOpacity(0.45 + (0.15 * _pulseController.value)),
+                        color: const Color(0xFFEA580C).withOpacity(0.45 + (0.15 * _pulseController.value)),
                         blurRadius: 12.0 + (6.0 * _pulseController.value),
-                        spreadRadius: 2,
+                        spreadRadius: 2.5,
                       )
                     ],
                   ),
@@ -351,68 +291,30 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
                 );
               },
             ),
+            // Phoenix Wings and Feathers
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([_rotationController, _pulseController]),
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: PhoenixWingsPainter(
+                        rotationValue: _rotationController.value,
+                        pulseValue: _pulseController.value,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
           ],
         );
 
       case 6:
-        // Novel 6 (Celestial Diamond Sky with rotating light and twinkles)
-        return AnimatedBuilder(
-          animation: Listenable.merge([_rotationController, _pulseController]),
-          builder: (context, child) {
-            return Container(
-              width: widget.size,
-              height: widget.size,
-              padding: const EdgeInsets.all(4.5),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: SweepGradient(
-                  colors: const [
-                    Color(0xFF06B6D4),
-                    Colors.white,
-                    Color(0xFF22D3EE),
-                    Color(0xFF06B6D4),
-                  ],
-                  transform: GradientRotation(_rotationController.value * 2 * math.pi),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF06B6D4).withOpacity(0.45 + (0.15 * _pulseController.value)),
-                    blurRadius: 16.0 + (6.0 * _pulseController.value),
-                    spreadRadius: 3,
-                  ),
-                  const BoxShadow(
-                    color: Colors.white24,
-                    blurRadius: 6,
-                    spreadRadius: 0.5,
-                  ),
-                ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  mainAvatar,
-                  // Twinkling stars overlay
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: Opacity(
-                      opacity: _pulseController.value,
-                      child: const Text('✨', style: TextStyle(fontSize: 10)),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-
-      case 7:
-        // Novel 7 (Immortal Cosmic Black-Gold + Rotate Aura with Twinkles)
+        // Novel VI: Celestial Collection - Platinum Wings and Twinkling Stars
         return Stack(
           alignment: Alignment.center,
-          clipBehavior: Clip.none,
           children: [
-            // Sweeping aura background
             AnimatedBuilder(
               animation: Listenable.merge([_rotationController, _pulseController]),
               builder: (context, child) {
@@ -424,16 +326,73 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
                     shape: BoxShape.circle,
                     gradient: SweepGradient(
                       colors: const [
-                        Color(0xFFFFD700),
-                        Color(0xFF1C1917),
-                        Color(0xFF000000),
-                        Color(0xFFFFD700),
+                        Color(0xFF60A5FA), // Pearlescent Blue
+                        Color(0xFFF1F5F9), // Platinum White
+                        Color(0xFF312E81), // Cosmic Indigo
+                        Color(0xFF60A5FA),
                       ],
                       transform: GradientRotation(_rotationController.value * 2 * math.pi),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFFD700).withOpacity(0.55 + 0.15 * _pulseController.value),
+                        color: const Color(0xFF60A5FA).withOpacity(0.45 + (0.15 * _pulseController.value)),
+                        blurRadius: 16.0 + (6.0 * _pulseController.value),
+                        spreadRadius: 3,
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    decoration: const BoxDecoration(color: Color(0xFF09090B), shape: BoxShape.circle),
+                    padding: const EdgeInsets.all(2.5),
+                    child: mainAvatar,
+                  ),
+                );
+              },
+            ),
+            // Angel wings & stardust sparkles
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: CelestialTemplePainter(pulseValue: _pulseController.value),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case 7:
+        // Novel VII: Cosmic Emperor - Rotating Void & Constellation Star Gate
+        return Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            // Black hole void sphere
+            AnimatedBuilder(
+              animation: Listenable.merge([_rotationController, _pulseController]),
+              builder: (context, child) {
+                return Container(
+                  width: widget.size,
+                  height: widget.size,
+                  padding: const EdgeInsets.all(5.5),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: SweepGradient(
+                      colors: const [
+                        Color(0xFFF59E0B), // Star Gold
+                        Color(0xFF030712), // Space Void Black
+                        Color(0xFF1E1B4B), // Void Indigo
+                        Color(0xFFF59E0B),
+                      ],
+                      transform: GradientRotation(_rotationController.value * 2 * math.pi),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFF59E0B).withOpacity(0.55 + 0.15 * _pulseController.value),
                         blurRadius: 20 + 8 * _pulseController.value,
                         spreadRadius: 4,
                       )
@@ -441,7 +400,7 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
                   ),
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: Color(0xFF09090B),
+                      color: Color(0xFF030712), // Deeper void black
                       shape: BoxShape.circle,
                     ),
                     padding: const EdgeInsets.all(3),
@@ -449,6 +408,22 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
                   ),
                 );
               },
+            ),
+            // Golden star constellation lines
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([_rotationController, _pulseController]),
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: CosmicEmperorVoidPainter(
+                        rotationValue: _rotationController.value,
+                        pulseValue: _pulseController.value,
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
             // Floating Crown on Top Left
             Positioned(
@@ -465,24 +440,10 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
                       style: TextStyle(
                         fontSize: 30,
                         shadows: [
-                          Shadow(color: Color(0xFFFFD700), blurRadius: 14),
+                          Shadow(color: Color(0xFFF59E0B), blurRadius: 14),
                         ],
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-            // Sparkle stars
-            Positioned(
-              bottom: 4,
-              right: -6,
-              child: AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  return Opacity(
-                    opacity: 0.5 + 0.5 * _pulseController.value,
-                    child: const Text('✨', style: TextStyle(fontSize: 16)),
                   );
                 },
               ),
@@ -494,4 +455,290 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
         return mainAvatar;
     }
   }
+}
+
+// ==========================================
+// Custom Painters for Premium Novel Effects
+// ==========================================
+
+class GalaxyOrbitPainter extends CustomPainter {
+  final double animationValue;
+  final double pulseValue;
+
+  GalaxyOrbitPainter({required this.animationValue, required this.pulseValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFD946EF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final double cx = size.width / 2;
+    final double cy = size.height / 2;
+    final double r = size.width / 2;
+
+    // Draw an elliptical orbit ring
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.rotate(-math.pi / 6);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: r * 2 + 8, height: (r * 2 + 8) * 0.4),
+      paint,
+    );
+
+    // Draw an orbiting star/planet along the path
+    final double angle = animationValue * 2 * math.pi;
+    final double px = (r + 4) * math.cos(angle);
+    final double py = (r + 4) * 0.4 * math.sin(angle);
+
+    final starPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(px, py), 3.0 + (1.0 * pulseValue), starPaint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant GalaxyOrbitPainter oldDelegate) => true;
+}
+
+class MarblePalacePainter extends CustomPainter {
+  final double pulseValue;
+  MarblePalacePainter({required this.pulseValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cx = size.width / 2;
+    final double cy = size.height / 2;
+    final double r = size.width / 2;
+
+    final borderPaint = Paint()
+      ..color = const Color(0xFFF8FAFC) // Marble White
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.0;
+    canvas.drawCircle(Offset(cx, cy), r - 2, borderPaint);
+
+    final goldPaint = Paint()
+      ..color = const Color(0xFFFCD34D) // Champagne Gold
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawCircle(Offset(cx, cy), r + 0.5, goldPaint);
+
+    // Draw 4 emerald gemstones on the corners
+    final emeraldPaint = Paint()
+      ..color = const Color(0xFF10B981) // Emerald Green
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 4; i++) {
+      final double angle = (i * math.pi / 2) + (math.pi / 4);
+      final double ex = cx + (r - 2) * math.cos(angle);
+      final double ey = cy + (r - 2) * math.sin(angle);
+
+      // Draw diamond-shaped emerald gem
+      final path = Path()
+        ..moveTo(ex, ey - 4)
+        ..lineTo(ex + 4, ey)
+        ..lineTo(ex, ey + 4)
+        ..lineTo(ex - 4, ey)
+        ..close();
+      canvas.drawPath(path, emeraldPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant MarblePalacePainter oldDelegate) => false;
+}
+
+class DragonWingsPainter extends CustomPainter {
+  final double pulseValue;
+  DragonWingsPainter({required this.pulseValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cx = size.width / 2;
+    final double cy = size.height / 2;
+    final double r = size.width / 2;
+
+    final wingPaint = Paint()
+      ..color = const Color(0xFFDC2626) // Crimson Red
+      ..style = PaintingStyle.fill;
+
+    final outlinePaint = Paint()
+      ..color = const Color(0xFFF97316) // Magma Orange
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    // Flapping amount using pulseValue
+    final double flap = 2.0 * math.sin(pulseValue * math.pi);
+
+    // Left Wing
+    final leftWing = Path()
+      ..moveTo(cx - r + 3, cy - 10)
+      ..quadraticBezierTo(cx - r - 15 - flap, cy - 25, cx - r - 25 - flap, cy - 10)
+      ..quadraticBezierTo(cx - r - 18 - flap, cy, cx - r - 22 - flap, cy + 12)
+      ..quadraticBezierTo(cx - r - 8, cy + 5, cx - r + 3, cy + 10)
+      ..close();
+
+    // Right Wing
+    final rightWing = Path()
+      ..moveTo(cx + r - 3, cy - 10)
+      ..quadraticBezierTo(cx + r + 15 + flap, cy - 25, cx + r + 25 + flap, cy - 10)
+      ..quadraticBezierTo(cx + r + 18 + flap, cy, cx + r + 22 + flap, cy + 12)
+      ..quadraticBezierTo(cx + r + 8, cy + 5, cx + r - 3, cy + 10)
+      ..close();
+
+    canvas.drawPath(leftWing, wingPaint);
+    canvas.drawPath(leftWing, outlinePaint);
+    canvas.drawPath(rightWing, wingPaint);
+    canvas.drawPath(rightWing, outlinePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant DragonWingsPainter oldDelegate) => true;
+}
+
+class PhoenixWingsPainter extends CustomPainter {
+  final double rotationValue;
+  final double pulseValue;
+
+  PhoenixWingsPainter({required this.rotationValue, required this.pulseValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cx = size.width / 2;
+    final double cy = size.height / 2;
+    final double r = size.width / 2;
+
+    // Draw flowing golden-orange phoenix feathers floating around
+    final paint = Paint()
+      ..color = const Color(0xFFEA580C).withOpacity(0.5 + 0.3 * pulseValue)
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 6; i++) {
+      final double angle = (rotationValue * 2 * math.pi) + (i * math.pi / 3);
+      final double fx = cx + (r - 2) * math.cos(angle);
+      final double fy = cy + (r - 2) * math.sin(angle);
+
+      // Feather shape
+      canvas.save();
+      canvas.translate(fx, fy);
+      canvas.rotate(angle + math.pi / 2);
+      final feather = Path()
+        ..moveTo(0, -6)
+        ..quadraticBezierTo(-4, 0, 0, 8)
+        ..quadraticBezierTo(4, 0, 0, -6)
+        ..close();
+      canvas.drawPath(feather, paint);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant PhoenixWingsPainter oldDelegate) => true;
+}
+
+class CelestialTemplePainter extends CustomPainter {
+  final double pulseValue;
+  CelestialTemplePainter({required this.pulseValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cx = size.width / 2;
+    final double cy = size.height / 2;
+    final double r = size.width / 2;
+
+    final wingPaint = Paint()
+      ..color = Colors.white.withOpacity(0.85)
+      ..style = PaintingStyle.fill;
+
+    final goldPaint = Paint()
+      ..color = const Color(0xFFFFD700)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final double stretch = pulseValue * 3.0;
+
+    // Ethereal Angel Wings
+    // Left Wing
+    final leftWing = Path()
+      ..moveTo(cx - r + 4, cy - 12)
+      ..quadraticBezierTo(cx - r - 22, cy - 22 - stretch, cx - r - 20, cy - 2)
+      ..quadraticBezierTo(cx - r - 12, cy + 10, cx - r + 4, cy + 12)
+      ..close();
+
+    // Right Wing
+    final rightWing = Path()
+      ..moveTo(cx + r - 4, cy - 12)
+      ..quadraticBezierTo(cx + r + 22, cy - 22 - stretch, cx + r + 20, cy - 2)
+      ..quadraticBezierTo(cx + r + 12, cy + 10, cx + r - 4, cy + 12)
+      ..close();
+
+    canvas.drawPath(leftWing, wingPaint);
+    canvas.drawPath(leftWing, goldPaint);
+    canvas.drawPath(rightWing, wingPaint);
+    canvas.drawPath(rightWing, goldPaint);
+
+    // Stardust Sparkles on the border
+    final sparklePaint = Paint()
+      ..color = Colors.white.withOpacity(0.4 + 0.6 * pulseValue)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx + r - 8, cy - r + 8), 2.0, sparklePaint);
+    canvas.drawCircle(Offset(cx - r + 8, cy - r + 8), 1.5, sparklePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CelestialTemplePainter oldDelegate) => true;
+}
+
+class CosmicEmperorVoidPainter extends CustomPainter {
+  final double rotationValue;
+  final double pulseValue;
+
+  CosmicEmperorVoidPainter({required this.rotationValue, required this.pulseValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cx = size.width / 2;
+    final double cy = size.height / 2;
+    final double r = size.width / 2;
+
+    final paint = Paint()
+      ..color = const Color(0xFFF59E0B).withOpacity(0.5 + (0.5 * pulseValue))
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    // Draw golden constellation lines connecting points
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.rotate(rotationValue * 2 * math.pi);
+
+    final points = <Offset>[
+      Offset((r + 2) * math.cos(0), (r + 2) * math.sin(0)),
+      Offset((r + 2) * math.cos(math.pi / 3), (r + 2) * math.sin(math.pi / 3)),
+      Offset((r + 2) * math.cos(2 * math.pi / 3), (r + 2) * math.sin(2 * math.pi / 3)),
+      Offset((r + 2) * math.cos(math.pi), (r + 2) * math.sin(math.pi)),
+      Offset((r + 2) * math.cos(4 * math.pi / 3), (r + 2) * math.sin(4 * math.pi / 3)),
+      Offset((r + 2) * math.cos(5 * math.pi / 3), (r + 2) * math.sin(5 * math.pi / 3)),
+    ];
+
+    // Draw constellation lines
+    for (int i = 0; i < points.length; i++) {
+      final next = points[(i + 2) % points.length];
+      canvas.drawLine(points[i], next, paint);
+    }
+
+    // Draw star nodes
+    final nodePaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    for (final pt in points) {
+      canvas.drawCircle(pt, 2.0, nodePaint);
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CosmicEmperorVoidPainter oldDelegate) => true;
 }

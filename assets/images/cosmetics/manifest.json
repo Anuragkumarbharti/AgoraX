@@ -1,0 +1,691 @@
+{
+  "base_path": "assets/images/cosmetics",
+  "collections": [
+    {
+      "id": "vip_1_royal_silver",
+      "name": "Royal Silver Collection",
+      "tier": "VIP",
+      "level": 1,
+      "theme": "Classical silver royalty and blue velvet",
+      "colors": {
+        "primary": "#CBD5E1",
+        "secondary": "#2563EB",
+        "accent": "#1E40AF"
+      },
+      "design_elements": ["Silver Filigree", "Royal Blue Velvet", "Sparkles"],
+      "assets": {
+        "avatar_frame": {
+          "static": "vip_1/frame.png",
+          "animated": "vip_1/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "vip_1/bubble.png",
+          "animated": "vip_1/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "vip_1/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "vip_1/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "vip_1/entry.webm"
+        },
+        "badge": {
+          "static": "vip_1/badge.png",
+          "animated": "vip_1/badge_anim.webp"
+        },
+        "tag": {
+          "static": "vip_1/tag.png",
+          "animated": "vip_1/tag_anim.webp"
+        },
+        "profile_theme": "vip_1/theme.json",
+        "background": "vip_1/bg.jpg",
+        "gift": {
+          "static": "vip_1/gift.png",
+          "animated": "vip_1/gift.webp"
+        },
+        "emoji_pack": "vip_1/emojis/",
+        "store_preview": "vip_1/preview.jpg",
+        "thumbnail": "vip_1/thumb.png"
+      }
+    },
+    {
+      "id": "vip_2_neon_crystal",
+      "name": "Neon Crystal Collection",
+      "tier": "VIP",
+      "level": 2,
+      "theme": "Cyberpunk glassmorphism and glowing neon tubes",
+      "colors": {
+        "primary": "#FF007F",
+        "secondary": "#00F0FF",
+        "accent": "#8B5CF6"
+      },
+      "design_elements": ["Hexagonal Grid", "Glowing Tubes", "Glassmorphism"],
+      "assets": {
+        "avatar_frame": {
+          "static": "vip_2/frame.png",
+          "animated": "vip_2/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "vip_2/bubble.png",
+          "animated": "vip_2/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "vip_2/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "vip_2/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "vip_2/entry.webm"
+        },
+        "badge": {
+          "static": "vip_2/badge.png",
+          "animated": "vip_2/badge_anim.webp"
+        },
+        "tag": {
+          "static": "vip_2/tag.png",
+          "animated": "vip_2/tag_anim.webp"
+        },
+        "profile_theme": "vip_2/theme.json",
+        "background": "vip_2/bg.jpg",
+        "gift": {
+          "static": "vip_2/gift.png",
+          "animated": "vip_2/gift.webp"
+        },
+        "emoji_pack": "vip_2/emojis/",
+        "store_preview": "vip_2/preview.jpg",
+        "thumbnail": "vip_2/thumb.png"
+      }
+    },
+    {
+      "id": "vip_3_golden_emperor",
+      "name": "Golden Emperor Collection",
+      "tier": "VIP",
+      "level": 3,
+      "theme": "Polished liquid gold, gilding, and sparkling crowns",
+      "colors": {
+        "primary": "#FFD700",
+        "secondary": "#B45309",
+        "accent": "#D4AF37"
+      },
+      "design_elements": ["Gilded Carvings", "Reflective Stars", "Crowns"],
+      "assets": {
+        "avatar_frame": {
+          "static": "vip_3/frame.png",
+          "animated": "vip_3/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "vip_3/bubble.png",
+          "animated": "vip_3/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "vip_3/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "vip_3/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "vip_3/entry.webm"
+        },
+        "badge": {
+          "static": "vip_3/badge.png",
+          "animated": "vip_3/badge_anim.webp"
+        },
+        "tag": {
+          "static": "vip_3/tag.png",
+          "animated": "vip_3/tag_anim.webp"
+        },
+        "profile_theme": "vip_3/theme.json",
+        "background": "vip_3/bg.jpg",
+        "gift": {
+          "static": "vip_3/gift.png",
+          "animated": "vip_3/gift.webp"
+        },
+        "emoji_pack": "vip_3/emojis/",
+        "store_preview": "vip_3/preview.jpg",
+        "thumbnail": "vip_3/thumb.png"
+      }
+    },
+    {
+      "id": "vip_4_diamond",
+      "name": "Diamond Collection",
+      "tier": "VIP",
+      "level": 4,
+      "theme": "Pristine diamond crystals, light refractions, and platinum details",
+      "colors": {
+        "primary": "#F8FAFC",
+        "secondary": "#CBD5E1",
+        "accent": "#E2E8F0"
+      },
+      "design_elements": ["Diamond Facets", "Rainbow Prisms", "Flares"],
+      "assets": {
+        "avatar_frame": {
+          "static": "vip_4/frame.png",
+          "animated": "vip_4/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "vip_4/bubble.png",
+          "animated": "vip_4/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "vip_4/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "vip_4/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "vip_4/entry.webm"
+        },
+        "badge": {
+          "static": "vip_4/badge.png",
+          "animated": "vip_4/badge_anim.webp"
+        },
+        "tag": {
+          "static": "vip_4/tag.png",
+          "animated": "vip_4/tag_anim.webp"
+        },
+        "profile_theme": "vip_4/theme.json",
+        "background": "vip_4/bg.jpg",
+        "gift": {
+          "static": "vip_4/gift.png",
+          "animated": "vip_4/gift.webp"
+        },
+        "emoji_pack": "vip_4/emojis/",
+        "store_preview": "vip_4/preview.jpg",
+        "thumbnail": "vip_4/thumb.png"
+      }
+    },
+    {
+      "id": "vip_5_crystal_cyan",
+      "name": "Crystal Cyan Collection",
+      "tier": "VIP",
+      "level": 5,
+      "theme": "Frozen shards, icy mist, and deep teal lighting",
+      "colors": {
+        "primary": "#06B6D4",
+        "secondary": "#0891B2",
+        "accent": "#FFFFFF"
+      },
+      "design_elements": ["Icicle Spikes", "Frost Textures", "Chilled Vapor"],
+      "assets": {
+        "avatar_frame": {
+          "static": "vip_5/frame.png",
+          "animated": "vip_5/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "vip_5/bubble.png",
+          "animated": "vip_5/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "vip_5/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "vip_5/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "vip_5/entry.webm"
+        },
+        "badge": {
+          "static": "vip_5/badge.png",
+          "animated": "vip_5/badge_anim.webp"
+        },
+        "tag": {
+          "static": "vip_5/tag.png",
+          "animated": "vip_5/tag_anim.webp"
+        },
+        "profile_theme": "vip_5/theme.json",
+        "background": "vip_5/bg.jpg",
+        "gift": {
+          "static": "vip_5/gift.png",
+          "animated": "vip_5/gift.webp"
+        },
+        "emoji_pack": "vip_5/emojis/",
+        "store_preview": "vip_5/preview.jpg",
+        "thumbnail": "vip_5/thumb.png"
+      }
+    },
+    {
+      "id": "vip_6_rainbow_divine",
+      "name": "Rainbow Divine Collection",
+      "tier": "VIP",
+      "level": 6,
+      "theme": "Prism sweeps, light wave cycles, and color flows",
+      "colors": {
+        "primary": "#FF007F",
+        "secondary": "#FFBF00",
+        "accent": "#00F0FF"
+      },
+      "design_elements": ["Spectrum Waves", "Holographic Overlays", "Star Glints"],
+      "assets": {
+        "avatar_frame": {
+          "static": "vip_6/frame.png",
+          "animated": "vip_6/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "vip_6/bubble.png",
+          "animated": "vip_6/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "vip_6/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "vip_6/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "vip_6/entry.webm"
+        },
+        "badge": {
+          "static": "vip_6/badge.png",
+          "animated": "vip_6/badge_anim.webp"
+        },
+        "tag": {
+          "static": "vip_6/tag.png",
+          "animated": "vip_6/tag_anim.webp"
+        },
+        "profile_theme": "vip_6/theme.json",
+        "background": "vip_6/bg.jpg",
+        "gift": {
+          "static": "vip_6/gift.png",
+          "animated": "vip_6/gift.webp"
+        },
+        "emoji_pack": "vip_6/emojis/",
+        "store_preview": "vip_6/preview.jpg",
+        "thumbnail": "vip_6/thumb.png"
+      }
+    },
+    {
+      "id": "vip_7_royal_emperor",
+      "name": "Royal Emperor Collection",
+      "tier": "VIP",
+      "level": 7,
+      "theme": "Imperial gold dragon, obsidian plates, and volcanic glowing cracks",
+      "colors": {
+        "primary": "#1C1917",
+        "secondary": "#D4AF37",
+        "accent": "#991B1B"
+      },
+      "design_elements": ["Gold Dragon scales", "Obsidian Carvings", "Volcanic Glow"],
+      "assets": {
+        "avatar_frame": {
+          "static": "vip_7/frame.png",
+          "animated": "vip_7/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "vip_7/bubble.png",
+          "animated": "vip_7/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "vip_7/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "vip_7/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "vip_7/entry.webm"
+        },
+        "badge": {
+          "static": "vip_7/badge.png",
+          "animated": "vip_7/badge_anim.webp"
+        },
+        "tag": {
+          "static": "vip_7/tag.png",
+          "animated": "vip_7/tag_anim.webp"
+        },
+        "profile_theme": "vip_7/theme.json",
+        "background": "vip_7/bg.jpg",
+        "gift": {
+          "static": "vip_7/gift.png",
+          "animated": "vip_7/gift.webp"
+        },
+        "emoji_pack": "vip_7/emojis/",
+        "store_preview": "vip_7/preview.jpg",
+        "thumbnail": "vip_7/thumb.png"
+      }
+    },
+    {
+      "id": "novel_2_galaxy",
+      "name": "Galaxy Collection",
+      "tier": "Novel",
+      "level": 2,
+      "theme": "Nebula swirls, orbit rings, and starry constellation dust",
+      "colors": {
+        "primary": "#3B0764",
+        "secondary": "#D946EF",
+        "accent": "#60A5FA"
+      },
+      "design_elements": ["Nebula Clouds", "Orbits", "Constellations", "Stars"],
+      "assets": {
+        "avatar_frame": {
+          "static": "novel_2/frame.png",
+          "animated": "novel_2/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "novel_2/bubble.png",
+          "animated": "novel_2/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "novel_2/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "novel_2/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "novel_2/entry.webm"
+        },
+        "badge": {
+          "static": "novel_2/badge.png",
+          "animated": "novel_2/badge_anim.webp"
+        },
+        "tag": {
+          "static": "novel_2/tag.png",
+          "animated": "novel_2/tag_anim.webp"
+        },
+        "profile_theme": "novel_2/theme.json",
+        "background": "novel_2/bg.jpg",
+        "gift": {
+          "static": "novel_2/gift.png",
+          "animated": "novel_2/gift.webp"
+        },
+        "emoji_pack": "novel_2/emojis/",
+        "store_preview": "novel_2/preview.jpg",
+        "thumbnail": "novel_2/thumb.png"
+      }
+    },
+    {
+      "id": "novel_3_royal_palace",
+      "name": "Royal Palace Collection",
+      "tier": "Novel",
+      "level": 3,
+      "theme": "Polished white marble arches, baroque gold ivy, and emerald gems",
+      "colors": {
+        "primary": "#FCD34D",
+        "secondary": "#065F46",
+        "accent": "#F8FAFC"
+      },
+      "design_elements": ["Marble Arches", "Baroque Gold Leaves", "Emerald Gems"],
+      "assets": {
+        "avatar_frame": {
+          "static": "novel_3/frame.png",
+          "animated": "novel_3/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "novel_3/bubble.png",
+          "animated": "novel_3/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "novel_3/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "novel_3/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "novel_3/entry.webm"
+        },
+        "badge": {
+          "static": "novel_3/badge.png",
+          "animated": "novel_3/badge_anim.webp"
+        },
+        "tag": {
+          "static": "novel_3/tag.png",
+          "animated": "novel_3/tag_anim.webp"
+        },
+        "profile_theme": "novel_3/theme.json",
+        "background": "novel_3/bg.jpg",
+        "gift": {
+          "static": "novel_3/gift.png",
+          "animated": "novel_3/gift.webp"
+        },
+        "emoji_pack": "novel_3/emojis/",
+        "store_preview": "novel_3/preview.jpg",
+        "thumbnail": "novel_3/thumb.png"
+      }
+    },
+    {
+      "id": "novel_4_dragon",
+      "name": "Dragon Collection",
+      "tier": "Novel",
+      "level": 4,
+      "theme": "Crimson scales, obsidian wings, and glowing lava rivers",
+      "colors": {
+        "primary": "#DC2626",
+        "secondary": "#F97316",
+        "accent": "#09090B"
+      },
+      "design_elements": ["Obsidian Dragon Wings", "Lava Cracks", "Scale Patterns"],
+      "assets": {
+        "avatar_frame": {
+          "static": "novel_4/frame.png",
+          "animated": "novel_4/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "novel_4/bubble.png",
+          "animated": "novel_4/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "novel_4/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "novel_4/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "novel_4/entry.webm"
+        },
+        "badge": {
+          "static": "novel_4/badge.png",
+          "animated": "novel_4/badge_anim.webp"
+        },
+        "tag": {
+          "static": "novel_4/tag.png",
+          "animated": "novel_4/tag_anim.webp"
+        },
+        "profile_theme": "novel_4/theme.json",
+        "background": "novel_4/bg.jpg",
+        "gift": {
+          "static": "novel_4/gift.png",
+          "animated": "novel_4/gift.webp"
+        },
+        "emoji_pack": "novel_4/emojis/",
+        "store_preview": "novel_4/preview.jpg",
+        "thumbnail": "novel_4/thumb.png"
+      }
+    },
+    {
+      "id": "novel_5_phoenix",
+      "name": "Phoenix Collection",
+      "tier": "Novel",
+      "level": 5,
+      "theme": "Glowing golden feathers, solar sweeps, and deep purple dust",
+      "colors": {
+        "primary": "#EA580C",
+        "secondary": "#4C1D95",
+        "accent": "#FACC15"
+      },
+      "design_elements": ["Phoenix Feathers", "Solar Eclipse Arc", "Flame Embers"],
+      "assets": {
+        "avatar_frame": {
+          "static": "novel_5/frame.png",
+          "animated": "novel_5/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "novel_5/bubble.png",
+          "animated": "novel_5/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "novel_5/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "novel_5/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "novel_5/entry.webm"
+        },
+        "badge": {
+          "static": "novel_5/badge.png",
+          "animated": "novel_5/badge_anim.webp"
+        },
+        "tag": {
+          "static": "novel_5/tag.png",
+          "animated": "novel_5/tag_anim.webp"
+        },
+        "profile_theme": "novel_5/theme.json",
+        "background": "novel_5/bg.jpg",
+        "gift": {
+          "static": "novel_5/gift.png",
+          "animated": "novel_5/gift.webp"
+        },
+        "emoji_pack": "novel_5/emojis/",
+        "store_preview": "novel_5/preview.jpg",
+        "thumbnail": "novel_5/thumb.png"
+      }
+    },
+    {
+      "id": "novel_6_celestial",
+      "name": "Celestial Collection",
+      "tier": "Novel",
+      "level": 6,
+      "theme": "Platinum wings, holy light beams, and cosmic celestial gates",
+      "colors": {
+        "primary": "#F1F5F9",
+        "secondary": "#60A5FA",
+        "accent": "#312E81"
+      },
+      "design_elements": ["Platinum Angel Wings", "Star Glints", "Temple Arches"],
+      "assets": {
+        "avatar_frame": {
+          "static": "novel_6/frame.png",
+          "animated": "novel_6/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "novel_6/bubble.png",
+          "animated": "novel_6/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "novel_6/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "novel_6/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "novel_6/entry.webm"
+        },
+        "badge": {
+          "static": "novel_6/badge.png",
+          "animated": "novel_6/badge_anim.webp"
+        },
+        "tag": {
+          "static": "novel_6/tag.png",
+          "animated": "novel_6/tag_anim.webp"
+        },
+        "profile_theme": "novel_6/theme.json",
+        "background": "novel_6/bg.jpg",
+        "gift": {
+          "static": "novel_6/gift.png",
+          "animated": "novel_6/gift.webp"
+        },
+        "emoji_pack": "novel_6/emojis/",
+        "store_preview": "novel_6/preview.jpg",
+        "thumbnail": "novel_6/thumb.png"
+      }
+    },
+    {
+      "id": "novel_7_cosmic_emperor",
+      "name": "Cosmic Emperor Collection",
+      "tier": "Novel",
+      "level": 7,
+      "theme": "Primordial cosmic void, star constellations, and black hole portals",
+      "colors": {
+        "primary": "#030712",
+        "secondary": "#F59E0B",
+        "accent": "#1E1B4B"
+      },
+      "design_elements": ["Rotating Void", "Constellation Lines", "Golden Supernovas"],
+      "assets": {
+        "avatar_frame": {
+          "static": "novel_7/frame.png",
+          "animated": "novel_7/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "novel_7/bubble.png",
+          "animated": "novel_7/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "novel_7/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "novel_7/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "novel_7/entry.webm"
+        },
+        "badge": {
+          "static": "novel_7/badge.png",
+          "animated": "novel_7/badge_anim.webp"
+        },
+        "tag": {
+          "static": "novel_7/tag.png",
+          "animated": "novel_7/tag_anim.webp"
+        },
+        "profile_theme": "novel_7/theme.json",
+        "background": "novel_7/bg.jpg",
+        "gift": {
+          "static": "novel_7/gift.png",
+          "animated": "novel_7/gift.webp"
+        },
+        "emoji_pack": "novel_7/emojis/",
+        "store_preview": "novel_7/preview.jpg",
+        "thumbnail": "novel_7/thumb.png"
+      }
+    },
+    {
+      "id": "novel_8_starlight_seraph",
+      "name": "Starlight Seraph Collection",
+      "tier": "Novel",
+      "level": 8,
+      "theme": "Winged celestial halo, silver stardust, and a radiant cosmic sky",
+      "colors": {
+        "primary": "#EDE9FE",
+        "secondary": "#6366F1",
+        "accent": "#C7D2FE"
+      },
+      "design_elements": ["Winged Halo", "Star Trails", "Astral Glow", "Floating Clouds"],
+      "assets": {
+        "avatar_frame": {
+          "static": "novel_8/frame.png",
+          "animated": "novel_8/frame.webp"
+        },
+        "chat_bubble": {
+          "static": "novel_8/bubble.png",
+          "animated": "novel_8/bubble_anim.webp"
+        },
+        "name_glow": {
+          "animated": "novel_8/name_glow.webp"
+        },
+        "avatar_aura": {
+          "animated": "novel_8/aura.webp"
+        },
+        "entry_effect": {
+          "animated": "novel_8/entry.webm"
+        },
+        "badge": {
+          "static": "novel_8/badge.png",
+          "animated": "novel_8/badge_anim.webp"
+        },
+        "tag": {
+          "static": "novel_8/tag.png",
+          "animated": "novel_8/tag_anim.webp"
+        },
+        "profile_theme": "novel_8/theme.json",
+        "background": "novel_8/bg.jpg",
+        "gift": {
+          "static": "novel_8/gift.png",
+          "animated": "novel_8/gift.webp"
+        },
+        "emoji_pack": "novel_8/emojis/",
+        "store_preview": "novel_8/preview.jpg",
+        "thumbnail": "novel_8/thumb.png"
+      }
+    }
+  ]
+}

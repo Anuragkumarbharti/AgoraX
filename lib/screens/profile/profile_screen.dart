@@ -657,38 +657,47 @@ class _ProfileScreenState extends State<ProfileScreen>
         Stack(
           clipBehavior: Clip.none,
           children: [
-            // Cover Photo Banner
+            // Cover Photo Banner with purple radial-like gradient & circular pattern overlay
             Container(
               height: 180,
               width: double.infinity,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                   colors: [
-                    AppTheme.primaryColor.withOpacity(0.8),
-                    AppTheme.secondaryColor.withOpacity(0.6),
-                    const Color(0xFF0F172A),
+                    Color(0xFF8B5CF6),
+                    Color(0xFF13131A),
                   ],
-                  stops: const [0, 0.5, 1],
                 ),
               ),
-              child: Opacity(
-                opacity: 0.05,
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 8,
-                  ),
-                  itemCount: 24,
-                  itemBuilder: (_, i) => Container(
-                    margin: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.3),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: -50,
+                    left: -50,
+                    child: Container(
+                      width: 200,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.03),
+                      ),
                     ),
                   ),
-                ),
+                  Positioned(
+                    top: -20,
+                    right: -20,
+                    child: Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.02),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             // Edit Cover Button
@@ -755,7 +764,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   icon: const Icon(Icons.edit_outlined, size: 14, color: Colors.white),
                                   label: const Text('Edit Profile', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                                   style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: AppTheme.borderColor),
+                                    side: BorderSide(color: Colors.white.withOpacity(0.3)),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                     backgroundColor: Colors.white.withOpacity(0.06),
@@ -766,24 +775,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFD946EF), Color(0xFF8B5CF6)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: ElevatedButton.icon(
-                                onPressed: () => Get.to(() => const ProfileCustomizationScreen()),
-                                icon: const Icon(Icons.brush_outlined, size: 14, color: Colors.white),
-                                label: const Text('Design', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                child: OutlinedButton.icon(
+                                  onPressed: () => Get.to(() => const ProfileCustomizationScreen()),
+                                  icon: const Icon(Icons.brush_outlined, size: 14, color: Color(0xFFFFD700)),
+                                  label: const Text('Design', style: TextStyle(color: Color(0xFFFFD700), fontSize: 12, fontWeight: FontWeight.bold)),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: Color(0xFFFFD700)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    backgroundColor: const Color(0xFFFFD700).withOpacity(0.08),
+                                  ),
                                 ),
                               ),
                             ),
@@ -807,19 +812,21 @@ class _ProfileScreenState extends State<ProfileScreen>
               // Display Name section (Premium text glow and badges)
               Row(
                 children: [
-                  PremiumNameWidget(
-                    name: _user.displayName,
-                    userId: 'me',
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFFFFD700), // Gold name glow color
-                      shadows: [
-                        Shadow(
-                          color: const Color(0xFFFFD700).withOpacity(0.3),
-                          blurRadius: 8,
-                        ),
-                      ],
+                  Flexible(
+                    child: PremiumNameWidget(
+                      name: _user.displayName,
+                      userId: 'me',
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFFFD700), // Gold name glow color
+                        shadows: [
+                          Shadow(
+                            color: const Color(0xFFFFD700).withOpacity(0.3),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   if (_user.isVerified) ...[
@@ -841,13 +848,14 @@ class _ProfileScreenState extends State<ProfileScreen>
               const SizedBox(height: 6),
 
               // Four status badges row (VIP, Lvl, Career, Role)
-              Row(
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
                 children: [
                   Obx(() {
                     final vipLvl = _vipCtrl.vipLevel.value;
                     if (vipLvl > 0) {
                       return Container(
-                        margin: const EdgeInsets.only(right: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -873,7 +881,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                     return const SizedBox();
                   }),
                   Container(
-                    margin: const EdgeInsets.only(right: 6),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: const Color(0xFF2563EB),
@@ -889,7 +896,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                   Container(
-                    margin: const EdgeInsets.only(right: 6),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: const Color(0xFF78350F).withOpacity(0.3),
@@ -969,42 +975,52 @@ class _ProfileScreenState extends State<ProfileScreen>
               }),
               const SizedBox(height: 12),
 
-              // Bio
+              // Bio Box with Gradient Border matching the mockup style
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.015),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.04)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _user.bio ?? 'No bio written yet.',
-                      style: GoogleFonts.poppins(
-                        color: AppTheme.textSecondary,
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Icon(Icons.link_rounded,
-                            color: Color(0xFF38BDF8), size: 14),
-                        const SizedBox(width: 6),
-                        Text(
-                          'https://agorax.com/${_user.username}',
-                          style: GoogleFonts.poppins(
-                              color: const Color(0xFF38BDF8),
-                              fontSize: 12,
-                              decoration: TextDecoration.underline),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  margin: const EdgeInsets.all(1.5), // forms the border stroke
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF13131A),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _user.bio ?? 'No bio written yet.',
+                        style: GoogleFonts.poppins(
+                          color: AppTheme.textSecondary,
+                          fontSize: 13,
+                          height: 1.5,
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(Icons.link_rounded,
+                              color: Color(0xFF38BDF8), size: 14),
+                          const SizedBox(width: 6),
+                          Text(
+                            'https://agorax.com/${_user.username}',
+                            style: GoogleFonts.poppins(
+                                color: const Color(0xFF38BDF8),
+                                fontSize: 12,
+                                decoration: TextDecoration.underline),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -1026,6 +1042,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               
               // Navigation Hub grid
               _buildNavigationHub(),
+
+              // Wallet Statistics Bar matching the mockup
+              _buildWalletStatisticsBar(),
               
               const SizedBox(height: 24),
             ],
@@ -1223,6 +1242,73 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   void _navigateToConnections(int initialTabIndex) {
     Get.to(() => ConnectionsScreen(initialTabIndex: initialTabIndex));
+  }
+
+  Widget _buildWalletStatisticsBar() {
+    return Obx(() {
+      final goldCoins = _storeCtrl.coinsBalance.value;
+      final silverCoins = _studyCtrl.silverCoins.value;
+
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF13131A),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.04)),
+        ),
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Text(
+              'Wallet Statistics',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.star, color: Color(0xFFFFD700), size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  'Gold: ',
+                  style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 12),
+                ),
+                Text(
+                  '${goldCoins.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFFFFD700),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Icon(Icons.monetization_on, color: Color(0xFF94A3B8), size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  'Silver: ',
+                  style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 12),
+                ),
+                Text(
+                  '${silverCoins.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF94A3B8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildTagRow() {
@@ -1462,15 +1548,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       final todayPack = _studyCtrl.getTodayLearningDay();
       final isVideoWatched = _studyCtrl.videoWatchedToday.value;
       final isQuizCompleted = _studyCtrl.quizCompletedToday.value;
-      final streak = _studyCtrl.learningStreak.value;
-      
-      int completedTasks = 0;
-      if (isVideoWatched) completedTasks++;
-      if (isQuizCompleted) completedTasks++;
-      
-      final double progressValue = completedTasks / 2.0;
-      final bool allCompleted = completedTasks == 2;
-      
+      final allCompleted = isVideoWatched && isQuizCompleted;
       final isClaimed = _studyCtrl.xpEarnedToday.value > 0;
 
       return Container(
@@ -1480,146 +1558,76 @@ class _ProfileScreenState extends State<ProfileScreen>
           color: const Color(0xFF13131A),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: allCompleted 
-                ? const Color(0xFF10B981).withOpacity(0.3) 
-                : AppTheme.primaryColor.withOpacity(0.15),
-          ),
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E1E2E),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            color: const Color(0xFFFFD700).withOpacity(0.3),
+            width: 1.5,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Text('📋', style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'DAILY PROGRESS TASK',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Streak: $streak Days 🔥',
-                    style: const TextStyle(
-                      color: Color(0xFFF59E0B),
-                      fontSize: 10,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Daily Progress Task',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              todayPack.videoTitle,
-              style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Reward: +${todayPack.xpReward} XP • +${todayPack.coinReward} Gold Coins',
-              style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 11),
-            ),
-            const SizedBox(height: 14),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progressValue,
-                      minHeight: 8,
-                      backgroundColor: Colors.white10,
-                      valueColor: AlwaysStoppedAnimation(
-                        allCompleted ? const Color(0xFF10B981) : AppTheme.primaryColor,
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Reward: +50 XP +15 Gold Coins',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFFFD700).withOpacity(0.8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '$completedTasks / 2 Tasks Done',
-                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            
-            _dailyTaskSubItem('Watch Video Lesson', isVideoWatched),
-            const SizedBox(height: 8),
-            _dailyTaskSubItem('Complete 5 MCQ Quiz', isQuizCompleted),
-            
-            const SizedBox(height: 16),
-            
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                OutlinedButton(
-                  onPressed: () => Get.to(() => const DailyTaskScreen()),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            GestureDetector(
+              onTap: (allCompleted && !isClaimed) 
+                  ? () {
+                      _storeCtrl.coinsBalance.value += todayPack.coinReward;
+                      _studyCtrl.xpEarnedToday.value += todayPack.xpReward;
+                      Get.snackbar(
+                        'Daily Task Claimed! 🏆',
+                        'Earned +${todayPack.xpReward} XP & +${todayPack.coinReward} Coins!',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: const Color(0xFFFFD700),
+                        colorText: Colors.black,
+                      );
+                    }
+                  : () {
+                      Get.to(() => const DailyTaskScreen());
+                    },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isClaimed
+                        ? [Colors.grey.shade800, Colors.grey.shade900]
+                        : (allCompleted 
+                            ? [const Color(0xFFFFD700), const Color(0xFFFBBF24)]
+                            : [const Color(0xFFFFD700).withOpacity(0.5), const Color(0xFFFBBF24).withOpacity(0.5)]),
                   ),
-                  child: Text('View Details', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                ElevatedButton(
-                  onPressed: (allCompleted && !isClaimed) 
-                      ? () {
-                          _studyCtrl.silverCoins.value += todayPack.coinReward;
-                          _studyCtrl.xpEarnedToday.value += todayPack.xpReward;
-                          Get.snackbar(
-                            'Daily Task Claimed! 🏆',
-                            'Earned +${todayPack.xpReward} XP & +${todayPack.coinReward} Coins!',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: const Color(0xFF10B981),
-                            colorText: Colors.white,
-                          );
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    disabledBackgroundColor: Colors.white10,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    isClaimed 
-                        ? 'Claimed ✓' 
-                        : allCompleted 
-                            ? 'Claim Rewards' 
-                            : 'Complete Tasks',
-                    style: TextStyle(
-                      fontSize: 11, 
-                      fontWeight: FontWeight.bold,
-                      color: (allCompleted && !isClaimed) ? Colors.white : Colors.white30,
-                    ),
+                child: Text(
+                  isClaimed 
+                      ? 'Claimed ✓' 
+                      : (allCompleted ? 'Claim Rewards' : 'Go to Tasks'),
+                  style: GoogleFonts.poppins(
+                    color: isClaimed ? Colors.white54 : Colors.black,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -1627,41 +1635,21 @@ class _ProfileScreenState extends State<ProfileScreen>
     });
   }
 
-  Widget _dailyTaskSubItem(String title, bool isDone) {
-    return Row(
-      children: [
-        Icon(
-          isDone ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
-          color: isDone ? const Color(0xFF10B981) : Colors.white24,
-          size: 16,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            color: isDone ? Colors.white70 : Colors.white38,
-            fontSize: 12,
-            decoration: isDone ? TextDecoration.lineThrough : null,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildCareerTaskCard() {
     return Obx(() {
-      final activeCat = _studyCtrl.selectedCategory.value ?? 'General Learning';
-      final isLocked = _studyCtrl.isCategoryLocked;
-      final studyLvl = _studyCtrl.userLevel.value;
-      final progress = 0.65;
+      final activeCat = _studyCtrl.selectedCategory.value ?? 'Design';
+      final progress = 0.45; // 45% complete matching mockup
 
       return Container(
         margin: const EdgeInsets.only(top: 16),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFF111116),
+          color: const Color(0xFF13131A),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.04)),
+          border: Border.all(
+            color: const Color(0xFF8B5CF6).withOpacity(0.3),
+            width: 1.5,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1669,99 +1657,46 @@ class _ProfileScreenState extends State<ProfileScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Text('🎓', style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'CAREER LEARNING HUB',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF38BDF8).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
+                Text(
+                  activeCat.endsWith('Path') ? activeCat : '$activeCat Path',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
-                  child: Text(
-                    isLocked ? 'Locked 🔒' : 'Unlocked 🔓',
-                    style: const TextStyle(
-                      color: Color(0xFF38BDF8),
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                    ),
+                ),
+                Text(
+                  '${(progress * 100).toStringAsFixed(0)}% Complete',
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFFFFD700),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              'Active Category: $activeCat',
-              style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Goal: Reach Level ${studyLvl + 1} to unlock advanced career DNA skills.',
-              style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 11),
-            ),
-            const SizedBox(height: 14),
-            
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Completion rate',
-                  style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11),
-                ),
-                Text(
-                  '${(progress * 100).toStringAsFixed(0)}%',
-                  style: GoogleFonts.poppins(color: const Color(0xFF38BDF8), fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 6,
-                backgroundColor: Colors.white10,
-                color: const Color(0xFF38BDF8),
+            Container(
+              width: double.infinity,
+              height: 8,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(4),
               ),
-            ),
-            
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                OutlinedButton(
-                  onPressed: () {
-                    Get.to(() => const CareerHubScreen());
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: progress,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFD700), Color(0xFF8B5CF6)],
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                  child: Text('Change Path', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
                 ),
-                ElevatedButton(
-                  onPressed: () => Get.to(() => const CareerHubScreen()),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF38BDF8),
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Continue Learning', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                ),
-              ],
+              ),
             ),
           ],
         ),
@@ -1772,166 +1707,70 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildVipManagementCard() {
     return Obx(() {
       final vipLvl = _vipCtrl.vipLevel.value;
-      final remaining = _vipCtrl.getRemainingTime();
-      final hasVip = vipLvl > 0;
-      final progress = vipLvl / 7.0;
+      final nextVip = vipLvl + 1;
+      final progress = 0.60; // 60% progress matching mockup
 
       return Container(
         margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
+          color: const Color(0xFF13131A),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: hasVip ? const Color(0xFFFFD700).withOpacity(0.2) : Colors.white10,
+            color: const Color(0xFFFFD700).withOpacity(0.3),
+            width: 1.5,
           ),
-          gradient: LinearGradient(
-            colors: hasVip
-                ? [
-                    const Color(0xFF1E1B4B).withOpacity(0.5),
-                    const Color(0xFF311042).withOpacity(0.7),
-                  ]
-                : [
-                    const Color(0xFF111116),
-                    const Color(0xFF1C1C24),
-                  ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: hasVip
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFFD946EF).withOpacity(0.12),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : null,
         ),
-        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Text('👑', style: TextStyle(fontSize: 20)),
-                    const SizedBox(width: 8),
-                    Text(
-                      hasVip ? 'VIP CLUB MEMBERSHIP' : 'JOIN VIP MEMBERSHIP',
-                      style: GoogleFonts.outfit(
-                        color: hasVip ? const Color(0xFFFFD700) : Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-                if (hasVip)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFD700).withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      'LV.$vipLvl',
-                      style: const TextStyle(
-                        color: Color(0xFFFFD700),
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                Text(
+                  'VIP Club',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
+                ),
+                Flexible(
+                  child: Text(
+                    'Progress to VIP $nextVip',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFFFD700),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 14),
-            
-            if (hasVip) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'VIP Status Active',
-                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Remaining: ${remaining['displayText']}',
-                        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Get.to(() => const VipPurchaseScreen()),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFD700),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
-                    ),
-                    child: const Text('Extend VIP', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              height: 8,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(4),
               ),
-              const SizedBox(height: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('VIP Level Progress', style: GoogleFonts.poppins(color: Colors.white30, fontSize: 10)),
-                      Text('Lvl $vipLvl / 7', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 6,
-                      backgroundColor: Colors.white10,
-                      color: const Color(0xFFFFD700),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: progress,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFD700), Color(0xFFFBBF24)],
+                      ),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              const Divider(color: Colors.white10, height: 1),
-              const SizedBox(height: 10),
-              Text(
-                'YOUR VIP BENEFITS:',
-                style: GoogleFonts.outfit(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              _vipBenefitRow('✨ Username Neon Glow & Custom Badge'),
-              _vipBenefitRow('🖼️ Exclusive Animated Avatar Frames'),
-              _vipBenefitRow('💬 Special VIP Chat Bubble Style'),
-              _vipBenefitRow('⚡ +20% Daily Learning XP Boost'),
-            ] else ...[
-              Text(
-                'Unlock special profile frames, glowing username, custom chat bubbles, and XP boosts by joining the VIP club.',
-                style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12, height: 1.4),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Get.to(() => const VipPurchaseScreen()),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B5CF6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text('Unlock VIP Membership', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
-            ]
+            ),
           ],
         ),
       );

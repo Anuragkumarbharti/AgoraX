@@ -51,6 +51,7 @@ class CustomizationController extends GetxController {
   final List<Map<String, dynamic>> customizationDb = [
     // 1. Avatar Frames (Static & Animated)
     {'name': 'Normal', 'category': 'Avatar Frame', 'rarity': 'Common', 'premium': 'None', 'req': 'Default unlocked border'},
+    // VIP Frames
     {'name': 'Royal Frame', 'category': 'Avatar Frame', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'Neon Frame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
     {'name': 'Gold Glow Frame', 'category': 'Avatar Frame', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
@@ -58,6 +59,7 @@ class CustomizationController extends GetxController {
     {'name': 'Crystal Cyan Frame', 'category': 'Avatar Frame', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
     {'name': 'Rainbow Frame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
     {'name': 'Royal Crown (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Frames
     {'name': 'Galaxy Orbit (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
     {'name': 'Royal Gold Palace', 'category': 'Avatar Frame', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
     {'name': 'Dragon Fire Frame', 'category': 'Avatar Frame', 'rarity': 'Limited', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
@@ -73,31 +75,70 @@ class CustomizationController extends GetxController {
     {'name': 'Cyberpunk Samurai', 'category': 'Avatar', 'rarity': 'Epic', 'premium': 'None', 'req': 'Unlock at Level 10'},
     {'name': 'Crimson Dragon Lord', 'category': 'Avatar', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
 
-    // 3. Avatar Effects
+    // 3. Avatar Effects (Avatar Aura)
     {'name': 'None', 'category': 'Avatar Effect', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
-    {'name': 'Pulsing Glow', 'category': 'Avatar Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    // VIP Auras
+    {'name': 'Royal Aura', 'category': 'Avatar Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
+    {'name': 'Pulsing Glow', 'category': 'Avatar Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'}, // Neon fallback
+    {'name': 'Neon Aura', 'category': 'Avatar Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    {'name': 'Golden Aura', 'category': 'Avatar Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Diamond Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
+    {'name': 'Crystal Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Rainbow Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Emperor Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Auras
+    {'name': 'Galaxy Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Royal Palace Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
     {'name': 'Red Flame Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Electric Spark', 'category': 'Avatar Effect', 'rarity': 'Epic', 'premium': 'None', 'req': 'Unlock at Level 20'},
+    {'name': 'Dragon Aura', 'category': 'Avatar Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Phoenix Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Celestial Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
     {'name': 'Cosmic Stardust', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
+    {'name': 'Cosmic Emperor Aura', 'category': 'Avatar Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 4. Chat Bubbles
     {'name': 'Classic Bubble', 'category': 'Chat Bubble', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
+    // VIP Bubbles
+    {'name': 'Royal Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'Blue Shield Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
+    {'name': 'Neon Bubble', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
     {'name': 'VIP Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
     {'name': 'Golden Shimmer', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Neon Bubble', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Golden Shimmer Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Diamond Bubble', 'category': 'Chat Bubble', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
     {'name': 'Crystal Cyan Neon', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Love Bubble', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'None', 'req': 'Valentine Event Item'},
+    {'name': 'Crystal Cyan Neon Bubble', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Rainbow Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Emperor Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Bubbles
     {'name': 'Galaxy Bubble', 'category': 'Chat Bubble', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Royal Palace Bubble', 'category': 'Chat Bubble', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
+    {'name': 'Dragon Fire Bubble', 'category': 'Chat Bubble', 'rarity': 'Limited', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Phoenix Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Celestial Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
     {'name': 'Cosmic Gold Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
+    {'name': 'Cosmic Emperor Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 5. Entry Effects
     {'name': 'None', 'category': 'Entry Effect', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
-    {'name': 'Sparkle', 'category': 'Entry Effect', 'rarity': 'Rare', 'premium': 'None', 'req': 'Unlock at level 10'},
+    // VIP Entry Effects
+    {'name': 'Royal Portal', 'category': 'Entry Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
+    {'name': 'Neon Gateway', 'category': 'Entry Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
     {'name': 'Fireworks', 'category': 'Entry Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Golden Explosion', 'category': 'Entry Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Diamond Shatter', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
+    {'name': 'Crystal Blizzard', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
     {'name': 'Magic Circle', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Rainbow Bridge', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Emperor Throne Room', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Entry Effects
+    {'name': 'Galaxy Warp', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Royal Palace Entry', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
     {'name': 'Lightning Strike', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Rose Petals', 'category': 'Entry Effect', 'rarity': 'Epic', 'premium': 'None', 'req': 'Spring Event reward'},
+    {'name': 'Dragon Arrival', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Phoenix Rise', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Celestial Portal', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
+    {'name': 'Cosmic Rift', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 6. Entry Animations
     {'name': 'None', 'category': 'Entry Animation', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
@@ -112,39 +153,144 @@ class CustomizationController extends GetxController {
     {'name': 'Scholar', 'category': 'Badges', 'rarity': 'Rare', 'premium': 'None', 'req': 'Complete 5 courses'},
     {'name': 'Champion', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'None', 'req': 'Win room battle'},
     {'name': 'Mastermind', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'None', 'req': 'UPSC level 10'},
+    // VIP Badges
+    {'name': 'Royal Badge', 'category': 'Badges', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
+    {'name': 'Neon Badge', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    {'name': 'Golden Badge', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Diamond Badge', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
+    {'name': 'Crystal Badge', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Rainbow Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
     {'name': 'Elite', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    {'name': 'Emperor Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Badges
     {'name': 'Star Star', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Galaxy Badge', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Royal Palace Badge', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
+    {'name': 'Dragon Badge', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Phoenix Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Celestial Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
+    {'name': 'Cosmic Emperor Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 8. Tags
     {'name': 'Scholar', 'category': 'Tags', 'rarity': 'Common', 'premium': 'None', 'req': 'Course graduate'},
     {'name': 'Topper', 'category': 'Tags', 'rarity': 'Rare', 'premium': 'None', 'req': 'Top score in CS exam'},
     {'name': 'VIP Star', 'category': 'Tags', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'VIP 3+'},
+    // VIP Tags
+    {'name': 'Royal Tag', 'category': 'Tags', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
+    {'name': 'Neon Tag', 'category': 'Tags', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    {'name': 'Golden Tag', 'category': 'Tags', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Diamond Tag', 'category': 'Tags', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
+    {'name': 'Crystal Tag', 'category': 'Tags', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Rainbow Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Emperor Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Tags
+    {'name': 'Galaxy Tag', 'category': 'Tags', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Royal Palace Tag', 'category': 'Tags', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
+    {'name': 'Dragon Tag', 'category': 'Tags', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Phoenix Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Celestial Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
+    {'name': 'Cosmic Emperor Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 9. Name Effects
     {'name': 'None', 'category': 'Name Effect', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
+    // VIP Name Glows
+    {'name': 'Royal Blue Glow', 'category': 'Name Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
+    {'name': 'Neon Pink Glow', 'category': 'Name Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    {'name': 'Gold Glow', 'category': 'Name Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Diamond Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
     {'name': 'Neon Glow', 'category': 'Name Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
+    {'name': 'Crystal Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
     {'name': 'Rainbow Fire', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Rainbow Fire Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Emperor Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Name Glows
+    {'name': 'Galaxy Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Royal Palace Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
+    {'name': 'Dragon Fire Glow', 'category': 'Name Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Phoenix Flame Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Celestial Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
     {'name': 'Cosmic Gold', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
+    {'name': 'Cosmic Emperor Glow', 'category': 'Name Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 10. Profile Themes
     {'name': 'Dark', 'category': 'Profile Theme', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
+    // VIP Themes
+    {'name': 'Royal Theme', 'category': 'Profile Theme', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
+    {'name': 'Neon Theme', 'category': 'Profile Theme', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    {'name': 'Golden Theme', 'category': 'Profile Theme', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Diamond Theme', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
+    {'name': 'Crystal Theme', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Rainbow Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Emperor Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Themes
+    {'name': 'Galaxy Theme', 'category': 'Profile Theme', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
     {'name': 'Galaxy Purple', 'category': 'Profile Theme', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Royal Palace Theme', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
     {'name': 'Gold Palace', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
+    {'name': 'Dragon Theme', 'category': 'Profile Theme', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Phoenix Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Celestial Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
+    {'name': 'Cosmic Emperor Theme', 'category': 'Profile Theme', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 11. Backgrounds
     {'name': 'None', 'category': 'Background', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
     {'name': 'Aura Neon', 'category': 'Background', 'rarity': 'Rare', 'premium': 'None', 'req': 'Shop wallpaper'},
+    // VIP Backgrounds
+    {'name': 'Royal Palace Background', 'category': 'Background', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
+    {'name': 'Neon Grid Background', 'category': 'Background', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    {'name': 'Gilded Background', 'category': 'Background', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Pristine Background', 'category': 'Background', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
+    {'name': 'Glacial Background', 'category': 'Background', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Prism Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Dynasty Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Backgrounds
+    {'name': 'Cosmic Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Marble Background', 'category': 'Background', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
+    {'name': 'Lava Cave Background', 'category': 'Background', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Eclipse Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Sky Temple Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
     {'name': 'Cosmic Cosmic', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
+    {'name': 'Void Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 12. Emoji Packs
     {'name': 'Classic Emojis', 'category': 'Emoji Pack', 'rarity': 'Common', 'premium': 'None', 'req': 'Default pack'},
+    // VIP Emoji Packs
+    {'name': 'Royal Emojis', 'category': 'Emoji Pack', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'VIP Royal Pack', 'category': 'Emoji Pack', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    {'name': 'Neon Emojis', 'category': 'Emoji Pack', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    {'name': 'Golden Emojis', 'category': 'Emoji Pack', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Diamond Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
+    {'name': 'Crystal Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Rainbow Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Emperor Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Emoji Packs
+    {'name': 'Galaxy Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
     {'name': 'Galaxy Animated Pack', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Royal Palace Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
+    {'name': 'Dragon Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Phoenix Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Celestial Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
+    {'name': 'Cosmic Emperor Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
     // 13. Gift Showcase
     {'name': 'Love Castle', 'category': 'Gift Showcase', 'rarity': 'Epic', 'premium': 'None', 'req': 'Received from room events'},
-    {'name': 'Cosmic Ring Gift', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
+    // VIP Gifts
+    {'name': 'Royal Crown Gift', 'category': 'Gift Showcase', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
+    {'name': 'Cyber DJ Deck', 'category': 'Gift Showcase', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
+    {'name': 'Golden Rose', 'category': 'Gift Showcase', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
+    {'name': 'Diamond Ring', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
     {'name': 'Golden Crown Gift', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Ice Castle', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
+    {'name': 'Unicorn Prism', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
+    {'name': 'Imperial Throne', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
+    // Novel Gifts
+    {'name': 'Supernova Explosion', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
+    {'name': 'Palace Carriage', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
+    {'name': 'Dragon Flame', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
+    {'name': 'Phoenix Rise Gift', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
+    {'name': 'Celestial Harp', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
+    {'name': 'Cosmic Ring Gift', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
+    {'name': 'Cosmic Star Gate', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
   ];
 
   @override

@@ -841,13 +841,15 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       children: [
         Row(
           children: [
-            PremiumNameWidget(
-              name: u.displayName,
-              userId: u.id,
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            Flexible(
+              child: PremiumNameWidget(
+                name: u.displayName,
+                userId: u.id,
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
             const SizedBox(width: 6),
@@ -1327,14 +1329,15 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         ),
       ],
     );
-    if (onTap != null) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: item,
-      );
-    }
-    return item;
+    return Expanded(
+      child: onTap != null
+          ? GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: item,
+            )
+          : item,
+    );
   }
 
   Widget _statDivider() {

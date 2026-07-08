@@ -133,6 +133,7 @@ linter:
 analyzer:
   exclude:
     - "**/*.g.dart"
+    - "scratch/**"
   errors:
     missing_required_param: error
     missing_return: error
