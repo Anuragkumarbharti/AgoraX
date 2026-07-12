@@ -1,111 +1,152 @@
+import 'dart:typed_data';
+import 'dart:convert';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/chat_model.dart';
 import '../core/chat_crypto.dart';
+import 'user_profile_cache_manager.dart';
 
 class ChatController extends GetxController {
-  // Current logged-in user id (mock)
-  static const String currentUserId = 'me';
-  static const String currentUserName = 'Anurag Kumar';
-  static const String currentUserAvatar =
-      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200';
+  static String get currentUserId => UserProfileCacheManager.currentUserId;
+  static String get currentUserName => Supabase.instance.client.auth.currentUser?.email ?? 'Anurag Kumar';
+  static String get currentUserAvatar => '';
 
   // ─── Conversations list ───
-  final RxList<Conversation> conversations = <Conversation>[
-    Conversation(
-      id: 'conv_1',
-      otherUserId: 'u2',
-      otherUserName: 'Priya Sharma',
-      otherUserAvatar:
-          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
-      otherUserOnline: true,
-      isVerified: true,
-      lastMessage: 'The voice room session was amazing! 🔥',
-      lastMessageTime: DateTime.now().subtract(const Duration(minutes: 5)),
-      unreadCount: 3,
-      isPinned: true,
-      levelTitle: 'Expert',
-      level: 12,
-    ),
-    Conversation(
-      id: 'conv_2',
-      otherUserId: 'u3',
-      otherUserName: 'Rahul Verma',
-      otherUserAvatar:
-          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
-      otherUserOnline: false,
-      isVerified: false,
-      lastMessage: 'Can you share the Flutter resources?',
-      lastMessageTime: DateTime.now().subtract(const Duration(hours: 1)),
-      unreadCount: 1,
-      levelTitle: 'Intermediate',
-      level: 7,
-      lastMessageSenderId: 'u3',
-    ),
-    Conversation(
-      id: 'conv_3',
-      otherUserId: 'u4',
-      otherUserName: 'Ananya Patel',
-      otherUserAvatar:
-          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
-      otherUserOnline: true,
-      isVerified: true,
-      lastMessage: 'Sure, let\'s schedule the collab next week 👍',
-      lastMessageTime: DateTime.now().subtract(const Duration(hours: 3)),
-      unreadCount: 0,
-      levelTitle: 'Pro',
-      level: 10,
-      lastMessageSenderId: currentUserId,
-    ),
-    Conversation(
-      id: 'conv_4',
-      otherUserId: 'u5',
-      otherUserName: 'Dev Singh',
-      otherUserAvatar:
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
-      otherUserOnline: false,
-      isVerified: false,
-      lastMessage: 'Check out this new DSA problem I found!',
-      lastMessageTime: DateTime.now().subtract(const Duration(hours: 6)),
-      unreadCount: 0,
-      isMuted: true,
-      levelTitle: 'Learner',
-      level: 4,
-      lastMessageSenderId: 'u5',
-    ),
-    Conversation(
-      id: 'conv_5',
-      otherUserId: 'u6',
-      otherUserName: 'Meera Joshi',
-      otherUserAvatar:
-          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
-      otherUserOnline: false,
-      isVerified: false,
-      lastMessage: 'Thanks for the help with Dart async! 🙏',
-      lastMessageTime: DateTime.now().subtract(const Duration(days: 1)),
-      unreadCount: 0,
-      levelTitle: 'Member',
-      level: 3,
-    ),
-    Conversation(
-      id: 'conv_6',
-      otherUserId: 'u7',
-      otherUserName: 'Arjun Nair',
-      otherUserAvatar:
-          'https://images.unsplash.com/photo-1542080681-b52d0d523d0c?w=200',
-      otherUserOnline: true,
-      isVerified: true,
-      lastMessage: 'The debate room was lit yesterday! 🎤',
-      lastMessageTime: DateTime.now().subtract(const Duration(days: 2)),
-      unreadCount: 0,
-      levelTitle: 'Expert',
-      level: 15,
-    ),
-  ].obs;
+  final RxList<Conversation> conversations = <Conversation>[].obs;
 
   // ─── Messages per conversation ───
   final RxMap<String, List<ChatMessage>> _messages =
       <String, List<ChatMessage>>{}.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadConversations().then((_) {
+      _initSupabaseRealtime();
+      ever(conversations, (_) => _saveConversations());
+    });
+  }
+
+  Future<void> _saveConversations() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = json.encode(conversations.map((c) => c.toJson()).toList());
+      await prefs.setString('chat_conversations', jsonStr);
+    } catch (_) {}
+  }
+
+  Future<void> _loadConversations() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('chat_conversations');
+      if (jsonStr != null) {
+        final List<dynamic> decoded = json.decode(jsonStr);
+        final list = decoded.map((item) => Conversation.fromJson(item)).toList();
+        conversations.assignAll(list);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveMessages(String convId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = _messages[convId] ?? [];
+      final jsonStr = json.encode(list.map((m) => m.toJson()).toList());
+      await prefs.setString('chat_messages_$convId', jsonStr);
+    } catch (_) {}
+  }
+
+  Future<void> _loadMessages(String convId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('chat_messages_$convId');
+      if (jsonStr != null) {
+        final List<dynamic> decoded = json.decode(jsonStr);
+        final list = decoded.map((item) => ChatMessage.fromJson(item)).toList();
+        _messages[convId] = list;
+        _messages.refresh();
+      }
+    } catch (_) {}
+  }
+
+  void _initSupabaseRealtime() {
+    try {
+      final client = Supabase.instance.client;
+      final currentAuthUser = client.auth.currentUser;
+      if (currentAuthUser == null) return;
+
+      client
+          .from('messages')
+          .stream(primaryKey: ['id'])
+          .order('created_at', ascending: true)
+          .listen((List<Map<String, dynamic>> data) {
+            for (var row in data) {
+              final String? senderId = row['sender_id'];
+              final String? receiverId = row['receiver_id'];
+              final String? encryptedContent = row['encrypted_content'];
+              final String? messageId = row['id']?.toString();
+              final String? createdAtStr = row['created_at'];
+
+              if (senderId == null || receiverId == null || encryptedContent == null) continue;
+
+              final String myId = currentAuthUser.id;
+              if (senderId != myId && receiverId != myId) continue;
+
+              final String otherUserId = (senderId == myId) ? receiverId : senderId;
+              final String convId = 'conv_$otherUserId';
+
+              final key = ChatCrypto.deriveFallbackKey(myId, otherUserId);
+              final decrypted = ChatCrypto.decryptMessage(encryptedContent, key);
+
+              final timestamp = createdAtStr != null 
+                  ? DateTime.tryParse(createdAtStr) ?? DateTime.now() 
+                  : DateTime.now();
+
+              final currentMsgs = _messages[convId] ?? [];
+              if (!currentMsgs.any((m) => m.id == messageId)) {
+                final newMsg = ChatMessage(
+                  id: messageId ?? 'msg_${DateTime.now().millisecondsSinceEpoch}',
+                  senderId: senderId == myId ? currentUserId : otherUserId,
+                  receiverId: receiverId == myId ? currentUserId : otherUserId,
+                  conversationId: convId,
+                  content: decrypted,
+                  timestamp: timestamp,
+                  status: MessageStatus.read,
+                );
+                _messages[convId] = [...currentMsgs, newMsg];
+                _messages.refresh();
+                _saveMessages(convId);
+
+                getOrCreateConversation(otherUserId, 'User $otherUserId', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100');
+                final idx = conversations.indexWhere((c) => c.id == convId);
+                if (idx != -1) {
+                  final conv = conversations[idx];
+                  conversations[idx] = Conversation(
+                    id: conv.id,
+                    otherUserId: conv.otherUserId,
+                    otherUserName: conv.otherUserName,
+                    otherUserAvatar: conv.otherUserAvatar,
+                    otherUserOnline: conv.otherUserOnline,
+                    isVerified: conv.isVerified,
+                    lastMessage: decrypted,
+                    lastMessageTime: timestamp,
+                    unreadCount: conv.unreadCount,
+                    isPinned: conv.isPinned,
+                    isMuted: conv.isMuted,
+                    levelTitle: conv.levelTitle,
+                    level: conv.level,
+                    lastMessageSenderId: senderId,
+                  );
+                  conversations.refresh();
+                }
+              }
+            }
+          }, onError: (error) {
+            print('Supabase Realtime Stream Error: $error');
+          });
+    } catch (_) {}
+  }
 
   // ─── Typing state ───
   final RxMap<String, bool> typingState = <String, bool>{}.obs;
@@ -147,107 +188,16 @@ class ChatController extends GetxController {
       otherUserOnline: true,
     );
     conversations.add(newConv);
+    _saveConversations();
     return newConv;
   }
 
   List<ChatMessage> getMessages(String conversationId) {
-    return _messages[conversationId] ?? _generateMockMessages(conversationId);
-  }
-
-  List<ChatMessage> _generateMockMessages(String conversationId) {
-    final conv = conversations.firstWhere((c) => c.id == conversationId,
-        orElse: () => conversations.first);
-    final otherId = conv.otherUserId;
-
-    final msgs = <ChatMessage>[
-      ChatMessage(
-        id: 'm1',
-        senderId: otherId,
-        receiverId: currentUserId,
-        conversationId: conversationId,
-        content: 'Hey! How are you doing? 👋',
-        timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
-        status: MessageStatus.read,
-      ),
-      ChatMessage(
-        id: 'm2',
-        senderId: currentUserId,
-        receiverId: otherId,
-        conversationId: conversationId,
-        content: 'I\'m great! Just been working on some Flutter stuff 💪',
-        timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 2, minutes: 55)),
-        status: MessageStatus.read,
-      ),
-      ChatMessage(
-        id: 'm3',
-        senderId: otherId,
-        receiverId: currentUserId,
-        conversationId: conversationId,
-        content: 'Nice! I saw you joined the Flutter India community on AgoraX. That community is 🔥',
-        timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 2, minutes: 30)),
-        status: MessageStatus.read,
-      ),
-      ChatMessage(
-        id: 'm4',
-        senderId: currentUserId,
-        receiverId: otherId,
-        conversationId: conversationId,
-        content: 'Yeah, the discussions there are super valuable. Are you also in voice rooms regularly?',
-        timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
-        status: MessageStatus.read,
-      ),
-      ChatMessage(
-        id: 'm5',
-        senderId: otherId,
-        receiverId: currentUserId,
-        conversationId: conversationId,
-        content: 'Absolutely! The debate rooms are my favourite 🎤\n\nI host one every weekend on system design topics.',
-        timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 1, minutes: 40)),
-        status: MessageStatus.read,
-        reactions: ['❤️', '🔥'],
-      ),
-      ChatMessage(
-        id: 'm6',
-        senderId: currentUserId,
-        receiverId: otherId,
-        conversationId: conversationId,
-        content: 'Oh wow! That sounds super interesting. Can you add me as a speaker next time?',
-        timestamp: DateTime.now().subtract(const Duration(hours: 5)),
-        status: MessageStatus.read,
-      ),
-      ChatMessage(
-        id: 'm7',
-        senderId: otherId,
-        receiverId: currentUserId,
-        conversationId: conversationId,
-        content: 'Of course! I\'ll send you a room invite this Saturday at 8 PM IST 🚀',
-        timestamp: DateTime.now().subtract(const Duration(hours: 4, minutes: 45)),
-        status: MessageStatus.read,
-        replyToId: 'm6',
-        replyToContent: 'Can you add me as a speaker next time?',
-      ),
-      ChatMessage(
-        id: 'm8',
-        senderId: currentUserId,
-        receiverId: otherId,
-        conversationId: conversationId,
-        content: 'Perfect! I\'ll be there 🙌',
-        timestamp: DateTime.now().subtract(const Duration(hours: 4, minutes: 30)),
-        status: MessageStatus.read,
-      ),
-      ChatMessage(
-        id: 'm9',
-        senderId: otherId,
-        receiverId: currentUserId,
-        conversationId: conversationId,
-        content: 'The voice room session was amazing! 🔥',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-        status: MessageStatus.delivered,
-      ),
-    ];
-
-    _messages[conversationId] = msgs;
-    return msgs;
+    if (!_messages.containsKey(conversationId)) {
+      _messages[conversationId] = [];
+      _loadMessages(conversationId);
+    }
+    return _messages[conversationId] ?? [];
   }
 
   void sendMessage(String conversationId, String content) async {
@@ -262,14 +212,15 @@ class ChatController extends GetxController {
             'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
           );
 
-    final String encrypted = ChatCrypto.encryptMessage(content.trim());
+    final key = ChatCrypto.deriveFallbackKey(currentUserId, conv.otherUserId);
+    final String encrypted = ChatCrypto.encryptMessage(content.trim(), key);
 
     // Try inserting into Supabase
     try {
       final client = Supabase.instance.client;
       if (client.auth.currentUser != null) {
         await client.from('messages').insert({
-          'sender_id': client.auth.currentUser!.id,
+          'sender_id': currentUserId,
           'receiver_id': conv.otherUserId.length == 36 ? conv.otherUserId : null,
           'encrypted_content': encrypted,
           'is_private': true,
@@ -291,6 +242,7 @@ class ChatController extends GetxController {
 
     final current = getMessages(conversationId);
     _messages[conversationId] = [...current, msg];
+    _saveMessages(conversationId);
 
     // Update conversation last message
     final idx = conversations.indexWhere((c) => c.id == conversationId);
@@ -311,6 +263,7 @@ class ChatController extends GetxController {
         level: conv.level,
         lastMessageSenderId: currentUserId,
       );
+      _saveConversations();
     }
 
     // Simulate sent after delay
@@ -322,6 +275,7 @@ class ChatController extends GetxController {
       }).toList();
       _messages[conversationId] = updatedMsgs;
       _messages.refresh();
+      _saveMessages(conversationId);
 
       // Simulate delivered
       Future.delayed(const Duration(seconds: 2), () {
@@ -332,11 +286,13 @@ class ChatController extends GetxController {
         }).toList();
         _messages[conversationId] = updatedMsgs2;
         _messages.refresh();
+        _saveMessages(conversationId);
       });
     });
 
     _messages.refresh();
     conversations.refresh();
+    _saveConversations();
   }
 
   void addReaction(String conversationId, String messageId, String emoji) {

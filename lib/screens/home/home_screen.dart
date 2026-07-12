@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
 import '../../models/index.dart';
 import '../../models/event_model.dart' as model;
@@ -28,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
   late ScrollController _scrollController;
   bool _showFloatingButton = true;
   final EventController _eventController = Get.find<EventController>();
+  List<Post> _posts = [];
+  bool _isLoadingPosts = true;
 
   @override
   void initState() {
@@ -38,12 +42,137 @@ class _HomeScreenState extends State<HomeScreen> {
         _showFloatingButton = _scrollController.offset < 100;
       });
     });
+    _fetchRecentPosts();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchRecentPosts() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('posts')
+          .select('*, profiles(username, avatar_url)')
+          .order('created_at', ascending: false)
+          .limit(20);
+
+      if (response != null) {
+        final List<dynamic> list = response as List<dynamic>;
+        setState(() {
+          _posts = list.map((item) => Post.fromJson(item as Map<String, dynamic>)).toList();
+          _isLoadingPosts = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching posts: $e');
+      setState(() => _isLoadingPosts = false);
+    }
+  }
+
+  void _createNewPost() {
+    final TextEditingController contentCtrl = TextEditingController();
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF13131A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'CREATE NEW POST',
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: contentCtrl,
+                maxLines: 4,
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: "What's on your mind?",
+                  hintStyle: GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
+                  filled: true,
+                  fillColor: Colors.black.withOpacity(0.2),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Colors.white12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.white38)),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final text = contentCtrl.text.trim();
+                      if (text.isEmpty) return;
+
+                      Get.back();
+                      
+                      // Show uploading dialog
+                      Get.dialog(
+                        const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+                        barrierDismissible: false,
+                      );
+
+                      try {
+                        final currentUser = Supabase.instance.client.auth.currentUser;
+                        if (currentUser == null) throw Exception('Not logged in');
+                        
+                        final postId = 'post_${DateTime.now().millisecondsSinceEpoch}';
+                        
+                        // Insert post
+                        await Supabase.instance.client.from('posts').insert({
+                          'id': postId,
+                          'user_id': currentUser.id,
+                          'content': text,
+                          'likes': 0,
+                          'comments': 0,
+                          'shares': 0,
+                        });
+
+                        // Reload posts
+                        await _fetchRecentPosts();
+                        
+                        Get.back(); // close loader
+                        Get.snackbar(
+                          'Post Shared! 🎉',
+                          'Your post was shared successfully.',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: const Color(0xFF10B981),
+                          colorText: Colors.white,
+                        );
+                      } catch (e) {
+                        Get.back(); // close loader
+                        Get.snackbar('Error ⚠️', 'Failed to share post: $e');
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+                    child: Text('Post', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showNotifications() {
@@ -86,9 +215,24 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Home',
-          style: Theme.of(context).textTheme.headlineLarge,
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/logo.png',
+              height: 32,
+              width: 32,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Creania',
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(
@@ -255,37 +399,38 @@ class _HomeScreenState extends State<HomeScreen> {
               // Recent Posts
               _buildSectionHeader(context, 'Recent Posts'),
               const SizedBox(height: 12),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: 3,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: PostCard(
-                      post: Post(
-                        id: '$index',
-                        userId: 'user$index',
-                        communityId: 'comm$index',
-                        content: 'This is a sample post content ${index + 1}. Check out this amazing discussion!',
-                        likes: 100 + (index * 50),
-                        comments: 20 + (index * 10),
-                        shares: 10 + index,
-                        isLiked: false,
-                        isBookmarked: false,
-                        createdAt: DateTime.now(),
-                      ),
-                    ),
-                  );
-                },
-              ),
+              _isLoadingPosts
+                  ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
+                  : _posts.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Text(
+                              'No posts yet. Be the first to share!',
+                              style: GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _posts.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: PostCard(
+                                post: _posts[index],
+                              ),
+                            );
+                          },
+                        ),
             ],
           ),
         ),
       ),
       floatingActionButton: _showFloatingButton
           ? FloatingActionButton(
-              onPressed: () {},
+              onPressed: _createNewPost,
               backgroundColor: AppTheme.primaryColor,
               child: const Icon(Icons.add),
             )

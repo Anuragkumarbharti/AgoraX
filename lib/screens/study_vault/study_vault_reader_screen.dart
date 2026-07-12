@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
 import '../../services/study_vault_controller.dart';
 import '../../models/study_vault_model.dart';
+import '../../services/user_profile_cache_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudyVaultReaderScreen extends StatefulWidget {
   final StudyVaultItem book;
@@ -225,7 +227,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
   void _simulateScreenshotAttempt() {
     Get.snackbar(
       'Screenshot Blocked 🛡️',
-      'AgoraX DRM protects this document. Screenshot capturing has been disabled.',
+      'Creania DRM protects this document. Screenshot capturing has been disabled.',
       backgroundColor: AppTheme.errorColor.withOpacity(0.9),
       colorText: Colors.white,
       snackPosition: SnackPosition.BOTTOM,
@@ -251,7 +253,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
                   const Text('🤖', style: TextStyle(fontSize: 20)),
                   const SizedBox(width: 10),
                   Text(
-                    'AgoraX AI Assistant',
+                    'Creania AI Assistant',
                     style: GoogleFonts.outfit(
                       color: _isDarkMode ? Colors.white : Colors.black,
                       fontWeight: FontWeight.bold,
@@ -511,7 +513,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
                           return Opacity(
                             opacity: _isDarkMode ? 0.04 : 0.07,
                             child: Text(
-                              'AgoraX • Anurag Kumar • 773091 • 10.24.8.112',
+                              'Creania • ${UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student'} • ${(Supabase.instance.client.auth.currentUser?.id ?? 'me').substring(0, min((Supabase.instance.client.auth.currentUser?.id ?? 'me').length, 6))} • 10.24.8.112',
                               style: TextStyle(
                                 color: _isDarkMode ? Colors.white : Colors.black,
                                 fontSize: 10,
@@ -686,7 +688,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
               title: const Text('Copy Protection (Mock copy attempt)', style: TextStyle(fontSize: 13)),
               onTap: () {
                 Get.back();
-                Get.snackbar('Copy Blocked 🛡️', 'AgoraX secure reader prevents clipboard copying.');
+                Get.snackbar('Copy Blocked 🛡️', 'Creania secure reader prevents clipboard copying.');
               },
             ),
           ],

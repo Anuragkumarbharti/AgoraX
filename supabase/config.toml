@@ -1,6 +1,6 @@
 # Supabase local development configuration
 
-project_id = "agorax-dev"
+project_id = "creania-dev"
 
 [api]
 port = 54321

@@ -1517,11 +1517,11 @@ class _ChatScreenState extends State<ChatScreen>
     final targetUser = User(
       id: conv.otherUserId,
       username: conv.otherUserName.toLowerCase().replaceAll(' ', '_'),
-      email: '${conv.otherUserId}@agorax.app',
+      email: '${conv.otherUserId}@creania.app',
       displayName: conv.otherUserName,
       avatar: conv.otherUserAvatar,
       interests: ['Flutter', 'Live Chat', 'Collaborations'],
-      communities: ['AgoraX Lounge'],
+      communities: ['Creania Lounge'],
       followers: 1420,
       following: 480,
       isVerified: conv.isVerified,

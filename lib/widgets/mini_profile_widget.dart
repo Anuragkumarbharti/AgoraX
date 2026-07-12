@@ -7,6 +7,8 @@ import '../core/theme.dart';
 import '../models/user_model.dart';
 import '../screens/profile/user_profile_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../services/user_profile_cache_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../services/vip_controller.dart';
 import 'vip_badge_widget.dart';
 import 'vip_avatar_decorator.dart';
@@ -63,8 +65,9 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   }
 
   void _navigateToProfile() {
-    // Navigate to profile screen depending on if user is current user
-    if (widget.user.id == 'me' || widget.user.id == 'uid_anurag_101') {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    final isMe = widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid);
+    if (isMe) {
       Get.to(() => const ProfileScreen());
     } else {
       Get.to(() => UserProfileScreen(user: widget.user));
@@ -115,7 +118,8 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   }
 
   Widget _buildAvatar() {
-    final isMe = widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || widget.user.username == 'Anurag Kumar' || widget.user.displayName == 'Anurag Kumar';
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    final isMe = widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid) || widget.user.username == 'Anurag Kumar' || widget.user.displayName == 'Anurag Kumar';
 
     int novelLevel = 0;
     int activeNovel = 0;
@@ -339,7 +343,8 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     int novelLevel = 0;
     int activeNovel = 0;
 
-    if (widget.user.id == 'me' || widget.user.id == 'uid_anurag_101') {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    if (widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid)) {
       final novelCtrl = Get.find<NovelController>();
       novelLevel = novelCtrl.novelLevel.value;
       activeNovel = novelCtrl.activeNovelStyle.value;
@@ -361,7 +366,8 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
 
     int vipLevel = 0;
     if (novelLevel <= 0) {
-      if (widget.user.id == 'me' || widget.user.id == 'uid_anurag_101') {
+      final currentUid = Supabase.instance.client.auth.currentUser?.id;
+      if (widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid)) {
         final vipCtrl = Get.find<VipController>();
         vipLevel = vipCtrl.vipLevel.value;
       } else if (widget.user.isPremium) {
@@ -527,8 +533,10 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   }
 
   Widget _buildStatsRow() {
-    final gifts = widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' ? '65.6K' : '14.2K';
-    final points = widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' ? '9.2K' : '4.5K';
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    final isMe = widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid);
+    final gifts = isMe ? '65.6K' : '14.2K';
+    final points = isMe ? '9.2K' : '4.5K';
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

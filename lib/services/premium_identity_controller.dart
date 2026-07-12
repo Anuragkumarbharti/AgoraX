@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'vip_controller.dart';
 import 'novel_controller.dart';
+import 'career_progression_controller.dart';
 import '../widgets/vip_badge_widget.dart';
 import '../widgets/novel_badge_widget.dart';
 
@@ -258,7 +260,7 @@ class PremiumIdentity {
         onTap: () => showBadgeInfoDialog(
           context,
           title: 'Career Tier $careerLevel',
-          description: 'AgoraX Career progression level.',
+          description: 'Creania Career progression level.',
           color: const Color(0xFFFFB800),
           icon: '💻',
           requirement: 'Submit and get verified for domain expertise tasks and courses.',
@@ -405,14 +407,14 @@ class PremiumIdentity {
           onTap: () => showBadgeInfoDialog(
             context,
             title: ot.name,
-            description: 'AgoraX platform designation.',
+            description: 'Creania platform designation.',
             color: ot.color,
             icon: ot.icon,
-            requirement: 'Manually verified and assigned by the AgoraX platform administration.',
+            requirement: 'Manually verified and assigned by the Creania platform administration.',
             benefits: [
               ot.benefit,
               'Exclusive priority verification status',
-              'AgoraX official crown decoration',
+              'Creania official crown decoration',
             ],
             status: 'Verified Official',
           ),
@@ -503,106 +505,174 @@ class PremiumIdentityController extends GetxController {
   final RxString currentAchievementTag = '🔥 Top Contributor'.obs;
   final RxInt currentTrustScore = 95.obs;
 
-  static PremiumIdentity getIdentity(String userId, String username) {
-    final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
+  static PremiumIdentity getIdentity(
+    String userId,
+    String username, {
+    int? vipLevel,
+    int? novelLevel,
+    int? idLevel,
+    int? careerLevel,
+    List<String>? badgesList,
+  }) {
+    final isUuid = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(userId);
+    final isCurrentUser = userId == 'me' || username == 'me' || userId == (Supabase.instance.client.auth.currentUser?.id ?? '');
 
-    int vip = hash % 8;
-    if (username.toLowerCase().contains('anurag') || username == 'me' || userId == 'me') {
+    // 1. VIP Level
+    int vip = 0;
+    if (vipLevel != null) {
+      vip = vipLevel;
+    } else if (isCurrentUser) {
       try {
         vip = Get.find<VipController>().vipLevel.value;
       } catch (_) {}
+    } else if (!isUuid) {
+      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
+      vip = hash % 8;
     }
 
-    int novel = hash % 6;
-    if (username.toLowerCase().contains('anurag') || username == 'me' || userId == 'me') {
+    // 2. Novel Level
+    int novel = 0;
+    if (novelLevel != null) {
+      novel = novelLevel;
+    } else if (isCurrentUser) {
       try {
         novel = Get.find<NovelController>().novelLevel.value;
       } catch (_) {}
+    } else if (!isUuid) {
+      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
+      novel = hash % 6;
     }
 
-    int idLvl = (hash % 60) + 1;
-    int careerLvl = (hash % 10) + 1;
+    // 3. ID Level
+    int idLvl = 1;
+    if (idLevel != null) {
+      idLvl = idLevel;
+    } else if (isCurrentUser) {
+      try {
+        idLvl = Get.find<CareerProgressionController>().idLevel.value;
+      } catch (_) {}
+    } else if (!isUuid) {
+      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
+      idLvl = (hash % 60) + 1;
+    }
+
+    // 4. Career Level
+    int careerLvl = 1;
+    if (careerLevel != null) {
+      careerLvl = careerLevel;
+    } else if (isCurrentUser) {
+      try {
+        careerLvl = Get.find<CareerProgressionController>().careerLevel.value;
+      } catch (_) {}
+    } else if (!isUuid) {
+      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
+      careerLvl = (hash % 10) + 1;
+    }
 
     CommunityTag? commTag;
-    if (hash % 3 != 0) {
-      final roles = ['Owner', 'Co-Owner', 'Admin', 'Moderator', 'Mentor', 'Champion', 'Member'];
-      final role = roles[hash % roles.length];
-      final level = (hash % 60) + 1;
-      List<Color> colors = [Colors.grey, Colors.grey.shade600];
-      bool isAnimated = false;
-      if (level >= 11 && level <= 20) {
-        colors = [Colors.blue, Colors.blue.shade800];
-      } else if (level >= 21 && level <= 30) {
-        colors = [Colors.purple, Colors.purple.shade800];
-      } else if (level >= 31 && level <= 40) {
-        colors = [const Color(0xFFFFD700), const Color(0xFFB45309)];
-      } else if (level >= 41 && level <= 50) {
-        colors = [const Color(0xFFFFD700), Colors.amber, const Color(0xFFFFD700)];
-        isAnimated = true;
-      } else if (level >= 51) {
-        colors = [const Color(0xFFFF007F), const Color(0xFF00F0FF), const Color(0xFFFF007F)];
-        isAnimated = true;
-      }
-      commTag = CommunityTag(
-        name: 'AgoraX Devs',
-        role: role,
-        level: level,
-        gradientColors: colors,
-        isAnimated: isAnimated,
-      );
-    }
-
     UserVerification? verification;
-    final verType = hash % 7;
-    String resolvedVer = '';
-    if (username.toLowerCase().contains('anurag') || username == 'me' || userId == 'me') {
-      try {
-        resolvedVer = Get.find<PremiumIdentityController>().currentVerification.value;
-      } catch (_) {}
-    }
-
-    if (resolvedVer.isNotEmpty && resolvedVer != 'None') {
-      verification = _mapVerification(resolvedVer);
-    } else if (resolvedVer.isEmpty && hash % 4 != 0) {
-      verification = _mapVerificationByIndex(verType);
-    }
-
     OfficialTag? officialTag;
-    String resolvedOfficial = '';
-    if (username.toLowerCase().contains('anurag') || username == 'me' || userId == 'me') {
-      try {
-        resolvedOfficial = Get.find<PremiumIdentityController>().currentOfficialTag.value;
-      } catch (_) {}
-    }
-
-    if (resolvedOfficial.isNotEmpty && resolvedOfficial != 'None') {
-      officialTag = _mapOfficialTag(resolvedOfficial);
-    } else if (resolvedOfficial.isEmpty && hash % 6 == 0) {
-      officialTag = _mapOfficialTagByIndex(hash % 7);
-    }
-
     String? achievementTag;
-    if (username.toLowerCase().contains('anurag') || username == 'me' || userId == 'me') {
-      try {
-        final val = Get.find<PremiumIdentityController>().currentAchievementTag.value;
-        achievementTag = val == 'None' ? null : val;
-      } catch (_) {}
-    } else if (hash % 5 != 0) {
-      final achievements = [
-        '🏆 Season Champion',
-        '🔥 Top Contributor',
-        '⭐ Top Supporter',
-        '💯 365 Day Streak',
-        '🚀 Pioneer Member',
-        '👑 Hall of Fame',
-        '🏅 Career Master',
-        '🎯 Community Champion'
-      ];
-      achievementTag = achievements[hash % achievements.length];
+
+    if (!isUuid) {
+      // Mock Hash-based fallback for simulated/mock room participants
+      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
+      
+      if (hash % 3 != 0) {
+        final roles = ['Owner', 'Co-Owner', 'Admin', 'Moderator', 'Mentor', 'Champion', 'Member'];
+        final role = roles[hash % roles.length];
+        final level = (hash % 60) + 1;
+        List<Color> colors = [Colors.grey, Colors.grey.shade600];
+        bool isAnimated = false;
+        if (level >= 11 && level <= 20) {
+          colors = [Colors.blue, Colors.blue.shade800];
+        } else if (level >= 21 && level <= 30) {
+          colors = [Colors.purple, Colors.purple.shade800];
+        } else if (level >= 31 && level <= 40) {
+          colors = [const Color(0xFFFFD700), const Color(0xFFB45309)];
+        } else if (level >= 41 && level <= 50) {
+          colors = [const Color(0xFFFFD700), Colors.amber, const Color(0xFFFFD700)];
+          isAnimated = true;
+        } else if (level >= 51) {
+          colors = [const Color(0xFFFF007F), const Color(0xFF00F0FF), const Color(0xFFFF007F)];
+          isAnimated = true;
+        }
+        commTag = CommunityTag(
+          name: 'Creania Devs',
+          role: role,
+          level: level,
+          gradientColors: colors,
+          isAnimated: isAnimated,
+        );
+      }
+
+      final verType = hash % 7;
+      String resolvedVer = '';
+      if (isCurrentUser) {
+        try {
+          resolvedVer = Get.find<PremiumIdentityController>().currentVerification.value;
+        } catch (_) {}
+      }
+      if (resolvedVer.isNotEmpty && resolvedVer != 'None') {
+        verification = _mapVerification(resolvedVer);
+      } else {
+        verification = _mapVerificationByIndex(verType);
+      }
+
+      String resolvedOfficial = '';
+      if (isCurrentUser) {
+        try {
+          resolvedOfficial = Get.find<PremiumIdentityController>().currentOfficialTag.value;
+        } catch (_) {}
+      }
+      if (resolvedOfficial.isNotEmpty && resolvedOfficial != 'None') {
+        officialTag = _mapOfficialTag(resolvedOfficial);
+      } else if (hash % 6 == 0) {
+        officialTag = _mapOfficialTagByIndex(hash % 7);
+      }
+
+      if (isCurrentUser) {
+        try {
+          final val = Get.find<PremiumIdentityController>().currentAchievementTag.value;
+          achievementTag = val == 'None' ? null : val;
+        } catch (_) {}
+      } else if (hash % 5 != 0) {
+        final achievements = [
+          '🏆 Season Champion',
+          '🔥 Top Contributor',
+          '⭐ Top Supporter',
+          '💯 365 Day Streak',
+          '🚀 Pioneer Member',
+          '👑 Hall of Fame',
+          '🏅 Career Master',
+          '🎯 Community Champion'
+        ];
+        achievementTag = achievements[hash % achievements.length];
+      }
+    } else {
+      // Map from real database profile badges list
+      if (badgesList != null) {
+        for (final b in badgesList) {
+          final mappedVer = _mapVerification(b);
+          if (mappedVer != null) {
+            verification = mappedVer;
+          }
+          final mappedOf = _mapOfficialTag(b);
+          if (mappedOf != null) {
+            officialTag = mappedOf;
+          }
+          if (b.startsWith('🔥') || b.startsWith('🏆') || b.startsWith('⭐') || b.startsWith('💎') || b.startsWith('💡') || b.startsWith('🚀') || b.startsWith('👑') || b.startsWith('🏅') || b.startsWith('🎯') || b.contains('Top')) {
+            achievementTag = b;
+          }
+        }
+      }
     }
 
-    int trust = 80 + (hash % 21);
-    if (username.toLowerCase().contains('anurag') || username == 'me' || userId == 'me') {
+    int trust = 100;
+    if (!isUuid) {
+      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
+      trust = 80 + (hash % 21);
+    } else if (isCurrentUser) {
       try {
         trust = Get.find<PremiumIdentityController>().currentTrustScore.value;
       } catch (_) {}
@@ -628,7 +698,7 @@ class PremiumIdentityController extends GetxController {
           title: 'Verified',
           icon: '✔',
           color: const Color(0xFF2563EB),
-          requirement: 'Identity Verification approved by Agorax Security Team.',
+          requirement: 'Identity Verification approved by Creania Security Team.',
           benefits: ['Verified Badge display', 'Higher trust rating', 'Priority profile search'],
           date: '2026-03-12',
           status: 'Approved',
@@ -713,12 +783,12 @@ class PremiumIdentityController extends GetxController {
 
   static OfficialTag? _mapOfficialTag(String key) {
     switch (key) {
-      case 'Agorax Official':
-        return OfficialTag(name: 'Agorax Official', icon: '👑', color: const Color(0xFFFFD700), benefit: 'Highest trust, administrator privilege');
-      case 'Agorax Employee':
-        return OfficialTag(name: 'Agorax Employee', icon: '🛠️', color: const Color(0xFFEC4899), benefit: 'Official company employee');
-      case 'Agorax Developer':
-        return OfficialTag(name: 'Agorax Developer', icon: '💻', color: const Color(0xFF3B82F6), benefit: 'AgoraX platform engineer');
+      case 'Creania Official':
+        return OfficialTag(name: 'Creania Official', icon: '👑', color: const Color(0xFFFFD700), benefit: 'Highest trust, administrator privilege');
+      case 'Creania Employee':
+        return OfficialTag(name: 'Creania Employee', icon: '🛠️', color: const Color(0xFFEC4899), benefit: 'Official company employee');
+      case 'Creania Developer':
+        return OfficialTag(name: 'Creania Developer', icon: '💻', color: const Color(0xFF3B82F6), benefit: 'Creania platform engineer');
       case 'Official Moderator':
         return OfficialTag(name: 'Official Moderator', icon: '🛡️', color: const Color(0xFF10B981), benefit: 'Global room moderation power');
       case 'Official Host':
@@ -734,9 +804,9 @@ class PremiumIdentityController extends GetxController {
 
   static OfficialTag _mapOfficialTagByIndex(int index) {
     final keys = [
-      'Agorax Official',
-      'Agorax Employee',
-      'Agorax Developer',
+      'Creania Official',
+      'Creania Employee',
+      'Creania Developer',
       'Official Moderator',
       'Official Host',
       'Official Coin Seller',

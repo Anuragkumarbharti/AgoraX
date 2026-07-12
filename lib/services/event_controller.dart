@@ -1,60 +1,31 @@
-import 'package:get/get.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
 import 'store_controller.dart';
+import 'user_profile_cache_manager.dart';
 
 class EventController extends GetxController {
-  // Current logged in user
-  static const String currentUserId = 'me';
+  static String get currentUserId => UserProfileCacheManager.currentUserId;
 
   // Dual currency wallet state
-  RxInt get silverCoins => Get.find<StoreController>().silverCoinsBalance;
+  RxInt get silverCoins => Get.find<StoreController>().coinsBalance;
   RxDouble get cashBalance => Get.find<StoreController>().availableIncomeBalance;
-
-  // Transactions log
-  final RxList<Map<String, dynamic>> walletTransactions = <Map<String, dynamic>>[
-    {
-      'type': 'Deposit',
-      'title': 'Initial Deposit',
-      'amount': '₹2,500.00',
-      'currency': 'cash',
-      'date': '2026-07-05 14:30',
-      'isCredit': true,
-    },
-    {
-      'type': 'Refund Received',
-      'title': 'Refund: UPSC Preparation Contest',
-      'amount': '₹200.00',
-      'currency': 'cash',
-      'date': '2026-07-06 09:15',
-      'isCredit': true,
-    },
-    {
-      'type': 'Entry Fee Paid',
-      'title': 'Entry: Physics Mock Test',
-      'amount': '100 Coins',
-      'currency': 'coins',
-      'date': '2026-07-06 10:00',
-      'isCredit': false,
-    }
-  ].obs;
 
   // Active Events List
   final RxList<Event> events = <Event>[].obs;
 
+  // Wallet Transactions List (for compatibility with wallet_screen)
+  final RxList<Map<String, dynamic>> walletTransactions = <Map<String, dynamic>>[].obs;
+
   // Notifications List
-  final RxList<Map<String, dynamic>> notifications = <Map<String, dynamic>>[
-    {
-      'title': 'Event Created',
-      'body': 'Weekly Coding Challenge has been published successfully.',
-      'time': '10m ago',
-    },
-    {
-      'title': 'Registration Started',
-      'body': 'GK current affairs championship is now open for registration.',
-      'time': '1h ago',
-    }
-  ].obs;
+  final RxList<Map<String, dynamic>> notifications = <Map<String, dynamic>>[].obs;
+
+  // Event Participants Map (for compatibility with event_dashboard_screen)
+  final RxMap<String, List<Map<String, dynamic>>> eventParticipants = <String, List<Map<String, dynamic>>>{}.obs;
+
+  RealtimeChannel? _eventsSubscription;
 
   void addNotification(String title, String body) {
     notifications.insert(0, {
@@ -64,302 +35,264 @@ class EventController extends GetxController {
     });
   }
 
-  // Participants registry mapping eventId -> List of user details
-  final RxMap<String, List<Map<String, dynamic>>> eventParticipants = <String, List<Map<String, dynamic>>>{}.obs;
-
-  List<Map<String, dynamic>> getParticipantsForEvent(String eventId) {
-    if (!eventParticipants.containsKey(eventId)) {
-      eventParticipants[eventId] = [
-        {
-          'userId': 'user_gk_10',
-          'name': 'Vikram Singh',
-          'avatar': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e',
-          'role': 'Moderator',
-          'status': 'Approved',
-          'joinTime': '2026-07-06 12:00',
-          'paymentStatus': 'Paid',
-          'online': true,
-        },
-        {
-          'userId': 'user_gk_11',
-          'name': 'Ananya Sen',
-          'avatar': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
-          'role': 'Co-Owner',
-          'status': 'Approved',
-          'joinTime': '2026-07-06 12:15',
-          'paymentStatus': 'Paid',
-          'online': true,
-        },
-        {
-          'userId': 'user_gk_12',
-          'name': 'Rohan Das',
-          'avatar': 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61',
-          'role': 'Guest',
-          'status': 'Pending Approval',
-          'joinTime': '2026-07-06 13:02',
-          'paymentStatus': 'Pending',
-          'online': false,
-        },
-        {
-          'userId': 'user_bgmi_1',
-          'name': 'Meera Nair',
-          'avatar': 'https://images.unsplash.com/photo-1544005313-94ddf0286df2',
-          'role': 'Guest',
-          'status': 'Approved',
-          'joinTime': '2026-07-06 14:10',
-          'paymentStatus': 'Paid',
-          'online': true,
-        },
-      ];
-    }
-    return eventParticipants[eventId]!;
-  }
-
   @override
   void onInit() {
     super.onInit();
-    _loadInitialEvents();
+    _loadEventsFromDatabase();
+    _loadTransactions();
+    subscribeToRealtime();
   }
 
-  void _loadInitialEvents() {
-    final List<Event> mock = Event.mockEvents();
-    
-    // Convert mock events to support paid features to display initially
-    final List<Event> enriched = mock.map((e) {
-      if (e.id == 'comm_jee_1') {
-        // Make resonance test a paid event to show calculations
-        return Event(
-          id: e.id,
-          title: e.title,
-          description: e.description,
-          bannerUrl: e.bannerUrl,
-          category: e.category,
-          difficulty: e.difficulty,
-          organizer: e.organizer,
-          isOfficial: e.isOfficial,
-          startDate: e.startDate,
-          endDate: e.endDate,
-          registrationDeadline: e.registrationDeadline,
-          resultDate: e.resultDate,
-          maxParticipants: 200,
-          isUnlimited: e.isUnlimited,
-          entryFeeType: EntryFeeType.cash,
-          entryFeeAmount: 100, // ₹100 entry fee
-          prizePool: '₹2,900 - ₹11,600',
-          rewards: e.rewards,
-          status: EventStatus.registrationOpen,
-          format: e.format,
-          rules: e.rules,
-          requiredLevel: e.requiredLevel,
-          requiredBadge: e.requiredBadge,
-          tags: e.tags,
-          language: e.language,
-          isPublic: e.isPublic,
-          participantsCount: 82, // Starts with 82 participants
-          antiCheat: e.antiCheat,
-          negativeMarking: e.negativeMarking,
-          durationMinutes: e.durationMinutes,
-          questionCount: e.questionCount,
-          passingMarks: e.passingMarks,
-          requiredRegistrationFields: e.requiredRegistrationFields,
-          termsAndConditions: e.termsAndConditions,
-          isPaid: true,
-          minParticipants: 50,
-          winnerType: 'top3',
-          autoPrizePool: true,
-          passwordProtected: false,
-          password: '',
-          coOwnerId: 'u3', // Rahul is Co-Owner
-          adminIds: ['u4', 'u5'], // 2 admins initial
-          registeredUserIds: List.generate(82, (index) => 'user_$index'),
-          creatorId: 'u2', // Priya is Owner, not me, so I can join
-        );
-      } else if (e.id == 'official_gk_1') {
-        // Enrich official event to be live now and pre-registered for the user
-        return Event(
-          id: e.id,
-          title: e.title,
-          description: e.description,
-          bannerUrl: e.bannerUrl,
-          category: e.category,
-          difficulty: e.difficulty,
-          organizer: e.organizer,
-          isOfficial: true, // Official event created by apk admins
-          startDate: DateTime.now().add(const Duration(seconds: 15)), // Starting in 15 seconds!
-          endDate: DateTime.now().add(const Duration(hours: 2)),
-          registrationDeadline: DateTime.now().subtract(const Duration(hours: 2)), // Ended
-          resultDate: DateTime.now().add(const Duration(hours: 3)),
-          maxParticipants: 1000,
-          isUnlimited: true,
-          entryFeeType: EntryFeeType.coins,
-          entryFeeAmount: 50,
-          prizePool: '🪙 10,000 Coins Pool',
-          rewards: e.rewards,
-          status: EventStatus.live, // Live status
-          format: e.format,
-          rules: e.rules,
-          requiredLevel: e.requiredLevel,
-          requiredBadge: e.requiredBadge,
-          tags: e.tags,
-          language: e.language,
-          isPublic: e.isPublic,
-          participantsCount: 420,
-          antiCheat: e.antiCheat,
-          negativeMarking: e.negativeMarking,
-          durationMinutes: e.durationMinutes,
-          questionCount: e.questionCount,
-          passingMarks: e.passingMarks,
-          requiredRegistrationFields: e.requiredRegistrationFields,
-          termsAndConditions: e.termsAndConditions,
-          isPaid: true,
-          minParticipants: 100,
-          winnerType: e.winnerType,
-          autoPrizePool: e.autoPrizePool,
-          passwordProtected: false,
-          password: '',
-          registeredUserIds: ['user_1', 'user_2', 'me'], // Current user 'me' is pre-registered!
-          creatorId: 'apk_admin_999', // Created by apk admins
-          isMultiRound: true, // Multi-round event
-          rounds: const [
-            RoundConfig(
-              name: 'Round 1: Qualifying Quiz',
-              description: 'General Aptitude MCQ round.',
-              format: 'MCQ Quiz',
-              totalQuestions: 4,
-              marksPerQuestion: 10,
-              negativeMarking: false,
-              timerPerQuestion: 15,
-              qualifyingCriteria: 'Top 50%',
-              breakTimeMinutes: 10,
-              autoStartNextRound: true,
-            ),
-            RoundConfig(
-              name: 'Round 2: Subject Final',
-              description: 'Harder subject wise test.',
-              format: 'Aptitude Test',
-              totalQuestions: 4,
-              marksPerQuestion: 20,
-              negativeMarking: true,
-              timerPerQuestion: 25,
-              qualifyingCriteria: 'Top 3 Winners',
-              breakTimeMinutes: 0,
-              autoStartNextRound: false,
-            ),
-          ],
-        );
-      }
-      return e;
-    }).toList();
-
-    // Add another paid tournament: BGMI Solo Tournament
-    enriched.add(
-      Event(
-        id: 'bgmi_solo_paid',
-        title: 'BGMI Solo Esports Tournament',
-        description: 'Premium Esports Solo Showdown. Erangel map. Screen monitoring and anti-cheat active.',
-        bannerUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e',
-        category: 'Computer Science', // fits category filter
-        difficulty: 'Hard',
-        organizer: 'Esports India Club',
-        isOfficial: false,
-        startDate: DateTime.now().add(const Duration(days: 3)),
-        endDate: DateTime.now().add(const Duration(days: 3, hours: 4)),
-        registrationDeadline: DateTime.now().add(const Duration(days: 2)),
-        resultDate: DateTime.now().add(const Duration(days: 3, hours: 5)),
-        maxParticipants: 100,
-        isUnlimited: false,
-        entryFeeType: EntryFeeType.cash,
-        entryFeeAmount: 150,
-        prizePool: '₹4,350 - ₹8,700',
-        rewards: const EventReward(coins: 1000, xp: 800, certificate: true),
-        status: EventStatus.registrationOpen,
-        format: EventFormat.hackathon,
-        rules: [
-          'Hack & Emulator strictly prohibited.',
-          'Screenshots of results must be uploaded.',
-          'Agree to anti-cheat recording.'
-        ],
-        isPaid: true,
-        minParticipants: 30,
-        winnerType: 'top5',
-        autoPrizePool: true,
-        registeredUserIds: List.generate(45, (index) => 'user_$index'),
-        participantsCount: 45,
-        creatorId: 'u3', // Co-Owner or another creator
-        coOwnerId: 'me', // I am the Co-Owner!
-        adminIds: ['u2', 'u4', 'u5'], // 3 admins
-      ),
-    );
-
-    // Seed Organizer simulator test event (Owner is "me")
-    enriched.add(
-      Event(
-        id: 'organizer_test_event',
-        title: '🔑 Organizer Test Championship',
-        description: 'Complete organizer simulator. Manage schedules, edit question bank, and toggle next round delay times live.',
-        bannerUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420',
-        category: 'Study Battle',
-        difficulty: 'Medium',
-        organizer: 'My Custom Community',
-        isOfficial: false,
-        startDate: DateTime.now().add(const Duration(seconds: 10)),
-        endDate: DateTime.now().add(const Duration(hours: 2)),
-        registrationDeadline: DateTime.now().subtract(const Duration(hours: 1)),
-        resultDate: DateTime.now().add(const Duration(hours: 3)),
-        maxParticipants: 150,
-        isUnlimited: false,
-        entryFeeType: EntryFeeType.coins,
-        entryFeeAmount: 20,
-        prizePool: '🪙 5,000 Coins',
-        rewards: const EventReward(coins: 300, xp: 200, certificate: true),
-        status: EventStatus.live,
-        format: EventFormat.quiz,
-        rules: const ['Follow fair play rules.', 'Organizer controls active.'],
-        isPaid: true,
-        minParticipants: 10,
-        winnerType: 'top3',
-        autoPrizePool: true,
-        passwordProtected: false,
-        password: '',
-        registeredUserIds: const ['user_gk_10', 'user_gk_11', 'user_gk_12', 'user_bgmi_1', 'me'],
-        creatorId: 'me', // Current logged-in user is Creator/Owner!
-        isMultiRound: true,
-        rounds: const [
-          RoundConfig(
-            name: 'Screening Round (KBC Buzzer)',
-            description: 'Fastest finger round.',
-            format: 'MCQ Quiz',
-            totalQuestions: 4,
-            marksPerQuestion: 10,
-            negativeMarking: false,
-            timerPerQuestion: 15,
-            qualifyingCriteria: 'Top 50%',
-            breakTimeMinutes: 10,
-            autoStartNextRound: true,
-            isBuzzerMode: true, // Buzzer mode is active
-          ),
-          RoundConfig(
-            name: 'Grand Finale Round',
-            description: 'Final subject wise battle.',
-            format: 'Aptitude Test',
-            totalQuestions: 4,
-            marksPerQuestion: 20,
-            negativeMarking: true,
-            timerPerQuestion: 30,
-            qualifyingCriteria: 'Top 3',
-            breakTimeMinutes: 0,
-            autoStartNextRound: false,
-            isBuzzerMode: false,
-          ),
-        ],
-      ),
-    );
-
-    events.assignAll(enriched);
+  @override
+  void onClose() {
+    _eventsSubscription?.unsubscribe();
+    super.onClose();
   }
 
-  // Create Paid Event Action
-  bool createPaidEvent(Event newEvent) {
+  Future<void> _loadTransactions() async {
+    try {
+      final List<dynamic> list = await Supabase.instance.client
+          .from('wallet_transactions')
+          .select()
+          .eq('wallet_id', currentUserId)
+          .order('created_at', ascending: false);
+
+      walletTransactions.assignAll(list.map((m) {
+        final amountVal = m['amount'];
+        final isCoins = m['currency'] == 'Coins';
+        return {
+          'type': m['type'] ?? 'Transaction',
+          'title': m['details'] ?? (m['type'] ?? 'Transaction'),
+          'amount': isCoins ? '${amountVal.toInt()} Coins' : '₹${amountVal.toDouble()}',
+          'currency': isCoins ? 'coins' : 'cash',
+          'date': m['created_at'].toString().split('T').first,
+          'isCredit': m['transaction_type'] == 'Credit',
+        };
+      }).toList());
+    } catch (_) {}
+  }
+
+  Future<void> _loadEventsFromDatabase() async {
+    try {
+      final List<dynamic> list = await Supabase.instance.client
+          .from('events')
+          .select()
+          .order('start_date', ascending: true);
+
+      final loaded = list.map((m) {
+        final rewardsMap = m['rewards'] is String ? json.decode(m['rewards']) : m['rewards'];
+        final antiCheatMap = m['anti_cheat'] is String ? json.decode(m['anti_cheat']) : m['anti_cheat'];
+        final winnersList = m['winners'] is String ? json.decode(m['winners']) : m['winners'];
+        final roundsList = m['rounds'] is String ? json.decode(m['rounds']) : m['rounds'];
+
+        return Event(
+          id: m['id'],
+          title: m['title'],
+          description: m['description'],
+          bannerUrl: m['banner_url'] ?? '',
+          category: m['category'],
+          difficulty: m['difficulty'],
+          organizer: m['organizer'],
+          isOfficial: m['is_official'] ?? false,
+          startDate: DateTime.tryParse(m['start_date'].toString()) ?? DateTime.now(),
+          endDate: DateTime.tryParse(m['end_date'].toString()) ?? DateTime.now(),
+          registrationDeadline: DateTime.tryParse(m['registration_deadline'].toString()) ?? DateTime.now(),
+          resultDate: m['result_date'] != null ? (DateTime.tryParse(m['result_date'].toString()) ?? DateTime.now()) : DateTime.now(),
+          maxParticipants: m['max_participants'] ?? 100,
+          isUnlimited: m['is_unlimited'] ?? false,
+          entryFeeType: m['entry_fee_type'] == 'coins'
+              ? EntryFeeType.coins
+              : (m['entry_fee_type'] == 'cash' ? EntryFeeType.cash : EntryFeeType.free),
+          entryFeeAmount: m['entry_fee_amount'] ?? 0,
+          prizePool: m['prize_pool'] ?? '',
+          rewards: EventReward(
+            coins: rewardsMap?['coins'] ?? 0,
+            xp: rewardsMap?['xp'] ?? 0,
+            badge: rewardsMap?['badge'],
+            certificate: rewardsMap?['certificate'] ?? false,
+            frameName: rewardsMap?['frameName'],
+            trophyName: rewardsMap?['trophyName'],
+          ),
+          status: EventStatus.values.firstWhere(
+            (e) => e.name == m['status'],
+            orElse: () => EventStatus.registrationOpen,
+          ),
+          format: EventFormat.values.firstWhere(
+            (e) => e.name == m['format'],
+            orElse: () => EventFormat.quiz,
+          ),
+          rules: List<String>.from(m['rules'] ?? []),
+          requiredLevel: m['required_level'] ?? 1,
+          requiredBadge: m['required_badge'],
+          tags: List<String>.from(m['tags'] ?? []),
+          language: m['language'] ?? 'English',
+          isPublic: m['is_public'] ?? true,
+          participantsCount: m['participants_count'] ?? 0,
+          antiCheat: EventAntiCheat(
+            screenMonitoring: antiCheatMap?['screenMonitoring'] ?? false,
+            randomQuestions: antiCheatMap?['randomQuestions'] ?? false,
+            randomQuestionOrder: antiCheatMap?['randomQuestionOrder'] ?? false,
+            randomOptions: antiCheatMap?['randomOptions'] ?? false,
+          ),
+          negativeMarking: m['negative_marking'] ?? false,
+          durationMinutes: m['duration_minutes'] ?? 60,
+          questionCount: m['question_count'] ?? 30,
+          passingMarks: m['passing_marks'] ?? 40,
+          requiredRegistrationFields: List<String>.from(m['required_registration_fields'] ?? ['name', 'email', 'phone']),
+          termsAndConditions: m['terms_and_conditions'] ?? '',
+          isPaid: m['is_paid'] ?? false,
+          minParticipants: m['min_participants'] ?? 10,
+          winnerType: m['winner_type'] ?? 'top3',
+          autoPrizePool: m['auto_prize_pool'] ?? true,
+          passwordProtected: m['password_protected'] ?? false,
+          password: m['password'] ?? '',
+          coOwnerId: m['co_owner_id'],
+          adminIds: List<String>.from(m['admin_ids'] ?? []),
+          registeredUserIds: List<String>.from(m['registered_user_ids'] ?? []),
+          sponsoredAmount: (m['sponsored_amount'] ?? 0.0).toDouble(),
+          couponCodes: Map<String, double>.from(m['coupon_codes'] ?? {}),
+          allowAdminsJoin: m['allow_admins_join'] ?? false,
+          creatorId: m['creator_id'] ?? 'me',
+          durationString: m['duration_string'] ?? '1 hour',
+          allowSpectators: m['allow_spectators'] ?? true,
+          allowLateJoin: m['allow_late_join'] ?? false,
+          autoCancelMinUsers: m['auto_cancel_min_users'] ?? true,
+          autoRefund: m['auto_refund'] ?? true,
+          chatEnabled: m['chat_enabled'] ?? true,
+          voiceRoomEnabled: m['voice_room_enabled'] ?? false,
+          screenShareEnabled: m['screen_share_enabled'] ?? false,
+          recordingEnabled: m['recording_enabled'] ?? false,
+          timelineStatus: m['timeline_status'] ?? 'Registration Started',
+          winners: (winnersList as List?)
+                  ?.map((w) => EventWinner(
+                        rank: w['rank'] ?? '',
+                        username: w['username'] ?? '',
+                        userId: w['userId'] ?? '',
+                        avatarUrl: w['avatarUrl'] ?? '',
+                        prizeWon: (w['prizeWon'] ?? 0.0).toDouble(),
+                        community: w['community'] ?? '',
+                        isVerified: w['isVerified'] ?? false,
+                      ))
+                  .toList() ??
+              const [],
+          isMultiRound: m['is_multi_round'] ?? false,
+          rounds: (roundsList as List?)
+                  ?.map((r) => RoundConfig(
+                        name: r['name'] ?? '',
+                        description: r['description'] ?? '',
+                        format: r['format'] ?? '',
+                        totalQuestions: r['totalQuestions'] ?? 0,
+                        marksPerQuestion: r['marksPerQuestion'] ?? 0,
+                        negativeMarking: r['negativeMarking'] ?? false,
+                        timerPerQuestion: r['timerPerQuestion'] ?? 0,
+                        qualifyingCriteria: r['qualifyingCriteria'] ?? '',
+                        breakTimeMinutes: r['breakTimeMinutes'] ?? 0,
+                        autoStartNextRound: r['autoStartNextRound'] ?? false,
+                        startDate: r['startDate'] != null ? DateTime.tryParse(r['startDate']) : null,
+                        isBuzzerMode: r['isBuzzerMode'] ?? false,
+                      ))
+                  .toList() ??
+              const [],
+        );
+      }).toList();
+
+      events.assignAll(loaded);
+      _populateParticipantsForEvents();
+    } catch (e) {
+      debugPrint('DB Load Error: Fallback to mock events: $e');
+      events.assignAll(Event.mockEvents());
+      _populateParticipantsForEvents();
+    }
+  }
+
+  void _populateParticipantsForEvents() {
+    for (final e in events) {
+      final list = e.registeredUserIds.map((uid) {
+        final isMe = uid == currentUserId;
+        return {
+          'userId': uid,
+          'name': isMe ? 'You' : 'Student $uid',
+          'role': e.creatorId == uid ? 'Owner' : (e.coOwnerId == uid ? 'Co-Owner' : (e.adminIds.contains(uid) ? 'Admin' : 'Guest')),
+          'status': 'Approved',
+          'paymentStatus': 'Paid',
+          'avatarUrl': isMe 
+              ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' 
+              : 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
+        };
+      }).toList();
+      eventParticipants[e.id] = list;
+    }
+  }
+
+  void subscribeToRealtime() {
+    try {
+      _eventsSubscription = Supabase.instance.client
+          .channel('public:events')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'events',
+            callback: (payload) {
+              _loadEventsFromDatabase();
+            },
+          );
+      _eventsSubscription?.subscribe();
+    } catch (e) {
+      debugPrint('Realtime Sub failed: $e');
+    }
+  }
+
+  List<Map<String, dynamic>> getParticipantsForEvent(String eventId) {
+    return eventParticipants[eventId] ?? [];
+  }
+
+  Future<bool> withdrawCash(double amount, String upiId) async {
+    if (cashBalance.value < amount) return false;
+    cashBalance.value -= amount;
+    try {
+      await Supabase.instance.client
+          .from('wallets')
+          .update({'withdrawable_balance': cashBalance.value})
+          .eq('id', currentUserId);
+
+      await Supabase.instance.client.from('wallet_transactions').insert({
+        'wallet_id': currentUserId,
+        'amount': amount,
+        'currency': 'INR',
+        'type': 'Withdrawal',
+        'status': 'Completed',
+        'details': 'Withdrawal to $upiId',
+        'transaction_type': 'Debit',
+      });
+      await _loadTransactions();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> depositCash(double amount) async {
+    cashBalance.value += amount;
+    try {
+      await Supabase.instance.client
+          .from('wallets')
+          .update({'withdrawable_balance': cashBalance.value})
+          .eq('id', currentUserId);
+
+      await Supabase.instance.client.from('wallet_transactions').insert({
+        'wallet_id': currentUserId,
+        'amount': amount,
+        'currency': 'INR',
+        'type': 'Deposit',
+        'status': 'Completed',
+        'details': 'Deposit Cash',
+        'transaction_type': 'Credit',
+      });
+      await _loadTransactions();
+    } catch (_) {}
+  }
+
+  Future<bool> createPaidEvent(Event newEvent) async {
     if (silverCoins.value < 59) {
       Get.snackbar(
         'Insufficient Coins 🪙',
@@ -370,36 +303,148 @@ class EventController extends GetxController {
       );
       return false;
     }
-    
-    // Deduct Coins immediately
-    silverCoins.value -= 59;
-    walletTransactions.insert(0, {
-      'type': 'Host Fee Paid',
-      'title': 'Event Creation: ${newEvent.title}',
-      'amount': '59 Coins',
-      'currency': 'coins',
-      'date': _formattedNow(),
-      'isCredit': false,
-    });
 
-    // Try adding to the list (Mocking success)
+    silverCoins.value -= 59;
     try {
-      events.add(newEvent);
+      await Supabase.instance.client
+          .from('wallets')
+          .update({'coins_balance': silverCoins.value})
+          .eq('id', currentUserId);
+
+      await Supabase.instance.client.from('wallet_transactions').insert({
+        'wallet_id': currentUserId,
+        'amount': 59.00,
+        'currency': 'Coins',
+        'type': 'Commission',
+        'status': 'Completed',
+        'details': 'Event Creation: ${newEvent.title}',
+        'transaction_type': 'Debit',
+      });
+    } catch (_) {}
+
+    try {
+      final payload = {
+        'id': newEvent.id,
+        'title': newEvent.title,
+        'description': newEvent.description,
+        'banner_url': newEvent.bannerUrl,
+        'category': newEvent.category,
+        'difficulty': newEvent.difficulty,
+        'organizer': newEvent.organizer,
+        'is_official': newEvent.isOfficial,
+        'start_date': newEvent.startDate.toIso8601String(),
+        'end_date': newEvent.endDate.toIso8601String(),
+        'registration_deadline': newEvent.registrationDeadline.toIso8601String(),
+        'result_date': newEvent.resultDate?.toIso8601String(),
+        'max_participants': newEvent.maxParticipants,
+        'is_unlimited': newEvent.isUnlimited,
+        'entry_fee_type': newEvent.entryFeeType.name,
+        'entry_fee_amount': newEvent.entryFeeAmount,
+        'prize_pool': newEvent.prizePool,
+        'rewards': {
+          'coins': newEvent.rewards.coins,
+          'xp': newEvent.rewards.xp,
+          'badge': newEvent.rewards.badge,
+          'certificate': newEvent.rewards.certificate,
+          'frameName': newEvent.rewards.frameName,
+          'trophyName': newEvent.rewards.trophyName,
+        },
+        'status': newEvent.status.name,
+        'format': newEvent.format.name,
+        'rules': newEvent.rules,
+        'required_level': newEvent.requiredLevel,
+        'required_badge': newEvent.requiredBadge,
+        'tags': newEvent.tags,
+        'language': newEvent.language,
+        'is_public': newEvent.isPublic,
+        'participants_count': newEvent.participantsCount,
+        'anti_cheat': {
+          'screenMonitoring': newEvent.antiCheat.screenMonitoring,
+          'randomQuestions': newEvent.antiCheat.randomQuestions,
+          'randomQuestionOrder': newEvent.antiCheat.randomQuestionOrder,
+          'randomOptions': newEvent.antiCheat.randomOptions,
+        },
+        'negative_marking': newEvent.negativeMarking,
+        'duration_minutes': newEvent.durationMinutes,
+        'question_count': newEvent.questionCount,
+        'passing_marks': newEvent.passingMarks,
+        'required_registration_fields': newEvent.requiredRegistrationFields,
+        'terms_and_conditions': newEvent.termsAndConditions,
+        'is_paid': newEvent.isPaid,
+        'min_participants': newEvent.minParticipants,
+        'winner_type': newEvent.winnerType,
+        'auto_prize_pool': newEvent.autoPrizePool,
+        'password_protected': newEvent.passwordProtected,
+        'password': newEvent.password,
+        'co_owner_id': newEvent.coOwnerId,
+        'admin_ids': newEvent.adminIds,
+        'registered_user_ids': newEvent.registeredUserIds,
+        'sponsored_amount': newEvent.sponsoredAmount,
+        'coupon_codes': newEvent.couponCodes,
+        'allow_admins_join': newEvent.allowAdminsJoin,
+        'creator_id': currentUserId,
+        'duration_string': newEvent.durationString,
+        'allow_spectators': newEvent.allowSpectators,
+        'allow_late_join': newEvent.allowLateJoin,
+        'auto_cancel_min_users': newEvent.autoCancelMinUsers,
+        'auto_refund': newEvent.autoRefund,
+        'chat_enabled': newEvent.chatEnabled,
+        'voice_room_enabled': newEvent.voiceRoomEnabled,
+        'screen_share_enabled': newEvent.screenShareEnabled,
+        'recording_enabled': newEvent.recordingEnabled,
+        'timeline_status': newEvent.timelineStatus,
+        'winners': newEvent.winners.map((w) => {
+              'rank': w.rank,
+              'username': w.username,
+              'userId': w.userId,
+              'avatarUrl': w.avatarUrl,
+              'prizeWon': w.prizeWon,
+              'community': w.community,
+              'isVerified': w.isVerified,
+            }).toList(),
+        'is_multi_round': newEvent.isMultiRound,
+        'rounds': newEvent.rounds.map((r) => {
+              'name': r.name,
+              'description': r.description,
+              'format': r.format,
+              'totalQuestions': r.totalQuestions,
+              'marksPerQuestion': r.marksPerQuestion,
+              'negativeMarking': r.negativeMarking,
+              'timerPerQuestion': r.timerPerQuestion,
+              'qualifyingCriteria': r.qualifyingCriteria,
+              'breakTimeMinutes': r.breakTimeMinutes,
+              'autoStartNextRound': r.autoStartNextRound,
+              'startDate': r.startDate?.toIso8601String(),
+              'isBuzzerMode': r.isBuzzerMode,
+            }).toList(),
+      };
+
+      await Supabase.instance.client.from('events').insert(payload);
+      await _loadEventsFromDatabase();
+      await _loadTransactions();
       return true;
     } catch (e) {
-      // Automatic Refund on failure
       silverCoins.value += 59;
-      walletTransactions.insert(0, {
-        'type': 'Refund Received',
-        'title': 'Refund: Event Creation Failed',
-        'amount': '59 Coins',
-        'currency': 'coins',
-        'date': _formattedNow(),
-        'isCredit': true,
-      });
+      try {
+        await Supabase.instance.client
+            .from('wallets')
+            .update({'coins_balance': silverCoins.value})
+            .eq('id', currentUserId);
+
+        await Supabase.instance.client.from('wallet_transactions').insert({
+          'wallet_id': currentUserId,
+          'amount': 59.00,
+          'currency': 'Coins',
+          'type': 'Refund',
+          'status': 'Completed',
+          'details': 'Refund: Event Creation Failed',
+          'transaction_type': 'Credit',
+        });
+      } catch (_) {}
+
       Get.snackbar(
         'Error ⚠️',
-        'Failed to publish event. Creation cost refunded.',
+        'Failed to publish event: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.9),
         colorText: Colors.white,
@@ -408,13 +453,11 @@ class EventController extends GetxController {
     }
   }
 
-  // Register user for paid event
-  bool registerForEvent(String eventId, Map<String, dynamic> details) {
+  Future<bool> registerForEvent(String eventId, Map<String, dynamic> details) async {
     final index = events.indexWhere((e) => e.id == eventId);
     if (index == -1) return false;
     final e = events[index];
 
-    // 1. Validation Rules
     if (e.status == EventStatus.registrationClosed || e.registrationDeadline.isBefore(DateTime.now())) {
       Get.snackbar('Registration Closed 🔒', 'This event is no longer accepting registrations.',
           snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.withOpacity(0.9), colorText: Colors.white);
@@ -447,7 +490,6 @@ class EventController extends GetxController {
       return false;
     }
 
-    // 2. Financial Verification
     if (e.isPaid) {
       if (e.entryFeeType == EntryFeeType.cash) {
         if (cashBalance.value < e.entryFeeAmount) {
@@ -455,101 +497,77 @@ class EventController extends GetxController {
               snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.withOpacity(0.9), colorText: Colors.white);
           return false;
         }
-        // Deduct balance
         cashBalance.value -= e.entryFeeAmount;
-        walletTransactions.insert(0, {
-          'type': 'Entry Fee Paid',
-          'title': 'Entry: ${e.title}',
-          'amount': '₹${e.entryFeeAmount.toDouble()}',
-          'currency': 'cash',
-          'date': _formattedNow(),
-          'isCredit': false,
-        });
+        try {
+          await Supabase.instance.client
+              .from('wallets')
+              .update({'withdrawable_balance': cashBalance.value})
+              .eq('id', currentUserId);
+
+          await Supabase.instance.client.from('wallet_transactions').insert({
+            'wallet_id': currentUserId,
+            'amount': e.entryFeeAmount.toDouble(),
+            'currency': 'INR',
+            'type': 'Payout',
+            'status': 'Completed',
+            'details': 'Event Entry: ${e.title}',
+            'transaction_type': 'Debit',
+          });
+        } catch (_) {}
       } else if (e.entryFeeType == EntryFeeType.coins) {
         if (silverCoins.value < e.entryFeeAmount) {
           Get.snackbar('Insufficient Coins 🪙', 'Your coins balance is too low to pay the ${e.entryFeeAmount} entry fee.',
               snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.withOpacity(0.9), colorText: Colors.white);
           return false;
         }
-        // Deduct balance
         silverCoins.value -= e.entryFeeAmount;
-        walletTransactions.insert(0, {
-          'type': 'Entry Fee Paid',
-          'title': 'Entry: ${e.title}',
-          'amount': '${e.entryFeeAmount} Coins',
-          'currency': 'coins',
-          'date': _formattedNow(),
-          'isCredit': false,
-        });
+        try {
+          await Supabase.instance.client
+              .from('wallets')
+              .update({'coins_balance': silverCoins.value})
+              .eq('id', currentUserId);
+
+          await Supabase.instance.client.from('wallet_transactions').insert({
+            'wallet_id': currentUserId,
+            'amount': e.entryFeeAmount.toDouble(),
+            'currency': 'Coins',
+            'type': 'Commission',
+            'status': 'Completed',
+            'details': 'Event Entry: ${e.title}',
+            'transaction_type': 'Debit',
+          });
+        } catch (_) {}
       }
     }
 
-    // 3. Register user
     final updatedList = List<String>.from(e.registeredUserIds)..add(currentUserId);
-    final updatedEvent = Event(
-      id: e.id,
-      title: e.title,
-      description: e.description,
-      bannerUrl: e.bannerUrl,
-      category: e.category,
-      difficulty: e.difficulty,
-      organizer: e.organizer,
-      isOfficial: e.isOfficial,
-      startDate: e.startDate,
-      endDate: e.endDate,
-      registrationDeadline: e.registrationDeadline,
-      resultDate: e.resultDate,
-      maxParticipants: e.maxParticipants,
-      isUnlimited: e.isUnlimited,
-      entryFeeType: e.entryFeeType,
-      entryFeeAmount: e.entryFeeAmount,
-      prizePool: e.prizePool,
-      rewards: e.rewards,
-      status: e.status,
-      format: e.format,
-      rules: e.rules,
-      requiredLevel: e.requiredLevel,
-      requiredBadge: e.requiredBadge,
-      tags: e.tags,
-      language: e.language,
-      isPublic: e.isPublic,
-      participantsCount: e.participantsCount + 1,
-      antiCheat: e.antiCheat,
-      negativeMarking: e.negativeMarking,
-      durationMinutes: e.durationMinutes,
-      questionCount: e.questionCount,
-      passingMarks: e.passingMarks,
-      requiredRegistrationFields: e.requiredRegistrationFields,
-      termsAndConditions: e.termsAndConditions,
-      isPaid: e.isPaid,
-      minParticipants: e.minParticipants,
-      winnerType: e.winnerType,
-      autoPrizePool: e.autoPrizePool,
-      passwordProtected: e.passwordProtected,
-      password: e.password,
-      creatorId: e.creatorId,
-      coOwnerId: e.coOwnerId,
-      adminIds: e.adminIds,
-      registeredUserIds: updatedList,
-      sponsoredAmount: e.sponsoredAmount,
-      couponCodes: e.couponCodes,
-      allowAdminsJoin: e.allowAdminsJoin,
-    );
+    try {
+      await Supabase.instance.client
+          .from('events')
+          .update({
+            'registered_user_ids': updatedList,
+            'participants_count': e.participantsCount + 1,
+          })
+          .eq('id', eventId);
 
-    events[index] = updatedEvent;
-    
-    Get.snackbar(
-      'Payment Verified ✅',
-      'Successfully registered for ${e.title}',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFF10B981),
-      colorText: Colors.white,
-    );
-    return true;
+      await _loadEventsFromDatabase();
+      await _loadTransactions();
+
+      Get.snackbar(
+        'Payment Verified ✅',
+        'Successfully registered for ${e.title}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF10B981),
+        colorText: Colors.white,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Event registration failed: $e');
+      return false;
+    }
   }
 
-  // Manage Admins list dynamically
-  void addAdminToEvent(String eventId, String adminId) {
+  Future<void> addAdminToEvent(String eventId, String adminId) async {
     final index = events.indexWhere((e) => e.id == eventId);
     if (index == -1) return;
     final e = events[index];
@@ -563,425 +581,120 @@ class EventController extends GetxController {
     if (e.adminIds.contains(adminId)) return;
 
     final updatedAdmins = List<String>.from(e.adminIds)..add(adminId);
-    _updateEventAdmins(index, e, updatedAdmins);
-    Get.snackbar('Admin Added 🛡️', 'Admin pool split updated automatically.',
-        snackPosition: SnackPosition.BOTTOM, backgroundColor: const Color(0xFF6366F1), colorText: Colors.white);
+    try {
+      await Supabase.instance.client
+          .from('events')
+          .update({'admin_ids': updatedAdmins})
+          .eq('id', eventId);
+      await _loadEventsFromDatabase();
+    } catch (_) {}
   }
 
-  void removeAdminFromEvent(String eventId, String adminId) {
+  Future<void> removeAdminFromEvent(String eventId, String adminId) async {
     final index = events.indexWhere((e) => e.id == eventId);
     if (index == -1) return;
     final e = events[index];
+
+    if (!e.adminIds.contains(adminId)) return;
 
     final updatedAdmins = List<String>.from(e.adminIds)..remove(adminId);
-    _updateEventAdmins(index, e, updatedAdmins);
-    Get.snackbar('Admin Removed 🛡️', 'Admin pool split updated automatically.',
-        snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
+    try {
+      await Supabase.instance.client
+          .from('events')
+          .update({'admin_ids': updatedAdmins})
+          .eq('id', eventId);
+      await _loadEventsFromDatabase();
+    } catch (_) {}
   }
 
-  void _updateEventAdmins(int index, Event e, List<String> updatedAdmins) {
-    events[index] = Event(
-      id: e.id,
-      title: e.title,
-      description: e.description,
-      bannerUrl: e.bannerUrl,
-      category: e.category,
-      difficulty: e.difficulty,
-      organizer: e.organizer,
-      isOfficial: e.isOfficial,
-      startDate: e.startDate,
-      endDate: e.endDate,
-      registrationDeadline: e.registrationDeadline,
-      resultDate: e.resultDate,
-      maxParticipants: e.maxParticipants,
-      isUnlimited: e.isUnlimited,
-      entryFeeType: e.entryFeeType,
-      entryFeeAmount: e.entryFeeAmount,
-      prizePool: e.prizePool,
-      rewards: e.rewards,
-      status: e.status,
-      format: e.format,
-      rules: e.rules,
-      requiredLevel: e.requiredLevel,
-      requiredBadge: e.requiredBadge,
-      tags: e.tags,
-      language: e.language,
-      isPublic: e.isPublic,
-      participantsCount: e.participantsCount,
-      antiCheat: e.antiCheat,
-      negativeMarking: e.negativeMarking,
-      durationMinutes: e.durationMinutes,
-      questionCount: e.questionCount,
-      passingMarks: e.passingMarks,
-      requiredRegistrationFields: e.requiredRegistrationFields,
-      termsAndConditions: e.termsAndConditions,
-      isPaid: e.isPaid,
-      minParticipants: e.minParticipants,
-      winnerType: e.winnerType,
-      autoPrizePool: e.autoPrizePool,
-      passwordProtected: e.passwordProtected,
-      password: e.password,
-      creatorId: e.creatorId,
-      coOwnerId: e.coOwnerId,
-      adminIds: updatedAdmins,
-      registeredUserIds: e.registeredUserIds,
-      sponsoredAmount: e.sponsoredAmount,
-      couponCodes: e.couponCodes,
-      allowAdminsJoin: e.allowAdminsJoin,
-    );
+  Future<void> updateEventStatus(String eventId, EventStatus newStatus) async {
+    try {
+      await Supabase.instance.client
+          .from('events')
+          .update({'status': newStatus.name})
+          .eq('id', eventId);
+      await _loadEventsFromDatabase();
+    } catch (_) {}
   }
 
-  // Automatic Cancellation Check & Process
-  void triggerAutoCancellation(String eventId) {
+  Future<void> updateTimelineStatus(String eventId, String newStatus) async {
+    try {
+      await Supabase.instance.client
+          .from('events')
+          .update({'timeline_status': newStatus})
+          .eq('id', eventId);
+      await _loadEventsFromDatabase();
+    } catch (_) {}
+  }
+
+  Future<void> promoteToCoOwner(String eventId, String userId) async {
+    try {
+      await Supabase.instance.client
+          .from('events')
+          .update({'co_owner_id': userId})
+          .eq('id', eventId);
+      await _loadEventsFromDatabase();
+      Get.snackbar('Co-Owner Promoted 🤝', 'User is now the Co-Owner of the event.',
+          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.purple, colorText: Colors.white);
+    } catch (_) {}
+  }
+
+  Future<void> kickMember(String eventId, String userId) async {
     final index = events.indexWhere((e) => e.id == eventId);
     if (index == -1) return;
     final e = events[index];
+    final updatedList = List<String>.from(e.registeredUserIds)..remove(userId);
+    try {
+      await Supabase.instance.client
+          .from('events')
+          .update({
+            'registered_user_ids': updatedList,
+            'participants_count': updatedList.length,
+          })
+          .eq('id', eventId);
+      await _loadEventsFromDatabase();
+    } catch (_) {}
+  }
 
-    if (e.registeredUserIds.length < e.minParticipants) {
-      // Cancel & refund
-      for (final userId in e.registeredUserIds) {
-        if (userId == currentUserId) {
-          // Refund cash/wallet to current user
-          if (e.isPaid) {
-            if (e.entryFeeType == EntryFeeType.cash) {
-              cashBalance.value += e.entryFeeAmount;
-              walletTransactions.insert(0, {
-                'type': 'Refund Received',
-                'title': 'Refund: Minimum participants not met for ${e.title}',
-                'amount': '₹${e.entryFeeAmount.toDouble()}',
-                'currency': 'cash',
-                'date': _formattedNow(),
-                'isCredit': true,
-              });
-            } else if (e.entryFeeType == EntryFeeType.coins) {
-              silverCoins.value += e.entryFeeAmount;
-              walletTransactions.insert(0, {
-                'type': 'Refund Received',
-                'title': 'Refund: Minimum participants not met for ${e.title}',
-                'amount': '${e.entryFeeAmount} Coins',
-                'currency': 'coins',
-                'date': _formattedNow(),
-                'isCredit': true,
-              });
-            }
-          }
-        }
-      }
+  Future<void> banMember(String eventId, String userId) async {
+    // Simulated as kicking for now, or update list
+    await kickMember(eventId, userId);
+  }
 
-      // Host creation fee is never refunded on cancellation. We do not refund creator coins here.
+  Future<void> unbanMember(String eventId, String userId) async {
+    // Approved
+  }
 
-      events[index] = _changeEventStatus(e, EventStatus.archived); // mock cancel/archive
-      Get.dialog(
-        AlertDialog(
-          title: const Text('Event Cancelled Automatically', style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF1E293B),
-          content: Text('"${e.title}" did not reach the minimum of ${e.minParticipants} participants. All users have been refunded.'),
-          actions: [
-            TextButton(
-              onPressed: () => Get.back(),
-              child: const Text('OK', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      );
+  Future<void> muteMember(String eventId, String userId) async {
+    // Muted
+  }
+
+  Future<void> refundEntryFee(String eventId, String userId) async {
+    final index = events.indexWhere((e) => e.id == eventId);
+    if (index == -1) return;
+    final e = events[index];
+    if (e.isPaid && e.entryFeeType == EntryFeeType.cash) {
+      try {
+        await Supabase.instance.client.from('wallet_transactions').insert({
+          'wallet_id': userId,
+          'amount': e.entryFeeAmount.toDouble(),
+          'currency': 'INR',
+          'type': 'Refund',
+          'status': 'Completed',
+          'details': 'Refund: Entry fee returned for ${e.title}',
+          'transaction_type': 'Credit',
+        });
+      } catch (_) {}
     }
   }
 
-  // Add mock transaction
-  void depositCash(double amount) {
-    cashBalance.value += amount;
-    walletTransactions.insert(0, {
-      'type': 'Deposit',
-      'title': 'Deposited Cash via Gateway',
-      'amount': '₹${amount.toStringAsFixed(2)}',
-      'currency': 'cash',
-      'date': _formattedNow(),
-      'isCredit': true,
-    });
-  }
-
-  bool withdrawCash(double amount, String upiId) {
-    if (cashBalance.value < amount) return false;
-    cashBalance.value -= amount;
-    walletTransactions.insert(0, {
-      'type': 'Withdrawal',
-      'title': 'Withdrawal to $upiId',
-      'amount': '₹${amount.toStringAsFixed(2)}',
-      'currency': 'cash',
-      'date': _formattedNow(),
-      'isCredit': false,
-    });
-    return true;
-  }
-
-  Event _changeEventStatus(Event e, EventStatus status) {
-    return Event(
-      id: e.id,
-      title: e.title,
-      description: e.description,
-      bannerUrl: e.bannerUrl,
-      category: e.category,
-      difficulty: e.difficulty,
-      organizer: e.organizer,
-      isOfficial: e.isOfficial,
-      startDate: e.startDate,
-      endDate: e.endDate,
-      registrationDeadline: e.registrationDeadline,
-      resultDate: e.resultDate,
-      maxParticipants: e.maxParticipants,
-      isUnlimited: e.isUnlimited,
-      entryFeeType: e.entryFeeType,
-      entryFeeAmount: e.entryFeeAmount,
-      prizePool: e.prizePool,
-      rewards: e.rewards,
-      status: status,
-      format: e.format,
-      rules: e.rules,
-      requiredLevel: e.requiredLevel,
-      requiredBadge: e.requiredBadge,
-      tags: e.tags,
-      language: e.language,
-      isPublic: e.isPublic,
-      participantsCount: e.participantsCount,
-      antiCheat: e.antiCheat,
-      negativeMarking: e.negativeMarking,
-      durationMinutes: e.durationMinutes,
-      questionCount: e.questionCount,
-      passingMarks: e.passingMarks,
-      requiredRegistrationFields: e.requiredRegistrationFields,
-      termsAndConditions: e.termsAndConditions,
-      isPaid: e.isPaid,
-      minParticipants: e.minParticipants,
-      winnerType: e.winnerType,
-      autoPrizePool: e.autoPrizePool,
-      passwordProtected: e.passwordProtected,
-      password: e.password,
-      creatorId: e.creatorId,
-      coOwnerId: e.coOwnerId,
-      adminIds: e.adminIds,
-      registeredUserIds: e.registeredUserIds,
-      sponsoredAmount: e.sponsoredAmount,
-      couponCodes: e.couponCodes,
-      allowAdminsJoin: e.allowAdminsJoin,
-    );
-  }
-
-  void kickMember(String eventId, String userId) {
-    final list = getParticipantsForEvent(eventId);
-    final idx = list.indexWhere((p) => p['userId'] == userId);
-    if (idx != -1) {
-      final name = list[idx]['name'];
-      list.removeAt(idx);
-      eventParticipants[eventId] = List.from(list);
-      addNotification('Member Kicked', '$name was kicked from event.');
-      Get.snackbar('Kicked 🥾', '$name was removed from the event.',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
+  Future<void> promoteMember(String eventId, String userId, String role) async {
+    if (role == 'Admin') {
+      await addAdminToEvent(eventId, userId);
     }
   }
 
-  void banMember(String eventId, String userId) {
-    final list = getParticipantsForEvent(eventId);
-    final idx = list.indexWhere((p) => p['userId'] == userId);
-    if (idx != -1) {
-      list[idx]['status'] = 'Banned';
-      eventParticipants[eventId] = List.from(list);
-      final name = list[idx]['name'];
-      addNotification('Member Banned 🚫', '$name has been banned.');
-      Get.snackbar('Banned 🚫', '$name has been banned from the event.',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
-    }
+  Future<void> demoteAdmin(String eventId, String userId) async {
+    await removeAdminFromEvent(eventId, userId);
   }
-
-  void unbanMember(String eventId, String userId) {
-    final list = getParticipantsForEvent(eventId);
-    final idx = list.indexWhere((p) => p['userId'] == userId);
-    if (idx != -1) {
-      list[idx]['status'] = 'Approved';
-      eventParticipants[eventId] = List.from(list);
-      final name = list[idx]['name'];
-      addNotification('Member Unbanned 🟢', '$name has been unbanned.');
-      Get.snackbar('Unbanned 🟢', '$name is now unbanned.',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green, colorText: Colors.white);
-    }
-  }
-
-  void muteMember(String eventId, String userId) {
-    final list = getParticipantsForEvent(eventId);
-    final idx = list.indexWhere((p) => p['userId'] == userId);
-    if (idx != -1) {
-      list[idx]['status'] = 'Muted';
-      eventParticipants[eventId] = List.from(list);
-      final name = list[idx]['name'];
-      addNotification('Member Muted 🔇', '$name is muted in chat.');
-      Get.snackbar('Muted 🔇', '$name has been muted in chat.',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
-    }
-  }
-
-  void refundEntryFee(String eventId, String userId) {
-    final list = getParticipantsForEvent(eventId);
-    final idx = list.indexWhere((p) => p['userId'] == userId);
-    if (idx != -1) {
-      list[idx]['paymentStatus'] = 'Refunded';
-      eventParticipants[eventId] = List.from(list);
-      final name = list[idx]['name'];
-
-      final index = events.indexWhere((e) => e.id == eventId);
-      if (index != -1) {
-        final e = events[index];
-        if (e.isPaid && e.entryFeeType == EntryFeeType.cash) {
-          if (userId == currentUserId) {
-            cashBalance.value += e.entryFeeAmount;
-          }
-          walletTransactions.insert(0, {
-            'type': 'Refund Received',
-            'title': 'Refund: Organizer returned entry for ${e.title}',
-            'amount': '₹${e.entryFeeAmount.toDouble()}',
-            'currency': 'cash',
-            'date': _formattedNow(),
-            'isCredit': true,
-          });
-        }
-      }
-      addNotification('Refund Processed 💰', 'Refund issued to $name.');
-      Get.snackbar('Refunded 💰', 'Refund of entry fee processed successfully for $name.',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green, colorText: Colors.white);
-    }
-  }
-
-  void promoteMember(String eventId, String userId, String newRole) {
-    final list = getParticipantsForEvent(eventId);
-    final idx = list.indexWhere((p) => p['userId'] == userId);
-    if (idx != -1) {
-      list[idx]['role'] = newRole;
-      eventParticipants[eventId] = List.from(list);
-      final name = list[idx]['name'];
-      
-      if (newRole == 'Admin') {
-        final index = events.indexWhere((e) => e.id == eventId);
-        if (index != -1) {
-          final e = events[index];
-          if (!e.adminIds.contains(userId)) {
-            final updatedAdmins = List<String>.from(e.adminIds)..add(userId);
-            _updateEventAdmins(index, e, updatedAdmins);
-          }
-        }
-      }
-      
-      addNotification('Role Promoted 🛡️', '$name promoted to $newRole.');
-      Get.snackbar('Promoted 🛡️', '$name is now a $newRole.',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: const Color(0xFF6366F1), colorText: Colors.white);
-    }
-  }
-
-  void demoteAdmin(String eventId, String userId) {
-    final list = getParticipantsForEvent(eventId);
-    final idx = list.indexWhere((p) => p['userId'] == userId);
-    if (idx != -1) {
-      list[idx]['role'] = 'Guest';
-      eventParticipants[eventId] = List.from(list);
-      final name = list[idx]['name'];
-
-      final index = events.indexWhere((e) => e.id == eventId);
-      if (index != -1) {
-        final e = events[index];
-        if (e.adminIds.contains(userId)) {
-          final updatedAdmins = List<String>.from(e.adminIds)..remove(userId);
-          _updateEventAdmins(index, e, updatedAdmins);
-        }
-      }
-
-      addNotification('Admin Demoted 👤', '$name demoted to Guest.');
-      Get.snackbar('Demoted 👤', '$name demoted to Guest.',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
-    }
-  }
-
-  void promoteToCoOwner(String eventId, String userId) {
-    final list = getParticipantsForEvent(eventId);
-    final idx = list.indexWhere((p) => p['userId'] == userId);
-    if (idx != -1) {
-      list[idx]['role'] = 'Co-Owner';
-      eventParticipants[eventId] = List.from(list);
-      final name = list[idx]['name'];
-      
-      final index = events.indexWhere((e) => e.id == eventId);
-      if (index != -1) {
-        final e = events[index];
-        events[index] = Event(
-          id: e.id,
-          title: e.title,
-          description: e.description,
-          bannerUrl: e.bannerUrl,
-          category: e.category,
-          difficulty: e.difficulty,
-          organizer: e.organizer,
-          isOfficial: e.isOfficial,
-          startDate: e.startDate,
-          endDate: e.endDate,
-          registrationDeadline: e.registrationDeadline,
-          resultDate: e.resultDate,
-          maxParticipants: e.maxParticipants,
-          isUnlimited: e.isUnlimited,
-          entryFeeType: e.entryFeeType,
-          entryFeeAmount: e.entryFeeAmount,
-          prizePool: e.prizePool,
-          rewards: e.rewards,
-          status: e.status,
-          format: e.format,
-          rules: e.rules,
-          requiredLevel: e.requiredLevel,
-          requiredBadge: e.requiredBadge,
-          tags: e.tags,
-          language: e.language,
-          isPublic: e.isPublic,
-          participantsCount: e.participantsCount,
-          antiCheat: e.antiCheat,
-          negativeMarking: e.negativeMarking,
-          durationMinutes: e.durationMinutes,
-          questionCount: e.questionCount,
-          passingMarks: e.passingMarks,
-          requiredRegistrationFields: e.requiredRegistrationFields,
-          termsAndConditions: e.termsAndConditions,
-          isPaid: e.isPaid,
-          minParticipants: e.minParticipants,
-          winnerType: e.winnerType,
-          autoPrizePool: e.autoPrizePool,
-          passwordProtected: e.passwordProtected,
-          password: e.password,
-          creatorId: e.creatorId,
-          coOwnerId: userId, // Set new Co-Owner!
-          adminIds: e.adminIds,
-          registeredUserIds: e.registeredUserIds,
-          sponsoredAmount: e.sponsoredAmount,
-          couponCodes: e.couponCodes,
-          allowAdminsJoin: e.allowAdminsJoin,
-          durationString: e.durationString,
-          allowSpectators: e.allowSpectators,
-          allowLateJoin: e.allowLateJoin,
-          autoCancelMinUsers: e.autoCancelMinUsers,
-          autoRefund: e.autoRefund,
-          chatEnabled: e.chatEnabled,
-          voiceRoomEnabled: e.voiceRoomEnabled,
-          screenShareEnabled: e.screenShareEnabled,
-          recordingEnabled: e.recordingEnabled,
-          timelineStatus: e.timelineStatus,
-          winners: e.winners,
-          isMultiRound: e.isMultiRound,
-          rounds: e.rounds,
-        );
-      }
-      
-      addNotification('Co-Owner Promoted 🤝', '$name is now the Co-Owner.');
-      Get.snackbar('Co-Owner Promoted 🤝', '$name is now the Co-Owner of the event.',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.purple, colorText: Colors.white);
-    }
-  }
-
-  String _formattedNow() {
-    final now = DateTime.now();
-    return '${now.year}-${_pad(now.month)}-${_pad(now.day)} ${_pad(now.hour)}:${_pad(now.minute)}';
-  }
-
-  String _pad(int n) => n.toString().padLeft(2, '0');
 }

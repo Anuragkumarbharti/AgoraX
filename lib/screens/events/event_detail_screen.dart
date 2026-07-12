@@ -337,7 +337,7 @@ class _EventDetailScreenState extends State<EventDetailScreen>
                                   );
 
                                   // Confirm registration after 1.5 seconds loader
-                                  Timer(const Duration(milliseconds: 1500), () {
+                                  Timer(const Duration(milliseconds: 1500), () async {
                                     Get.back(); // close loader dialog
                                     
                                     final Map<String, dynamic> regDetails = {
@@ -347,7 +347,7 @@ class _EventDetailScreenState extends State<EventDetailScreen>
                                       'upi_id': upiCtrl.text,
                                     };
 
-                                    final bool joined = _controller.registerForEvent(widget.event.id, regDetails);
+                                    final bool joined = await _controller.registerForEvent(widget.event.id, regDetails);
                                     if (joined) {
                                       setState(() {});
                                     }
@@ -1086,7 +1086,7 @@ class _EventDetailScreenState extends State<EventDetailScreen>
     final targetUser = User(
       id: userId,
       username: username.toLowerCase().replaceAll(' ', '_'),
-      email: '$userId@agorax.app',
+      email: '$userId@creania.app',
       displayName: username,
       avatar: avatarUrl,
       interests: ['Flutter', 'Coding Contest', 'BGMI'],

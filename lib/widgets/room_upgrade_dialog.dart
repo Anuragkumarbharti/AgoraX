@@ -12,7 +12,7 @@ class RoomUpgradeDialog extends StatelessWidget {
   }) : super(key: key);
 
   void _copyWebsiteUrl(BuildContext context) {
-    Clipboard.setData(const ClipboardData(text: 'https://www.agorax.com'));
+    Clipboard.setData(const ClipboardData(text: 'https://www.creania.com'));
     Get.snackbar(
       'Link Copied 📋',
       'Official portal link copied to clipboard.',

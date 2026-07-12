@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../services/user_profile_cache_manager.dart';
 import '../../core/theme.dart';
 import '../../services/store_controller.dart';
 import '../../services/razorpay_backend_service.dart';
@@ -310,7 +312,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('AGORAX INVOICE', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            Text('CREANIA INVOICE', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             IconButton(icon: const Icon(Icons.close, color: Colors.white60, size: 18), onPressed: () => Navigator.pop(context)),
           ],
         ),
@@ -320,7 +322,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
           children: [
             _invoiceLine('Order Reference', o.orderId),
             _invoiceLine('Date & Time', '${o.dateTime.day}/${o.dateTime.month}/${o.dateTime.year}'),
-            _invoiceLine('Billing Target', 'Me (Anurag Bharti)'),
+            _invoiceLine('Billing Target', 'Me (${UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student'})'),
             _invoiceLine('Payment Method', o.paymentMethod),
             const Divider(color: Colors.white10, height: 24),
             _invoiceLine('Product / Item', o.name),

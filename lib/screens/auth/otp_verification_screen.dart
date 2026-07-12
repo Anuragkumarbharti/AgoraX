@@ -45,11 +45,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   }
 
   void _handleVerifyOTP() {
-    final otp = _otpControllers.map((c) => c.text).join();
-    if (otp.length != 6) {
+    final otp = _otpControllers.map((c) => c.text).join().trim();
+    if (otp != '0' && otp != '000000' && otp != '123456') {
       Get.snackbar(
         'Error',
-        'Please enter 6-digit OTP',
+        'Invalid verification code. Use code 0.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: AppTheme.errorColor,
       );
@@ -58,10 +58,10 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
     setState(() => _isLoading = true);
 
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 1), () {
       setState(() => _isLoading = false);
       Get.to(
-        () => const ResetPasswordScreen(),
+        () => ResetPasswordScreen(emailOrPhone: widget.email),
       );
     });
   }

@@ -13,6 +13,9 @@ import '../../widgets/post_attachments_widget.dart';
 import '../../services/study_vault_controller.dart';
 import '../study_vault/study_vault_home_screen.dart';
 import '../study_vault/book_details_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../../services/community_controller.dart';
+import '../communities/community_detail_screen.dart';
 
 
 class ExploreScreen extends StatefulWidget {
@@ -52,7 +55,7 @@ class _ExploreScreenState extends State<ExploreScreen>
               'WebSocket vs SSE vs Long Polling — I tested all 3 in a real app. The winner might surprise you...',
               'Rust is taking over backend development and I\'m here for it. Rewrote our API, memory usage dropped 80%.',
               'My team just shipped real-time collaboration using CRDTs. Here\'s what we learned about distributed state 🔬',
-              'Voice rooms are the future of online communities. That\'s why we built AgoraX 🎙️',
+              'Voice rooms are the future of online communities. That\'s why we built Creania 🎙️',
             ][i % 10],
             images: [
               [
@@ -217,102 +220,129 @@ class _ExploreScreenState extends State<ExploreScreen>
             createdAt: DateTime.now().subtract(Duration(hours: i * 5 + 2)),
           ));
 
-  final List<Community> _communities = List.generate(6, (i) {
-    final names = [
-      'Flutter India 🦋',
-      'AI & ML Hub 🤖',
-      'DSA Grinders 🧠',
-      'Web Dev Café ☕',
-      'Open Source 🌍',
-      'UPSC Aspirants 📚'
-    ];
-    final descs = [
-      'Official community for Flutter developers across India',
-      'Discuss AI, ML, and the future of intelligent systems',
-      'Crack DSA together — daily challenges and solutions',
-      'All things frontend, backend, and full-stack web dev',
-      'Build and contribute to open source projects',
-      'Study smart, crack UPSC together',
-    ];
-    return Community(
-      id: 'c$i',
-      name: names[i],
-      description: descs[i],
-      category: [
-        'Technology',
-        'AI',
-        'Education',
-        'Technology',
-        'Open Source',
-        'Education'
-      ][i],
-      type: 'public',
-      owner: 'admin',
-      admins: [],
-      members: [],
-      memberCount: [12400, 8200, 5600, 4800, 3100, 9800][i],
-      isVerified: i % 2 == 0,
-      createdAt: DateTime.now().subtract(Duration(days: i * 30)),
-    );
-  });
+  List<Community> get _communities => Get.find<CommunityController>().communities;
 
-  final List<User> _users = List.generate(
-      8,
-      (i) => User(
-            id: 'usr$i',
-            username: [
-              'top_coder',
-              'flutter_queen',
-              'ai_wizard',
-              'open_src_king',
-              'dsa_grinder',
-              'react_dev',
-              'cloud_arch',
-              'mobile_guru'
-            ][i],
-            email: '',
-            displayName: [
-              'Rahul Tiwari',
-              'Sneha Kapoor',
-              'Nikhil Gupta',
-              'Tanvi Shah',
-              'Mohit Yadav',
-              'Ritika Singh',
-              'Saurabh Verma',
-              'Pooja Mishra'
-            ][i],
-            avatar: [
-              'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
-              'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150',
-              'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150',
-              'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150',
-              'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150',
-              'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-              'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-              'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-            ][i % 8],
-            sid: '204${810 + i}',
-            interests: [],
-            communities: ['c1', 'c2'],
-            followers: 800 + i * 400,
-            following: 200 + i * 80,
-            isVerified: i % 3 == 0,
-            isPremium: i % 4 == 0,
-            reputation: 2000 + i * 600,
-            level: 8 + i * 2,
-            xp: 2000 + i * 800,
-            totalXp: 6000,
-            totalPosts: 30 + i * 15,
-            totalQuestions: 8 + i * 4,
-            badges: ['🏆 Top Contributor'],
-            levelTitle: i < 4 ? 'Expert' : 'Legend',
-          ));
+  final List<User> _users = [];
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _loadUsersFromDatabase();
+  }
+
+  Future<void> _loadUsersFromDatabase() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('profiles')
+          .select()
+          .limit(20);
+      if (response != null) {
+        final List<User> loadedUsers = [];
+        for (final p in response) {
+          loadedUsers.add(User(
+            id: p['id'] ?? '',
+            username: p['username'] ?? '',
+            email: '',
+            displayName: p['username'] ?? '',
+            avatar: p['avatar_url'],
+            bio: p['bio'] ?? '',
+            interests: [],
+            communities: [],
+            followers: p['followers'] ?? 0,
+            following: p['following'] ?? 0,
+            isVerified: (p['level'] ?? 1) >= 10,
+            isPremium: (p['vip_level'] ?? 0) > 0 || (p['novel_level'] ?? 0) > 0,
+            reputation: p['experience'] ?? 0,
+            sid: (p['id'].hashCode.abs() % 900000 + 100000).toString(),
+            level: p['level'] ?? 1,
+            xp: p['experience'] ?? 0,
+            totalXp: (p['level'] ?? 1) * 1000,
+            badges: List<String>.from(p['badges'] ?? []),
+            levelTitle: (p['level'] ?? 1) >= 10 ? 'Expert' : 'Newcomer',
+            vipLevel: p['vip_level'] ?? 0,
+            novelLevel: p['novel_level'] ?? 0,
+            careerLevel: p['career_level'] ?? 1,
+            avatarFrame: p['avatar_frame'] ?? 'Normal',
+          ));
+        }
+        if (mounted && loadedUsers.isNotEmpty) {
+          setState(() {
+            _users.clear();
+            _users.addAll(loadedUsers);
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading explore users from DB: $e');
+    }
+
+    // Fallback Mock Users seeding if DB is empty or fails
+    if (_users.isEmpty) {
+      final mockUsers = List.generate(
+          8,
+          (i) => User(
+                id: 'usr$i',
+                username: [
+                  'top_coder',
+                  'flutter_queen',
+                  'ai_wizard',
+                  'open_src_king',
+                  'dsa_grinder',
+                  'react_dev',
+                  'cloud_arch',
+                  'mobile_guru'
+                ][i],
+                email: '',
+                displayName: [
+                  'Rahul Tiwari',
+                  'Sneha Kapoor',
+                  'Nikhil Gupta',
+                  'Tanvi Shah',
+                  'Mohit Yadav',
+                  'Ritika Singh',
+                  'Saurabh Verma',
+                  'Pooja Mishra'
+                ][i],
+                avatar: [
+                  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
+                  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150',
+                  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150',
+                  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150',
+                  'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150',
+                  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
+                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+                ][i % 8],
+                sid: '204${810 + i}',
+                interests: [],
+                communities: ['c1', 'c2'],
+                followers: 800 + i * 400,
+                following: 200 + i * 80,
+                isVerified: i % 3 == 0,
+                isPremium: i % 4 == 0,
+                reputation: 2000 + i * 600,
+                level: 8 + i * 2,
+                xp: 2000 + i * 800,
+                totalXp: 6000,
+                totalPosts: 30 + i * 15,
+                totalQuestions: 8 + i * 4,
+                badges: ['🏆 Top Contributor'],
+                levelTitle: i < 4 ? 'Expert' : 'Legend',
+                vipLevel: i % 3 == 0 ? 2 : 0,
+                novelLevel: i % 4 == 0 ? 1 : 0,
+                careerLevel: 1,
+                avatarFrame: 'Normal',
+              ));
+      if (mounted) {
+        setState(() {
+          _users.clear();
+          _users.addAll(mockUsers);
+        });
+      }
+    }
   }
 
   @override
@@ -1226,51 +1256,66 @@ class _ExploreScreenState extends State<ExploreScreen>
   Widget _buildHorizontalCommunityCard(Community c) {
     final icons = ['🦋', '🤖', '🧠', '☕', '🌍', '📚'];
     final idx = _communities.indexOf(c);
-    return Container(
-      width: 160,
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(icons[idx % icons.length], style: const TextStyle(fontSize: 28)),
-          const SizedBox(height: 8),
-          Text(c.name.split(' ')[0],
-              style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text('${_formatNumber(c.memberCount)} members',
-              style:
-                  const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                minimumSize: Size.zero,
-                elevation: 0,
+    final communityCtrl = Get.find<CommunityController>();
+    final isMember = c.members.contains(CommunityController.currentUserId);
+
+    return GestureDetector(
+      onTap: () => Get.to(() => CommunityDetailScreen(communityId: c.id)),
+      child: Container(
+        width: 160,
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(icons[idx % icons.length], style: const TextStyle(fontSize: 28)),
+            const SizedBox(height: 8),
+            Text(c.name.split(' ')[0],
+                style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text('${_formatNumber(c.memberCount)} members',
+                style:
+                    const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (isMember) {
+                    communityCtrl.leaveCommunity(c.id);
+                    Get.snackbar('Left Community', 'You left ${c.name}');
+                  } else {
+                    communityCtrl.joinCommunity(c.id);
+                    Get.snackbar('Joined Community', 'You joined ${c.name}!');
+                  }
+                  setState(() {});
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isMember ? Colors.grey.shade800 : AppTheme.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  minimumSize: Size.zero,
+                  elevation: 0,
+                ),
+                child: Text(isMember ? 'Leave' : 'Join',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
               ),
-              child: const Text('Join',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1278,81 +1323,96 @@ class _ExploreScreenState extends State<ExploreScreen>
   Widget _buildFullCommunityCard(Community c) {
     final icons = ['🦋', '🤖', '🧠', '☕', '🌍', '📚'];
     final idx = _communities.indexOf(c);
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [
-                AppTheme.primaryColor.withOpacity(0.25),
-                AppTheme.secondaryColor.withOpacity(0.15),
-              ]),
-              borderRadius: BorderRadius.circular(16),
+    final communityCtrl = Get.find<CommunityController>();
+    final isMember = c.members.contains(CommunityController.currentUserId);
+
+    return GestureDetector(
+      onTap: () => Get.to(() => CommunityDetailScreen(communityId: c.id)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  AppTheme.primaryColor.withOpacity(0.25),
+                  AppTheme.secondaryColor.withOpacity(0.15),
+                ]),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Text(icons[idx % icons.length],
+                    style: const TextStyle(fontSize: 28)),
+              ),
             ),
-            child: Center(
-              child: Text(icons[idx % icons.length],
-                  style: const TextStyle(fontSize: 28)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(c.name,
+                            style: const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            )),
+                      ),
+                      if (c.isVerified)
+                        const Icon(Icons.verified_rounded,
+                            color: Color(0xFF60A5FA), size: 16),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text('${_formatNumber(c.memberCount)} members · ${c.category}',
+                      style: const TextStyle(
+                          color: AppTheme.textTertiary, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  Text(c.description,
+                      style: const TextStyle(
+                          color: AppTheme.textTertiary, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(c.name,
-                          style: const TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          )),
-                    ),
-                    if (c.isVerified)
-                      const Icon(Icons.verified_rounded,
-                          color: Color(0xFF60A5FA), size: 16),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text('${_formatNumber(c.memberCount)} members · ${c.category}',
-                    style: const TextStyle(
-                        color: AppTheme.textTertiary, fontSize: 12)),
-                const SizedBox(height: 4),
-                Text(c.description,
-                    style: const TextStyle(
-                        color: AppTheme.textTertiary, fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-              ],
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: () {
+                if (isMember) {
+                  communityCtrl.leaveCommunity(c.id);
+                  Get.snackbar('Left Community', 'You left ${c.name}');
+                } else {
+                  communityCtrl.joinCommunity(c.id);
+                  Get.snackbar('Joined Community', 'You joined ${c.name}!');
+                }
+                setState(() {});
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isMember ? Colors.grey.shade800 : AppTheme.primaryColor,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+                minimumSize: Size.zero,
+              ),
+              child: Text(isMember ? 'Leave' : 'Join',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
             ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              elevation: 0,
-              minimumSize: Size.zero,
-            ),
-            child: const Text('Join',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

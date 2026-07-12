@@ -2,6 +2,7 @@
 export 'splash/splash_screen.dart';
 
 // Onboarding
+export 'onboarding/onboarding_screen.dart';
 export 'onboarding/permission_onboarding_screen.dart';
 
 // Auth

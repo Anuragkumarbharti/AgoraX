@@ -27,7 +27,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   String _selectedPermission = 'everyone';
   bool _isPermanent = false;
 
-  // 10 VoxArena Room Types
+  // 10 Creania Room Types
   final List<String> _categories = [
     'Social Room',
     'Debate Room',

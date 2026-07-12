@@ -37,7 +37,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final name = _nameController.text.trim();
     final desc = _descController.text.trim();
 
@@ -52,7 +52,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       return;
     }
 
-    final error = _controller.createCommunity(
+    final error = await _controller.createCommunity(
       name: name,
       description: desc.isNotEmpty ? desc : 'A beautiful new community for $name enthusiasts.',
       category: _selectedCategory,

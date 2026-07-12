@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
+import '../../services/user_profile_cache_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/vip_controller.dart';
 import '../../widgets/vip_badge_widget.dart';
 import '../../widgets/vip_avatar_decorator.dart';
@@ -395,7 +397,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                         return const LinearGradient(colors: [Colors.white, Colors.white]).createShader(bounds);
                       },
                       child: Text(
-                        'Anurag Kumar',
+                        UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontSize: 16,

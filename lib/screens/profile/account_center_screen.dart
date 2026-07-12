@@ -714,11 +714,11 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
     );
   }
 
-  // --- SECTION 2: AGORAX STORE ---
+  // --- SECTION 2: CREANIA STORE ---
   Widget _buildStoreSection() {
     return _buildCategoryGroup(
       id: 'store',
-      title: '🛒 AgoraX Store',
+      title: '🛒 Creania Store',
       icon: Icons.storefront_outlined,
       badge: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -731,7 +731,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       children: [
         _buildFeatureTile(
           title: 'Open Store',
-          subtitle: 'Go to AgoraX Marketplace',
+          subtitle: 'Go to Creania Marketplace',
           trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
           onTap: () => Get.to(() => const StoreHomeScreen()),
         ),
@@ -2341,7 +2341,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Agency: AgoraX Talent Network', style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+            Text('Agency: Creania Talent Network', style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text('• Registered host count: 8\n• Active hosts streaming: 3\n• Today\'s agency commission: \$12.40\n• Current monthly agency tier: Gold (2.5%)', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
           ],

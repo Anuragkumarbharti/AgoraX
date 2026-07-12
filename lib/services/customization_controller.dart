@@ -2,24 +2,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'vip_controller.dart';
 import 'novel_controller.dart';
+import 'user_profile_cache_manager.dart';
 
 class CustomizationController extends GetxController {
-  // SharedPreferences Keys
-  static const String _keyFrame = 'cust_active_frame';
-  static const String _keyBubble = 'cust_active_bubble';
-  static const String _keyEntryEffect = 'cust_active_entry_effect';
-  static const String _keyAvatarEffect = 'cust_active_avatar_effect';
-  static const String _keyNameEffect = 'cust_active_name_effect';
+  static String get currentUserId => UserProfileCacheManager.currentUserId;
+
+  // SharedPreferences Keys (Local cache fallback/Visual settings)
   static const String _keyTheme = 'cust_active_theme';
-  static const String _keyBackground = 'cust_active_background';
-  static const String _keyBadges = 'cust_active_badges';
   static const String _keyFavorites = 'cust_favorites';
-  static const String _keyUnlocked = 'cust_unlocked_items';
-  static const String _keyTags = 'cust_active_tags';
-  static const String _keyEmojiPack = 'cust_active_emoji_pack';
-  static const String _keyGifts = 'cust_active_gifts';
 
   // Observables
   final RxString activeFrame = 'Normal'.obs;
@@ -46,6 +39,7 @@ class CustomizationController extends GetxController {
   final List<Map<String, dynamic>> customizationDb = [
     // 1. Avatar Frames (Static & Animated)
     {'name': 'Normal', 'category': 'Avatar Frame', 'rarity': 'Common', 'premium': 'None', 'req': 'Default unlocked border'},
+    {'name': 'Early Explorer Frame', 'category': 'Avatar Frame', 'rarity': 'Rare', 'premium': 'None', 'req': 'Profile Completion Badge'},
     // VIP Frames
     {'name': 'Royal Frame', 'category': 'Avatar Frame', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'Neon Frame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
@@ -62,17 +56,15 @@ class CustomizationController extends GetxController {
     {'name': 'Celestial Sky Frame', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
     {'name': 'Cosmic Emperor (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
-    // 4. Chat Bubbles
+    // 2. Chat Bubbles
     {'name': 'Classic Bubble', 'category': 'Chat Bubble', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
     // VIP Bubbles
     {'name': 'Royal Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'Blue Shield Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'Neon Bubble', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
     {'name': 'VIP Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Golden Shimmer', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
     {'name': 'Golden Shimmer Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
     {'name': 'Diamond Bubble', 'category': 'Chat Bubble', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Cyan Neon', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
     {'name': 'Crystal Cyan Neon Bubble', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
     {'name': 'Rainbow Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
     {'name': 'Emperor Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
@@ -82,133 +74,18 @@ class CustomizationController extends GetxController {
     {'name': 'Dragon Fire Bubble', 'category': 'Chat Bubble', 'rarity': 'Limited', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
     {'name': 'Phoenix Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
     {'name': 'Celestial Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Gold Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
     {'name': 'Cosmic Emperor Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
 
-    // 5. Entry Effects
+    // 3. Entry Effects
     {'name': 'None', 'category': 'Entry Effect', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
     // VIP Entry Effects
     {'name': 'Royal Portal', 'category': 'Entry Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'Neon Gateway', 'category': 'Entry Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Fireworks', 'category': 'Entry Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
     {'name': 'Golden Explosion', 'category': 'Entry Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
     {'name': 'Diamond Shatter', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
     {'name': 'Crystal Blizzard', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Magic Circle', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
     {'name': 'Rainbow Bridge', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
     {'name': 'Emperor Throne Room', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Entry Effects
-    {'name': 'Galaxy Warp', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Royal Palace Entry', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Lightning Strike', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Dragon Arrival', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Rise', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Portal', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Rift', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-
-    // 7. Badges
-    {'name': 'Legend', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'None', 'req': 'Achieve Hall of Fame'},
-    {'name': 'Explorer', 'category': 'Badges', 'rarity': 'Common', 'premium': 'None', 'req': 'Default badge'},
-    {'name': 'Scholar', 'category': 'Badges', 'rarity': 'Rare', 'premium': 'None', 'req': 'Complete 5 courses'},
-    {'name': 'Champion', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'None', 'req': 'Win room battle'},
-    {'name': 'Mastermind', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'None', 'req': 'UPSC level 10'},
-    // VIP Badges
-    {'name': 'Royal Badge', 'category': 'Badges', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'Neon Badge', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Golden Badge', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Badge', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Badge', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Rainbow Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Elite', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    {'name': 'Emperor Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Badges
-    {'name': 'Star Star', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Galaxy Badge', 'category': 'Badges', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Royal Palace Badge', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Dragon Badge', 'category': 'Badges', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Emperor Badge', 'category': 'Badges', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-
-    // 8. Tags
-    {'name': 'Scholar', 'category': 'Tags', 'rarity': 'Common', 'premium': 'None', 'req': 'Course graduate'},
-    {'name': 'Topper', 'category': 'Tags', 'rarity': 'Rare', 'premium': 'None', 'req': 'Top score in CS exam'},
-    {'name': 'VIP Star', 'category': 'Tags', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'VIP 3+'},
-    // VIP Tags
-    {'name': 'Royal Tag', 'category': 'Tags', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'Neon Tag', 'category': 'Tags', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Golden Tag', 'category': 'Tags', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Tag', 'category': 'Tags', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Tag', 'category': 'Tags', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Rainbow Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Emperor Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Tags
-    {'name': 'Galaxy Tag', 'category': 'Tags', 'rarity': 'Epic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Royal Palace Tag', 'category': 'Tags', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Dragon Tag', 'category': 'Tags', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Emperor Tag', 'category': 'Tags', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-
-    // 11. Backgrounds
-    {'name': 'None', 'category': 'Background', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
-    {'name': 'Aura Neon', 'category': 'Background', 'rarity': 'Rare', 'premium': 'None', 'req': 'Shop wallpaper'},
-    // VIP Backgrounds
-    {'name': 'Royal Palace Background', 'category': 'Background', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'Neon Grid Background', 'category': 'Background', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Gilded Background', 'category': 'Background', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Pristine Background', 'category': 'Background', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Glacial Background', 'category': 'Background', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Prism Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Dynasty Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Backgrounds
-    {'name': 'Cosmic Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Marble Background', 'category': 'Background', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Lava Cave Background', 'category': 'Background', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Eclipse Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Sky Temple Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Cosmic', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-    {'name': 'Void Background', 'category': 'Background', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-
-    // 12. Emoji Packs
-    {'name': 'Classic Emojis', 'category': 'Emoji Pack', 'rarity': 'Common', 'premium': 'None', 'req': 'Default pack'},
-    // VIP Emoji Packs
-    {'name': 'Royal Emojis', 'category': 'Emoji Pack', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'VIP Royal Pack', 'category': 'Emoji Pack', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Neon Emojis', 'category': 'Emoji Pack', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Golden Emojis', 'category': 'Emoji Pack', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Rainbow Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Emperor Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Emoji Packs
-    {'name': 'Galaxy Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Galaxy Animated Pack', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Royal Palace Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Dragon Emojis', 'category': 'Emoji Pack', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Emperor Emojis', 'category': 'Emoji Pack', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-
-    // 13. Gift Showcase
-    {'name': 'Love Castle', 'category': 'Gift Showcase', 'rarity': 'Epic', 'premium': 'None', 'req': 'Received from room events'},
-    // VIP Gifts
-    {'name': 'Royal Crown Gift', 'category': 'Gift Showcase', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'Cyber DJ Deck', 'category': 'Gift Showcase', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Golden Rose', 'category': 'Gift Showcase', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Ring', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Golden Crown Gift', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Ice Castle', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Unicorn Prism', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Imperial Throne', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Gifts
-    {'name': 'Supernova Explosion', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Palace Carriage', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Dragon Flame', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Rise Gift', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Harp', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Ring Gift', 'category': 'Gift Showcase', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
-    {'name': 'Cosmic Star Gate', 'category': 'Gift Showcase', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
   ];
 
   @override
@@ -219,48 +96,7 @@ class CustomizationController extends GetxController {
 
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
-    activeFrame.value = prefs.getString(_keyFrame) ?? 'Normal';
-    activeBubble.value = prefs.getString(_keyBubble) ?? 'Classic Bubble';
-    activeEntryEffect.value = prefs.getString(_keyEntryEffect) ?? 'None';
-    activeAvatarEffect.value = prefs.getString(_keyAvatarEffect) ?? 'None';
-    activeNameEffect.value = prefs.getString(_keyNameEffect) ?? 'None';
     activeTheme.value = prefs.getString(_keyTheme) ?? 'Dark';
-    activeBackground.value = prefs.getString(_keyBackground) ?? 'None';
-    customAvatarPath.value = prefs.getString('cust_custom_avatar_path') ?? '';
-    activeEmojiPack.value = prefs.getString(_keyEmojiPack) ?? 'Classic Emojis';
-
-    // Load Badges List
-    final badgesJson = prefs.getString(_keyBadges);
-    if (badgesJson != null) {
-      try {
-        final decoded = json.decode(badgesJson) as List<dynamic>;
-        activeBadges.assignAll(decoded.cast<String>());
-      } catch (_) {}
-    } else {
-      activeBadges.assignAll(['Legend', 'Explorer']);
-    }
-
-    // Load Tags List
-    final tagsJson = prefs.getString(_keyTags);
-    if (tagsJson != null) {
-      try {
-        final decoded = json.decode(tagsJson) as List<dynamic>;
-        activeTags.assignAll(decoded.cast<String>());
-      } catch (_) {}
-    } else {
-      activeTags.assignAll(['Scholar']);
-    }
-
-    // Load Gifts List
-    final giftsJson = prefs.getString(_keyGifts);
-    if (giftsJson != null) {
-      try {
-        final decoded = json.decode(giftsJson) as List<dynamic>;
-        activeGifts.assignAll(decoded.cast<String>());
-      } catch (_) {}
-    } else {
-      activeGifts.assignAll(['Love Castle']);
-    }
 
     // Load Favorites
     final favsJson = prefs.getString(_keyFavorites);
@@ -271,76 +107,52 @@ class CustomizationController extends GetxController {
       } catch (_) {}
     }
 
-    // Load Unlocked Items
-    final unlockedJson = prefs.getString(_keyUnlocked);
-    if (unlockedJson != null) {
-      try {
-        final decoded = json.decode(unlockedJson) as List<dynamic>;
-        unlockedItems.assignAll(decoded.cast<String>());
-      } catch (_) {}
-      // Seed default unlocked items
-      unlockedItems.assignAll([
-        'Normal', 'Classic Bubble', 'None', 'Legend', 'Explorer', 'Scholar', 'Dark', 'Default', 'Classic Emojis', 'Love Castle'
-      ]);
-    }
+    try {
+      final List<dynamic> list = await Supabase.instance.client
+          .from('user_customizations')
+          .select()
+          .eq('user_id', currentUserId);
 
-    // Load Expiries Map
-    final expStr = prefs.getString('cust_item_expiries');
-    if (expStr != null) {
-      try {
-        final decoded = json.decode(expStr) as Map<String, dynamic>;
-        itemExpiries.assignAll(
-          decoded.map((key, value) => MapEntry(key, DateTime.parse(value as String))),
-        );
-      } catch (_) {}
-    } else {
-      // Seed default items with expiries for simulation
-      final now = DateTime.now();
-      itemExpiries.assignAll({
-        'Neon Frame (Animated)': now.add(const Duration(days: 2)),
-        'Gold Glow Frame': now.add(const Duration(hours: 12)),
-        'Diamond Frame': now.subtract(const Duration(hours: 2)),
-        'Pulsing Glow': now.add(const Duration(days: 1)),
-      });
-      for (final name in ['Neon Frame (Animated)', 'Gold Glow Frame', 'Diamond Frame', 'Pulsing Glow']) {
-        if (!unlockedItems.contains(name)) {
-          unlockedItems.add(name);
+      // Unlocked items
+      unlockedItems.assignAll(list.map((m) => m['name'] as String).toList());
+      
+      // Default seeds
+      final defaults = [
+        'Normal', 'Classic Bubble', 'None', 'Legend', 'Explorer', 'Scholar', 'Dark', 'Default', 'Classic Emojis', 'Love Castle', 'Early Explorer Frame'
+      ];
+      for (final def in defaults) {
+        if (!unlockedItems.contains(def)) {
+          unlockedItems.add(def);
         }
       }
-      await prefs.setString(_keyUnlocked, json.encode(unlockedItems.toList()));
-      final expMap = itemExpiries.map((key, value) => MapEntry(key, value.toIso8601String()));
-      await prefs.setString('cust_item_expiries', json.encode(expMap));
+
+      // Filter equipped
+      final equipped = list.where((m) => m['is_equipped'] == true).toList();
+      
+      activeFrame.value = equipped.firstWhereOrNull((m) => m['type'] == 'Avatar Frame')?['name'] ?? 'Normal';
+      activeBubble.value = equipped.firstWhereOrNull((m) => m['type'] == 'Chat Bubble')?['name'] ?? 'Classic Bubble';
+      activeEntryEffect.value = equipped.firstWhereOrNull((m) => m['type'] == 'Entry Effect')?['name'] ?? 'None';
+      activeAvatarEffect.value = equipped.firstWhereOrNull((m) => m['type'] == 'Avatar Effect')?['name'] ?? 'None';
+      activeNameEffect.value = equipped.firstWhereOrNull((m) => m['type'] == 'Name Effect')?['name'] ?? 'None';
+      activeBackground.value = equipped.firstWhereOrNull((m) => m['type'] == 'Background')?['name'] ?? 'None';
+      activeEmojiPack.value = equipped.firstWhereOrNull((m) => m['type'] == 'Emoji Pack')?['name'] ?? 'Classic Emojis';
+
+      activeBadges.assignAll(equipped.where((m) => m['type'] == 'Badge').map((m) => m['name'] as String).toList());
+      if (activeBadges.isEmpty) activeBadges.assignAll(['Legend', 'Explorer']);
+
+      activeTags.assignAll(equipped.where((m) => m['type'] == 'Tag').map((m) => m['name'] as String).toList());
+      if (activeTags.isEmpty) activeTags.assignAll(['Scholar']);
+
+      activeGifts.assignAll(equipped.where((m) => m['type'] == 'Gift').map((m) => m['name'] as String).toList());
+      if (activeGifts.isEmpty) activeGifts.assignAll(['Love Castle']);
+
+    } catch (e) {
+      debugPrint('Supabase Customizations Load failed: $e');
     }
-
-    // Run expiration cleanup check
-    checkExpirations();
   }
 
-  Future<void> _saveState() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyFrame, activeFrame.value);
-    await prefs.setString(_keyBubble, activeBubble.value);
-    await prefs.setString(_keyEntryEffect, activeEntryEffect.value);
-    await prefs.setString(_keyAvatarEffect, activeAvatarEffect.value);
-    await prefs.setString(_keyNameEffect, activeNameEffect.value);
-    await prefs.setString(_keyTheme, activeTheme.value);
-    await prefs.setString(_keyBackground, activeBackground.value);
-    await prefs.setString('cust_custom_avatar_path', customAvatarPath.value);
-    await prefs.setString(_keyEmojiPack, activeEmojiPack.value);
-
-    await prefs.setString(_keyBadges, json.encode(activeBadges.toList()));
-    await prefs.setString(_keyTags, json.encode(activeTags.toList()));
-    await prefs.setString(_keyGifts, json.encode(activeGifts.toList()));
-    await prefs.setString(_keyFavorites, json.encode(favorites.toList()));
-    await prefs.setString(_keyUnlocked, json.encode(unlockedItems.toList()));
-
-    final expMap = itemExpiries.map((key, value) => MapEntry(key, value.toIso8601String()));
-    await prefs.setString('cust_item_expiries', json.encode(expMap));
-  }
-
-  // Dynamic check to determine if an item is unlocked (handles manual unlocks, default, VIP, Novel levels)
   bool isItemUnlocked(String itemName) {
-    if (itemName == 'Normal' || itemName == 'None' || itemName == 'Classic Bubble' || itemName == 'Dark' || itemName == 'Default' || itemName == 'Classic Emojis' || itemName == 'Love Castle' || itemName == 'Scholar') {
+    if (itemName == 'Normal' || itemName == 'None' || itemName == 'Classic Bubble' || itemName == 'Dark' || itemName == 'Default' || itemName == 'Classic Emojis' || itemName == 'Love Castle' || itemName == 'Scholar' || itemName == 'Early Explorer Frame') {
       return true;
     }
 
@@ -403,7 +215,6 @@ class CustomizationController extends GetxController {
     return false;
   }
 
-  // Get custom avatar image URL
   String getAvatarUrl(String avatarName, String defaultUrl) {
     if (avatarName == 'Default') {
       if (customAvatarPath.isNotEmpty) {
@@ -427,9 +238,7 @@ class CustomizationController extends GetxController {
     }
   }
 
-  // Instant equip helper
   Future<void> equipItem(String category, String itemName) async {
-    // Verify item is unlocked
     if (!isItemUnlocked(itemName)) {
       Get.snackbar(
         '⚠️ Item Locked',
@@ -441,263 +250,231 @@ class CustomizationController extends GetxController {
       return;
     }
 
-    switch (category) {
-      case 'Avatar Frame':
-        activeFrame.value = itemName;
-        break;
-      case 'Avatar':
-        activeAvatar.value = itemName;
-        break;
-      case 'Chat Bubble':
-        activeBubble.value = itemName;
-        break;
-      case 'Entry Effect':
-        activeEntryEffect.value = itemName;
-        break;
-      case 'Avatar Effect':
-        activeAvatarEffect.value = itemName;
-        break;
-      case 'Name Effect':
-        activeNameEffect.value = itemName;
-        break;
-      case 'Profile Theme':
-        activeTheme.value = itemName;
-        break;
-      case 'Background':
-        activeBackground.value = itemName;
-        break;
-      case 'Emoji Pack':
-        activeEmojiPack.value = itemName;
-        break;
-    }
+    try {
+      await Supabase.instance.client
+          .from('user_customizations')
+          .update({'is_equipped': false})
+          .eq('user_id', currentUserId)
+          .eq('type', category);
 
-    await _saveState();
-    
-    Get.snackbar(
-      '✨ Equipped Successfully',
-      '$itemName is now active!',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
-      colorText: Colors.white,
-      duration: const Duration(seconds: 1),
-    );
+      await Supabase.instance.client
+          .from('user_customizations')
+          .upsert({
+            'user_id': currentUserId,
+            'type': category,
+            'name': itemName,
+            'is_equipped': true,
+          });
+
+      await _loadState();
+
+      // Also update frame attribute on profiles table if Avatar Frame
+      if (category == 'Avatar Frame') {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'avatar_frame': itemName})
+            .eq('id', currentUserId);
+      }
+
+      Get.snackbar(
+        '✨ Equipped Successfully',
+        '$itemName is now active!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 1),
+      );
+    } catch (_) {}
   }
 
-  // Remove helper
   Future<void> removeItem(String category) async {
-    switch (category) {
-      case 'Avatar Frame':
-        activeFrame.value = 'Normal';
-        break;
-      case 'Avatar':
-        activeAvatar.value = 'Default';
-        break;
-      case 'Chat Bubble':
-        activeBubble.value = 'Classic Bubble';
-        break;
-      case 'Entry Effect':
-        activeEntryEffect.value = 'None';
-        break;
-      case 'Avatar Effect':
-        activeAvatarEffect.value = 'None';
-        break;
-      case 'Name Effect':
-        activeNameEffect.value = 'None';
-        break;
-      case 'Profile Theme':
-        activeTheme.value = 'Dark';
-        break;
-      case 'Background':
-        activeBackground.value = 'None';
-        break;
-      case 'Emoji Pack':
-        activeEmojiPack.value = 'Classic Emojis';
-        break;
-    }
-    await _saveState();
+    try {
+      await Supabase.instance.client
+          .from('user_customizations')
+          .update({'is_equipped': false})
+          .eq('user_id', currentUserId)
+          .eq('type', category);
+
+      await _loadState();
+    } catch (_) {}
   }
 
-  // Favorite toggle
   Future<void> toggleFavorite(String itemName) async {
+    final prefs = await SharedPreferences.getInstance();
     if (favorites.contains(itemName)) {
       favorites.remove(itemName);
     } else {
       favorites.add(itemName);
     }
-    await _saveState();
+    await prefs.setString(_keyFavorites, json.encode(favorites.toList()));
   }
 
-  // Toggle Badge equipment (Max 5)
   Future<void> toggleBadge(String badgeName) async {
-    if (activeBadges.contains(badgeName)) {
-      activeBadges.remove(badgeName);
-      await _saveState();
-    } else {
-      if (activeBadges.length >= 5) {
-        Get.snackbar(
-          '⚠️ Maximum Badges Reached',
-          'You can equip a maximum of 5 badges simultaneously.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
-          colorText: Colors.white,
-        );
-        return;
+    final category = 'Badge';
+    final isEquipped = activeBadges.contains(badgeName);
+
+    try {
+      if (isEquipped) {
+        await Supabase.instance.client
+            .from('user_customizations')
+            .update({'is_equipped': false})
+            .eq('user_id', currentUserId)
+            .eq('type', category)
+            .eq('name', badgeName);
+      } else {
+        if (activeBadges.length >= 5) {
+          Get.snackbar(
+            '⚠️ Maximum Badges Reached',
+            'You can equip a maximum of 5 badges simultaneously.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+            colorText: Colors.white,
+          );
+          return;
+        }
+        await Supabase.instance.client
+            .from('user_customizations')
+            .upsert({
+              'user_id': currentUserId,
+              'type': category,
+              'name': badgeName,
+              'is_equipped': true,
+            });
       }
-      activeBadges.add(badgeName);
-      await _saveState();
-    }
+      await _loadState();
+    } catch (_) {}
   }
 
-  // Toggle Tag equipment (Max 3)
   Future<void> toggleTag(String tagName) async {
-    if (activeTags.contains(tagName)) {
-      activeTags.remove(tagName);
-      await _saveState();
-    } else {
-      if (activeTags.length >= 3) {
-        Get.snackbar(
-          '⚠️ Maximum Tags Reached',
-          'You can display a maximum of 3 tags simultaneously.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
-          colorText: Colors.white,
-        );
-        return;
+    final category = 'Tag';
+    final isEquipped = activeTags.contains(tagName);
+
+    try {
+      if (isEquipped) {
+        await Supabase.instance.client
+            .from('user_customizations')
+            .update({'is_equipped': false})
+            .eq('user_id', currentUserId)
+            .eq('type', category)
+            .eq('name', tagName);
+      } else {
+        if (activeTags.length >= 3) {
+          Get.snackbar(
+            '⚠️ Maximum Tags Reached',
+            'You can display a maximum of 3 tags simultaneously.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+            colorText: Colors.white,
+          );
+          return;
+        }
+        await Supabase.instance.client
+            .from('user_customizations')
+            .upsert({
+              'user_id': currentUserId,
+              'type': category,
+              'name': tagName,
+              'is_equipped': true,
+            });
       }
-      activeTags.add(tagName);
-      await _saveState();
-    }
+      await _loadState();
+    } catch (_) {}
   }
 
-  // Reorder active tags
-  Future<void> reorderTags(int oldIndex, int newIndex) async {
-    if (newIndex > oldIndex) {
-      newIndex -= 1;
-    }
-    final item = activeTags.removeAt(oldIndex);
-    activeTags.insert(newIndex, item);
-    await _saveState();
-  }
-
-  // Toggle Gift equipment (Max 3)
   Future<void> toggleGift(String giftName) async {
-    if (activeGifts.contains(giftName)) {
-      activeGifts.remove(giftName);
-      await _saveState();
-    } else {
-      if (activeGifts.length >= 3) {
-        Get.snackbar(
-          '⚠️ Maximum Showcase Reached',
-          'You can display a maximum of 3 gifts in the showcase.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
-          colorText: Colors.white,
-        );
-        return;
+    final category = 'Gift';
+    final isEquipped = activeGifts.contains(giftName);
+
+    try {
+      if (isEquipped) {
+        await Supabase.instance.client
+            .from('user_customizations')
+            .update({'is_equipped': false})
+            .eq('user_id', currentUserId)
+            .eq('type', category)
+            .eq('name', giftName);
+      } else {
+        if (activeGifts.length >= 3) {
+          Get.snackbar(
+            '⚠️ Maximum Showcase Reached',
+            'You can display a maximum of 3 gifts in the showcase.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+            colorText: Colors.white,
+          );
+          return;
+        }
+        await Supabase.instance.client
+            .from('user_customizations')
+            .upsert({
+              'user_id': currentUserId,
+              'type': category,
+              'name': giftName,
+              'is_equipped': true,
+            });
       }
-      activeGifts.add(giftName);
-      await _saveState();
-    }
+      await _loadState();
+    } catch (_) {}
   }
 
-  // Reorder active gifts
-  Future<void> reorderGifts(int oldIndex, int newIndex) async {
-    if (newIndex > oldIndex) {
-      newIndex -= 1;
-    }
-    final item = activeGifts.removeAt(oldIndex);
-    activeGifts.insert(newIndex, item);
-    await _saveState();
+  Future<void> unlockItem(String itemName, {String category = 'Avatar Frame'}) async {
+    try {
+      await Supabase.instance.client
+          .from('user_customizations')
+          .upsert({
+            'user_id': currentUserId,
+            'type': category,
+            'name': itemName,
+            'is_equipped': false,
+          });
+      await _loadState();
+    } catch (_) {}
   }
 
-  // Reorder active badges
-  Future<void> reorderBadges(int oldIndex, int newIndex) async {
+  Future<void> renewOrPurchaseItem(String itemName, Duration duration, {String category = 'Avatar Frame'}) async {
+    try {
+      await Supabase.instance.client
+          .from('user_customizations')
+          .upsert({
+            'user_id': currentUserId,
+            'type': category,
+            'name': itemName,
+            'is_equipped': false,
+          });
+      await _loadState();
+    } catch (_) {}
+  }
+
+  void checkExpirations() {}
+
+  void reorderBadges(int oldIndex, int newIndex) {
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
     final item = activeBadges.removeAt(oldIndex);
     activeBadges.insert(newIndex, item);
-    await _saveState();
   }
 
-  // Unlock simulation helper
-  Future<void> unlockItem(String itemName) async {
-    if (!unlockedItems.contains(itemName)) {
-      unlockedItems.add(itemName);
-      await _saveState();
+  void reorderTags(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
     }
+    final item = activeTags.removeAt(oldIndex);
+    activeTags.insert(newIndex, item);
   }
 
-  // Check and clean up expired premium items
-  void checkExpirations() {
-    final now = DateTime.now();
-    bool changed = false;
-
-    // Check individual items
-    final expiredItems = <String>[];
-    itemExpiries.forEach((itemName, expiry) {
-      if (expiry.isBefore(now)) {
-        expiredItems.add(itemName);
-      }
-    });
-
-    for (final itemName in expiredItems) {
-      itemExpiries.remove(itemName);
-      changed = true;
-
-      // Automatically unequip if currently equipped
-      if (activeFrame.value == itemName) activeFrame.value = 'Normal';
-      if (activeBubble.value == itemName) activeBubble.value = 'Classic Bubble';
-      if (activeEntryEffect.value == itemName) activeEntryEffect.value = 'None';
-      if (activeAvatarEffect.value == itemName) activeAvatarEffect.value = 'None';
-      if (activeNameEffect.value == itemName) activeNameEffect.value = 'None';
-      if (activeTheme.value == itemName) activeTheme.value = 'Dark';
-      if (activeBackground.value == itemName) activeBackground.value = 'None';
-      if (activeEmojiPack.value == itemName) activeEmojiPack.value = 'Classic Emojis';
-
-      if (activeBadges.contains(itemName)) activeBadges.remove(itemName);
-      if (activeTags.contains(itemName)) activeTags.remove(itemName);
-      if (activeGifts.contains(itemName)) activeGifts.remove(itemName);
-
-      Get.snackbar(
-        '🔒 Item Expired',
-        'Your premium item "$itemName" has expired and has been unequipped.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
-        colorText: Colors.white,
-        duration: const Duration(seconds: 4),
-      );
+  void reorderGifts(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
     }
-
-    if (changed) {
-      _saveState();
-    }
+    final item = activeGifts.removeAt(oldIndex);
+    activeGifts.insert(newIndex, item);
   }
 
-  // Extend validity or purchase item
-  Future<void> renewOrPurchaseItem(String itemName, Duration duration) async {
-    final now = DateTime.now();
-    final currentExpiry = itemExpiries[itemName];
-
-    if (currentExpiry != null && currentExpiry.isAfter(now)) {
-      itemExpiries[itemName] = currentExpiry.add(duration);
-    } else {
-      itemExpiries[itemName] = now.add(duration);
-    }
-
-    if (!unlockedItems.contains(itemName)) {
-      unlockedItems.add(itemName);
-    }
-
-    await _saveState();
-  }
-
-  // Generate warning reminders for items expiring in <= 3 days
   List<String> getActiveReminders() {
     final List<String> reminders = [];
     final now = DateTime.now();
 
-    // 1. VIP Membership Expiry
     try {
       final vipCtrl = Get.find<VipController>();
       if (vipCtrl.vipLevel.value > 0 && vipCtrl.expiryDate.value != null) {
@@ -714,7 +491,6 @@ class CustomizationController extends GetxController {
       }
     } catch (_) {}
 
-    // 2. Novel Membership Expiry
     try {
       final novelCtrl = Get.find<NovelController>();
       if (novelCtrl.novelLevel.value > 0 && novelCtrl.expiryDate.value != null) {
@@ -730,27 +506,6 @@ class CustomizationController extends GetxController {
         }
       }
     } catch (_) {}
-
-    // 3. Cosmetics Expiry
-    itemExpiries.forEach((itemName, expiry) {
-      if (expiry.isAfter(now)) {
-        final diff = expiry.difference(now);
-        if (diff.inDays <= 3) {
-          final item = customizationDb.firstWhere(
-            (element) => element['name'] == itemName,
-            orElse: () => <String, dynamic>{},
-          );
-          final String category = item.isNotEmpty ? (item['category'] ?? 'Item') : 'Item';
-          if (diff.inDays >= 1) {
-            reminders.add('Your $category ($itemName) expires in ${diff.inDays} days.');
-          } else if (diff.inHours >= 1) {
-            reminders.add('Your $category ($itemName) expires in ${diff.inHours} hours.');
-          } else {
-            reminders.add('Your $category ($itemName) expires soon.');
-          }
-        }
-      }
-    });
 
     return reminders;
   }

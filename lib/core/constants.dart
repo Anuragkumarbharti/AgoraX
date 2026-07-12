@@ -14,13 +14,13 @@ class ApiConfig {
 
 // Firebase Configuration
 class FirebaseConfig {
-  static const String projectId = 'agorax-app';
-  static const String appId = 'agorax-mobile-app';
+  static const String projectId = 'creania-app';
+  static const String appId = 'creania-mobile-app';
 }
 
 // App Configuration
 class AppConfig {
-  static const String appName = 'AgoraX';
+  static const String appName = 'Creania';
   static const String version = '1.0.0';
   static const String buildNumber = '1';
   
@@ -74,11 +74,11 @@ class AppAssets {
 // Strings
 class AppStrings {
   // App
-  static const String appName = 'AgoraX';
+  static const String appName = 'Creania';
   static const String tagline = 'Learn, Discuss & Connect';
 
   // Auth
-  static const String welcome = 'Welcome to AgoraX';
+  static const String welcome = 'Welcome to Creania';
   static const String login = 'Login';
   static const String signup = 'Sign Up';
   static const String email = 'Email';

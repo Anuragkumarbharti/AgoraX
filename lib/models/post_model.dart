@@ -15,13 +15,17 @@ class Post {
     required this.isLiked,
     required this.isBookmarked,
     required this.createdAt,
+    this.authorUsername,
+    this.authorAvatarUrl,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
+    // Check nested profiles from Supabase joins
+    final profiles = json['profiles'];
     return Post(
       id: json['id'] ?? '',
-      userId: json['userId'] ?? '',
-      communityId: json['communityId'] ?? '',
+      userId: json['userId'] ?? json['user_id'] ?? '',
+      communityId: json['communityId'] ?? json['community_id'] ?? '',
       content: json['content'] ?? '',
       images: json['images'] != null ? List<String>.from(json['images']) : null,
       videos: json['videos'] != null ? List<String>.from(json['videos']) : null,
@@ -32,7 +36,11 @@ class Post {
       shares: json['shares'] ?? 0,
       isLiked: json['isLiked'] ?? false,
       isBookmarked: json['isBookmarked'] ?? false,
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      authorUsername: profiles != null ? profiles['username'] : json['authorUsername'],
+      authorAvatarUrl: profiles != null ? (profiles['avatar_url'] ?? profiles['profile_photo']) : (json['authorAvatarUrl'] ?? json['avatar_url']),
     );
   }
   final String id;
@@ -49,6 +57,8 @@ class Post {
   final bool isLiked;
   final bool isBookmarked;
   final DateTime createdAt;
+  final String? authorUsername;
+  final String? authorAvatarUrl;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -65,6 +75,8 @@ class Post {
     'isLiked': isLiked,
     'isBookmarked': isBookmarked,
     'createdAt': createdAt.toIso8601String(),
+    'authorUsername': authorUsername,
+    'authorAvatarUrl': authorAvatarUrl,
   };
 
   Post copyWith({
@@ -82,6 +94,8 @@ class Post {
     bool? isLiked,
     bool? isBookmarked,
     DateTime? createdAt,
+    String? authorUsername,
+    String? authorAvatarUrl,
   }) {
     return Post(
       id: id ?? this.id,
@@ -98,6 +112,8 @@ class Post {
       isLiked: isLiked ?? this.isLiked,
       isBookmarked: isBookmarked ?? this.isBookmarked,
       createdAt: createdAt ?? this.createdAt,
+      authorUsername: authorUsername ?? this.authorUsername,
+      authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
     );
   }
 }

@@ -1,4 +1,4 @@
-# 🚀 Quick Start Guide - AgoraX
+# 🚀 Quick Start Guide - Creania
 
 ## ⚡ 5-Minute Setup
 
@@ -10,7 +10,7 @@ dart --version     # Should be 3.0+
 
 ### 2. Install Dependencies
 ```bash
-cd AgoraX
+cd Creania
 flutter pub get
 ```
 

@@ -141,8 +141,8 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                 const SizedBox(height: 2),
                 Text(
                   isVipActive
-                      ? 'Official AgoraX books unlocked matching Level $vipLevel. Expired memberships automatically lock content.'
-                      : 'Subscribe to VIP to unlock official AgoraX study collections.',
+                      ? 'Official Creania books unlocked matching Level $vipLevel. Expired memberships automatically lock content.'
+                      : 'Subscribe to VIP to unlock official Creania study collections.',
                   style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10, height: 1.4),
                 ),
               ],
@@ -259,7 +259,7 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Official AgoraX Board  |  ${book.pages} Pages',
+                      'Official Creania Board  |  ${book.pages} Pages',
                       style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
                     ),
                     const SizedBox(height: 4),

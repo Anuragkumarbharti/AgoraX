@@ -116,7 +116,7 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
     final targetUser = User(
       id: 'uid_${name.toLowerCase()}',
       username: name.toLowerCase(),
-      email: '${name.toLowerCase()}@agorax.app',
+      email: '${name.toLowerCase()}@creania.app',
       displayName: name,
       interests: ['Coding', 'Competitions'],
       communities: [widget.event.organizer],

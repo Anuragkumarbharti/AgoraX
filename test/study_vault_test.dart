@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
-import 'package:agorax/services/study_vault_controller.dart';
-import 'package:agorax/services/vip_controller.dart';
-import 'package:agorax/services/store_controller.dart';
-import 'package:agorax/services/novel_controller.dart';
-import 'package:agorax/models/study_vault_model.dart';
+import 'package:creania/services/study_vault_controller.dart';
+import 'package:creania/services/vip_controller.dart';
+import 'package:creania/services/store_controller.dart';
+import 'package:creania/services/novel_controller.dart';
+import 'package:creania/models/study_vault_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

@@ -307,7 +307,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               backgroundColor: AppTheme.primaryColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: () {
+            onPressed: () async {
               final EventFormat fmt;
               switch (_selectedFormat) {
                 case 'Quiz': fmt = EventFormat.quiz; break;
@@ -366,7 +366,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               );
 
               Get.back(); // close dialog
-              final bool success = _eventController.createPaidEvent(newEvent);
+              final bool success = await _eventController.createPaidEvent(newEvent);
               if (success) {
                 Get.back(); // back to events list
                 Get.snackbar(

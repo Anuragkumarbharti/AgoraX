@@ -403,7 +403,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
     final targetUser = User(
       id: 'uid_${name.toLowerCase()}',
       username: name.toLowerCase(),
-      email: '${name.toLowerCase()}@agorax.app',
+      email: '${name.toLowerCase()}@creania.app',
       displayName: name,
       interests: ['Flutter', 'Competitions'],
       communities: [widget.event.organizer],

@@ -1,12 +1,17 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/room_model.dart';
 import 'customization_controller.dart';
 import '../screens/rooms/voice_room_call_screen.dart';
 
 import 'store_controller.dart';
+import 'user_progress_sync_service.dart';
+import 'user_profile_cache_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RoomChatMessage {
   final String id;
@@ -90,6 +95,7 @@ class RoomChatMessage {
 
 class RoomController extends GetxController {
   static RoomController get to => Get.find<RoomController>();
+  static String get currentUserId => UserProfileCacheManager.currentUserId;
 
   String? activeRoomId;
 
@@ -118,6 +124,9 @@ class RoomController extends GetxController {
   void onInit() {
     super.onInit();
     _loadInitialRooms();
+    _loadSavedRooms().then((_) {
+      ever(rooms, (_) => _saveRooms());
+    });
   }
 
   void initializeChatForRoom(String roomId) {
@@ -136,7 +145,7 @@ class RoomController extends GetxController {
           senderName: 'Priya Sharma',
           senderRole: 'Co-owner',
           senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-          text: 'Hey everyone! Welcome to VoxArena. 😊',
+          text: 'Hey everyone! Welcome to Creania. 😊',
           timestamp: DateTime.now().subtract(const Duration(minutes: 4)),
         ),
         RoomChatMessage(
@@ -322,7 +331,7 @@ class RoomController extends GetxController {
     // Add local message
     roomChats[roomId]!.add(
       RoomChatMessage(
-        senderId: senderId ?? 'uid_anurag_101',
+        senderId: senderId ?? UserProfileCacheManager.currentUserId,
         senderName: senderName ?? 'You',
         senderRole: senderRole ?? 'Owner',
         senderAvatar: senderAvatar,
@@ -398,7 +407,6 @@ class RoomController extends GetxController {
       );
     }
   }
-
   void addRecentRoom(String roomId) {
     recentRoomIds.remove(roomId); // Bring to top
     recentRoomIds.insert(0, roomId);
@@ -408,511 +416,32 @@ class RoomController extends GetxController {
   }
 
   void _loadInitialRooms() {
-    final now = DateTime.now();
-    rooms.assignAll([
-      // 1. Social Room
-      VoiceRoom(
-        id: '#VX100001',
-        name: 'Coding Hub 🚀 (Social Room)',
-        description: 'The ultimate space for Flutter & Dart developers to share, debug, and learn together.',
-        hostId: 'uid_anurag_101', 
-        ownerName: 'Anurag Kumar Bharti', 
-        communityId: 'comm_001',
-        type: 'Social Room',
-        isLive: true,
-        participantCount: 142,
-        maxParticipants: 500,
-        speakerIds: ['uid_anurag_101', 'user_co_1', 'user_adm_1'],
-        listenerIds: List.generate(139, (i) => 'listener_$i'),
-        allowRecording: true,
-        allowScreenShare: true,
-        createdAt: now.subtract(const Duration(days: 10)),
-        startedAt: now.subtract(const Duration(hours: 3)),
-        isPermanent: true,
-        level: 4,
-        xp: 3200,
-        totalMembers: 1200,
-        totalFollowers: 3400,
-        totalGiftsReceived: 24500,
-        category: 'Social Hub',
-        country: 'India',
-        language: 'Hindi & English',
-        tags: ['flutter', 'dart', 'coding', 'tech'],
-        rules: [
-          'Be respectful to other developers.',
-          'No spamming or self-promotion without approval.',
-          'Keep discussion relevant to software development.'
-        ],
-        founderId: 'uid_anurag_101',
-        coOwnerIds: ['user_co_1'],
-        adminIds: ['user_adm_1'],
-        starMemberIds: ['user_star_1'],
-        managerIds: ['user_man_1'],
-        moderatorIds: ['user_mod_1'],
-        hostIds: ['user_host_1'],
-        mentorIds: ['user_ment_1'],
-        judgeIds: ['user_jd_1'],
-        performerIds: ['user_perf_1'],
-        eliteMemberIds: ['user_elite_1'],
-        vipMemberIds: ['user_vip_1'],
-        memberIds: ['user_memb_1'],
-        visitorIds: ['user_vis_1'],
-        blockList: [],
-        bulletin: 'Welcome to Coding Hub! Check out the active pinned quiz.',
-        greetings: 'Welcome to the tech arena, programmer!',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Social',
-        pinnedAnnouncement: 'Quiz starts in 10 minutes!',
-      ),
-      // 2. Debate Room
-      VoiceRoom(
-        id: '#VX100002',
-        name: 'AI vs Human Creative Debate ⚖️',
-        description: 'Is generative AI replacing artists and writers? Bring your strong arguments.',
-        hostId: 'user_host_1',
-        ownerName: 'Vikram Aditya',
-        communityId: 'comm_002',
-        type: 'Debate Room',
-        isLive: true,
-        participantCount: 45,
-        maxParticipants: 100,
-        speakerIds: ['user_host_1', 'debater_1', 'debater_2', 'uid_anurag_101'],
-        listenerIds: List.generate(41, (i) => 'listener_deb_$i'),
-        allowRecording: true,
-        allowScreenShare: true,
-        createdAt: now.subtract(const Duration(days: 2)),
-        startedAt: now.subtract(const Duration(minutes: 45)),
-        isPermanent: true,
-        level: 2,
-        xp: 1500,
-        totalMembers: 450,
-        totalFollowers: 900,
-        totalGiftsReceived: 1200,
-        category: 'Debate Arena',
-        country: 'India',
-        language: 'English',
-        tags: ['debate', 'ai', 'creativity', 'future'],
-        rules: ['Strictly respect timers.', 'No personal insults.'],
-        founderId: 'user_adm_1',
-        coOwnerIds: ['uid_anurag_101'], // User is co-owner
-        adminIds: ['user_adm_2'],
-        starMemberIds: [],
-        managerIds: ['user_man_1'],
-        moderatorIds: ['user_mod_1'],
-        hostIds: ['user_host_1'],
-        mentorIds: [],
-        judgeIds: ['uid_anurag_101', 'user_jd_2'], // User is a judge
-        performerIds: [],
-        eliteMemberIds: [],
-        vipMemberIds: [],
-        memberIds: [],
-        visitorIds: [],
-        blockList: [],
-        bulletin: 'Debate Mode is Active. Round 2: 3 mins per candidate.',
-        greetings: 'Welcome to the Debate Arena. Listen, debate, decide!',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Debate',
-        pinnedAnnouncement: 'Current Speaker: Candidate 1 (AI Pros)',
-      ),
-      // 3. Study Room
-      VoiceRoom(
-        id: '#VX100003',
-        name: 'UPSC Aspirants Study Zone 📚',
-        description: 'Focus room for UPSC aspirants. Silent reading, group quizzes, and key notes.',
-        hostId: 'user_host_2',
-        ownerName: 'Amit Mehra',
-        communityId: 'comm_003',
-        type: 'Study Room',
-        isLive: true,
-        participantCount: 78,
-        maxParticipants: 150,
-        speakerIds: ['user_host_2', 'user_ment_1'],
-        listenerIds: List.generate(76, (i) => 'listener_std_$i'),
-        allowRecording: true,
-        allowScreenShare: false,
-        createdAt: now.subtract(const Duration(days: 5)),
-        startedAt: now.subtract(const Duration(hours: 1)),
-        isPermanent: true,
-        level: 3,
-        xp: 2200,
-        totalMembers: 800,
-        totalFollowers: 1900,
-        totalGiftsReceived: 4500,
-        category: 'Study Hub',
-        country: 'India',
-        language: 'Hindi',
-        tags: ['study', 'upsc', 'focus', 'gk'],
-        rules: ['Keep mic muted unless asking a question.', 'Study notes only.'],
-        founderId: 'user_host_2',
-        coOwnerIds: [],
-        adminIds: ['uid_anurag_101'], // User is Admin
-        starMemberIds: [],
-        managerIds: [],
-        moderatorIds: [],
-        hostIds: ['user_host_2'],
-        mentorIds: ['user_ment_1'],
-        judgeIds: [],
-        performerIds: [],
-        eliteMemberIds: [],
-        vipMemberIds: [],
-        memberIds: [],
-        visitorIds: [],
-        blockList: [],
-        bulletin: 'Study Room Active: Note pinned in menu about Indian Polity.',
-        greetings: 'Welcome to the Silent Study Room.',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Study',
-        pinnedAnnouncement: 'Polity quiz starting at 4 PM!',
-      ),
-      // 4. Coaching Room
-      VoiceRoom(
-        id: '#VX100004',
-        name: 'Startup Funding Pitch Clinic 💡',
-        description: 'Pitch your startup ideas and get feedback from experienced co-founders.',
-        hostId: 'uid_anurag_101', // User is Founder/Host
-        ownerName: 'Anurag Kumar Bharti',
-        communityId: 'comm_004',
-        type: 'Coaching Room',
-        isLive: false,
-        participantCount: 0,
-        maxParticipants: 200,
-        speakerIds: [],
-        listenerIds: [],
-        allowRecording: true,
-        allowScreenShare: true,
-        createdAt: now,
-        isPermanent: true,
-        level: 3,
-        xp: 2200,
-        totalMembers: 300,
-        totalFollowers: 670,
-        totalGiftsReceived: 12000,
-        category: 'Coaching Hub',
-        country: 'Global',
-        language: 'English',
-        tags: ['startup', 'pitch', 'funding', 'ideas'],
-        rules: ['Strictly professional communication only.'],
-        founderId: 'uid_anurag_101',
-        coOwnerIds: [],
-        adminIds: ['user_adm_1'],
-        starMemberIds: [],
-        managerIds: [],
-        moderatorIds: [],
-        hostIds: ['uid_anurag_101'],
-        mentorIds: ['user_ment_2'],
-        judgeIds: [],
-        performerIds: [],
-        eliteMemberIds: [],
-        vipMemberIds: [],
-        memberIds: [],
-        visitorIds: [],
-        blockList: [],
-        bulletin: 'Get your decks reviewed live by top mentors.',
-        greetings: 'Welcome to the VoxArena Pitch Clinic.',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Coaching',
-        pinnedAnnouncement: 'Next cohort opens next Monday!',
-      ),
-      // 5. Family Room
-      VoiceRoom(
-        id: '#VX100005',
-        name: 'Sharma Family Weekend Chat ❤️',
-        description: 'Private family gathering place for weekend gossip, updates and jokes.',
-        hostId: 'user_co_1',
-        ownerName: 'Priya Sharma',
-        communityId: 'comm_005',
-        type: 'Family Room',
-        isLive: true,
-        participantCount: 15,
-        maxParticipants: 30,
-        speakerIds: ['user_co_1', 'uid_anurag_101'],
-        listenerIds: List.generate(13, (i) => 'listener_fam_$i'),
-        allowRecording: false,
-        allowScreenShare: true,
-        createdAt: now.subtract(const Duration(days: 30)),
-        startedAt: now.subtract(const Duration(minutes: 15)),
-        isPermanent: true,
-        level: 5,
-        xp: 4500,
-        totalMembers: 45,
-        totalFollowers: 12,
-        totalGiftsReceived: 90000,
-        category: 'Family Gathering',
-        country: 'India',
-        language: 'Hindi',
-        tags: ['family', 'gossip', 'weekend', 'love'],
-        rules: ['Keep it friendly and warm.', 'Only for family members.'],
-        founderId: 'user_co_1',
-        coOwnerIds: ['uid_anurag_101'], // User is co-owner
-        adminIds: [],
-        starMemberIds: [],
-        managerIds: [],
-        moderatorIds: [],
-        hostIds: ['user_co_1'],
-        mentorIds: [],
-        judgeIds: [],
-        performerIds: [],
-        eliteMemberIds: [],
-        vipMemberIds: [],
-        memberIds: [],
-        visitorIds: [],
-        blockList: [],
-        bulletin: 'Happy Birthday Dadu! Send your greetings here.',
-        greetings: 'Namaste! Welcome home.',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Family',
-        pinnedAnnouncement: 'Grandparents anniversary video call tonight!',
-      ),
-      // 6. Music Room
-      VoiceRoom(
-        id: '#VX100006',
-        name: 'Unplugged Acoustic Lounge 🎸',
-        description: 'Sing your heart out! Performers sing, listeners chill and send gifts.',
-        hostId: 'user_host_1',
-        ownerName: 'Rahul Roy',
-        communityId: 'comm_006',
-        type: 'Music Room',
-        isLive: true,
-        participantCount: 198,
-        maxParticipants: 500,
-        speakerIds: ['user_host_1', 'user_perf_1', 'uid_anurag_101'],
-        listenerIds: List.generate(195, (i) => 'listener_mus_$i'),
-        allowRecording: true,
-        allowScreenShare: false,
-        createdAt: now.subtract(const Duration(days: 12)),
-        startedAt: now.subtract(const Duration(hours: 2)),
-        isPermanent: true,
-        level: 6,
-        xp: 5900,
-        totalMembers: 1500,
-        totalFollowers: 3200,
-        totalGiftsReceived: 145000,
-        category: 'Music Stage',
-        country: 'India',
-        language: 'Hindi & English',
-        tags: ['music', 'unplugged', 'singing', 'guitar'],
-        rules: ['Wait for your slot in the queue.', 'Appreciate all performers.'],
-        founderId: 'user_host_1',
-        coOwnerIds: [],
-        adminIds: ['user_adm_1'],
-        starMemberIds: ['uid_anurag_101'], // User is star member
-        managerIds: [],
-        moderatorIds: [],
-        hostIds: ['user_host_1'],
-        mentorIds: [],
-        judgeIds: [],
-        performerIds: ['user_perf_1', 'uid_anurag_101'], // User is a performer!
-        eliteMemberIds: [],
-        vipMemberIds: [],
-        memberIds: [],
-        visitorIds: [],
-        blockList: [],
-        bulletin: 'Music Queue is Open! Tap Queue to reserve a song.',
-        greetings: 'Welcome to the unplugged stage, tune in!',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Music',
-        pinnedAnnouncement: 'Current Song: Dil Chahta Hai by Rahul',
-      ),
-      // 7. Gaming Room
-      VoiceRoom(
-        id: '#VX100007',
-        name: 'Esports Clan BGMI Match Room 🎮',
-        description: 'BGMI esports scrims, lineup matches, and lobby chats.',
-        hostId: 'user_host_3',
-        ownerName: 'Hydra OP',
-        communityId: 'comm_007',
-        type: 'Gaming Room',
-        isLive: true,
-        participantCount: 88,
-        maxParticipants: 100,
-        speakerIds: ['user_host_3', 'player_1', 'player_2', 'player_3'],
-        listenerIds: List.generate(84, (i) => 'listener_gam_$i'),
-        allowRecording: false,
-        allowScreenShare: true,
-        createdAt: now.subtract(const Duration(days: 3)),
-        startedAt: now.subtract(const Duration(minutes: 30)),
-        isPermanent: false,
-        level: 1,
-        xp: 150,
-        totalMembers: 200,
-        totalFollowers: 450,
-        totalGiftsReceived: 800,
-        category: 'Gaming Zone',
-        country: 'India',
-        language: 'Hindi',
-        tags: ['gaming', 'bgmi', 'esports', 'clan'],
-        rules: ['No abusive language.', 'Focus on match strategy.'],
-        founderId: 'user_host_3',
-        coOwnerIds: [],
-        adminIds: [],
-        starMemberIds: [],
-        managerIds: [],
-        moderatorIds: [],
-        hostIds: ['user_host_3'],
-        mentorIds: [],
-        judgeIds: [],
-        performerIds: [],
-        eliteMemberIds: [],
-        vipMemberIds: [],
-        memberIds: ['uid_anurag_101'], // User is member
-        visitorIds: [],
-        blockList: [],
-        bulletin: 'Lobby code will be shared on voice.',
-        greetings: 'Join the gaming battle station!',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Gaming',
-        pinnedAnnouncement: 'Custom Scrims at 9 PM!',
-      ),
-      // 8. Community Room
-      VoiceRoom(
-        id: '#VX100008',
-        name: 'VoxArena Global Plaza 🌐',
-        description: 'Open square for discussions, announcements, and global networking.',
-        hostId: 'uid_anurag_101', // User is Founder/Host
-        ownerName: 'Anurag Kumar Bharti',
-        communityId: 'comm_008',
-        type: 'Community Room',
-        isLive: true,
-        participantCount: 350,
-        maxParticipants: 1000,
-        speakerIds: ['uid_anurag_101', 'user_adm_1', 'user_adm_2'],
-        listenerIds: List.generate(347, (i) => 'listener_comm_$i'),
-        allowRecording: true,
-        allowScreenShare: true,
-        createdAt: now.subtract(const Duration(days: 45)),
-        startedAt: now.subtract(const Duration(hours: 4)),
-        isPermanent: true,
-        level: 8,
-        xp: 7500,
-        totalMembers: 5000,
-        totalFollowers: 9800,
-        totalGiftsReceived: 345000,
-        category: 'Community Plaza',
-        country: 'Global',
-        language: 'English',
-        tags: ['global', 'networking', 'talk', 'news'],
-        rules: ['Maintain standard community guidelines.'],
-        founderId: 'uid_anurag_101',
-        coOwnerIds: [],
-        adminIds: ['user_adm_1', 'user_adm_2'],
-        starMemberIds: [],
-        managerIds: [],
-        moderatorIds: [],
-        hostIds: ['uid_anurag_101'],
-        mentorIds: [],
-        judgeIds: [],
-        performerIds: [],
-        eliteMemberIds: [],
-        vipMemberIds: [],
-        memberIds: [],
-        visitorIds: [],
-        blockList: [],
-        bulletin: 'Weekly Townhall starts now.',
-        greetings: 'Welcome to the global townhall.',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Community',
-        pinnedAnnouncement: 'Rules update pinned in rules tab.',
-      ),
-      // 9. Private Room
-      VoiceRoom(
-        id: '#VX100009',
-        name: 'Secret Strategy Room 🔒',
-        description: 'Password protected workspace for internal debates and plans.',
-        hostId: 'uid_anurag_101', // User is Founder
-        ownerName: 'Anurag Kumar Bharti',
-        communityId: 'comm_009',
-        type: 'Private Room',
-        isLive: false,
-        participantCount: 0,
-        maxParticipants: 10,
-        speakerIds: [],
-        listenerIds: [],
-        allowRecording: false,
-        allowScreenShare: true,
-        createdAt: now,
-        isPermanent: true,
-        level: 1,
-        xp: 0,
-        totalMembers: 3,
-        totalFollowers: 0,
-        totalGiftsReceived: 0,
-        category: 'Secret Room',
-        country: 'Global',
-        language: 'English',
-        tags: ['private', 'confidential', 'strategy'],
-        rules: ['Do not share conversation outside this room.'],
-        founderId: 'uid_anurag_101',
-        coOwnerIds: [],
-        adminIds: [],
-        starMemberIds: [],
-        managerIds: [],
-        moderatorIds: [],
-        hostIds: [],
-        mentorIds: [],
-        judgeIds: [],
-        performerIds: [],
-        eliteMemberIds: [],
-        vipMemberIds: [],
-        memberIds: [],
-        visitorIds: [],
-        blockList: [],
-        bulletin: 'Internal design review room.',
-        greetings: 'Authorized personnel only.',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Social',
-        pinnedAnnouncement: 'NDA in effect.',
-      ),
-      // 10. Event Room
-      VoiceRoom(
-        id: '#VX100010',
-        name: 'VoxArena Annual Awards Ceremony 🏆',
-        description: 'Grand annual awards for creators, agencies, and top contributors of VoxArena.',
-        hostId: 'user_host_4',
-        ownerName: 'VoxArena Team',
-        communityId: 'comm_010',
-        type: 'Event Room',
-        isLive: true,
-        participantCount: 940,
-        maxParticipants: 2000,
-        speakerIds: ['user_host_4', 'user_perf_1', 'user_perf_2', 'uid_anurag_101'],
-        listenerIds: List.generate(936, (i) => 'listener_evt_$i'),
-        allowRecording: true,
-        allowScreenShare: true,
-        createdAt: now.subtract(const Duration(days: 1)),
-        startedAt: now.subtract(const Duration(minutes: 10)),
-        isPermanent: true,
-        level: 10,
-        xp: 9900,
-        totalMembers: 12000,
-        totalFollowers: 25000,
-        totalGiftsReceived: 980000,
-        category: 'Event Hall',
-        country: 'Global',
-        language: 'English',
-        tags: ['awards', 'gala', 'event', 'celebrate'],
-        rules: ['Applaud nicely in chat.', 'Enjoy the show!'],
-        founderId: 'user_host_4',
-        coOwnerIds: [],
-        adminIds: [],
-        starMemberIds: [],
-        managerIds: [],
-        moderatorIds: [],
-        hostIds: ['user_host_4'],
-        mentorIds: [],
-        judgeIds: [],
-        performerIds: ['user_perf_1', 'user_perf_2'],
-        eliteMemberIds: ['uid_anurag_101'], // User is Elite Member
-        vipMemberIds: [],
-        memberIds: [],
-        visitorIds: [],
-        blockList: [],
-        bulletin: 'Grand opening ceremony underway!',
-        greetings: 'Welcome to the VoxArena Gala!',
-        roomTheme: 'Classic Dark',
-        activeMode: 'Event',
-        pinnedAnnouncement: 'Next up: Best Creator Award at 4:30 PM',
-      ),
-    ]);
+    // Left empty for production backend loads
+  }
+
+  Future<void> _saveRooms() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentUid = currentUserId;
+    final userRooms = rooms.where((r) => r.hostId == currentUid || r.founderId == currentUid || r.hostId == 'uid_anurag_101' || r.founderId == 'uid_anurag_101').toList();
+    final jsonStr = json.encode(userRooms.map((r) => r.toJson()).toList());
+    await prefs.setString('user_created_rooms', jsonStr);
+    UserProgressSyncService.syncToSupabase();
+  }
+
+  Future<void> _loadSavedRooms() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('user_created_rooms');
+      if (jsonStr != null) {
+        final List<dynamic> decoded = json.decode(jsonStr);
+        for (final item in decoded) {
+          final room = VoiceRoom.fromJson(item);
+          if (!rooms.any((r) => r.id == room.id)) {
+            rooms.add(room);
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   void changeUserRole(String roomId, String userId, String newRole) {
@@ -1269,7 +798,9 @@ class RoomController extends GetxController {
     String? avatar,
     String? banner,
   }) {
-    if (rooms.any((r) => r.hostId == 'uid_anurag_101' || r.founderId == 'uid_anurag_101')) {
+    final currentUid = UserProfileCacheManager.currentUserId;
+    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+    if (rooms.any((r) => r.hostId == currentUid || r.founderId == currentUid)) {
       Get.snackbar(
         'Limit Exceeded',
         'You can only own one voice room at a time.',
@@ -1285,14 +816,14 @@ class RoomController extends GetxController {
       id: tempId,
       name: name,
       description: description,
-      hostId: 'uid_anurag_101',
-      ownerName: 'Anurag Kumar Bharti', 
+      hostId: currentUid,
+      ownerName: currentUsername, 
       communityId: 'comm_custom',
       type: 'Social Room',
       isLive: true,
       participantCount: 1,
       maxParticipants: 50,
-      speakerIds: ['uid_anurag_101'],
+      speakerIds: [currentUid],
       listenerIds: [],
       allowRecording: true,
       allowScreenShare: true,
@@ -1310,7 +841,7 @@ class RoomController extends GetxController {
       tags: tags,
       rules: rules,
       entryPermission: entryPermission,
-      founderId: 'uid_anurag_101',
+      founderId: currentUid,
       coOwnerIds: [],
       adminIds: [],
       starMemberIds: [],
@@ -1351,7 +882,9 @@ class RoomController extends GetxController {
     String? avatar,
     String? banner,
   }) {
-    if (rooms.any((r) => r.hostId == 'uid_anurag_101' || r.founderId == 'uid_anurag_101')) {
+    final currentUid = UserProfileCacheManager.currentUserId;
+    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+    if (rooms.any((r) => r.hostId == currentUid || r.founderId == currentUid)) {
       Get.snackbar(
         'Limit Exceeded',
         'You can only own one voice room at a time.',
@@ -1384,14 +917,14 @@ class RoomController extends GetxController {
       id: permId,
       name: name,
       description: description,
-      hostId: 'uid_anurag_101',
-      ownerName: 'Anurag Kumar Bharti',
+      hostId: currentUid,
+      ownerName: currentUsername,
       communityId: 'comm_custom',
       type: 'Social Room',
       isLive: true,
       participantCount: 1,
       maxParticipants: 200,
-      speakerIds: ['uid_anurag_101'],
+      speakerIds: [currentUid],
       listenerIds: [],
       allowRecording: true,
       allowScreenShare: true,
@@ -1409,7 +942,7 @@ class RoomController extends GetxController {
       tags: tags,
       rules: rules,
       entryPermission: entryPermission,
-      founderId: 'uid_anurag_101',
+      founderId: currentUid,
       coOwnerIds: [],
       adminIds: [],
       starMemberIds: [],
@@ -2152,13 +1685,15 @@ class RoomController extends GetxController {
                 },
                 onTap: () {
                   hidePipBubble();
+                  final currentUid = UserProfileCacheManager.currentUserId;
+                  final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'anurag_kumar';
                   Get.to(
                     () => VoiceRoomCallScreen(
                       roomId: roomId,
                       roomName: roomName,
-                      userId: 'uid_anurag_101',
-                      userName: 'anurag_kumar',
-                      isHost: roomId == '#VX100001',
+                      userId: currentUid,
+                      userName: currentUsername,
+                      isHost: roomId == '#VX100001' || rooms.any((r) => r.id == roomId && r.hostId == currentUid),
                     ),
                   );
                 },

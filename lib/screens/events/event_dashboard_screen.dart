@@ -961,7 +961,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     final targetUser = User(
       id: userId,
       username: username.toLowerCase().replaceAll(' ', '_'),
-      email: '$userId@agorax.app',
+      email: '$userId@creania.app',
       displayName: username,
       avatar: avatarUrl,
       interests: ['Flutter', 'Competitions', 'Networking'],

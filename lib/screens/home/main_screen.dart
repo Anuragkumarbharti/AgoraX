@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/theme.dart';
 import '../../services/chat_controller.dart';
 import '../../services/study_vault_controller.dart';
+import '../../services/user_progress_sync_service.dart';
 import '../home/home_screen.dart';
 import '../explore/explore_screen.dart';
 import '../rooms/rooms_screen.dart';
@@ -18,6 +19,12 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    UserProgressSyncService.syncFromSupabase();
+  }
 
   final List<Widget> _screens = [
     const HomeScreen(),

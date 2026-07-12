@@ -4,15 +4,20 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/novel_controller.dart';
 import '../services/vip_controller.dart';
 import '../services/customization_controller.dart';
+import '../services/user_profile_cache_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PremiumEffectsResolver {
   static int getNovelLevel(String userId, String username) {
-    if (userId == 'me' || userId == 'uid_anurag_101' || username == 'Anurag Kumar' || username == 'Anurag Kumar Bharti') {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == 'me' || userId == 'uid_anurag_101' || (currentUid != null && userId == currentUid) || username == 'Anurag Kumar' || username == 'Anurag Kumar Bharti') {
       try {
         final novelCtrl = Get.find<NovelController>();
         return novelCtrl.novelLevel.value;
       } catch (_) {}
     }
+    final u = UserProfileCacheManager.getCachedUser(userId);
+    if (u != null) return u.novelLevel;
     // Heuristics for mock users in explore/rooms based on name hash
     if (username.hashCode % 5 == 0) {
       return (username.hashCode % 7) + 1;
@@ -24,12 +29,15 @@ class PremiumEffectsResolver {
     final novelLvl = getNovelLevel(userId, username);
     if (novelLvl > 0) return 0; // Novel takes precedence
 
-    if (userId == 'me' || userId == 'uid_anurag_101' || username == 'Anurag Kumar' || username == 'Anurag Kumar Bharti') {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == 'me' || userId == 'uid_anurag_101' || (currentUid != null && userId == currentUid) || username == 'Anurag Kumar' || username == 'Anurag Kumar Bharti') {
       try {
         final vipCtrl = Get.find<VipController>();
         return vipCtrl.vipLevel.value;
       } catch (_) {}
     }
+    final u = UserProfileCacheManager.getCachedUser(userId);
+    if (u != null) return u.vipLevel;
     // Heuristics for mock users in explore/rooms
     if (username.contains('Priya') || username.contains('Owner')) return 7;
     if (username.contains('Vikram') || username.contains('Admin')) return 5;
@@ -39,12 +47,15 @@ class PremiumEffectsResolver {
   }
 
   static String getAvatarFrame(String userId, String username) {
-    if (userId == 'me' || userId == 'uid_anurag_101' || username == 'Anurag Kumar' || username == 'Anurag Kumar Bharti') {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == 'me' || userId == 'uid_anurag_101' || (currentUid != null && userId == currentUid) || username == 'Anurag Kumar' || username == 'Anurag Kumar Bharti') {
       try {
         final custCtrl = Get.find<CustomizationController>();
         return custCtrl.activeFrame.value;
       } catch (_) {}
     }
+    final u = UserProfileCacheManager.getCachedUser(userId);
+    if (u != null) return u.avatarFrame;
     // For other premium users, mock a frame depending on their VIP/Novel tier
     final novelLvl = getNovelLevel(userId, username);
     if (novelLvl > 0) {
@@ -97,6 +108,24 @@ class _PremiumNameWidgetState extends State<PremiumNameWidget>
       duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat();
+    _resolveProfile();
+  }
+
+  void _resolveProfile() {
+    final cached = UserProfileCacheManager.getCachedUser(widget.userId);
+    if (cached == null && widget.userId != 'me' && widget.userId != 'uid_anurag_101') {
+      UserProfileCacheManager.fetchUserProfile(widget.userId).then((_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant PremiumNameWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _resolveProfile();
+    }
   }
 
   @override

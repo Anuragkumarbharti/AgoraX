@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/services.dart';
@@ -867,7 +868,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'amount': (finalAmount * 100).toInt(),
             'currency': 'INR',
             'order_id': orderId,
-            'name': 'AgoraX',
+            'name': 'Creania',
             'description': name,
             'timeout': 300,
             'theme': {
@@ -879,7 +880,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             },
             'prefill': {
               'contact': '9876543210',
-              'email': 'anurag.bharti@agorax.com'
+              'email': Supabase.instance.client.auth.currentUser?.email ?? 'student@creania.com'
             },
             'config': {
               'display': {
@@ -1074,7 +1075,7 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final upiUrl = 'upi://pay?pa=agorax@okaxis&pn=AgoraX&am=${widget.amount.toStringAsFixed(2)}&cu=INR';
+    final upiUrl = 'upi://pay?pa=creania@okaxis&pn=Creania&am=${widget.amount.toStringAsFixed(2)}&cu=INR';
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -1205,13 +1206,13 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
                 children: [
                   Expanded(
                     child: Text(
-                      'UPI ID: agorax@okaxis',
+                      'UPI ID: creania@okaxis',
                       style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
                   GestureDetector(
                     onTap: () {
-                      Clipboard.setData(const ClipboardData(text: 'agorax@okaxis'));
+                      Clipboard.setData(const ClipboardData(text: 'creania@okaxis'));
                       Get.snackbar(
                         'Copied! 📋',
                         'UPI ID copied to clipboard.',

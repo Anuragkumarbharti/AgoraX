@@ -2,10 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/store_controller.dart';
+import 'user_progress_sync_service.dart';
+
+import 'user_profile_cache_manager.dart';
 
 class VipController extends GetxController {
+  static String get currentUserId => UserProfileCacheManager.currentUserId;
   static const String _keyVipLevel = 'vip_level';
   static const String _keyVipExpiry = 'vip_expiry';
   static const String _keyVipAutoRenew = 'vip_auto_renew';
@@ -42,7 +47,27 @@ class VipController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadState();
+    _loadState().then((_) => loadVipFromDatabase());
+  }
+
+  Future<void> loadVipFromDatabase() async {
+    try {
+      final profileData = await Supabase.instance.client
+          .from('profiles')
+          .select('vip_level, vip_expiry')
+          .eq('id', currentUserId)
+          .maybeSingle();
+
+      if (profileData != null) {
+        vipLevel.value = profileData['vip_level'] ?? 0;
+        final expiryStr = profileData['vip_expiry'];
+        if (expiryStr != null) {
+          expiryDate.value = DateTime.tryParse(expiryStr);
+        } else {
+          expiryDate.value = null;
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadState() async {
@@ -124,6 +149,16 @@ class VipController extends GetxController {
 
     await prefs.setString(_keyVipFreeReadsWeek, json.encode(vipFreeReadsThisWeek.toList()));
     await prefs.setString(_keyVipFreeReadsDay, json.encode(vipFreeReadsToday.toList()));
+    UserProgressSyncService.syncToSupabase();
+  }
+
+  Future<void> _syncVipToDatabase(int level, DateTime? expiry) async {
+    try {
+      await Supabase.instance.client.from('profiles').update({
+        'vip_level': level,
+        'vip_expiry': expiry?.toIso8601String(),
+      }).eq('id', currentUserId);
+    } catch (_) {}
   }
 
   void _handleExpiry() {
@@ -133,6 +168,7 @@ class VipController extends GetxController {
     vipFreeReadsToday.clear();
     vipFreeReadsThisWeek.clear();
     _saveState();
+    _syncVipToDatabase(0, null);
   }
 
   // Cooldown & claim rules
@@ -276,8 +312,10 @@ class VipController extends GetxController {
       case 'Yearly': days = 365; break;
     }
 
-    expiryDate.value = DateTime.now().add(Duration(days: days));
+    final newExpiry = DateTime.now().add(Duration(days: days));
+    expiryDate.value = newExpiry;
     await _saveState();
+    await _syncVipToDatabase(level, newExpiry);
     
     if (Get.context != null) {
       Get.snackbar(
@@ -324,6 +362,7 @@ class VipController extends GetxController {
     await prefs.remove(_keyVipFreeReadsDay);
     await prefs.remove(_keyVipFreeReadsWeek);
     await _saveState();
+    await _syncVipToDatabase(0, null);
   }
 
   // Developer Simulation tools

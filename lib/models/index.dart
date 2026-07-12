@@ -6,4 +6,5 @@ export 'room_model.dart';
 export 'study_category_model.dart';
 export 'daily_learning_model.dart';
 export 'study_vault_model.dart';
+export 'task_progress_model.dart';
 

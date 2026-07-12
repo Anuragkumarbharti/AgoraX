@@ -55,7 +55,7 @@ class VoiceRoom {
     required this.visitorIds,
 
     // New Room Settings
-    this.bulletin = 'Welcome to VoxArena! Be respectful and have fun.',
+    this.bulletin = 'Welcome to Creania! Be respectful and have fun.',
     this.greetings = 'Hello! Welcome to our Arena.',
     this.roomTheme = 'Classic Dark',
     this.wordFilter = '',
@@ -134,7 +134,7 @@ class VoiceRoom {
       visitorIds: List<String>.from(json['visitorIds'] ?? []),
 
       // Settings
-      bulletin: json['bulletin'] ?? 'Welcome to VoxArena! Be respectful and have fun.',
+      bulletin: json['bulletin'] ?? 'Welcome to Creania! Be respectful and have fun.',
       greetings: json['greetings'] ?? 'Hello! Welcome to our Arena.',
       roomTheme: json['roomTheme'] ?? 'Classic Dark',
       wordFilter: json['wordFilter'] ?? '',

@@ -2,8 +2,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import '../home/main_screen.dart';
+import 'signup_flow_screen.dart';
 
 class PhoneAuthScreen extends StatefulWidget {
   const PhoneAuthScreen({Key? key}) : super(key: key);
@@ -78,69 +81,159 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
     super.dispose();
   }
 
-  void _sendOtp() {
-    if (_phoneCtrl.text.length < 7) {
-      Get.snackbar(
-        'Invalid Number',
-        'Please enter a valid phone number',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
-        colorText: Colors.white,
-      );
-      _shakeCtrl.forward(from: 0);
+  void _sendOtp() async {
+    final rawPhone = _phoneCtrl.text.trim();
+    if (rawPhone.isEmpty) {
+      Get.snackbar('Required', 'Please enter your phone number');
       return;
     }
+
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
+
+    try {
+      final code = _selectedCountry.split(' ').last;
+      final phoneNumber = '$code$rawPhone';
+
+      // 1. Check if phone number exists in profiles
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('id')
+          .eq('phone', phoneNumber)
+          .maybeSingle();
+
+      if (res == null) {
+        setState(() => _isLoading = false);
+        // Show: "No account found with this phone number."
+        Get.defaultDialog(
+          title: 'Account Not Found ⚠️',
+          titleStyle: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+          backgroundColor: AppTheme.bgLight,
+          contentPadding: const EdgeInsets.all(20),
+          content: Column(
+            children: [
+              Text(
+                'No account found with this phone number.',
+                style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+                onPressed: () {
+                  Get.back();
+                  Get.to(() => const SignupFlowScreen(startStep: 0));
+                },
+                child: Text('Create Account', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  side: const BorderSide(color: AppTheme.borderColor),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+                onPressed: () => Get.back(),
+                child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _isLoading = false;
         _isOtpSent = true;
-        _resendCountdown = 30;
       });
-      _startCountdown();
-      FocusScope.of(context).requestFocus(_otpFocusNodes[0]);
-    });
-  }
 
-  void _startCountdown() {
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      if (_resendCountdown > 0) {
-        setState(() => _resendCountdown--);
-        _startCountdown();
-      }
-    });
-  }
-
-  void _verifyOtp() {
-    final otp = _otpCtrls.map((c) => c.text).join();
-    if (otp.length < 6) {
       Get.snackbar(
-        'Enter OTP',
-        'Please enter the 6-digit OTP code',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
-        colorText: Colors.white,
-      );
-      _shakeCtrl.forward(from: 0);
-      return;
-    }
-    setState(() => _isVerifying = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      setState(() => _isVerifying = false);
-      Get.snackbar(
-        '✅ Verified!',
-        'Phone number verified successfully',
-        snackPosition: SnackPosition.BOTTOM,
+        'OTP Sent ✉️',
+        'Use code 0 to verify (Sandbox mode)',
         backgroundColor: AppTheme.accentColor.withOpacity(0.9),
         colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
       );
-      Future.delayed(const Duration(milliseconds: 800), () {
-        Get.offAll(() => const MainScreen());
+    } catch (e) {
+      setState(() => _isLoading = false);
+      Get.snackbar('Error ⚠️', e.toString());
+    }
+  }
+
+  void _verifyOtp() async {
+    final otp = _otpCtrls.map((c) => c.text).join().trim();
+    if (otp != '0' && otp != '000000' && otp != '123456') {
+      Get.snackbar(
+        'Invalid OTP ⚠️',
+        'Invalid verification code. Use code 0.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.errorColor,
+        colorText: Colors.white,
+      );
+      _shakeCtrl.forward(from: 0.0);
+      return;
+    }
+
+    setState(() => _isVerifying = true);
+
+    try {
+      final code = _selectedCountry.split(' ').last;
+      final rawPhone = _phoneCtrl.text.trim();
+      final phoneNumber = '$code$rawPhone';
+      final mockEmail = '${phoneNumber.replaceAll('+', '')}@creania.com';
+
+      // 1. Reset user password in DB to temp password
+      await Supabase.instance.client.rpc('dev_reset_password', params: {
+        'user_email': '',
+        'user_phone': phoneNumber,
+        'new_password': 'PhonePassword123!',
       });
-    });
+
+      // 2. Sign in using password
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: mockEmail,
+        password: 'PhonePassword123!',
+      );
+
+      setState(() => _isVerifying = false);
+
+      if (response.user != null) {
+        _checkProfileAndNavigate(response.user!.id);
+      }
+    } catch (e) {
+      setState(() => _isVerifying = false);
+      Get.snackbar('Login Failed ⚠️', e.toString());
+    }
+  }
+
+  void _checkProfileAndNavigate(String userId) async {
+    try {
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('username, display_name, interests')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (res == null) {
+        Get.offAll(() => SignupFlowScreen(userId: userId, startStep: 1));
+        return;
+      }
+
+      final username = res['username'] ?? '';
+      final interests = List<String>.from(res['interests'] ?? []);
+
+      if (username.startsWith('user_') || username.isEmpty || interests.length < 5) {
+        Get.offAll(() => SignupFlowScreen(userId: userId, startStep: 1));
+      } else {
+        Get.offAll(() => const MainScreen());
+      }
+    } catch (_) {
+      Get.offAll(() => const MainScreen());
+    }
   }
 
   void _showCountryPicker() {

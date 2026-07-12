@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme.dart';
 import '../home/main_screen.dart';
 
@@ -48,7 +49,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
     _selectedInterests = {};
   }
 
-  void _handleContinue() {
+  void _handleContinue() async {
     if (_selectedInterests.length < 3) {
       Get.snackbar(
         'Error',
@@ -60,11 +61,14 @@ class _InterestsScreenState extends State<InterestsScreen> {
     }
 
     setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('user_selected_interests', _selectedInterests.toList());
+    } catch (_) {}
 
-    Future.delayed(const Duration(seconds: 2), () {
-      setState(() => _isLoading = false);
-      Get.offAll(() => const MainScreen());
-    });
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    Get.offAll(() => const MainScreen());
   }
 
   @override

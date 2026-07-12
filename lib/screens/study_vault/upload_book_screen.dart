@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
 import '../../services/study_vault_controller.dart';
+import '../../services/user_profile_cache_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UploadBookScreen extends StatefulWidget {
   const UploadBookScreen({Key? key}) : super(key: key);
@@ -122,7 +124,7 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
       university: _university,
       language: _language,
       tags: tagsList.isEmpty ? [_selectedCategory] : tagsList,
-      authorName: _authorController.text.trim().isEmpty ? 'Anurag Kumar' : _authorController.text.trim(),
+      authorName: _authorController.text.trim().isEmpty ? (UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Author') : _authorController.text.trim(),
       publisher: _publisherController.text.trim().isEmpty ? 'Self-Published' : _publisherController.text.trim(),
       edition: _editionController.text.trim(),
       isbn: _isbnController.text.trim().isEmpty ? null : _isbnController.text.trim(),
@@ -394,7 +396,7 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                     child: Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
-                        'I declare that this file is my own original work (or I hold copyright distribution rights). I understand copyright infringement is illegal and AgoraX will suspend my seller account in case of piracy reports.',
+                        'I declare that this file is my own original work (or I hold copyright distribution rights). I understand copyright infringement is illegal and Creania will suspend my seller account in case of piracy reports.',
                         style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 11, height: 1.4),
                       ),
                     ),

@@ -1,4 +1,4 @@
-// AgoraX Premium Cosmetic Asset Registry
+// Creania Premium Cosmetic Asset Registry
 // Statically typed configurations and asset paths for all 15 VIP & Novel collections.
 
 class CosmeticAsset {

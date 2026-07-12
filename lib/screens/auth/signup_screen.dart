@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import 'login_screen.dart';
 import 'email_verification_screen.dart';
 import 'phone_auth_screen.dart';
+import 'interests_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
@@ -78,19 +79,50 @@ class _SignupScreenState extends State<SignupScreen>
     }
     setState(() => _isLoading = true);
     try {
+      final username = _usernameCtrl.text.trim().isNotEmpty
+          ? _usernameCtrl.text.trim()
+          : _emailCtrl.text.trim().split('@')[0];
       final response = await Supabase.instance.client.auth.signUp(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
         data: {
-          'username': _emailCtrl.text.trim().split('@')[0],
+          'username': username,
         },
       );
+      
+      if (response.user != null) {
+        // Explicitly create profile and wallet rows to ensure reliability
+        try {
+          await Supabase.instance.client.from('profiles').insert({
+            'id': response.user!.id,
+            'username': username,
+            'bio': 'Welcome to Creania!',
+            'level': 1,
+            'experience': 0,
+            'vip_level': 0,
+            'novel_level': 0,
+          });
+        } catch (_) {}
+        try {
+          await Supabase.instance.client.from('wallets').insert({
+            'id': response.user!.id,
+            'coins_balance': 0,
+            'inr_balance': 0.00,
+            'withdrawable_balance': 0.00,
+          });
+        } catch (_) {}
+      }
+
       if (!mounted) return;
       setState(() => _isLoading = false);
-      Get.offAll(() => EmailVerificationScreen(
-            email: _emailCtrl.text,
-            userId: response.user?.id ?? '123',
-          ));
+      if (response.session != null) {
+        Get.offAll(() => InterestsScreen(userId: response.user?.id ?? '123'));
+      } else {
+        Get.offAll(() => EmailVerificationScreen(
+              email: _emailCtrl.text,
+              userId: response.user?.id ?? '123',
+            ));
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -106,18 +138,12 @@ class _SignupScreenState extends State<SignupScreen>
 
   void _handleSocialSignup(String provider) {
     Get.snackbar(
-      '$provider Sign-Up',
-      'Connecting to $provider…',
+      'Social Sign-Up Disabled ⚠️',
+      'Please sign up using your Email & Password. Social sign-up is not supported.',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: AppTheme.bgLight,
+      backgroundColor: AppTheme.errorColor.withOpacity(0.9),
       colorText: Colors.white,
     );
-    Future.delayed(const Duration(seconds: 2), () {
-      Get.offAll(() => EmailVerificationScreen(
-            email: '${provider.toLowerCase()}@agorax.app',
-            userId: '456',
-          ));
-    });
   }
 
   @override
@@ -177,7 +203,7 @@ class _SignupScreenState extends State<SignupScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Join AgoraX 🚀',
+                                    'Join Creania 🚀',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 22,
@@ -414,13 +440,25 @@ class _SignupScreenState extends State<SignupScreen>
             ),
           ),
           const Spacer(),
-          const Text(
-            'AgoraX',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/images/logo.png',
+                height: 22,
+                width: 22,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Creania',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
           const Spacer(),
           const SizedBox(width: 40), // balance

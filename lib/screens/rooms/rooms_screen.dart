@@ -523,22 +523,33 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
       ),
       child: Row(
         children: [
-          // Branding Logo with gradient
-          ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6), Color(0xFFF72585)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ).createShader(bounds),
-            child: Text(
-              'VoxArena',
-              style: GoogleFonts.outfit(
-                fontSize: 26,
-                fontWeight: FontWeight.w900, // Fixed: FontWeight.black -> FontWeight.w900
-                color: Colors.white,
-                letterSpacing: 0.5,
+          // Branding Logo
+          Row(
+            children: [
+              Image.asset(
+                'assets/images/logo.png',
+                height: 32,
+                width: 32,
+                fit: BoxFit.contain,
               ),
-            ),
+              const SizedBox(width: 8),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Color(0xFF6366F1), Color(0xFF8B5CF6), Color(0xFFF72585)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds),
+                child: Text(
+                  'Creania',
+                  style: GoogleFonts.outfit(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
           ),
           const Spacer(),
           // Wallet indicator (gold coins)

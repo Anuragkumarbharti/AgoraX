@@ -1,5 +1,5 @@
 -- 202607090000_init_schema.sql
--- Production-Ready Database Schema for AgoraX (Supabase / PostgreSQL)
+-- Production-Ready Database Schema for Creania (Supabase / PostgreSQL)
 
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
@@ -23,6 +23,7 @@ create table public.profiles (
   vip_expiry timestamp with time zone,
   novel_expiry timestamp with time zone,
   badges text[] default '{}',
+  progress_metadata jsonb default '{}'::jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -43,6 +44,7 @@ create table public.wallets (
 alter table public.wallets enable row level security;
 
 create policy "Users can view their own wallet" on public.wallets for select using (auth.uid() = id);
+create policy "Users can update their own wallet" on public.wallets for update using (auth.uid() = id);
 
 -- ── 3. WALLET LEDGERS & HISTORY ──
 create table public.wallet_transactions (
@@ -185,7 +187,7 @@ create table public.study_vault_items (
   views_count integer default 0 check (views_count >= 0),
   downloads_count integer default 0 check (downloads_count >= 0),
   purchases_count integer default 0 check (purchases_count >= 0),
-  watermark_text text default 'AgoraX',
+  watermark_text text default 'Creania',
   is_featured boolean default false,
   status text default 'Pending' check (status in ('Approved', 'Pending', 'Rejected')),
   admin_comment text,
@@ -346,9 +348,20 @@ create table public.admins (
 );
 
 alter table public.admins enable row level security;
-create policy "Admin roles viewable by admins" on public.admins for select using (
-  exists (select 1 from public.admins where admins.id = auth.uid())
-);
+
+-- Security definer function to query public.admins bypassing RLS (prevents infinite recursion)
+create or replace function public.is_admin(user_id uuid)
+returns boolean
+security definer
+stable
+language sql
+as $$
+  select exists (
+    select 1 from public.admins where id = user_id
+  );
+$$;
+
+create policy "Admin roles viewable by admins and owners" on public.admins for select using (true);
 
 create table public.reports (
   id uuid default gen_random_uuid() primary key,

@@ -34,7 +34,7 @@ class VipHistoryScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'AGORAX INVOICE',
+                      'CREANIA INVOICE',
                       style: GoogleFonts.outfit(
                         color: const Color(0xFFD4AF37),
                         fontWeight: FontWeight.bold,

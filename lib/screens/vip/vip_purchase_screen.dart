@@ -8,6 +8,8 @@ import '../../widgets/vip_badge_widget.dart';
 import '../../widgets/vip_avatar_decorator.dart';
 import '../store/checkout_screen.dart';
 import '../../services/room_controller.dart';
+import '../../services/user_profile_cache_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 class VipPurchaseScreen extends StatefulWidget {
   const VipPurchaseScreen({Key? key}) : super(key: key);
 
@@ -244,7 +246,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(
-                '👑 AGORAX VIP CLUB',
+                '👑 CREANIA VIP CLUB',
                 style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
@@ -313,7 +315,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                 Row(
                   children: [
                     Text(
-                      hasVip ? 'AgoraX VIP Level $currentLevel' : 'Not Subscribed yet',
+                      hasVip ? 'Creania VIP Level $currentLevel' : 'Not Subscribed yet',
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
@@ -528,7 +530,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                     Row(
                       children: [
                         Text(
-                          'Anurag Kumar',
+                          UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student',
                           style: GoogleFonts.poppins(
                             color: selectedLevel == 3
                                 ? const Color(0xFFFFD700)
@@ -1056,7 +1058,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
     if (RoomController.to.activeRoomId != null) {
       RoomController.to.addSystemActivity(
         RoomController.to.activeRoomId!,
-        '💎 Anurag Kumar unlocked VIP $selectedLevel.',
+        '💎 ${UserProfileCacheManager.currentUser?.username ?? 'Student'} unlocked VIP $selectedLevel.',
         activityKey: 'vip-unlock',
       );
     }

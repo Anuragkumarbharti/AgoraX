@@ -76,7 +76,7 @@ class _EventsScreenState extends State<EventsScreen>
           onPressed: () => Get.back(),
         ),
         title: const Text(
-          'AgoraX Events',
+          'Creania Events',
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 18,

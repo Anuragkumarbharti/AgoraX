@@ -6,6 +6,8 @@ import '../../core/theme.dart';
 import '../../services/study_vault_controller.dart';
 import '../../models/study_vault_model.dart';
 import 'upload_book_screen.dart';
+import '../../services/user_profile_cache_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
   const SellerDashboardScreen({Key? key}) : super(key: key);
@@ -39,7 +41,8 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   void _showWithdrawModal() {
     final wallet = _controller.sellerWallet.value;
     _withdrawAmountController.text = wallet.withdrawableBalance.toString();
-    _withdrawUpiController.text = 'anurag@upi';
+    final uName = UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'user';
+    _withdrawUpiController.text = '$uName@upi';
 
     Get.dialog(
       Dialog(
@@ -150,7 +153,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
             onPressed: () {
               Get.snackbar(
                 'Seller Guide 📚',
-                'Upload resource, set base price. AgoraX handles GST (18%), Platform (17%), Gateway (2%). Net payout (63%) is added directly to your Wallet.',
+                'Upload resource, set base price. Creania handles GST (18%), Platform (17%), Gateway (2%). Net payout (63%) is added directly to your Wallet.',
                 duration: const Duration(seconds: 5),
               );
             },
@@ -286,10 +289,10 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               Container(
                 width: 50,
                 height: 50,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   image: DecorationImage(
-                    image: NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'),
+                    image: NetworkImage(UserProfileCacheManager.currentUser?.avatar ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -301,9 +304,9 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   children: [
                     Row(
                       children: [
-                        const Text(
-                          'Anurag Kumar',
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        Text(
+                          UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Seller',
+                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(width: 6),
                         Container(

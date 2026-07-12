@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import 'user_profile_screen.dart';
 import '../../widgets/custom_avatar_frame.dart';
+import '../../services/user_profile_cache_manager.dart';
 
 class ConnectionsScreen extends StatefulWidget {
   final int initialTabIndex; // 0 for Following, 1 for Followers
@@ -21,141 +23,8 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Mock list of following users
-  final RxList<User> _followingList = <User>[
-    User(
-      id: 'uid_rahul_101',
-      username: 'rahul_verma',
-      email: 'rahul@example.com',
-      displayName: 'Rahul Verma',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-      interests: ['Flutter', 'Dart'],
-      communities: [],
-      followers: 1400,
-      following: 480,
-      isVerified: true,
-      isPremium: true,
-      reputation: 517420,
-      sid: '517420',
-      level: 7,
-    ),
-    User(
-      id: 'uid_priya_102',
-      username: 'priya_sharma',
-      email: 'priya@example.com',
-      displayName: 'Priya Sharma',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-      interests: ['AI', 'Python'],
-      communities: [],
-      followers: 2450,
-      following: 310,
-      isVerified: true,
-      isPremium: false,
-      reputation: 3450,
-      sid: '320914',
-      level: 12,
-    ),
-    User(
-      id: 'uid_alex_103',
-      username: 'alex_code',
-      email: 'alex@example.com',
-      displayName: 'Alex Mercer',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-      interests: ['Go', 'Docker'],
-      communities: [],
-      followers: 980,
-      following: 890,
-      isVerified: false,
-      isPremium: true,
-      reputation: 8750,
-      sid: '887612',
-      level: 22,
-    ),
-    User(
-      id: 'uid_sara_104',
-      username: 'sara_design',
-      email: 'sara@example.com',
-      displayName: 'Sara Khan',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
-      interests: ['UI/UX', 'Figma'],
-      communities: [],
-      followers: 4120,
-      following: 200,
-      isVerified: true,
-      isPremium: true,
-      reputation: 19800,
-      sid: '614592',
-      level: 15,
-    ),
-  ].obs;
-
-  // Mock list of followers
-  final RxList<User> _followersList = <User>[
-    User(
-      id: 'uid_rahul_101',
-      username: 'rahul_verma',
-      email: 'rahul@example.com',
-      displayName: 'Rahul Verma',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-      interests: ['Flutter', 'Dart'],
-      communities: [],
-      followers: 1400,
-      following: 480,
-      isVerified: true,
-      isPremium: true,
-      reputation: 517420,
-      sid: '517420',
-      level: 7,
-    ),
-    User(
-      id: 'uid_sara_104',
-      username: 'sara_design',
-      email: 'sara@example.com',
-      displayName: 'Sara Khan',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
-      interests: ['UI/UX', 'Figma'],
-      communities: [],
-      followers: 4120,
-      following: 200,
-      isVerified: true,
-      isPremium: true,
-      reputation: 19800,
-      sid: '614592',
-      level: 15,
-    ),
-    User(
-      id: 'uid_kabir_105',
-      username: 'kabir_singh',
-      email: 'kabir@example.com',
-      displayName: 'Kabir Dev',
-      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150',
-      interests: ['Node.js', 'React'],
-      communities: [],
-      followers: 530,
-      following: 610,
-      isVerified: false,
-      isPremium: false,
-      reputation: 980,
-      sid: '109823',
-      level: 4,
-    ),
-    User(
-      id: 'uid_neha_106',
-      username: 'neha_writes',
-      email: 'neha@example.com',
-      displayName: 'Neha Gupta',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      interests: ['Writing', 'Poetry'],
-      communities: [],
-      followers: 1850,
-      following: 410,
-      isVerified: false,
-      isPremium: true,
-      reputation: 4320,
-      sid: '776102',
-      level: 9,
-    ),
-  ].obs;
+  final RxList<User> _followingList = <User>[].obs;
+  final RxList<User> _followersList = <User>[].obs;
 
   @override
   void initState() {
@@ -165,6 +34,36 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
+    _loadConnections();
+  }
+
+  void _loadConnections() async {
+    try {
+      final currentUserId = UserProfileCacheManager.currentUserId;
+      final List<dynamic> list = await Supabase.instance.client
+          .from('profiles')
+          .select()
+          .limit(20);
+      
+      final loadedUsers = list
+          .map((m) => User.fromJson({
+                'id': m['id'],
+                'username': m['username'] ?? '',
+                'displayName': m['username'] ?? '',
+                'avatar': m['avatar_url'] ?? '',
+                'followers': m['followers'] ?? 0,
+                'following': m['following'] ?? 0,
+                'level': m['level'] ?? 1,
+              }))
+          .where((u) => u.id != currentUserId)
+          .toList();
+
+      _followersList.assignAll(loadedUsers);
+      _followingList.assignAll(loadedUsers);
+    } catch (_) {
+      _followersList.clear();
+      _followingList.clear();
+    }
   }
 
   @override
@@ -230,7 +129,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
           ),
           content: Text(
-            'AgoraX will not tell ${user.displayName} they were removed from your followers.',
+            'Creania will not tell ${user.displayName} they were removed from your followers.',
             style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 13),
           ),
           actions: [

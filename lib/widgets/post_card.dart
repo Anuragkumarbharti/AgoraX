@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 import '../core/theme.dart';
 import '../models/post_model.dart';
 import 'post_attachments_widget.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
 
 class PostCard extends StatefulWidget {
   const PostCard({
@@ -159,10 +161,18 @@ class _PostCardState extends State<PostCard> {
               // Header
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
-                    child: Text('U', style: Theme.of(context).textTheme.bodySmall),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: widget.post.authorAvatarUrl != null && widget.post.authorAvatarUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: widget.post.authorAvatarUrl!,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(color: AppTheme.bgLight),
+                            errorWidget: (context, url, error) => _buildInitialsAvatar(),
+                          )
+                        : _buildInitialsAvatar(),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -170,14 +180,19 @@ class _PostCardState extends State<PostCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'User Name',
+                          widget.post.authorUsername != null && widget.post.authorUsername!.isNotEmpty
+                              ? '@${widget.post.authorUsername}'
+                              : 'Creania Student',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
                               ),
                         ),
                         Text(
-                          '2 hours ago',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          _timeAgo(widget.post.createdAt),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textTertiary,
+                              ),
                         ),
                       ],
                     ),
@@ -260,4 +275,38 @@ class _PostCardState extends State<PostCard> {
           ),
         ),
       );
+
+  Widget _buildInitialsAvatar() {
+    final name = widget.post.authorUsername ?? 'User';
+    final initial = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U';
+    return Container(
+      width: 40,
+      height: 40,
+      color: AppTheme.primaryColor.withOpacity(0.2),
+      child: Center(
+        child: Text(
+          initial,
+          style: const TextStyle(
+            color: AppTheme.primaryColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _timeAgo(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime);
+    if (difference.inDays > 8) {
+      return DateFormat('dd MMM yyyy').format(dateTime);
+    } else if (difference.inDays >= 1) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours >= 1) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'just now';
+    }
+  }
 }

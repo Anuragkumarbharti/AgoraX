@@ -81,7 +81,7 @@ class _BadgesScreenState extends State<BadgesScreen>
     {
       'id': 'badge_early_adopter',
       'name': 'Early Adopter',
-      'desc': 'Joined AgoraX in the first 1000 users',
+      'desc': 'Joined Creania in the first 1000 users',
       'icon': '🚀',
       'category': 'Achievement',
       'rarity': 'Legendary',
@@ -94,7 +94,7 @@ class _BadgesScreenState extends State<BadgesScreen>
     {
       'id': 'badge_premium',
       'name': 'Premium',
-      'desc': 'Active AgoraX Premium member',
+      'desc': 'Active Creania Premium member',
       'icon': '💎',
       'category': 'VIP',
       'rarity': 'Epic',
@@ -193,13 +193,13 @@ class _BadgesScreenState extends State<BadgesScreen>
     {
       'id': 'badge_hired',
       'name': 'Got Hired',
-      'desc': 'Landed a job through AgoraX referral',
+      'desc': 'Landed a job through Creania referral',
       'icon': '💼',
       'category': 'Career',
       'rarity': 'Legendary',
       'rarityColor': const Color(0xFFFBBF24),
       'isUnlocked': false,
-      'unlocksAt': 'Get hired via AgoraX',
+      'unlocksAt': 'Get hired via Creania',
       'xpBonus': 500,
     },
     {

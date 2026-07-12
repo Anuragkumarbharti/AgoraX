@@ -1,10 +1,13 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/community_model.dart';
 import 'store_controller.dart';
+import 'user_profile_cache_manager.dart';
 
 class CommunityController extends GetxController {
-  // Current logged in user (mock)
-  static const String currentUserId = 'me';
+  static String get currentUserId => UserProfileCacheManager.currentUserId;
 
   // User Coins State
   RxInt get userCoins => Get.find<StoreController>().coinsBalance;
@@ -15,6 +18,8 @@ class CommunityController extends GetxController {
   // Showcased Community ID for Profile Badge
   final RxString showcasedCommunityId = ''.obs;
 
+  RealtimeChannel? _communitiesSubscription;
+
   void setShowcasedCommunity(String communityId) {
     showcasedCommunityId.value = communityId;
   }
@@ -22,131 +27,129 @@ class CommunityController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadMockCommunities();
+    _loadCommunitiesFromDatabase();
+    subscribeToRealtime();
   }
 
-  void _loadMockCommunities() {
-    communities.assignAll([
-      Community(
-        id: 'c1',
-        name: 'Flutter India',
-        description: 'The largest community of Flutter developers in India. Share, learn and grow together! 🦋',
-        category: 'Technology',
-        type: 'public',
-        owner: 'u2', // Priya Sharma
-        coOwnerIds: ['u3'], // Rahul
-        admins: ['me'], // Current user is Admin
-        members: ['me', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7'],
-        memberCount: 12400,
-        isVerified: true,
-        level: 12,
-        xp: 3400,
-        creationType: 'coins',
-        isApproved: true,
-        isLogoUnlocked: true,
-        tasks: [],
-        rules: '1. Be polite and professional.\n2. Keep discussions related to Flutter and Dart.\n3. No spam or plagiarism.',
-        createdAt: DateTime.now().subtract(const Duration(days: 120)),
-      ),
-      Community(
-        id: 'c2',
-        name: 'AI & Machine Learning',
-        description: 'Explore the frontiers of Artificial Intelligence, Deep Learning and NLP 🤖',
-        category: 'Technology',
-        type: 'public',
-        owner: 'u3', // Rahul
-        coOwnerIds: [],
-        admins: ['u4'],
-        members: ['me', 'u2', 'u3', 'u4'],
-        memberCount: 8200,
-        isVerified: true,
-        level: 8,
-        xp: 1200,
-        creationType: 'apply',
-        isApproved: true,
-        isLogoUnlocked: true,
-        tasks: [],
-        rules: 'No self-promotion. Share high-quality resources only.',
-        createdAt: DateTime.now().subtract(const Duration(days: 90)),
-      ),
-      Community(
-        id: 'c3',
-        name: 'UX Designers Hub',
-        description: 'Dedicated to UI/UX designers, researchers, and product creators. Show your designs! 🎨',
-        category: 'Design',
-        type: 'public',
-        owner: 'me', // Current user is Owner
-        coOwnerIds: [],
-        admins: [],
-        members: ['me', 'u5', 'u6'],
-        memberCount: 3,
-        isVerified: false,
-        level: 3,
-        xp: 450,
-        creationType: 'coins',
-        isApproved: true,
-        isLogoUnlocked: true,
-        tasks: [],
-        rules: 'Give constructive design feedback.',
-        createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      ),
-      Community(
-        id: 'c4',
-        name: 'Voice Stars Club',
-        description: 'A community for talented singers, poets, and voice artists. Host rooms and perform! 🎙️',
-        category: 'Entertainment',
-        type: 'public',
-        owner: 'me', // Current user is Owner
-        coOwnerIds: [],
-        admins: [],
-        members: ['me'],
-        memberCount: 1,
-        isVerified: false,
-        level: 1,
-        xp: 0,
-        creationType: 'apply',
-        isApproved: false, // Pending Admin Approval
-        isLogoUnlocked: false, // Logo locked until tasks completed
-        tasks: [
-          CommunityTask(
-            id: 't1',
-            title: 'Invite 5 Members',
-            description: 'Get at least 5 members to join your community',
-            target: 5,
-            current: 1,
-            isCompleted: false,
-          ),
-          CommunityTask(
-            id: 't2',
-            title: 'Host a Community Voice Room',
-            description: 'Start a voice room linked to this community for at least 15 mins',
-            target: 1,
-            current: 0,
-            isCompleted: false,
-          ),
-          CommunityTask(
-            id: 't3',
-            title: 'Publish 3 Posts',
-            description: 'Share 3 updates or announcements in the community feed',
-            target: 3,
-            current: 1,
-            isCompleted: false,
-          ),
-        ],
-        rules: 'Support each other. Avoid abusive language in audio stages.',
-        createdAt: DateTime.now().subtract(const Duration(days: 2)),
-      ),
-    ]);
+  @override
+  void onClose() {
+    _communitiesSubscription?.unsubscribe();
+    super.onClose();
   }
 
-  String? createCommunity({
+  Future<void> _loadCommunitiesFromDatabase() async {
+    try {
+      final List<dynamic> list = await Supabase.instance.client
+          .from('communities')
+          .select()
+          .order('created_at', ascending: false);
+
+      final loaded = list.map((m) => Community.fromJson({
+        'id': m['id'],
+        'name': m['name'],
+        'description': m['description'],
+        'image': m['image'],
+        'banner': m['banner'],
+        'category': m['category'],
+        'type': m['type'],
+        'owner': m['owner'],
+        'coOwnerIds': m['co_owner_ids'] ?? [],
+        'admins': m['admins'] ?? [],
+        'members': m['members'] ?? [],
+        'memberCount': m['member_count'] ?? 1,
+        'isVerified': m['is_verified'] ?? false,
+        'createdAt': m['created_at'] ?? DateTime.now().toIso8601String(),
+        'level': m['level'] ?? 1,
+        'xp': m['xp'] ?? 0,
+        'creationType': m['creation_type'] ?? 'coins',
+        'isApproved': m['is_approved'] ?? true,
+        'isLogoUnlocked': m['is_logo_unlocked'] ?? true,
+        'rules': m['rules'] ?? '',
+        'tasks': m['tasks'] ?? [],
+      })).toList();
+
+      communities.assignAll(loaded);
+    } catch (e) {
+      debugPrint('DB Load Error: Fallback to initial communities: $e');
+      _loadInitialCommunities();
+    }
+  }
+
+  void subscribeToRealtime() {
+    try {
+      _communitiesSubscription = Supabase.instance.client
+          .channel('public:communities')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'communities',
+            callback: (payload) {
+              _loadCommunitiesFromDatabase();
+            },
+          );
+      _communitiesSubscription?.subscribe();
+    } catch (e) {
+      debugPrint('Realtime Sub failed: $e');
+    }
+  }
+
+  void _loadInitialCommunities() {
+    if (communities.isEmpty) {
+      final names = [
+        'Flutter India 🦋',
+        'AI & ML Hub 🤖',
+        'DSA Grinders 🧠',
+        'Web Dev Café ☕',
+        'Open Source 🌍',
+        'UPSC Aspirants 📚'
+      ];
+      final descs = [
+        'Official community for Flutter developers across India',
+        'Discuss AI, ML, and the future of intelligent systems',
+        'Crack DSA together — daily challenges and solutions',
+        'All things frontend, backend, and full-stack web dev',
+        'Build and contribute to open source projects',
+        'Study smart, crack UPSC together',
+      ];
+      for (int i = 0; i < names.length; i++) {
+        communities.add(
+          Community(
+            id: 'c$i',
+            name: names[i],
+            description: descs[i],
+            category: [
+              'Technology',
+              'AI',
+              'Education',
+              'Technology',
+              'Open Source',
+              'Education'
+            ][i],
+            type: 'public',
+            owner: 'admin',
+            admins: const [],
+            coOwnerIds: const [],
+            members: const ['u2', 'u3', 'u4'],
+            memberCount: [12400, 8200, 5600, 4800, 3100, 9800][i],
+            isVerified: i % 2 == 0,
+            createdAt: DateTime.now().subtract(Duration(days: i * 30)),
+            image: null,
+            banner: null,
+            tasks: const [],
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String?> createCommunity({
     required String name,
     required String description,
     required String category,
     required String creationType,
     String? logo,
     String? banner,
-  }) {
+  }) async {
     if (name.trim().isEmpty) return 'Community name cannot be empty';
 
     if (communities.any((c) => c.owner == currentUserId)) {
@@ -155,132 +158,142 @@ class CommunityController extends GetxController {
 
     final id = 'comm_${DateTime.now().millisecondsSinceEpoch}';
 
+    final tasksList = creationType == 'coins' ? [] : [
+      {
+        'id': 't1',
+        'title': 'Invite 5 Members',
+        'description': 'Get at least 5 members to join your community',
+        'target': 5,
+        'current': 1,
+        'isCompleted': false,
+      },
+      {
+        'id': 't2',
+        'title': 'Host a Community Voice Room',
+        'description': 'Start a voice room linked to this community',
+        'target': 1,
+        'current': 0,
+        'isCompleted': false,
+      },
+      {
+        'id': 't3',
+        'title': 'Publish 3 Posts',
+        'description': 'Share 3 updates or announcements in the community feed',
+        'target': 3,
+        'current': 0,
+        'isCompleted': false,
+      }
+    ];
+
     if (creationType == 'coins') {
       if (userCoins.value < 10000) {
         return 'Insufficient coin balance. You need 10,000 coins.';
       }
       userCoins.value -= 10000;
+      try {
+        await Supabase.instance.client
+            .from('wallets')
+            .update({'coins_balance': userCoins.value})
+            .eq('id', currentUserId);
+      } catch (_) {}
+    }
 
-      final newComm = Community(
-        id: id,
-        name: name,
-        description: description,
-        category: category,
-        type: 'public',
-        owner: currentUserId,
-        coOwnerIds: [],
-        admins: [],
-        members: [currentUserId],
-        memberCount: 1,
-        isVerified: false,
-        level: 1,
-        xp: 0,
-        creationType: 'coins',
-        isApproved: true,
-        isLogoUnlocked: true,
-        tasks: [],
-        createdAt: DateTime.now(),
-        image: logo,
-        banner: banner,
-      );
+    try {
+      final payload = {
+        'id': id,
+        'name': name,
+        'description': description,
+        'category': category,
+        'type': 'public',
+        'owner': currentUserId,
+        'co_owner_ids': [],
+        'admins': [],
+        'members': [currentUserId],
+        'member_count': 1,
+        'is_verified': false,
+        'level': 1,
+        'xp': 0,
+        'creation_type': creationType,
+        'is_approved': creationType == 'coins',
+        'is_logo_unlocked': creationType == 'coins',
+        'rules': 'Be respectful. No spamming or self-promotion.',
+        'tasks': tasksList,
+        'image': logo,
+        'banner': banner,
+        'created_at': DateTime.now().toIso8601String(),
+      };
 
-      communities.add(newComm);
-      return null; // Success
-    } else {
-      // Apply type: free but pending + needs tasks
-      final newComm = Community(
-        id: id,
-        name: name,
-        description: description,
-        category: category,
-        type: 'public',
-        owner: currentUserId,
-        coOwnerIds: [],
-        admins: [],
-        members: [currentUserId],
-        memberCount: 1,
-        isVerified: false,
-        level: 1,
-        xp: 0,
-        creationType: 'apply',
-        isApproved: false, // Pending
-        isLogoUnlocked: false, // Locked until tasks are done
-        tasks: [
-          CommunityTask(
-            id: 't1',
-            title: 'Invite 5 Members',
-            description: 'Get at least 5 members to join your community',
-            target: 5,
-            current: 1,
-            isCompleted: false,
-          ),
-          CommunityTask(
-            id: 't2',
-            title: 'Host a Community Voice Room',
-            description: 'Start a voice room linked to this community',
-            target: 1,
-            current: 0,
-            isCompleted: false,
-          ),
-          CommunityTask(
-            id: 't3',
-            title: 'Publish 3 Posts',
-            description: 'Share 3 updates or announcements in the community feed',
-            target: 3,
-            current: 0,
-            isCompleted: false,
-          ),
-        ],
-        createdAt: DateTime.now(),
-        image: logo,
-        banner: banner,
-      );
-
-      communities.add(newComm);
-      return null; // Success
+      await Supabase.instance.client.from('communities').insert(payload);
+      await _loadCommunitiesFromDatabase();
+      return null;
+    } catch (e) {
+      if (creationType == 'coins') {
+        userCoins.value += 10000;
+        try {
+          await Supabase.instance.client
+              .from('wallets')
+              .update({'coins_balance': userCoins.value})
+              .eq('id', currentUserId);
+        } catch (_) {}
+      }
+      return 'Failed to create community: $e';
     }
   }
 
-  void joinCommunity(String communityId) {
+  Future<void> joinCommunity(String communityId) async {
     final idx = communities.indexWhere((c) => c.id == communityId);
     if (idx != -1) {
       final comm = communities[idx];
       if (!comm.members.contains(currentUserId)) {
         final updatedMembers = [...comm.members, currentUserId];
         final updatedCount = comm.memberCount + 1;
-        communities[idx] = comm.copyWith(
-          members: updatedMembers,
-          memberCount: updatedCount,
-        );
+        
+        try {
+          await Supabase.instance.client
+              .from('communities')
+              .update({
+                'members': updatedMembers,
+                'member_count': updatedCount,
+              })
+              .eq('id', communityId);
+          
+          await _loadCommunitiesFromDatabase();
 
-        // Update task progress if user is the owner
-        if (comm.owner == currentUserId) {
-          updateTaskProgress(communityId, 't1', updatedCount);
-        }
+          if (comm.owner == currentUserId) {
+            await updateTaskProgress(communityId, 't1', updatedCount);
+          }
+        } catch (_) {}
       }
     }
   }
 
-  void leaveCommunity(String communityId) {
+  Future<void> leaveCommunity(String communityId) async {
     final idx = communities.indexWhere((c) => c.id == communityId);
     if (idx != -1) {
       final comm = communities[idx];
-      if (comm.owner == currentUserId) return; // Owner cannot leave
+      if (comm.owner == currentUserId) return;
 
       final updatedMembers = comm.members.where((id) => id != currentUserId).toList();
       final updatedAdmins = comm.admins.where((id) => id != currentUserId).toList();
       final updatedCoOwners = comm.coOwnerIds.where((id) => id != currentUserId).toList();
 
-      communities[idx] = comm.copyWith(
-        members: updatedMembers,
-        admins: updatedAdmins,
-        coOwnerIds: updatedCoOwners,
-        memberCount: comm.memberCount > 1 ? comm.memberCount - 1 : 1,
-      );
+      try {
+        await Supabase.instance.client
+            .from('communities')
+            .update({
+              'members': updatedMembers,
+              'admins': updatedAdmins,
+              'co_owner_ids': updatedCoOwners,
+              'member_count': comm.memberCount > 1 ? comm.memberCount - 1 : 1,
+            })
+            .eq('id', communityId);
+        
+        await _loadCommunitiesFromDatabase();
+      } catch (_) {}
     }
   }
 
-  void kickMember(String communityId, String userId) {
+  Future<void> kickMember(String communityId, String userId) async {
     final idx = communities.indexWhere((c) => c.id == communityId);
     if (idx != -1) {
       final comm = communities[idx];
@@ -289,16 +302,23 @@ class CommunityController extends GetxController {
       final updatedAdmins = comm.admins.where((id) => id != userId).toList();
       final updatedCoOwners = comm.coOwnerIds.where((id) => id != userId).toList();
 
-      communities[idx] = comm.copyWith(
-        members: updatedMembers,
-        admins: updatedAdmins,
-        coOwnerIds: updatedCoOwners,
-        memberCount: comm.memberCount > 1 ? comm.memberCount - 1 : 1,
-      );
+      try {
+        await Supabase.instance.client
+            .from('communities')
+            .update({
+              'members': updatedMembers,
+              'admins': updatedAdmins,
+              'co_owner_ids': updatedCoOwners,
+              'member_count': comm.memberCount > 1 ? comm.memberCount - 1 : 1,
+            })
+            .eq('id', communityId);
+        
+        await _loadCommunitiesFromDatabase();
+      } catch (_) {}
     }
   }
 
-  void updateTaskProgress(String communityId, String taskId, int incrementTo) {
+  Future<void> updateTaskProgress(String communityId, String taskId, int incrementTo) async {
     final idx = communities.indexWhere((c) => c.id == communityId);
     if (idx != -1) {
       final comm = communities[idx];
@@ -313,25 +333,36 @@ class CommunityController extends GetxController {
         return task;
       }).toList();
 
-      // Check if all tasks are completed to unlock logo
       final allDone = updatedTasks.every((t) => t.isCompleted);
 
-      communities[idx] = comm.copyWith(
-        tasks: updatedTasks,
-        isLogoUnlocked: allDone ? true : comm.isLogoUnlocked,
-      );
+      try {
+        await Supabase.instance.client
+            .from('communities')
+            .update({
+              'tasks': updatedTasks.map((t) => t.toJson()).toList(),
+              'is_logo_unlocked': allDone ? true : comm.isLogoUnlocked,
+            })
+            .eq('id', communityId);
+        
+        await _loadCommunitiesFromDatabase();
+      } catch (_) {}
     }
   }
 
-  void approveApplication(String communityId) {
+  Future<void> approveApplication(String communityId) async {
     final idx = communities.indexWhere((c) => c.id == communityId);
     if (idx != -1) {
-      final comm = communities[idx];
-      communities[idx] = comm.copyWith(isApproved: true);
+      try {
+        await Supabase.instance.client
+            .from('communities')
+            .update({'is_approved': true})
+            .eq('id', communityId);
+        await _loadCommunitiesFromDatabase();
+      } catch (_) {}
     }
   }
 
-  void promoteMember(String communityId, String userId, String role) {
+  Future<void> promoteMember(String communityId, String userId, String role) async {
     final idx = communities.indexWhere((c) => c.id == communityId);
     if (idx != -1) {
       final comm = communities[idx];
@@ -349,34 +380,45 @@ class CommunityController extends GetxController {
         admins.remove(userId);
       }
 
-      communities[idx] = comm.copyWith(
-        coOwnerIds: coOwners,
-        admins: admins,
-      );
+      try {
+        await Supabase.instance.client
+            .from('communities')
+            .update({
+              'co_owner_ids': coOwners,
+              'admins': admins,
+            })
+            .eq('id', communityId);
+        
+        await _loadCommunitiesFromDatabase();
+      } catch (_) {}
     }
   }
 
-  void addXp(String communityId, int amount) {
+  Future<void> addXp(String communityId, int amount) async {
     final idx = communities.indexWhere((c) => c.id == communityId);
     if (idx != -1) {
       final comm = communities[idx];
       int newXp = comm.xp + amount;
       int newLevel = comm.level;
       
-      // Basic leveling logic: 1000 xp per level
       if (newXp >= newLevel * 1000) {
         newXp -= newLevel * 1000;
         newLevel += 1;
       }
 
-      communities[idx] = comm.copyWith(
-        xp: newXp,
-        level: newLevel,
-      );
+      try {
+        await Supabase.instance.client
+            .from('communities')
+            .update({
+              'xp': newXp,
+              'level': newLevel,
+            })
+            .eq('id', communityId);
+        await _loadCommunitiesFromDatabase();
+      } catch (_) {}
     }
   }
 
-  // Helper to check user role inside a community
   String getUserRole(Community comm) {
     if (comm.owner == currentUserId) return 'Owner';
     if (comm.coOwnerIds.contains(currentUserId)) return 'Co-Owner';
@@ -385,14 +427,12 @@ class CommunityController extends GetxController {
     return 'Guest';
   }
 
-  // Check if current user has moderator/admin powers
   bool hasPower(Community comm, String power) {
     final role = getUserRole(comm);
     if (role == 'Owner' || role == 'Co-Owner') return true;
     if (role == 'Admin') {
-      // Admins have all powers except changing roles of co-owners/owners
       return power != 'manage_roles';
     }
-    return false; // Regular members have no admin powers
+    return false;
   }
 }

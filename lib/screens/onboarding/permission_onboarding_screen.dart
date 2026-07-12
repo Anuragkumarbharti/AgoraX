@@ -243,7 +243,7 @@ class _PermissionOnboardingScreenState
         ),
         const SizedBox(height: 22),
         Text(
-          'Set Up AgoraX',
+          'Set Up Creania',
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                 color: AppTheme.textPrimary,
                 fontWeight: FontWeight.w700,

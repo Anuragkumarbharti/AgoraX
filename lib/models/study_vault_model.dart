@@ -77,7 +77,7 @@ class StudyVaultItem {
     this.downloadsCount = 0,
     this.purchasesCount = 0,
     required this.createdAt,
-    this.watermarkText = 'AgoraX',
+    this.watermarkText = 'Creania',
     this.isFeatured = false,
     this.status = 'Pending',
     this.adminComment,

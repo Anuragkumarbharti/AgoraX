@@ -2,10 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/store_controller.dart';
+import 'user_progress_sync_service.dart';
+
+import 'user_profile_cache_manager.dart';
 
 class NovelController extends GetxController {
+  static String get currentUserId => UserProfileCacheManager.currentUserId;
   // SharedPreferences Keys
   static const String _keyNovelLevel = 'novel_level';
   static const String _keyNovelExpiry = 'novel_expiry';
@@ -62,7 +67,27 @@ class NovelController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadState();
+    _loadState().then((_) => loadNovelFromDatabase());
+  }
+
+  Future<void> loadNovelFromDatabase() async {
+    try {
+      final profileData = await Supabase.instance.client
+          .from('profiles')
+          .select('novel_level, novel_expiry')
+          .eq('id', currentUserId)
+          .maybeSingle();
+
+      if (profileData != null) {
+        novelLevel.value = profileData['novel_level'] ?? 0;
+        final expiryStr = profileData['novel_expiry'];
+        if (expiryStr != null) {
+          expiryDate.value = DateTime.tryParse(expiryStr);
+        } else {
+          expiryDate.value = null;
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadState() async {
@@ -174,6 +199,16 @@ class NovelController extends GetxController {
 
     await prefs.setString(_keyNovelFreeReadsWeek, json.encode(novelFreeReadsThisWeek.toList()));
     await prefs.setString(_keyNovelFreeReadsDay, json.encode(novelFreeReadsToday.toList()));
+    UserProgressSyncService.syncToSupabase();
+  }
+
+  Future<void> _syncNovelToDatabase(int level, DateTime? expiry) async {
+    try {
+      await Supabase.instance.client.from('profiles').update({
+        'novel_level': level,
+        'novel_expiry': expiry?.toIso8601String(),
+      }).eq('id', currentUserId);
+    } catch (_) {}
   }
 
   void _handleExpiry() {
@@ -184,6 +219,7 @@ class NovelController extends GetxController {
     novelFreeReadsThisWeek.clear();
     expiryDate.value = null;
     _saveState();
+    _syncNovelToDatabase(0, null);
   }
 
   // Daily Claim Logic
@@ -383,7 +419,8 @@ class NovelController extends GetxController {
 
     // Set level and expiry
     novelLevel.value = targetLevel;
-    expiryDate.value = now.add(Duration(days: days));
+    final newExpiry = now.add(Duration(days: days));
+    expiryDate.value = newExpiry;
     
     // Add to owned novels collections
     if (!ownedNovels.contains(targetLevel)) {
@@ -412,6 +449,7 @@ class NovelController extends GetxController {
     );
 
     await _saveState();
+    await _syncNovelToDatabase(targetLevel, newExpiry);
   }
 
   // Toggle Auto-renew
@@ -455,6 +493,7 @@ class NovelController extends GetxController {
     await prefs.remove(_keyNovelFreeReadsDay);
     await prefs.remove(_keyNovelFreeReadsWeek);
     await _saveState();
+    await _syncNovelToDatabase(0, null);
   }
 
   void simulateExpiry() {

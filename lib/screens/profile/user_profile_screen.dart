@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,12 +18,15 @@ import '../../services/room_controller.dart';
 import 'badges_screen.dart';
 import '../../services/chat_controller.dart';
 import '../../models/chat_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:intl/intl.dart';
 import '../chat/chat_screen.dart';
 import '../communities/community_detail_screen.dart';
 import 'profile_screen.dart';
 import '../../widgets/vip_badge_widget.dart';
 import '../../widgets/vip_avatar_decorator.dart';
 import '../../widgets/novel_badge_widget.dart';
+import '../../services/user_profile_cache_manager.dart';
 import '../../widgets/novel_avatar_decorator.dart';
 import '../../widgets/custom_avatar_frame.dart';
 import '../../services/customization_controller.dart';
@@ -46,16 +50,20 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   bool _isFollowing = false;
   bool _isBlocked = false;
+  late int _followerCount;
   String _coverPhotoUrl =
       'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800';
 
   late List<Post> _posts;
   late List<Question> _questions;
   late List<Map<String, dynamic>> _communities;
+  bool _isLoadingPosts = true;
+  late User _localUser;
 
   @override
   void initState() {
     super.initState();
+    _localUser = UserProfileCacheManager.getCachedUser(widget.user.id) ?? widget.user;
     _tabController = TabController(length: 3, vsync: this);
     _glowController = AnimationController(
       vsync: this,
@@ -65,89 +73,94 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
+    _followerCount = _localUser.followers;
+    _checkFollowingStatus();
     _generateMockData();
+    _fetchUserPosts();
+    UserProfileCacheManager.addListener(_onProfileCacheUpdated);
+  }
+
+  void _onProfileCacheUpdated() {
+    final cached = UserProfileCacheManager.getCachedUser(widget.user.id);
+    if (cached != null && mounted) {
+      setState(() {
+        _localUser = cached;
+        _followerCount = cached.followers;
+      });
+    }
+  }
+
+  void _checkFollowingStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final followedIds = prefs.getStringList('followed_user_ids') ?? [];
+      setState(() {
+        _isFollowing = followedIds.contains(widget.user.id);
+        if (_isFollowing) {
+          _followerCount = widget.user.followers + 1;
+        } else {
+          _followerCount = widget.user.followers;
+        }
+      });
+    } catch (_) {}
+  }
+
+  void _toggleFollow() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final followedIds = prefs.getStringList('followed_user_ids') ?? [];
+      setState(() {
+        if (_isFollowing) {
+          _isFollowing = false;
+          followedIds.remove(widget.user.id);
+          _followerCount = (_followerCount > 0) ? _followerCount - 1 : 0;
+        } else {
+          _isFollowing = true;
+          followedIds.add(widget.user.id);
+          _followerCount++;
+        }
+      });
+      await prefs.setStringList('followed_user_ids', followedIds);
+      Get.snackbar(
+        _isFollowing ? 'Following 💖' : 'Unfollowed 💔',
+        _isFollowing
+            ? 'You followed ${widget.user.displayName}.'
+            : 'You unfollowed ${widget.user.displayName}.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (_) {}
   }
 
   void _generateMockData() {
-    final u = widget.user;
-    _posts = List.generate(
-        6,
-        (i) => Post(
-              id: 'p$i',
-              userId: u.id,
-              communityId: 'flutter',
-              content: [
-                'Just shipped a major update today 🚀 Check it out and let me know what you think!',
-                'Hot take: Most apps don\'t need a state management library. Simple setState works fine for most cases.',
-                'Learned something new about Dart isolates today — sharing with the community 🧵',
-                'What\'s your favourite Flutter package? Mine is go_router. So clean and easy to use.',
-                'Building something exciting in public. Day 7 update: auth flow is done! 💪',
-                'Code review tip: Always review your own PR before requesting a review. Saves everyone time.',
-              ][i % 6],
-              likes: 80 + i * 33,
-              comments: 12 + i * 7,
-              shares: 5 + i * 2,
-              isLiked: i % 4 == 0,
-              isBookmarked: false,
-              createdAt: DateTime.now().subtract(Duration(hours: i * 8 + 3)),
-            ));
+    _posts = [];
+    _questions = [];
+    _communities = [];
+  }
 
-    _questions = List.generate(
-        4,
-        (i) => Question(
-              id: 'q$i',
-              userId: u.id,
-              communityId: 'flutter',
-              title: [
-                'How to handle deep linking in Flutter with go_router?',
-                'Best way to persist state across app restarts?',
-                'MethodChannel vs PlatformView — when to use which?',
-                'How to test asynchronous code in Flutter unit tests?',
-              ][i],
-              description: '',
-              tags: [
-                ['Flutter', 'Navigation'],
-                ['Flutter', 'Storage', 'Hive'],
-                ['Flutter', 'Platform'],
-                ['Flutter', 'Testing', 'Dart'],
-              ][i],
-              views: 300 + i * 100,
-              answers: 2 + i * 3,
-              upvotes: 30 + i * 15,
-              isUpvoted: i % 2 == 0,
-              isBookmarked: false,
-              isAnonymous: false,
-              isAnswered: i % 2 == 1,
-              createdAt: DateTime.now().subtract(Duration(days: i * 4 + 2)),
-            ));
+  Future<void> _fetchUserPosts() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('posts')
+          .select('*, profiles(username, avatar_url)')
+          .eq('user_id', widget.user.id)
+          .order('created_at', ascending: false);
 
-    _communities = [
-      {
-        'id': 'c1',
-        'name': 'Flutter India',
-        'members': '12.4K',
-        'icon': '🦋',
-        'role': 'Moderator'
-      },
-      {
-        'id': 'c2',
-        'name': 'AI & ML Hub',
-        'members': '8.2K',
-        'icon': '🤖',
-        'role': 'Member'
-      },
-      {
-        'id': 'c3',
-        'name': 'Web Dev Café',
-        'members': '4.8K',
-        'icon': '🌐',
-        'role': 'Captain'
-      },
-    ];
+      if (response != null) {
+        final List<dynamic> list = response as List<dynamic>;
+        setState(() {
+          _posts = list.map((item) => Post.fromJson(item as Map<String, dynamic>)).toList();
+          _isLoadingPosts = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching user posts: $e');
+      setState(() => _isLoadingPosts = false);
+    }
   }
 
   @override
   void dispose() {
+    UserProfileCacheManager.removeListener(_onProfileCacheUpdated);
     _tabController.dispose();
     _glowController.dispose();
     _rotateController.dispose();
@@ -380,7 +393,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final u = widget.user;
+    final u = _localUser;
     return Scaffold(
       backgroundColor: const Color(0xFF09090B),
       body: Container(
@@ -449,7 +462,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           icon: const Icon(Icons.share_outlined, color: Colors.white),
           onPressed: () {
             Clipboard.setData(
-                ClipboardData(text: 'https://agorax.com/profile/${u.sid}'));
+                ClipboardData(text: 'https://creania.com/profile/${u.sid}'));
             Get.snackbar(
               'Link Copied 📋',
               'Profile link copied to clipboard.',
@@ -475,41 +488,52 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         Stack(
           clipBehavior: Clip.none,
           children: [
-            // Cover Photo Banner
-            Container(
-              height: 280,
+            // Size placeholder to ensure bounds cover overlapping children for hit-testing
+            const SizedBox(
+              height: 330,
               width: double.infinity,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: NetworkImage(_coverPhotoUrl),
-                  fit: BoxFit.cover,
-                ),
-              ),
+            ),
+
+            // Cover Photo Banner
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
               child: Container(
+                height: 280,
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.1),
-                      const Color(0xFF09090B).withOpacity(0.9),
-                    ],
+                  image: DecorationImage(
+                    image: NetworkImage(_coverPhotoUrl),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.1),
+                        const Color(0xFF09090B).withOpacity(0.9),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
 
-            // Avatar overlapping
+            // Avatar overlapping (positioned cleanly inside bounds)
             Positioned(
               left: 20,
-              bottom: -46,
+              bottom: 4,
               child: _buildAvatar(u),
             ),
 
-            // Follow & Message buttons positioned cleanly next to avatar
+            // Follow & Message buttons positioned cleanly next to avatar (inside expanded bounds)
             Positioned(
               right: 20,
-              bottom: -40,
+              bottom: 10,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -561,18 +585,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
                   // Follow Button
                   GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isFollowing = !_isFollowing;
-                      });
-                      Get.snackbar(
-                        _isFollowing ? 'Following 💖' : 'Unfollowed 💔',
-                        _isFollowing
-                            ? 'You followed ${u.displayName}.'
-                            : 'You unfollowed ${u.displayName}.',
-                        snackPosition: SnackPosition.BOTTOM,
-                      );
-                    },
+                    onTap: _toggleFollow,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 10),
@@ -673,7 +686,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               const SizedBox(height: 16),
 
               // Social Links
-              _buildSocialsSection(),
+              _buildSocialsSection(u),
               const SizedBox(height: 20),
             ],
           ),
@@ -894,7 +907,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
             ),
             const SizedBox(width: 8),
             GestureDetector(
-              onTap: () => _copyToClipboard(u.sid, 'AgoraX ID'),
+              onTap: () => _copyToClipboard(u.sid, 'Creania ID'),
               child: Icon(Icons.copy_rounded,
                   color: AppTheme.textTertiary.withOpacity(0.8), size: 14),
             ),
@@ -1165,7 +1178,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   color: Color(0xFF38BDF8), size: 14),
               const SizedBox(width: 6),
               Text(
-                'https://agorax.com/${u.username}',
+                'https://creania.com/${u.username}',
                 style: GoogleFonts.poppins(
                     color: const Color(0xFF38BDF8),
                     fontSize: 12,
@@ -1271,6 +1284,49 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   Widget _buildStatsCard(User u) {
+    final List<Widget> items = [];
+
+    if (_followerCount > 0) {
+      items.add(
+        _statItem(
+          _formatNumber(_followerCount),
+          'Followers',
+          onTap: () => _showFollowersFollowingBottomSheet(
+            title: 'Followers',
+            users: _getMockFollowers(),
+          ),
+        ),
+      );
+    }
+
+    if (u.following > 0) {
+      if (items.isNotEmpty) items.add(_statDivider());
+      items.add(
+        _statItem(
+          _formatNumber(u.following),
+          'Following',
+          onTap: () => _showFollowersFollowingBottomSheet(
+            title: 'Following',
+            users: _getMockFollowing(),
+          ),
+        ),
+      );
+    }
+
+    // Rank is persistent/reputation-based. Show if reputation > 0
+    if (u.reputation > 0) {
+      if (items.isNotEmpty) items.add(_statDivider());
+      items.add(_statItem('${_formatNumber(u.reputation)}', 'Rank'));
+    }
+
+    // Gifts (using diamonds count)
+    if (u.diamonds > 0) {
+      if (items.isNotEmpty) items.add(_statDivider());
+      items.add(_statItem(_formatNumber(u.diamonds), 'Gifts'));
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
@@ -1280,29 +1336,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _statItem(
-            _formatNumber(u.followers),
-            'Followers',
-            onTap: () => _showFollowersFollowingBottomSheet(
-              title: 'Followers',
-              users: _getMockFollowers(),
-            ),
-          ),
-          _statDivider(),
-          _statItem(
-            _formatNumber(u.following),
-            'Following',
-            onTap: () => _showFollowersFollowingBottomSheet(
-              title: 'Following',
-              users: _getMockFollowing(),
-            ),
-          ),
-          _statDivider(),
-          _statItem('1.5K', 'Rank'),
-          _statDivider(),
-          _statItem('14.2K', 'Gifts'),
-        ],
+        children: items,
       ),
     );
   }
@@ -1566,14 +1600,33 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   Widget _buildPersonalInfoSection(User u) {
-    final infoItems = [
-      {'label': 'Gender', 'val': u.id.hashCode % 2 == 0 ? 'Male' : 'Female'},
-      {'label': 'Age', 'val': '24 years'},
-      {'label': 'Country', 'val': 'India'},
-      {'label': 'Language', 'val': 'English'},
-      {'label': 'Profession', 'val': 'Content Creator'},
-      {'label': 'Website', 'val': 'https://agorax.com/${u.username}'},
-    ];
+    final List<Map<String, String>> infoItems = [];
+    if (u.gender != null && u.gender!.isNotEmpty) {
+      infoItems.add({'label': 'Gender', 'val': u.gender!});
+    }
+    if (u.age > 0) {
+      infoItems.add({'label': 'Age', 'val': '${u.age} years'});
+    }
+    if (u.dob != null) {
+      infoItems.add({'label': 'Birthday', 'val': DateFormat('dd MMM yyyy').format(u.dob!)});
+    }
+    if (u.country != null && u.country!.isNotEmpty) {
+      infoItems.add({'label': 'Country', 'val': u.country!});
+    }
+    if (u.language.isNotEmpty) {
+      infoItems.add({'label': 'Language', 'val': u.language});
+    }
+    if (u.profession != null && u.profession!.isNotEmpty) {
+      infoItems.add({'label': 'Profession', 'val': u.profession!});
+    }
+    if (u.education != null && u.education!.isNotEmpty) {
+      infoItems.add({'label': 'Education', 'val': u.education!});
+    }
+    if (u.website != null && u.website!.isNotEmpty) {
+      infoItems.add({'label': 'Website', 'val': u.website!});
+    }
+
+    if (infoItems.isEmpty) return const SizedBox();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1888,13 +1941,19 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     );
   }
 
-  Widget _buildSocialsSection() {
-    final socials = [
-      {'name': 'Instagram', 'color': const Color(0xFFE1306C)},
-      {'name': 'GitHub', 'color': const Color(0xFF333333)},
-      {'name': 'LinkedIn', 'color': const Color(0xFF0077B5)},
-      {'name': 'Twitter', 'color': const Color(0xFF1DA1F2)},
-    ];
+  Widget _buildSocialsSection(User u) {
+    final List<Map<String, dynamic>> activeSocials = [];
+    if (u.instagram != null && u.instagram!.isNotEmpty) {
+      activeSocials.add({'name': 'Instagram', 'color': const Color(0xFFE1306C), 'icon': Icons.camera_alt_rounded});
+    }
+    if (u.youtube != null && u.youtube!.isNotEmpty) {
+      activeSocials.add({'name': 'YouTube', 'color': const Color(0xFFFF0000), 'icon': Icons.play_circle_outline_rounded});
+    }
+    if (u.twitter != null && u.twitter!.isNotEmpty) {
+      activeSocials.add({'name': 'Twitter', 'color': const Color(0xFF1DA1F2), 'icon': Icons.chat_bubble_outline_rounded});
+    }
+
+    if (activeSocials.isEmpty) return const SizedBox();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1907,7 +1966,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: socials.map((s) {
+          children: activeSocials.map((s) {
             return Container(
               width: 50,
               height: 50,
@@ -1918,13 +1977,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               ),
               child: Center(
                 child: Icon(
-                  s['name'] == 'Instagram'
-                      ? Icons.camera_alt_rounded
-                      : s['name'] == 'GitHub'
-                          ? Icons.code_rounded
-                          : s['name'] == 'LinkedIn'
-                              ? Icons.work_outline_rounded
-                              : Icons.chat_bubble_outline_rounded,
+                  s['icon'] as IconData,
                   color: s['color'] as Color,
                   size: 22,
                 ),
@@ -2008,7 +2061,37 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   // ─────────── Tabs ───────────
 
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: AppTheme.textTertiary.withOpacity(0.5)),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPostsTab(User u) {
+    if (_isLoadingPosts) {
+      return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
+    }
+    if (_posts.isEmpty) {
+      return _buildEmptyState('No posts shared yet', Icons.notes_rounded);
+    }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _posts.length,
@@ -2130,6 +2213,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   Widget _buildQuestionsTab() {
+    if (_questions.isEmpty) {
+      return _buildEmptyState('No questions asked yet', Icons.help_outline_rounded);
+    }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _questions.length,
@@ -2224,6 +2310,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   Widget _buildCommunitiesTab() {
+    if (_communities.isEmpty) {
+      return _buildEmptyState('No communities joined yet', Icons.groups_rounded);
+    }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _communities.length,
@@ -2306,6 +2395,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   Widget _buildSpotifyCard(User u) {
+    if (!u.onlineStatus) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -2546,7 +2636,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     displayName: item['name'],
                     avatar: item['avatar'],
                     interests: ['Flutter', 'AI'],
-                    communities: ['AgoraX Stage'],
+                    communities: ['Creania Stage'],
                     followers: 140,
                     following: 90,
                     isVerified: index == 0,
@@ -2645,7 +2735,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         avatar:
             'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
         interests: ['Flutter', 'Design'],
-        communities: ['AgoraX Design Club'],
+        communities: ['Creania Design Club'],
         followers: 120,
         following: 80,
         isVerified: true,
@@ -2664,7 +2754,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         avatar:
             'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
         interests: ['Kotlin', 'Backend'],
-        communities: ['AgoraX Backend Devs'],
+        communities: ['Creania Backend Devs'],
         followers: 320,
         following: 110,
         isVerified: false,
@@ -2688,7 +2778,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         avatar:
             'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
         interests: ['Dart', 'AI'],
-        communities: ['AgoraX Flutteristas'],
+        communities: ['Creania Flutteristas'],
         followers: 512,
         following: 240,
         isVerified: true,

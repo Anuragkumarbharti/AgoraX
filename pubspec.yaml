@@ -1,5 +1,5 @@
-name: agorax
-description: AgoraX - Learn, Discuss, and Connect Through Voice Communities
+name: creania
+description: Creania - Learn, Discuss, and Connect Through Voice Communities
 version: 1.0.0+1
 
 environment:
@@ -91,6 +91,15 @@ dev_dependencies:
   build_runner: ^2.4.8
   retrofit_generator: ^10.2.7
   json_annotation: ^4.8.1
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#09090B"
+  adaptive_icon_foreground: "assets/images/logo.png"
 
 flutter:
   uses-material-design: true

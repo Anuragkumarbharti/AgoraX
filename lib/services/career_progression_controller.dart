@@ -2,33 +2,31 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'study_category_controller.dart';
+import 'user_profile_cache_manager.dart';
+import 'store_controller.dart';
+import '../models/index.dart';
 
 class CareerProgressionController extends GetxController {
-  static const String _keyIdXp = 'prog_id_xp';
-  static const String _keyIdLevel = 'prog_id_level';
+  static String get currentUserId => UserProfileCacheManager.currentUserId;
+
+  // SharedPreferences keys for visual local/caching preferences
   static const String _keyIsCareerSelected = 'prog_is_career_selected';
   static const String _keySelectedCareer = 'prog_selected_career';
   static const String _keyCareerXp = 'prog_career_xp';
-  static const String _keyCareerLevel = 'prog_career_level';
   static const String _keyCareerChanges = 'prog_career_changes';
   static const String _keyLastChangeDate = 'prog_last_change_date';
   static const String _keyRollbackExpiry = 'prog_rollback_expiry';
-  static const String _keyClaimedMilestones = 'prog_claimed_milestones';
   
   static const String _keyPrevCareerName = 'prog_prev_career_name';
   static const String _keyPrevCareerLevel = 'prog_prev_career_level';
   static const String _keyPrevCareerXp = 'prog_prev_career_xp';
   static const String _keyPrevCareerBadges = 'prog_prev_career_badges';
 
-  static const String _keyActiveFrame = 'prog_active_frame';
-  static const String _keyActiveRing = 'prog_active_ring';
-  static const String _keyActiveTheme = 'prog_active_theme';
-  static const String _keyGlobalTaskProgress = 'prog_global_task_progress';
-
   // State Observables
-  final RxInt idXp = 1850.obs;
-  final RxInt idLevel = 25.obs;
+  final RxInt idXp = 0.obs;
+  final RxInt idLevel = 1.obs;
 
   final RxBool isCareerSelected = false.obs;
   final RxnString selectedCareer = RxnString();
@@ -38,20 +36,10 @@ class CareerProgressionController extends GetxController {
   final Rxn<DateTime> lastCareerChangeDate = Rxn<DateTime>();
   final Rxn<DateTime> rollbackExpiryDate = Rxn<DateTime>();
 
-  // Global Daily Tasks Progress (taskId -> currentCount)
-  final RxMap<String, int> globalTaskProgress = <String, int>{}.obs;
-
-  // List of task definitions
-  final List<Map<String, dynamic>> globalTasksList = [
-    {'id': 'check_in', 'title': 'Daily Check In', 'icon': Icons.today_rounded, 'target': 1, 'xp': 50, 'coins': 20},
-    {'id': 'watch_ads', 'title': 'Watch 5 Ads', 'icon': Icons.play_circle_outline_rounded, 'target': 5, 'xp': 100, 'coins': 50},
-    {'id': 'like_posts', 'title': 'Like 3 Posts', 'icon': Icons.thumb_up_alt_outlined, 'target': 3, 'xp': 40, 'coins': 10},
-    {'id': 'share_profile', 'title': 'Share Profile', 'icon': Icons.share_rounded, 'target': 1, 'xp': 30, 'coins': 10},
-    {'id': 'create_post', 'title': 'Create 1 Post', 'icon': Icons.add_circle_outline_rounded, 'target': 1, 'xp': 60, 'coins': 20},
-    {'id': 'voice_room', 'title': 'Voice Room (10m)', 'icon': Icons.mic_none_rounded, 'target': 1, 'xp': 80, 'coins': 30},
-    {'id': 'invite_friend', 'title': 'Invite 1 Friend', 'icon': Icons.person_add_alt_1_rounded, 'target': 1, 'xp': 120, 'coins': 100},
-    {'id': 'join_community', 'title': 'Join Community', 'icon': Icons.group_add_rounded, 'target': 1, 'xp': 50, 'coins': 20},
-  ];
+  // Dynamic daily task lists
+  final RxList<TaskProgress> careerTasks = <TaskProgress>[].obs;
+  final RxList<TaskProgress> idTasks = <TaskProgress>[].obs;
+  final RxBool isLoadingTasks = false.obs;
 
   // Rollback Backup Data
   final RxnString previousCareerName = RxnString();
@@ -64,11 +52,8 @@ class CareerProgressionController extends GetxController {
   final RxString activeFrame = 'Normal'.obs;
   final RxBool activeAvatarRing = false.obs;
   final RxString activeTheme = 'Default'.obs;
-
-  // Support Override Toggle for testing 1-year lock
   final RxBool isSupportOverrideActive = false.obs;
 
-  // Anti-Grind trackers (Action ID -> Timestamps of recent executions)
   final Map<String, List<DateTime>> _actionTimestamps = {};
 
   @override
@@ -79,12 +64,25 @@ class CareerProgressionController extends GetxController {
 
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
-    idXp.value = prefs.getInt(_keyIdXp) ?? 1850;
-    idLevel.value = prefs.getInt(_keyIdLevel) ?? 25;
+    
+    // Load from database profiles
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('level, experience, career_level, career_xp')
+          .eq('id', currentUserId)
+          .maybeSingle();
+
+      if (profile != null) {
+        idLevel.value = profile['level'] ?? 1;
+        idXp.value = profile['experience'] ?? 0;
+        careerLevel.value = profile['career_level'] ?? 1;
+        careerXp.value = profile['career_xp'] ?? 0;
+      }
+    } catch (_) {}
+
     isCareerSelected.value = prefs.getBool(_keyIsCareerSelected) ?? false;
     selectedCareer.value = prefs.getString(_keySelectedCareer);
-    careerXp.value = prefs.getInt(_keyCareerXp) ?? 0;
-    careerLevel.value = prefs.getInt(_keyCareerLevel) ?? 1;
     careerChangesCount.value = prefs.getInt(_keyCareerChanges) ?? 0;
 
     final dateStr = prefs.getString(_keyLastChangeDate);
@@ -93,54 +91,21 @@ class CareerProgressionController extends GetxController {
     final rollbackStr = prefs.getString(_keyRollbackExpiry);
     if (rollbackStr != null) rollbackExpiryDate.value = DateTime.tryParse(rollbackStr);
 
-    final List<String>? claimedStr = prefs.getStringList(_keyClaimedMilestones);
-    if (claimedStr != null) {
-      claimedMilestones.assignAll(claimedStr.map((e) => int.parse(e)));
-    }
-
     previousCareerName.value = prefs.getString(_keyPrevCareerName);
     previousCareerLevel.value = prefs.getInt(_keyPrevCareerLevel) ?? 1;
     previousCareerXp.value = prefs.getInt(_keyPrevCareerXp) ?? 0;
-    previousCareerBadges.assignAll(prefs.getStringList(_keyPrevCareerBadges) ?? []);
 
-    activeFrame.value = prefs.getString(_keyActiveFrame) ?? 'Normal';
-    activeAvatarRing.value = prefs.getBool(_keyActiveRing) ?? false;
-    activeTheme.value = prefs.getString(_keyActiveTheme) ?? 'Default';
-
-    // Load global daily tasks
-    final String? progressJson = prefs.getString(_keyGlobalTaskProgress);
-    if (progressJson != null) {
-      try {
-        final Map<String, dynamic> decoded = json.decode(progressJson);
-        decoded.forEach((key, value) {
-          globalTaskProgress[key] = value as int;
-        });
-      } catch (_) {}
-    }
-
-    // Daily Reset check for global tasks
-    final String? lastResetStr = prefs.getString('prog_last_daily_task_reset');
-    final now = DateTime.now();
-    final todayStr = '${now.year}-${now.month}-${now.day}';
-    if (lastResetStr != todayStr) {
-      globalTaskProgress.clear();
-      await prefs.setString('prog_last_daily_task_reset', todayStr);
-      await prefs.setString(_keyGlobalTaskProgress, json.encode(globalTaskProgress));
-    }
+    // Load tasks from Supabase via rotate_daily_tasks RPC
+    await fetchAndRotateTasks();
   }
 
   Future<void> _saveState() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyIdXp, idXp.value);
-    await prefs.setInt(_keyIdLevel, idLevel.value);
     await prefs.setBool(_keyIsCareerSelected, isCareerSelected.value);
     if (selectedCareer.value != null) {
       await prefs.setString(_keySelectedCareer, selectedCareer.value!);
-    } else {
-      await prefs.remove(_keySelectedCareer);
     }
     await prefs.setInt(_keyCareerXp, careerXp.value);
-    await prefs.setInt(_keyCareerLevel, careerLevel.value);
     await prefs.setInt(_keyCareerChanges, careerChangesCount.value);
 
     if (lastCareerChangeDate.value != null) {
@@ -150,31 +115,36 @@ class CareerProgressionController extends GetxController {
       await prefs.setString(_keyRollbackExpiry, rollbackExpiryDate.value!.toIso8601String());
     }
 
-    await prefs.setStringList(_keyClaimedMilestones, claimedMilestones.map((e) => e.toString()).toList());
-
     if (previousCareerName.value != null) {
       await prefs.setString(_keyPrevCareerName, previousCareerName.value!);
     }
     await prefs.setInt(_keyPrevCareerLevel, previousCareerLevel.value);
     await prefs.setInt(_keyPrevCareerXp, previousCareerXp.value);
-    await prefs.setStringList(_keyPrevCareerBadges, previousCareerBadges);
 
-    await prefs.setString(_keyActiveFrame, activeFrame.value);
-    await prefs.setBool(_keyActiveRing, activeAvatarRing.value);
-    await prefs.setString(_keyActiveTheme, activeTheme.value);
-
-    await prefs.setString(_keyGlobalTaskProgress, json.encode(globalTaskProgress));
+    // Sync XP and Level to profiles table
+    try {
+      await Supabase.instance.client
+          .from('profiles')
+          .update({
+            'level': idLevel.value,
+            'experience': idXp.value,
+            'career_level': careerLevel.value,
+            'career_xp': careerXp.value,
+          })
+          .eq('id', currentUserId);
+    } catch (_) {}
   }
 
-  // Dynamic Level Curves
   int xpRequiredForIdLevel(int lvl) {
     if (lvl <= 1) return 0;
-    return (500 * (lvl - 1) * (lvl - 1) + 100 * (lvl - 1));
+    final int lm1 = lvl - 1;
+    return 10 * lm1 * lm1 * lm1 + 250 * lm1 * lm1 + 500 * lm1;
   }
 
   int xpRequiredForCareerLevel(int lvl) {
     if (lvl <= 1) return 0;
-    return (800 * (lvl - 1) * (lvl - 1) + 200 * (lvl - 1));
+    final int lm1 = lvl - 1;
+    return 10 * lm1 * lm1 * lm1 + 250 * lm1 * lm1 + 500 * lm1;
   }
 
   double getIdLevelProgress() {
@@ -193,7 +163,6 @@ class CareerProgressionController extends GetxController {
     return ((careerXp.value - currentXpThreshold) / range).clamp(0.0, 1.0);
   }
 
-  // Titles Mapping
   String getIdTitleForLevel(int lvl) {
     if (lvl <= 5) return '🌱 Newcomer';
     if (lvl <= 10) return '🚀 Explorer';
@@ -222,7 +191,6 @@ class CareerProgressionController extends GetxController {
     return 'Grandmaster';
   }
 
-  // Select Career
   Future<void> selectCareer(String careerName) async {
     selectedCareer.value = careerName;
     isCareerSelected.value = true;
@@ -231,9 +199,7 @@ class CareerProgressionController extends GetxController {
     await _saveState();
   }
 
-  // Check Career Change Constraint
   String? getCareerChangeWarning() {
-    if (isSupportOverrideActive.value) return null;
     if (careerChangesCount.value >= 3) {
       return 'You have reached the maximum limit of 3 career changes. Official support approval is required for further changes.';
     }
@@ -247,29 +213,22 @@ class CareerProgressionController extends GetxController {
     return null;
   }
 
-  // Change Career (Resets progress, creates rollback point)
   Future<void> changeCareer(String newCareerName) async {
-    // 1. Back up previous career
     previousCareerName.value = selectedCareer.value;
     previousCareerLevel.value = careerLevel.value;
     previousCareerXp.value = careerXp.value;
     rollbackExpiryDate.value = DateTime.now().add(const Duration(days: 15));
 
-    // 2. Update states
     selectedCareer.value = newCareerName;
     isCareerSelected.value = true;
     careerXp.value = 0;
     careerLevel.value = 1;
-    
-    if (!isSupportOverrideActive.value) {
-      careerChangesCount.value += 1;
-    }
+    careerChangesCount.value += 1;
     lastCareerChangeDate.value = DateTime.now();
 
     await _saveState();
   }
 
-  // Rollback Career within 15 days
   bool isRollbackAvailable() {
     if (rollbackExpiryDate.value == null || previousCareerName.value == null) return false;
     return DateTime.now().isBefore(rollbackExpiryDate.value!);
@@ -282,7 +241,6 @@ class CareerProgressionController extends GetxController {
     careerLevel.value = previousCareerLevel.value;
     careerXp.value = previousCareerXp.value;
 
-    // Reset backup
     previousCareerName.value = null;
     rollbackExpiryDate.value = null;
 
@@ -290,31 +248,26 @@ class CareerProgressionController extends GetxController {
     return true;
   }
 
-  // Add XP with Anti-Grind Logic
   Future<Map<String, dynamic>> addXp(String actionId, int baseXp, bool isCareerXp) async {
     final now = DateTime.now();
     _actionTimestamps.putIfAbsent(actionId, () => []);
 
-    // Filter executions in the last 5 minutes
     final fiveMinutesAgo = now.subtract(const Duration(minutes: 5));
     _actionTimestamps[actionId]!.retainWhere((t) => t.isAfter(fiveMinutesAgo));
 
     final repeatCount = _actionTimestamps[actionId]!.length;
     _actionTimestamps[actionId]!.add(now);
 
-    // Exponential Decay multiplier for spamming: 100% -> 80% -> 60% -> 40% -> 20% -> 10% min
     final multiplier = (1.0 - (repeatCount * 0.2)).clamp(0.1, 1.0);
     final earnedXp = (baseXp * multiplier).round();
 
     if (isCareerXp && isCareerSelected.value) {
       careerXp.value += earnedXp;
-      // Level Up Check
       while (careerXp.value >= xpRequiredForCareerLevel(careerLevel.value + 1)) {
         careerLevel.value += 1;
       }
     } else {
       idXp.value += earnedXp;
-      // Level Up Check
       while (idXp.value >= xpRequiredForIdLevel(idLevel.value + 1)) {
         idLevel.value += 1;
       }
@@ -330,55 +283,103 @@ class CareerProgressionController extends GetxController {
     };
   }
 
-  // Claim Reward Milestones
   Future<void> claimMilestone(int milestoneLvl, bool isCareerMilestone) async {
     if (!claimedMilestones.contains(milestoneLvl)) {
       claimedMilestones.add(milestoneLvl);
-
-      // Apply specific visual rewards
-      if (milestoneLvl == 5) activeFrame.value = 'Premium';
-      if (milestoneLvl == 10) activeAvatarRing.value = true;
-      if (milestoneLvl == 20) activeFrame.value = 'Achievement';
-      if (milestoneLvl == 25) activeTheme.value = 'Custom';
-      if (milestoneLvl == 40) activeFrame.value = 'Festival'; // Legend Frame
-      if (milestoneLvl == 60) activeTheme.value = 'Immortal';
       await _saveState();
     }
   }
 
-  Future<bool> incrementGlobalTaskProgress(String taskId) async {
-    final task = globalTasksList.firstWhere((t) => t['id'] == taskId);
-    final target = task['target'] as int;
-    final current = globalTaskProgress[taskId] ?? 0;
+  Future<void> fetchAndRotateTasks() async {
+    try {
+      isLoadingTasks.value = true;
+      final response = await Supabase.instance.client.rpc(
+        'rotate_daily_tasks',
+        params: {'p_user_id': currentUserId},
+      );
 
-    if (current >= target) return false; // Already completed
+      if (response != null) {
+        final List<dynamic> list = response as List<dynamic>;
+        final allTasks = list.map((item) => TaskProgress.fromJson(item as Map<String, dynamic>)).toList();
 
-    final nextVal = current + 1;
-    globalTaskProgress[taskId] = nextVal;
-    
-    // Save
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyGlobalTaskProgress, json.encode(globalTaskProgress));
-
-    if (nextVal == target) {
-      // Award rewards!
-      final xpReward = task['xp'] as int;
-      final coinReward = task['coins'] as int;
-
-      await addXp(taskId, xpReward, false); // Award to ID level
-      await awardCoins(coinReward);         // Award coins
-
-      return true; // Completed now
+        careerTasks.assignAll(allTasks.where((t) => t.taskType == 'career').toList());
+        idTasks.assignAll(allTasks.where((t) => t.taskType == 'id').toList());
+      }
+    } catch (e) {
+      debugPrint('Error rotating/fetching tasks: $e');
+    } finally {
+      isLoadingTasks.value = false;
     }
-    return false; // Incremented but not completed yet
   }
 
-  Future<void> awardCoins(int amount) async {
+  Future<void> claimTaskReward(String progressId) async {
     try {
-      final studyCtrl = Get.find<StudyCategoryController>();
-      studyCtrl.silverCoins.value += amount;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('study_silver_coins', studyCtrl.silverCoins.value);
-    } catch (_) {}
+      final res = await Supabase.instance.client.rpc(
+        'claim_task_reward',
+        params: {'p_progress_id': progressId},
+      );
+
+      if (res != null) {
+        final data = Map<String, dynamic>.from(res);
+        final xpEarned = data['xp_earned'] ?? 0;
+        final coinsEarned = data['coins_earned'] ?? 0;
+        final newXp = data['new_xp'] ?? 0;
+        final newLevel = data['new_level'] ?? 1;
+        final newCoins = data['new_coins'] ?? 0;
+
+        // Find progress record and mark it claimed locally
+        int idx = careerTasks.indexWhere((t) => t.id == progressId);
+        if (idx != -1) {
+          careerTasks[idx] = careerTasks[idx].copyWith(claimed: true);
+          careerTasks.refresh();
+          careerXp.value = newXp;
+          careerLevel.value = newLevel;
+        } else {
+          idx = idTasks.indexWhere((t) => t.id == progressId);
+          if (idx != -1) {
+            idTasks[idx] = idTasks[idx].copyWith(claimed: true);
+            idTasks.refresh();
+            idXp.value = newXp;
+            idLevel.value = newLevel;
+          }
+        }
+
+        // Update local wallet balance
+        final storeCtrl = Get.find<StoreController>();
+        storeCtrl.coinsBalance.value = newCoins.toInt();
+
+        // Invalidate profile cache
+        UserProfileCacheManager.invalidateCache(currentUserId);
+
+        Get.snackbar(
+          'Reward Claimed! 🎉',
+          'Earned $xpEarned XP & $coinsEarned Silver Coins.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF10B981),
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      Get.snackbar('Claim Failed ⚠️', 'Error claiming reward: $e');
+    }
+  }
+
+  Future<bool> incrementGlobalTaskProgress(String taskCode, {int amount = 1}) async {
+    try {
+      final bool success = await Supabase.instance.client.rpc(
+        'increment_task_progress',
+        params: {
+          'p_task_code': taskCode,
+          'p_amount': amount,
+        },
+      );
+      if (success) {
+        await fetchAndRotateTasks();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error incrementing task progress: $e');
+    }
+    return false;
   }
 }

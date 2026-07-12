@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/daily_learning_model.dart';
+import '../models/study_category_model.dart';
 import '../models/user_model.dart';
 import '../widgets/level_up_dialog.dart';
 import 'career_progression_controller.dart';
+import 'store_controller.dart';
+import 'user_progress_sync_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RankTier {
   final String name;
@@ -44,11 +48,12 @@ class StudyCategoryController extends GetxController {
   // Observables
   final RxnString selectedCategory = RxnString();
   final Rxn<DateTime> lockExpiry = Rxn<DateTime>();
-  final RxInt silverCoins = 0.obs;
+  RxInt get silverCoins => Get.find<StoreController>().silverCoinsBalance;
   final RxInt userXp = 0.obs;
   final RxInt userLevel = 1.obs;
   final RxInt learningStreak = 0.obs;
   final RxList<String> unlockedBadges = <String>[].obs;
+  final RxList<String> completedTaskIds = <String>[].obs;
 
   final RxInt xpEarnedToday = 0.obs;
   final RxInt xpEarnedThisWeek = 0.obs;
@@ -305,6 +310,38 @@ class StudyCategoryController extends GetxController {
         userLevel.value = val;
       });
     } catch (_) {}
+
+    ever(selectedCategory, (String? val) async {
+      try {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'selected_study_category': val})
+            .eq('id', CareerProgressionController.currentUserId);
+      } catch (_) {}
+      UserProgressSyncService.syncToSupabase();
+    });
+
+    ever(learningStreak, (int val) async {
+      try {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'learning_streak': val})
+            .eq('id', CareerProgressionController.currentUserId);
+      } catch (_) {}
+      UserProgressSyncService.syncToSupabase();
+    });
+
+    ever(completedTaskIds, (_) => UserProgressSyncService.syncToSupabase());
+
+    ever(unlockedBadges, (List<String> val) async {
+      try {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'badges': val})
+            .eq('id', CareerProgressionController.currentUserId);
+      } catch (_) {}
+      UserProgressSyncService.syncToSupabase();
+    });
   }
 
   // Load persistence state
@@ -328,9 +365,21 @@ class StudyCategoryController extends GetxController {
       lockExpiry.value = DateTime.tryParse(expiryStr);
     }
 
-    silverCoins.value = prefs.getInt(_keySilverCoins) ?? 0;
     learningStreak.value = prefs.getInt(_keyStreak) ?? 0;
     unlockedBadges.value = prefs.getStringList(_keyBadges) ?? [];
+
+    final List<String>? loadedTaskIds = prefs.getStringList('study_completed_task_ids');
+    if (loadedTaskIds != null) {
+      completedTaskIds.assignAll(loadedTaskIds);
+      // Initialize the status of tasks in memory
+      for (final cat in StudyCategoryData.allCategories) {
+        for (int i = 0; i < cat.dailyTasks.length; i++) {
+          if (completedTaskIds.contains(cat.dailyTasks[i].id)) {
+            cat.dailyTasks[i] = cat.dailyTasks[i].copyWith(isCompleted: true);
+          }
+        }
+      }
+    }
 
     xpEarnedToday.value = prefs.getInt(_keyXpEarnedToday) ?? 0;
     xpEarnedThisWeek.value = prefs.getInt(_keyXpEarnedThisWeek) ?? 0;
@@ -381,6 +430,15 @@ class StudyCategoryController extends GetxController {
       lastDailyReset.value = now;
       prefs.setInt(_keyXpEarnedToday, 0);
       prefs.setString(_keyLastDailyReset, now.toIso8601String());
+
+      // Clear completed daily tasks for the new day
+      completedTaskIds.clear();
+      prefs.setStringList('study_completed_task_ids', []);
+      for (final cat in StudyCategoryData.allCategories) {
+        for (int i = 0; i < cat.dailyTasks.length; i++) {
+          cat.dailyTasks[i] = cat.dailyTasks[i].copyWith(isCompleted: false);
+        }
+      }
     }
 
     // 2. Weekly Reset Check (resets if week changes or >= 7 days)
@@ -714,7 +772,6 @@ class StudyCategoryController extends GetxController {
     // Apply Rewards
     final actualXpGranted = await addXp(xpEarned, source: 'Daily Quiz');
     silverCoins.value += coinsEarned;
-    await prefs.setInt(_keySilverCoins, silverCoins.value);
 
     // Update streak
     final lastDateStr = prefs.getString(_keyLastCompletedDate);
@@ -860,7 +917,6 @@ class StudyCategoryController extends GetxController {
 
     // Award silver coins
     silverCoins.value += totalCoinsGranted;
-    await prefs.setInt(_keySilverCoins, silverCoins.value);
     await prefs.setStringList(_keyBadges, unlockedBadges);
 
     // Show Level Up Dialog
@@ -922,4 +978,39 @@ class StudyCategoryController extends GetxController {
   }
 
   int get perfectScoreCount => completionAnalytics.where((r) => r['perfect'] == true).length;
+
+  Future<void> completeDailyTask(String categoryId, String taskId, int xpReward, int coinReward) async {
+    if (!completedTaskIds.contains(taskId)) {
+      completedTaskIds.add(taskId);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('study_completed_task_ids', completedTaskIds);
+      
+      // Update the static allCategories in memory
+      for (final cat in StudyCategoryData.allCategories) {
+        final idx = cat.dailyTasks.indexWhere((t) => t.id == taskId);
+        if (idx != -1) {
+          cat.dailyTasks[idx] = cat.dailyTasks[idx].copyWith(isCompleted: true);
+        }
+      }
+      
+      // Add XP via CareerProgressionController (if available)
+      try {
+        final progCtrl = Get.find<CareerProgressionController>();
+        await progCtrl.addXp(taskId, xpReward, false);
+      } catch (_) {
+        // Fallback if not registered
+        userXp.value += xpReward;
+        while (userLevel.value < levelXpRequirements.length - 1 &&
+               userXp.value >= levelXpRequirements[userLevel.value + 1]) {
+          userLevel.value += 1;
+        }
+        await prefs.setInt('study_user_xp', userXp.value);
+        await prefs.setInt('study_user_level', userLevel.value);
+      }
+      
+      // Add Coins (Syncing to StoreController's silverCoinsBalance)
+      final storeCtrl = Get.find<StoreController>();
+      storeCtrl.silverCoinsBalance.value += coinReward;
+    }
+  }
 }

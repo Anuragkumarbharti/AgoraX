@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'user_progress_sync_service.dart';
+import 'user_profile_cache_manager.dart';
 import 'dart:math';
 import 'dart:async';
 import '../core/theme.dart';
@@ -94,10 +96,10 @@ class LuckyDrawReward {
 class StoreController extends GetxController {
   static StoreController get to => Get.find<StoreController>();
 
-  final RxInt coinsBalance = 1500.obs;
-  final RxInt silverCoinsBalance = 350000.obs; // seed enough silver to test
-  final RxInt diamondsBalance = 1200.obs; // seed enough diamonds to test
-  final RxDouble availableIncomeBalance = 250.00.obs;
+  final RxInt coinsBalance = 0.obs;
+  final RxInt silverCoinsBalance = 0.obs;
+  final RxInt diamondsBalance = 0.obs;
+  final RxDouble availableIncomeBalance = 0.00.obs;
   
   // Lists and Histories
   final RxList<StoreOrderItem> orderHistory = <StoreOrderItem>[].obs;
@@ -107,11 +109,11 @@ class StoreController extends GetxController {
 
   // Coupon Database & Active Coupon State
   final RxMap<String, double> couponCodes = <String, double>{
-    'FESTIVAL50': 0.50, // 50% discount
-    'CREATOR10': 0.10,  // 10% discount
-    'STUDENT20': 0.20,  // 20% discount
-    'OFFICIAL30': 0.30, // 30% discount
-    'VIPEXCLUSIVE': 0.15, // 15% discount
+    'FESTIVAL50': 0.50,
+    'CREATOR10': 0.10,
+    'STUDENT20': 0.20,
+    'OFFICIAL30': 0.30,
+    'VIPEXCLUSIVE': 0.15,
   }.obs;
   
   final RxString activeCouponCode = ''.obs;
@@ -122,7 +124,7 @@ class StoreController extends GetxController {
   final RxDouble dailyDealOriginalPrice = 500.0.obs;
   final RxDouble dailyDealDiscountedPrice = 199.0.obs;
   final RxInt dailyDealStockRemaining = 7.obs;
-  final RxInt dailyDealTimeSeconds = (4 * 3600 + 15 * 60 + 30).obs; // 4h 15m 30s
+  final RxInt dailyDealTimeSeconds = (4 * 3600 + 15 * 60 + 30).obs;
   Timer? _dealTimer;
 
   // Lucky Draw Wheel Rewards
@@ -138,12 +140,12 @@ class StoreController extends GetxController {
   ];
 
   // Admin Configuration & Controls
-  final RxDouble priceModifier = 1.0.obs; // 1.0 = standard, 0.8 = 20% store-wide sale
+  final RxDouble priceModifier = 1.0.obs;
   final RxBool isFlashSaleActive = false.obs;
-  final RxDouble flashSaleDiscount = 0.35.obs; // 35% off
+  final RxDouble flashSaleDiscount = 0.35.obs;
   final RxList<String> disabledProducts = <String>[].obs;
-  final RxDouble totalRevenue = 143890.0.obs;
-  final RxInt totalSalesCount = 824.obs;
+  final RxDouble totalRevenue = 0.0.obs;
+  final RxInt totalSalesCount = 0.obs;
 
   // Standard Coin Packs
   final List<CoinPack> coinPacks = [
@@ -161,8 +163,14 @@ class StoreController extends GetxController {
   void onInit() {
     super.onInit();
     _loadData();
+    syncWithDatabase();
     _startDailyDealsTimer();
-    _seedMockHistory();
+
+    // Auto-save balances whenever they change
+    ever(coinsBalance, (_) => _saveData());
+    ever(silverCoinsBalance, (_) => _saveData());
+    ever(diamondsBalance, (_) => _saveData());
+    ever(availableIncomeBalance, (_) => _saveData());
   }
 
   @override
@@ -171,20 +179,57 @@ class StoreController extends GetxController {
     super.onClose();
   }
 
-  void _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    coinsBalance.value = prefs.getInt('store_coins_balance') ?? 2500;
-    silverCoinsBalance.value = prefs.getInt('store_silver_balance') ?? 350000;
-    diamondsBalance.value = prefs.getInt('store_diamonds_balance') ?? 1200;
-    availableIncomeBalance.value = prefs.getDouble('store_income_balance') ?? 250.00;
+  Future<void> syncWithDatabase() async {
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
+      
+      final canonicalId = await UserProfileCacheManager.getOrFetchCanonicalId();
+      final walletData = await Supabase.instance.client
+          .from('wallets')
+          .select()
+          .eq('id', canonicalId)
+          .maybeSingle();
+
+      if (walletData != null) {
+        coinsBalance.value = walletData['coins_balance'] ?? 0;
+        availableIncomeBalance.value = (walletData['withdrawable_balance'] as num?)?.toDouble() ?? 0.00;
+        _saveDataLocalOnly();
+      }
+    } catch (_) {}
   }
 
-  void _saveData() async {
+  void _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    coinsBalance.value = prefs.getInt('store_coins_balance') ?? 0;
+    silverCoinsBalance.value = prefs.getInt('store_silver_balance') ?? 0;
+    diamondsBalance.value = prefs.getInt('store_diamonds_balance') ?? 0;
+    availableIncomeBalance.value = prefs.getDouble('store_income_balance') ?? 0.00;
+  }
+
+  Future<void> _saveDataLocalOnly() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('store_coins_balance', coinsBalance.value);
     await prefs.setInt('store_silver_balance', silverCoinsBalance.value);
     await prefs.setInt('store_diamonds_balance', diamondsBalance.value);
     await prefs.setDouble('store_income_balance', availableIncomeBalance.value);
+  }
+
+  void _saveData() async {
+    await _saveDataLocalOnly();
+    
+    // Sync with Supabase wallets table
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser != null) {
+        final canonicalId = await UserProfileCacheManager.getOrFetchCanonicalId();
+        await Supabase.instance.client.from('wallets').update({
+          'coins_balance': coinsBalance.value,
+          'withdrawable_balance': availableIncomeBalance.value,
+        }).eq('id', canonicalId);
+      }
+    } catch (_) {}
+    UserProgressSyncService.syncToSupabase();
   }
 
   void _startDailyDealsTimer() {
@@ -215,57 +260,7 @@ class StoreController extends GetxController {
   }
 
   void _seedMockHistory() {
-    orderHistory.addAll([
-      StoreOrderItem(
-        orderId: 'AGX-98317-IND',
-        name: 'Gold Pack (1,000 Coins)',
-        category: 'Coins',
-        amount: 799.0,
-        discount: 0.0,
-        gst: 143.82,
-        finalAmount: 942.82,
-        dateTime: DateTime.now().subtract(const Duration(days: 4, hours: 2)),
-        paymentMethod: 'UPI (PhonePe)',
-        status: 'Completed',
-        duration: 'One-Time',
-      ),
-      StoreOrderItem(
-        orderId: 'AGX-72541-VIP',
-        name: 'VIP 5 Membership Upgrade',
-        category: 'VIP',
-        amount: 1999.0,
-        discount: 399.80,
-        gst: 287.82,
-        finalAmount: 1887.02,
-        dateTime: DateTime.now().subtract(const Duration(days: 12, hours: 5)),
-        paymentMethod: 'Credit Card',
-        status: 'Completed',
-        duration: '30 Days',
-        couponApplied: 'STUDENT20',
-      ),
-      StoreOrderItem(
-        orderId: 'AGX-61102-NOV',
-        name: 'Novel Level 3 Collectible',
-        category: 'Novel',
-        amount: 2999.0,
-        discount: 1499.50,
-        gst: 269.91,
-        finalAmount: 1769.41,
-        dateTime: DateTime.now().subtract(const Duration(days: 28)),
-        paymentMethod: 'Google Pay',
-        status: 'Refunded',
-        duration: '90 Days',
-        refundStatus: 'Approved',
-        couponApplied: 'FESTIVAL50',
-      )
-    ]);
-
-    coinTransactions.addAll([
-      CoinTransaction(type: 'Purchased', amount: 1120, description: 'Gold Pack Purchase', dateTime: DateTime.now().subtract(const Duration(days: 4))),
-      CoinTransaction(type: 'Used', amount: 300, description: 'Unlocked Nebula Chat Bubble', dateTime: DateTime.now().subtract(const Duration(days: 3))),
-      CoinTransaction(type: 'Gifted', amount: 150, description: 'Gifted to @amit_kumar', dateTime: DateTime.now().subtract(const Duration(days: 2))),
-      CoinTransaction(type: 'Received', amount: 500, description: 'Received gift from @moderator_roy', dateTime: DateTime.now().subtract(const Duration(days: 1))),
-    ]);
+    // Left empty for production backend loads
   }
 
   // Coupon Operations
@@ -417,7 +412,7 @@ class StoreController extends GetxController {
       final client = Supabase.instance.client;
       if (client.auth.currentUser != null) {
         await client.from('wallet_transactions').insert({
-          'wallet_id': client.auth.currentUser!.id,
+          'wallet_id': UserProfileCacheManager.currentUserId,
           'amount': inrAmount,
           'currency': 'INR',
           'type': 'Deposit',
@@ -487,7 +482,7 @@ class StoreController extends GetxController {
         final client = Supabase.instance.client;
         if (client.auth.currentUser != null) {
           await client.from('wallet_transactions').insert({
-            'wallet_id': client.auth.currentUser!.id,
+            'wallet_id': UserProfileCacheManager.currentUserId,
             'amount': goldPrice.toDouble(),
             'currency': 'Coins',
             'type': 'Payout',
@@ -496,7 +491,7 @@ class StoreController extends GetxController {
           });
 
           await client.from('purchase_history').insert({
-            'user_id': client.auth.currentUser!.id,
+            'user_id': UserProfileCacheManager.currentUserId,
             'item_id': name,
             'item_type': category,
             'price': goldPrice.toDouble(),
@@ -540,7 +535,7 @@ class StoreController extends GetxController {
         final client = Supabase.instance.client;
         if (client.auth.currentUser != null) {
           await client.from('purchase_history').insert({
-            'user_id': client.auth.currentUser!.id,
+            'user_id': UserProfileCacheManager.currentUserId,
             'item_id': name,
             'item_type': category,
             'price': finalAmount,
@@ -589,8 +584,19 @@ class StoreController extends GetxController {
           case '6 Month': days = 180; break;
           case 'Yearly': days = 365; break;
         }
-        vipCtrl.expiryDate.value = DateTime.now().add(Duration(days: days));
+        final expiry = DateTime.now().add(Duration(days: days));
+        vipCtrl.expiryDate.value = expiry;
         vipCtrl.isAutoRenewEnabled.value = true;
+
+        try {
+          final client = Supabase.instance.client;
+          if (client.auth.currentUser != null) {
+            client.from('profiles').update({
+              'vip_level': vipLvl,
+              'vip_expiry': expiry.toIso8601String(),
+            }).eq('id', UserProfileCacheManager.currentUserId).then((_) {});
+          }
+        } catch (_) {}
       } else if (category == 'Novel') {
         final novelLvl = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
         final novelCtrl = Get.find<NovelController>();
@@ -612,7 +618,18 @@ class StoreController extends GetxController {
           case '6 Month': days = 180; break;
           case 'Yearly': days = 365; break;
         }
-        novelCtrl.expiryDate.value = DateTime.now().add(Duration(days: days));
+        final expiry = DateTime.now().add(Duration(days: days));
+        novelCtrl.expiryDate.value = expiry;
+
+        try {
+          final client = Supabase.instance.client;
+          if (client.auth.currentUser != null) {
+            client.from('profiles').update({
+              'novel_level': novelLvl,
+              'novel_expiry': expiry.toIso8601String(),
+            }).eq('id', UserProfileCacheManager.currentUserId).then((_) {});
+          }
+        } catch (_) {}
       } else if (category == 'Coins') {
         final coinMatch = RegExp(r'(\d+,?\d*) Coins').firstMatch(name);
         if (coinMatch != null) {

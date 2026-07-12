@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:math' as math;
+import 'dart:async';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
-import '../../models/study_category_model.dart';
-import '../../models/daily_learning_model.dart';
+import '../../models/index.dart';
 import '../../services/study_category_controller.dart';
+import '../../services/career_progression_controller.dart';
+import '../../services/career_daily_controller.dart';
+import '../../services/id_daily_controller.dart';
 import '../../widgets/custom_youtube_player.dart';
 import 'category_selection_screen.dart';
 import 'mcq_quiz_screen.dart';
 import 'quiz_result_screen.dart';
 
 class DailyTaskScreen extends StatefulWidget {
-  const DailyTaskScreen({Key? key}) : super(key: key);
+  final String? initialCategory;
+  const DailyTaskScreen({Key? key, this.initialCategory}) : super(key: key);
 
   @override
   State<DailyTaskScreen> createState() => _DailyTaskScreenState();
@@ -24,14 +29,38 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
   late AnimationController _shimmerController;
 
   final StudyCategoryController _studyCtrl = Get.find<StudyCategoryController>();
+  final CareerProgressionController _progressCtrl = Get.find<CareerProgressionController>();
+  final CareerDailyController _careerDailyCtrl = Get.find<CareerDailyController>();
+  final IdDailyController _idDailyCtrl = Get.find<IdDailyController>();
   final List<StudyCategory> _categories = StudyCategoryData.allCategories;
   StudyCategory? _activeCategory;
   String _selectedTab = 'daily'; // daily | weekly | monthly | leaderboard | roadmap
+  String _taskCategory = 'career'; // career | id
 
+  late Timer _resetTimer;
+  final RxString _resetTimerText = ''.obs;
+
+
+  String _getResetTimerString() {
+    final now = DateTime.now();
+    final midnight = DateTime(now.year, now.month, now.day + 1);
+    final diff = midnight.difference(now);
+    final hours = diff.inHours.toString().padLeft(2, '0');
+    final minutes = (diff.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (diff.inSeconds % 60).toString().padLeft(2, '0');
+    return '$hours:$minutes:$seconds';
+  }
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialCategory != null) {
+      _taskCategory = widget.initialCategory!;
+    }
+    _resetTimerText.value = _getResetTimerString();
+    _resetTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _resetTimerText.value = _getResetTimerString();
+    });
     _tabController = TabController(length: 5, vsync: this);
     _pulseController = AnimationController(
       vsync: this,
@@ -47,6 +76,7 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
 
   @override
   void dispose() {
+    _resetTimer.cancel();
     _tabController.dispose();
     _pulseController.dispose();
     _shimmerController.dispose();
@@ -201,8 +231,6 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
     });
   }
 
-  // ─── Sliver Header ───────────────────────────────────────────────────────
-
   Widget _buildSliverHeader() {
     return SliverAppBar(
       pinned: true,
@@ -220,8 +248,10 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
   }
 
   Widget _buildHeaderBanner() {
-    final cat = _activeCategory!;
-    final level = _studyCtrl.userLevel.value;
+    final isCareer = _taskCategory == 'career';
+    final level = isCareer ? _careerDailyCtrl.careerLevel.value : _idDailyCtrl.idLevel.value;
+    final streak = isCareer ? _careerDailyCtrl.careerStreak.value : _idDailyCtrl.idStreak.value;
+    
     final tier = StudyCategoryController.getTierForLevel(level);
 
     return Container(
@@ -243,7 +273,6 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title
               Row(
                 children: [
                   Container(
@@ -252,7 +281,7 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
                       color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(cat.emoji, style: const TextStyle(fontSize: 28)),
+                    child: Text(isCareer ? '🎓' : '🌱', style: const TextStyle(fontSize: 28)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -260,7 +289,7 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          cat.name,
+                          isCareer ? 'Career Daily Hub' : 'ID Daily Hub',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -268,7 +297,9 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
                           ),
                         ),
                         Text(
-                          cat.description,
+                          isCareer
+                              ? 'Skill development and academic progression'
+                              : 'Community interaction and engagement levels',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.75),
                             fontSize: 12,
@@ -282,21 +313,19 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
                 ],
               ),
               const SizedBox(height: 18),
-              // Stats row
               Row(
                 children: [
                   _headerStat('⚡ Level', '$level', tier.color),
-                  const SizedBox(width: 12),
-                  _headerStat('🔥 Streak', '${_studyCtrl.learningStreak.value}d', const Color(0xFFF97316)),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
+                  _headerStat('🔥 Streak', '${streak}d', const Color(0xFFF97316)),
+                  const SizedBox(width: 8),
                   _headerStat('🪙 Coins', '${_studyCtrl.silverCoins.value}', const Color(0xFFFBBF24)),
-                  const SizedBox(width: 12),
-                  _headerStat('🏆 Rank', '#844', const Color(0xFFA78BFA)),
+                  const SizedBox(width: 8),
+                  Obx(() => _headerStat('⏳ Reset', _resetTimerText.value, const Color(0xFF10B981))),
                 ],
               ),
               const SizedBox(height: 14),
-              // XP Bar
-              _buildXpBar(cat),
+              _buildXpBar(),
             ],
           ),
         ),
@@ -327,13 +356,22 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
     );
   }
 
-  Widget _buildXpBar(StudyCategory cat) {
-    final xp = _studyCtrl.userXp.value;
-    final level = _studyCtrl.userLevel.value;
-    final tier = StudyCategoryController.getTierForLevel(level);
+  Widget _buildXpBar() {
+    final isCareer = _taskCategory == 'career';
+    final xp = isCareer ? _careerDailyCtrl.careerXp.value : _idDailyCtrl.idXp.value;
+    final level = isCareer ? _careerDailyCtrl.careerLevel.value : _idDailyCtrl.idLevel.value;
     
-    final nextThreshold = _studyCtrl.getXpForNextLevel(level);
-    final progress = _studyCtrl.getLevelProgress(xp);
+    final currentThreshold = isCareer 
+        ? _careerDailyCtrl.xpRequiredForCareerLevel(level)
+        : _idDailyCtrl.xpRequiredForIdLevel(level);
+        
+    final nextThreshold = isCareer 
+        ? _careerDailyCtrl.xpRequiredForCareerLevel(level + 1)
+        : _idDailyCtrl.xpRequiredForIdLevel(level + 1);
+        
+    final range = nextThreshold - currentThreshold;
+    final progress = range > 0 ? ((xp - currentThreshold) / range).clamp(0.0, 1.0) : 0.0;
+    final tier = StudyCategoryController.getTierForLevel(level);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,7 +387,7 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
                   fontWeight: FontWeight.w700),
             ),
             Text(
-              '$xp / $nextThreshold XP',
+              '${xp - currentThreshold} / ${nextThreshold - currentThreshold} XP',
               style: TextStyle(
                   color: Colors.white.withOpacity(0.7), fontSize: 11),
             ),
@@ -540,6 +578,101 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
       return ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
+          // Selector for Career Tasks vs ID Tasks
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _taskCategory = 'career'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _taskCategory == 'career'
+                            ? AppTheme.primaryColor
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Career Daily Tasks',
+                          style: TextStyle(
+                            color: _taskCategory == 'career' ? Colors.white : AppTheme.textSecondary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _taskCategory = 'id'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _taskCategory == 'id'
+                            ? AppTheme.accentColor
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'ID Daily Tasks',
+                          style: TextStyle(
+                            color: _taskCategory == 'id' ? Colors.white : AppTheme.textSecondary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Render backend dynamic tasks
+          Obx(() {
+            final isCareer = _taskCategory == 'career';
+            final tasks = isCareer ? _careerDailyCtrl.tasks : _idDailyCtrl.tasks;
+            final isLoading = isCareer ? _careerDailyCtrl.isLoading.value : _idDailyCtrl.isLoading.value;
+            if (isLoading) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: CircularProgressIndicator(color: AppTheme.primaryColor),
+                ),
+              );
+            }
+            if (tasks.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Text(
+                    'No tasks available for today.',
+                    style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 13),
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: tasks.map((t) => _buildTaskCard(t)).toList(),
+            );
+          }),
+          const SizedBox(height: 24),
+          const Divider(color: AppTheme.borderColor),
+          const SizedBox(height: 16),
           // Step 1: Video Card
           const Text(
             'Step 1: Watch Today\'s YouTube Video',
@@ -1459,13 +1592,8 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
                 ),
                 onPressed: () {
                   Navigator.pop(ctx);
-                  setState(() {
-                    final idx = cat.dailyTasks.indexWhere((t) => t.id == task.id);
-                    if (idx != -1 && !cat.dailyTasks[idx].isCompleted) {
-                      cat.dailyTasks[idx] = cat.dailyTasks[idx].copyWith(isCompleted: true);
-                      cat.xp = (cat.xp + task.xpReward).clamp(0, cat.totalXpForNextLevel);
-                      cat.coins += task.coinReward;
-                    }
+                  _studyCtrl.completeDailyTask(cat.id, task.id, task.xpReward, task.coinReward).then((_) {
+                    setState(() {});
                   });
                   Get.snackbar(
                     '🎉 Task Completed!',
@@ -1648,6 +1776,222 @@ class _DailyTaskScreenState extends State<DailyTaskScreen>
         },
       ),
     );
+  }
+
+  Widget _buildTaskCard(TaskProgress task) {
+    final progressVal = task.progress / task.requiredProgress;
+    final isCompleted = task.completed;
+    final isClaimed = task.claimed;
+    final categoryColor = _taskCategory == 'career' ? AppTheme.primaryColor : AppTheme.accentColor;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Row(
+        children: [
+          // Animated Circular Progress Ring
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: progressVal.clamp(0.0, 1.0),
+                  strokeWidth: 4,
+                  backgroundColor: Colors.white.withOpacity(0.05),
+                  valueColor: AlwaysStoppedAnimation(
+                    isCompleted ? const Color(0xFF10B981) : categoryColor,
+                  ),
+                ),
+                Icon(
+                  _getIconForCode(task.taskCode),
+                  size: 16,
+                  color: isCompleted ? const Color(0xFF10B981) : Colors.white70,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          // Task Title & Description
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  task.description,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 10,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                // Rewards Row
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '⚡ ${task.xp} XP',
+                        style: const TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBBF24).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '🪙 ${task.silverCoin}',
+                        style: const TextStyle(
+                          color: Color(0xFFFBBF24),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Claim / Progress Action Button
+          if (isClaimed) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.check_rounded, color: Color(0xFF10B981), size: 14),
+                  SizedBox(width: 4),
+                  Text(
+                    'Claimed',
+                    style: TextStyle(
+                      color: Color(0xFF10B981),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (isCompleted) ...[
+            GestureDetector(
+              onTap: () => _taskCategory == 'career'
+                  ? _careerDailyCtrl.claimTaskReward(task.id)
+                  : _idDailyCtrl.claimTaskReward(task.id),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF10B981).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Text(
+                  'Claim',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            // Progress Indicator text
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.02),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: Text(
+                '${task.progress}/${task.requiredProgress}',
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  IconData _getIconForCode(String code) {
+    switch (code) {
+      case 'watch_video':
+        return Icons.play_circle_fill_rounded;
+      case 'complete_quiz':
+        return Icons.quiz_rounded;
+      case 'read_article':
+        return Icons.article_rounded;
+      case 'voice_join':
+      case 'voice_speak':
+      case 'voice_room':
+        return Icons.mic_rounded;
+      case 'join_event':
+        return Icons.event_rounded;
+      case 'code_challenge':
+        return Icons.code_rounded;
+      case 'ask_question':
+        return Icons.question_answer_rounded;
+      case 'like_posts':
+        return Icons.favorite_rounded;
+      case 'comment_post':
+        return Icons.comment_rounded;
+      case 'follow_creator':
+        return Icons.person_add_rounded;
+      case 'send_gift':
+        return Icons.card_giftcard_rounded;
+      case 'invite_friend':
+        return Icons.group_add_rounded;
+      case 'watch_ads':
+        return Icons.play_arrow_rounded;
+      default:
+        return Icons.star_rounded;
+    }
   }
 }
 

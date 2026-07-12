@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../../services/user_profile_cache_manager.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:zego_uikit/zego_uikit.dart';
 import '../../core/theme.dart';
@@ -693,7 +695,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               const SizedBox(height: 16),
               Obx(() => _buildTaskItem(
                 title: 'Complete a Room Task',
-                description: 'Complete room check-in task for AgoraX.',
+                description: 'Complete room check-in task for Creania.',
                 progress: _isTask1Claimed.value ? '1/1' : '0/1',
                 isClaimed: _isTask1Claimed.value,
                 onClaim: () {
@@ -1313,7 +1315,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     final user = User(
       id: msg.senderId,
       username: msg.senderName.replaceAll(' ', '_').toLowerCase(),
-      email: '${msg.senderId}@agorax.local',
+      email: '${msg.senderId}@creania.local',
       displayName: msg.senderName,
       avatar: msg.senderAvatar,
       interests: const ['Voice Rooms'],
@@ -1572,6 +1574,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   // Get User DP based on user ID
   String _getUserDp(String userId) {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == 'uid_anurag_101' || userId == 'me' || (currentUid != null && userId == currentUid)) {
+      final avatarUrl = UserProfileCacheManager.currentUser?.avatar;
+      if (avatarUrl != null && avatarUrl.isNotEmpty) return avatarUrl;
+    }
+    final u = UserProfileCacheManager.getCachedUser(userId);
+    if (u != null && u.avatar != null && u.avatar!.isNotEmpty) return u.avatar!;
+
     if (userId == 'uid_anurag_101') {
       return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'; // User DP
     } else if (userId == 'user_co_1' || userId.contains('priya')) {
@@ -4497,6 +4507,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   void _showMiniProfileDialog(
       String targetUserId, String targetUserName, String role, int seatIndex) {
+    final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
     final occupiedSeats = _seats.where((s) => s['userId'] != null).length;
     Get.dialog(
       MiniProfileDialog(
@@ -4506,7 +4517,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         targetUserName: targetUserName,
         role: role,
         seatIndex: seatIndex,
-        isHost: widget.isHost || widget.userId == 'uid_anurag_101',
+        isHost: widget.isHost || widget.userId == room.hostId || widget.userId == room.founderId,
         occupiedSeatsCount: occupiedSeats,
         onMoveToAudience: () => _leaveSeat(seatIndex),
       ),
@@ -4838,7 +4849,30 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> {
   bool _showModMenu = false;
   final RoomController _controller = RoomController.to;
 
+  @override
+  void initState() {
+    super.initState();
+    _isFollowing = false;
+    _resolveProfile();
+  }
+
+  void _resolveProfile() {
+    UserProfileCacheManager.fetchUserProfile(widget.targetUserId).then((u) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
   String _getUserDp(String userId) {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == 'uid_anurag_101' || userId == 'me' || (currentUid != null && userId == currentUid)) {
+      final avatarUrl = UserProfileCacheManager.currentUser?.avatar;
+      if (avatarUrl != null && avatarUrl.isNotEmpty) return avatarUrl;
+    }
+    final u = UserProfileCacheManager.getCachedUser(userId);
+    if (u != null && u.avatar != null && u.avatar!.isNotEmpty) return u.avatar!;
+
     if (userId == 'uid_anurag_101') {
       return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
     } else if (userId == 'user_co_1' || userId.contains('priya')) {
@@ -4900,7 +4934,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> {
     final canModerate =
         callerWeight > targetWeight && callerWeight >= 7; // Mod weight is 7
 
-    final isVIP = widget.targetUserId == 'uid_anurag_101' || widget.role == 'Owner' || widget.role == 'Co-owner';
+    final cached = UserProfileCacheManager.getCachedUser(widget.targetUserId);
+    final isVIP = (cached != null && cached.vipLevel > 0) || widget.targetUserId == 'uid_anurag_101' || widget.role == 'Owner' || widget.role == 'Co-owner';
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -4949,40 +4984,35 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> {
                     GestureDetector(
                       onTap: () {
                         Get.back(); // close the mini profile dialog first
-                        if (widget.targetUserId == widget.callerUserId) {
+                        final currentUid = Supabase.instance.client.auth.currentUser?.id;
+                        final isMe = widget.targetUserId == widget.callerUserId || widget.targetUserId == 'uid_anurag_101' || widget.targetUserId == 'me' || (currentUid != null && widget.targetUserId == currentUid);
+                        if (isMe) {
                           Get.to(() => const ProfileScreen());
                         } else {
-                          // Construct a User model to pass to UserProfileScreen
-                          final targetUser = User(
-                            id: widget.targetUserId,
-                            username: widget.targetUserName
-                                .toLowerCase()
-                                .replaceAll(' ', '_'),
-                            email: '${widget.targetUserId}@example.com',
-                            displayName: widget.targetUserName,
-                            avatar: avatarUrl,
-                            interests: [
-                              'Flutter',
-                              'Live Audio',
-                              'Gamification'
-                            ],
-                            communities: ['AgoraX StarStage'],
-                            followers: 1240,
-                            following: 380,
-                            isVerified:
-                                widget.targetUserId == 'uid_anurag_101' ||
-                                    widget.role == 'Owner' ||
-                                    widget.role == 'Co-owner',
-                            isPremium: isVIP,
-                            reputation: 2350,
-                            sid: (widget.targetUserId.hashCode.abs() % 900000 +
-                                    100000)
-                                .toString(),
-                            level: 25,
-                            xp: 340,
-                            totalXp: 1000,
-                          );
-                          Get.to(() => UserProfileScreen(user: targetUser));
+                          final cached = UserProfileCacheManager.getCachedUser(widget.targetUserId);
+                          if (cached != null) {
+                            Get.to(() => UserProfileScreen(user: cached));
+                          } else {
+                            final targetUser = User(
+                              id: widget.targetUserId,
+                              username: widget.targetUserName.toLowerCase().replaceAll(' ', '_'),
+                              email: '${widget.targetUserId}@example.com',
+                              displayName: widget.targetUserName,
+                              avatar: avatarUrl,
+                              interests: ['Flutter', 'Live Audio', 'Gamification'],
+                              communities: ['Creania StarStage'],
+                              followers: 1240,
+                              following: 380,
+                              isVerified: widget.targetUserId == 'uid_anurag_101' || widget.role == 'Owner' || widget.role == 'Co-owner',
+                              isPremium: isVIP,
+                              reputation: 2350,
+                              sid: (widget.targetUserId.hashCode.abs() % 900000 + 100000).toString(),
+                              level: 25,
+                              xp: 340,
+                              totalXp: 1000,
+                            );
+                            Get.to(() => UserProfileScreen(user: targetUser));
+                          }
                         }
                       },
                       child: Container(
@@ -5124,32 +5154,35 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> {
                             ),
                             onPressed: () {
                               Get.back(); // Close dialog
-                              if (widget.targetUserId == widget.callerUserId) {
+                              final currentUid = Supabase.instance.client.auth.currentUser?.id;
+                              final isMe = widget.targetUserId == widget.callerUserId || widget.targetUserId == 'uid_anurag_101' || widget.targetUserId == 'me' || (currentUid != null && widget.targetUserId == currentUid);
+                              if (isMe) {
                                 Get.to(() => const ProfileScreen());
                               } else {
-                                final targetUser = User(
-                                  id: widget.targetUserId,
-                                  username: widget.targetUserName
-                                      .toLowerCase()
-                                      .replaceAll(' ', '_'),
-                                  email: '${widget.targetUserId}@example.com',
-                                  displayName: widget.targetUserName,
-                                  avatar: avatarUrl,
-                                  interests: ['Flutter', 'Live Audio', 'Gamification'],
-                                  communities: ['AgoraX StarStage'],
-                                  followers: 1240,
-                                  following: 380,
-                                  isVerified: widget.targetUserId == 'uid_anurag_101' ||
-                                      widget.role == 'Founder' ||
-                                      widget.role == 'Co-owner',
-                                  isPremium: isVIP,
-                                  reputation: 2350,
-                                  sid: (widget.targetUserId.hashCode.abs() % 900000 + 100000).toString(),
-                                  level: 25,
-                                  xp: 340,
-                                  totalXp: 1000,
-                                );
-                                Get.to(() => UserProfileScreen(user: targetUser));
+                                final cached = UserProfileCacheManager.getCachedUser(widget.targetUserId);
+                                if (cached != null) {
+                                  Get.to(() => UserProfileScreen(user: cached));
+                                } else {
+                                  final targetUser = User(
+                                    id: widget.targetUserId,
+                                    username: widget.targetUserName.toLowerCase().replaceAll(' ', '_'),
+                                    email: '${widget.targetUserId}@example.com',
+                                    displayName: widget.targetUserName,
+                                    avatar: avatarUrl,
+                                    interests: ['Flutter', 'Live Audio', 'Gamification'],
+                                    communities: ['Creania StarStage'],
+                                    followers: 1240,
+                                    following: 380,
+                                    isVerified: widget.targetUserId == 'uid_anurag_101' || widget.role == 'Founder' || widget.role == 'Co-owner',
+                                    isPremium: isVIP,
+                                    reputation: 2350,
+                                    sid: (widget.targetUserId.hashCode.abs() % 900000 + 100000).toString(),
+                                    level: 25,
+                                    xp: 340,
+                                    totalXp: 1000,
+                                  );
+                                  Get.to(() => UserProfileScreen(user: targetUser));
+                                }
                               }
                             },
                             icon: const Icon(Icons.person_outline_rounded, size: 16, color: Colors.white),
@@ -6229,8 +6262,12 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   }
 
   String _getRoomUserName(String userId) {
-    if (userId == 'uid_anurag_101' || userId == 'me')
-      return 'Anurag Kumar Bharti';
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == 'uid_anurag_101' || userId == 'me' || (currentUid != null && userId == currentUid)) {
+      return UserProfileCacheManager.currentUser?.username ?? 'Anurag Kumar Bharti';
+    }
+    final cached = UserProfileCacheManager.getCachedUser(userId);
+    if (cached != null) return cached.username;
     if (userId == 'user_co_1') return 'Priya Sharma';
     if (userId == 'user_adm_1') return 'Vikram Aditya';
     if (userId == 'user_speaker_2') return 'Mohit Yadav';
@@ -6238,9 +6275,14 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   }
 
   String _getRoomUserAvatar(String userId) {
-    if (userId == 'uid_anurag_101' || userId == 'me') {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == 'uid_anurag_101' || userId == 'me' || (currentUid != null && userId == currentUid)) {
+      final avatarUrl = UserProfileCacheManager.currentUser?.avatar;
+      if (avatarUrl != null && avatarUrl.isNotEmpty) return avatarUrl;
       return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
     }
+    final cached = UserProfileCacheManager.getCachedUser(userId);
+    if (cached != null && cached.avatar != null && cached.avatar!.isNotEmpty) return cached.avatar!;
     if (userId == 'user_co_1') {
       return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100';
     }
@@ -6441,8 +6483,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
 
   void _showRoomMemberMiniProfile(
       String userId, String name, String currentRole) {
-    const String currentUserId = 'uid_anurag_101';
-    final bool isOwner = currentUserId == 'uid_anurag_101';
+    final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
+    final bool isOwner = currentUserId == widget.room.hostId || currentUserId == widget.room.founderId;
     final bool isSelf = userId == currentUserId;
 
     Get.bottomSheet(

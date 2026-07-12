@@ -3,10 +3,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../models/post_model.dart';
@@ -20,8 +22,12 @@ import '../../services/novel_controller.dart';
 import '../../services/customization_controller.dart';
 import '../../services/study_category_controller.dart';
 import '../../services/career_progression_controller.dart';
+import '../../services/career_daily_controller.dart';
+import '../../services/id_daily_controller.dart';
 import '../../services/premium_identity_controller.dart';
 import '../../services/study_vault_controller.dart';
+import '../../services/user_profile_cache_manager.dart';
+import '../../services/user_progress_sync_service.dart';
 import '../store/store_home_screen.dart';
 import '../study_vault/study_vault_home_screen.dart';
 import '../study_vault/my_library_screen.dart';
@@ -36,6 +42,7 @@ import 'daily_task_screen.dart';
 import 'badges_screen.dart';
 import 'account_center_screen.dart';
 import 'connections_screen.dart';
+import 'edit_profile_screen.dart';
 import '../../widgets/custom_avatar_frame.dart';
 import '../../widgets/premium_name_widget.dart';
 import '../../widgets/vip_badge_widget.dart';
@@ -61,151 +68,14 @@ class _ProfileScreenState extends State<ProfileScreen>
   late AnimationController _glowController;
   late AnimationController _rotateController;
 
-  final User _user = User(
-    id: 'me',
-    username: 'anurag_dev',
-    email: 'anurag@example.com',
-    displayName: 'Anurag Kumar',
-    bio:
-        '🚀 Flutter Developer | AI Enthusiast | Building AgoraX\n💡 Love discussing tech, DSA & open source',
-    interests: ['Flutter', 'AI', 'DSA'],
-    communities: ['Flutter India', 'AI Community', 'Web Dev'],
-    followers: 3240,
-    following: 512,
-    isVerified: true,
-    isPremium: true,
-    reputation: 4850,
-    avatar:
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
-    sid: '773091',
-    level: 14,
-    xp: 3450,
-    totalXp: 5000,
-    totalPosts: 87,
-    totalQuestions: 34,
-    badges: [
-      '🏆 Top Contributor',
-      '🎤 Voice Host',
-      '💡 Problem Solver',
-      '🔥 Streak Master',
-      '⭐ Rising Star',
-      '💎 Premium',
-    ],
-    levelTitle: 'Expert',
-  );
+  late User _user;
+  bool _isLoadingProfile = true;
+  String? _errorMessage;
+  bool _isAdmin = false;
 
-  final List<Post> _posts = List.generate(
-    5,
-    (i) {
-      final contentList = [
-        'Just shipped a new feature in AgoraX! Voice rooms are now 50% faster 🚀 #Flutter #Performance',
-        'Building the UI for AgoraX voice rooms. Using CustomPainters for the audio waves makes it look so alive! 🌊',
-        'Just added dark mode support to the design system. HSL colors for gradients are clean.',
-        'Working on a new feature today. Any comments or suggestions on the UI design?',
-        'Quick question: What state management library do you prefer in Flutter for large-scale applications?',
-        'AgoraX is going live soon. Get ready to experience voice-first community hosting! 🎤',
-      ];
-      final imagesList = [
-        ['https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400'],
-        null,
-        null,
-        null,
-        null,
-      ];
-      final videosList = [
-        null,
-        [
-          'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4'
-        ],
-        null,
-        null,
-        null,
-      ];
-      final pdfsList = [
-        null,
-        null,
-        ['AgoraX_Architecture_Design.pdf'],
-        null,
-        null,
-      ];
-      final docUrlsList = [
-        null,
-        null,
-        null,
-        ['AgoraX_StateManagement_Proposal.docx'],
-        null,
-      ];
-      final likesList = [42, 128, 64, 96, 210];
-      final commentsList = [8, 24, 12, 48, 56];
-      final sharesList = [2, 10, 4, 8, 15];
-
-      return Post(
-        id: 'p$i',
-        userId: 'me',
-        communityId: 'flutter',
-        content: i < contentList.length ? contentList[i] : '',
-        images: i < imagesList.length ? imagesList[i] : null,
-        videos: i < videosList.length ? videosList[i] : null,
-        pdfs: i < pdfsList.length ? pdfsList[i] : null,
-        docUrls: i < docUrlsList.length ? docUrlsList[i] : null,
-        likes: i < likesList.length ? likesList[i] : 0,
-        comments: i < commentsList.length ? commentsList[i] : 0,
-        shares: i < sharesList.length ? sharesList[i] : 0,
-        isLiked: i % 2 == 0,
-        isBookmarked: i % 3 == 0,
-        createdAt: DateTime.now().subtract(Duration(hours: i * 4)),
-      );
-    },
-  );
-
-  final List<Question> _questions = List.generate(
-    5,
-    (i) => Question(
-      id: 'q$i',
-      userId: 'me',
-      communityId: 'flutter',
-      title: [
-        'How to implement custom scroll physics in Flutter?',
-        'Best practices for handling WebSocket reconnection in Dart?',
-        'What\'s the difference between isolates and compute() in Flutter?',
-        'How to optimise ListView for 10,000+ items without jank?',
-        'RenderFlex overflow error even with Expanded widget — why?',
-      ][i],
-      description: 'Detailed question description...',
-      tags: [
-        ['Flutter', 'UI', 'Scroll'],
-        ['Dart', 'WebSocket', 'Network'],
-        ['Flutter', 'Concurrency', 'Isolate'],
-        ['Flutter', 'Performance', 'ListView'],
-        ['Flutter', 'Layout', 'Debug'],
-      ][i],
-      views: 400 + i * 150,
-      answers: 3 + i * 2,
-      upvotes: 45 + i * 18,
-      isUpvoted: i % 2 == 0,
-      isBookmarked: false,
-      isAnonymous: false,
-      isAnswered: i % 3 == 0,
-      createdAt: DateTime.now().subtract(Duration(days: i * 3 + 1)),
-    ),
-  );
-
-  final List<Map<String, dynamic>> _communities = [
-    {
-      'name': 'Flutter India',
-      'members': '12.4K',
-      'icon': '🦋',
-      'role': 'Admin'
-    },
-    {'name': 'AI & ML Hub', 'members': '8.2K', 'icon': '🤖', 'role': 'Member'},
-    {'name': 'DSA Grind', 'members': '5.6K', 'icon': '🧠', 'role': 'Moderator'},
-    {
-      'name': 'Open Source Dev',
-      'members': '3.1K',
-      'icon': '🌍',
-      'role': 'Member'
-    },
-  ];
+  final List<Post> _posts = [];
+  final List<Question> _questions = [];
+  final List<Map<String, dynamic>> _communities = [];
 
   @override
   void initState() {
@@ -219,10 +89,119 @@ class _ProfileScreenState extends State<ProfileScreen>
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
+    UserProfileCacheManager.addListener(_onProfileCacheUpdated);
+    _loadUserProfile();
+  }
+
+  void _onProfileCacheUpdated() {
+    final cachedMe = UserProfileCacheManager.getCachedUser(UserProfileCacheManager.currentUserId);
+    if (cachedMe != null && mounted) {
+      setState(() {
+        _user = cachedMe;
+        _custCtrl.activeFrame.value = cachedMe.avatarFrame ?? 'Normal';
+        _vipCtrl.vipLevel.value = cachedMe.vipLevel;
+        _novelCtrl.novelLevel.value = cachedMe.novelLevel;
+      });
+    }
+  }
+
+  Future<void> _loadUserProfile() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingProfile = true;
+      _errorMessage = null;
+    });
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) {
+        setState(() {
+          _isLoadingProfile = false;
+          _errorMessage = 'User is not logged in';
+        });
+        return;
+      }
+      final currentUserId = UserProfileCacheManager.currentUserId;
+      
+      final profileData = await Supabase.instance.client
+          .from('profiles')
+          .select()
+          .eq('id', currentUserId)
+          .maybeSingle();
+          
+      final walletData = await Supabase.instance.client
+          .from('wallets')
+          .select()
+          .eq('id', currentUserId)
+          .maybeSingle();
+
+      dynamic adminData;
+      try {
+        adminData = await Supabase.instance.client
+            .from('admins')
+            .select()
+            .eq('id', currentUser.id)
+            .maybeSingle();
+      } catch (e) {
+        debugPrint('Warning: admins table query failed. Check RLS policy infinite recursion: $e');
+        adminData = null;
+      }
+
+      if (profileData == null) {
+        setState(() {
+          _isLoadingProfile = false;
+          _errorMessage = 'Profile row not found in backend database.';
+        });
+        return;
+      }
+
+      final Map<String, dynamic> mergedData = Map<String, dynamic>.from(profileData);
+      mergedData['email'] = currentUser.email ?? '';
+      mergedData['silverCoins'] = walletData != null ? (walletData['coins_balance'] ?? 0) : 0;
+
+      // Fetch only this user's posts
+      List<Post> fetchedPosts = [];
+      try {
+        final postsResponse = await Supabase.instance.client
+            .from('posts')
+            .select('*, profiles(username, avatar_url)')
+            .eq('user_id', currentUserId)
+            .order('created_at', ascending: false);
+
+        if (postsResponse != null) {
+          final List<dynamic> list = postsResponse as List<dynamic>;
+          fetchedPosts = list.map((item) => Post.fromJson(item as Map<String, dynamic>)).toList();
+        }
+      } catch (postError) {
+        debugPrint('Error fetching posts for user: $postError');
+      }
+
+      setState(() {
+        _isAdmin = adminData != null;
+        _user = User.fromJson(mergedData);
+
+        _custCtrl.activeFrame.value = profileData['avatar_frame'] ?? 'Normal';
+        _vipCtrl.vipLevel.value = profileData['vip_level'] ?? 0;
+        _novelCtrl.novelLevel.value = profileData['novel_level'] ?? 0;
+        
+        _posts.clear();
+        _posts.addAll(fetchedPosts);
+        _questions.clear();
+        _communities.clear();
+        
+        _isLoadingProfile = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingProfile = false;
+        _errorMessage = 'Failed to load profile: $e';
+      });
+    }
   }
 
   @override
   void dispose() {
+    UserProfileCacheManager.removeListener(_onProfileCacheUpdated);
     _tabController.dispose();
     _glowController.dispose();
     _rotateController.dispose();
@@ -305,34 +284,80 @@ class _ProfileScreenState extends State<ProfileScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    child: Text('Cancel',
-                        style: GoogleFonts.poppins(color: Colors.white38)),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Get.back(),
+                      child: Text('Cancel',
+                          style: GoogleFonts.poppins(color: Colors.white38)),
+                    ),
                   ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      // Save custom avatar path to customization controller
-                      _custCtrl.customAvatarPath.value = image.path;
-                      await _custCtrl.equipItem('Avatar',
-                          'Default'); // ensure default avatar is selected
-                      Get.back();
-                      Get.snackbar(
-                        'Avatar Cropped! ✂️',
-                        'Preview updated. Tap "Save Changes" to apply.',
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: const Color(0xFF10B981),
-                        colorText: Colors.white,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B5CF6)),
-                    child: Text('Crop & Save',
-                        style:
-                            GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        // Close crop dialog
+                        Get.back();
+
+                        // Show loading indicator
+                        Get.dialog(
+                          const Center(
+                            child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+                          ),
+                          barrierDismissible: false,
+                        );
+
+                        try {
+                          final userId = UserProfileCacheManager.currentUserId;
+                          final file = File(image.path);
+                          final path = '$userId/avatar.png';
+
+                          debugPrint('[Avatar Upload] Uploading to: avatars/$path');
+                          await Supabase.instance.client.storage.from('avatars').upload(
+                            path,
+                            file,
+                            fileOptions: const FileOptions(upsert: true),
+                          );
+                          final publicUrl = Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
+                          debugPrint('[Avatar Upload] Upload Success. URL: $publicUrl');
+
+                          // Update database
+                          await Supabase.instance.client
+                              .from('profiles')
+                              .update({'avatar_url': publicUrl})
+                              .eq('id', userId);
+
+                          // Invalidate local cache and sync
+                          UserProfileCacheManager.invalidateCache(userId);
+                          await UserProgressSyncService.syncFromSupabase();
+
+                          // Reload profile data
+                          await _loadUserProfile();
+
+                          // Close loading indicator
+                          Get.back();
+
+                          Get.snackbar(
+                            'Avatar Updated! ✂️',
+                            'Your profile photo was successfully saved and updated.',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: const Color(0xFF10B981),
+                            colorText: Colors.white,
+                          );
+                        } catch (e) {
+                          // Close loading indicator
+                          Get.back();
+                          Get.snackbar('Upload Failed ⚠️', 'Failed to upload image: $e');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF8B5CF6)),
+                      child: Text('Crop & Save',
+                          style:
+                              GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -587,6 +612,42 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingProfile) {
+      return const Scaffold(
+        backgroundColor: AppTheme.bgDark,
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: AppTheme.bgDark,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: AppTheme.errorColor, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _loadUserProfile,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.bgDark,
       body: NestedScrollView(
@@ -638,7 +699,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           icon: const Icon(Icons.share_outlined, color: Colors.white),
           onPressed: () {
             Clipboard.setData(
-                ClipboardData(text: 'https://agorax.com/profile/${_user.sid}'));
+                ClipboardData(text: 'https://creania.com/profile/${_user.sid}'));
             Get.snackbar(
               'Share Link Copied 🔗',
               'Profile link copied to clipboard.',
@@ -663,19 +724,27 @@ class _ProfileScreenState extends State<ProfileScreen>
         Stack(
           clipBehavior: Clip.none,
           children: [
-            // Cover Photo Banner with purple radial-like gradient & circular pattern overlay
+            // Cover Photo Banner with dynamic background cover
             Container(
               height: 180,
               width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF8B5CF6),
-                    Color(0xFF13131A),
-                  ],
-                ),
+              decoration: BoxDecoration(
+                gradient: (_user.coverPhoto == null || _user.coverPhoto!.isEmpty)
+                    ? const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0xFF8B5CF6),
+                          Color(0xFF13131A),
+                        ],
+                      )
+                    : null,
+                image: (_user.coverPhoto != null && _user.coverPhoto!.isNotEmpty)
+                    ? DecorationImage(
+                        image: CachedNetworkImageProvider(_user.coverPhoto!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
               child: Stack(
                 children: [
@@ -711,12 +780,61 @@ class _ProfileScreenState extends State<ProfileScreen>
               right: 16,
               bottom: 12,
               child: GestureDetector(
-                onTap: () {
-                  Get.snackbar(
-                    'Edit Cover',
-                    'Cover image edit sheet coming soon',
-                    snackPosition: SnackPosition.BOTTOM,
+                onTap: () async {
+                  final picker = ImagePicker();
+                  final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                  if (pickedFile == null) return;
+
+                  // Show loading indicator
+                  Get.dialog(
+                    const Center(
+                      child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+                    ),
+                    barrierDismissible: false,
                   );
+
+                  try {
+                    final userId = UserProfileCacheManager.currentUserId;
+                    final file = File(pickedFile.path);
+                    final path = '$userId/banner.png';
+
+                    debugPrint('[Cover Upload] Uploading to: banners/$path');
+                    await Supabase.instance.client.storage.from('banners').upload(
+                      path,
+                      file,
+                      fileOptions: const FileOptions(upsert: true),
+                    );
+                    final publicUrl = Supabase.instance.client.storage.from('banners').getPublicUrl(path);
+                    debugPrint('[Cover Upload] Upload Success. URL: $publicUrl');
+
+                    // Update database
+                    await Supabase.instance.client
+                        .from('profiles')
+                        .update({'cover_photo': publicUrl})
+                        .eq('id', userId);
+
+                    // Invalidate local cache and sync
+                    UserProfileCacheManager.invalidateCache(userId);
+                    await UserProgressSyncService.syncFromSupabase();
+
+                    // Reload profile data
+                    await _loadUserProfile();
+
+                    // Close loading indicator
+                    Get.back();
+
+                    Get.snackbar(
+                      'Cover Updated! 🖼️',
+                      'Your cover banner was successfully updated.',
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: const Color(0xFF10B981),
+                      colorText: Colors.white,
+                    );
+                  } catch (e) {
+                    // Close loading indicator
+                    Get.back();
+                    Get.snackbar('Upload Failed ⚠️', 'Failed to upload cover: $e');
+                  }
                 },
                 child: Container(
                   padding:
@@ -957,7 +1075,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   const SizedBox(width: 6),
                   GestureDetector(
-                    onTap: () => _copyToClipboard(_user.sid, 'AgoraX ID'),
+                    onTap: () => _copyToClipboard(_user.sid, 'Creania ID'),
                     child: const Icon(
                       Icons.copy_rounded,
                       color: AppTheme.textTertiary,
@@ -971,8 +1089,17 @@ class _ProfileScreenState extends State<ProfileScreen>
               // Reputation Badges row
               Padding(
                 padding: const EdgeInsets.only(top: 2, bottom: 8),
-                child: PremiumIdentityController.getIdentity('me', _user.displayName)
-                    .buildBadgeRow(context, fontSize: 9.5),
+                child: Obx(() {
+                  return PremiumIdentityController.getIdentity(
+                    _user.id,
+                    _user.displayName,
+                    vipLevel: _vipCtrl.vipLevel.value,
+                    novelLevel: _novelCtrl.novelLevel.value,
+                    idLevel: _user.level,
+                    careerLevel: _careerCtrl.careerLevel.value,
+                    badgesList: _user.badges,
+                  ).buildBadgeRow(context, fontSize: 9.5);
+                }),
               ),
 
               // Dynamic Tag Row containing levels
@@ -1017,7 +1144,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               color: Color(0xFF38BDF8), size: 14),
                           const SizedBox(width: 6),
                           Text(
-                            'https://agorax.com/${_user.username}',
+                            'https://creania.com/${_user.username}',
                             style: GoogleFonts.poppins(
                                 color: const Color(0xFF38BDF8),
                                 fontSize: 12,
@@ -1029,7 +1156,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              // About Me section displaying additional profile metadata and socials
+              _buildAboutCard(),
 
               // Statistics Horizontal Card (Followers, Following, Rank, Gifts)
               _buildStatisticsCard(),
@@ -1110,7 +1238,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           
           CustomAvatarFrame(
-            userId: 'me',
+            userId: _user.id,
             username: _user.displayName,
             size: 90,
             defaultNovelLevel: novelLvl,
@@ -1180,7 +1308,57 @@ class _ProfileScreenState extends State<ProfileScreen>
     });
   }
 
+  String _formatCount(int count) {
+    if (count >= 1000000) {
+      return '${(count / 1000000).toStringAsFixed(1)}M';
+    } else if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)}K';
+    }
+    return '$count';
+  }
+
   Widget _buildStatisticsCard() {
+    final List<Widget> items = [];
+
+    if (_user.followers > 0) {
+      items.add(
+        _buildStatIndicator(_formatCount(_user.followers), 'Followers', () {
+          _navigateToConnections(1);
+        }),
+      );
+    }
+
+    if (_user.following > 0) {
+      if (items.isNotEmpty) items.add(_buildVerticalDivider());
+      items.add(
+        _buildStatIndicator(_formatCount(_user.following), 'Following', () {
+          _navigateToConnections(0);
+        }),
+      );
+    }
+
+    // Rank (if reputation > 0)
+    if (_user.reputation > 0) {
+      if (items.isNotEmpty) items.add(_buildVerticalDivider());
+      items.add(
+        _buildStatIndicator('${_formatCount(_user.reputation)}', 'Rank', () {
+          Get.to(() => const BadgesScreen());
+        }),
+      );
+    }
+
+    // Gifts (if diamonds > 0)
+    if (_user.diamonds > 0) {
+      if (items.isNotEmpty) items.add(_buildVerticalDivider());
+      items.add(
+        _buildStatIndicator('${_formatCount(_user.diamonds)}', 'Gifts', () {
+          Get.to(() => const AccountCenterScreen());
+        }),
+      );
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1191,23 +1369,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatIndicator('1.4K', 'Followers', () {
-            _navigateToConnections(1);
-          }),
-          _buildVerticalDivider(),
-          _buildStatIndicator('480', 'Following', () {
-            _navigateToConnections(0);
-          }),
-          _buildVerticalDivider(),
-          _buildStatIndicator('1.5K', 'Rank', () {
-            Get.to(() => const BadgesScreen());
-          }),
-          _buildVerticalDivider(),
-          _buildStatIndicator('14.2K', 'Gifts', () {
-            Get.to(() => const AccountCenterScreen());
-          }),
-        ],
+        children: items,
       ),
     );
   }
@@ -1466,8 +1628,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         {'label': 'Silver Coins', 'value': '$silverCoins', 'sub': '🥈 Balance', 'emoji': '🥈'},
         {'label': 'Posts', 'value': '${_user.totalPosts}', 'sub': 'Published', 'emoji': '📝'},
         {'label': 'Questions', 'value': '${_user.totalQuestions}', 'sub': 'Asked', 'emoji': '❓'},
-        {'label': 'Answers', 'value': '14', 'sub': 'Contributed', 'emoji': '💬'},
-        {'label': 'Likes', 'value': '1.4K', 'sub': 'Received', 'emoji': '❤️'},
+        {'label': 'Answers', 'value': '0', 'sub': 'Contributed', 'emoji': '💬'},
+        {'label': 'Likes', 'value': '0', 'sub': 'Received', 'emoji': '❤️'},
       ];
 
       return Container(
@@ -1553,161 +1715,230 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildDailyTaskCard() {
+    final idCtrl = Get.find<IdDailyController>();
     return Obx(() {
-      final todayPack = _studyCtrl.getTodayLearningDay();
-      final isVideoWatched = _studyCtrl.videoWatchedToday.value;
-      final isQuizCompleted = _studyCtrl.quizCompletedToday.value;
-      final allCompleted = isVideoWatched && isQuizCompleted;
-      final isClaimed = _studyCtrl.xpEarnedToday.value > 0;
+      final completedCount = idCtrl.completedTasksCount;
+      final totalCount = idCtrl.totalTasksCount;
+      final progressVal = totalCount > 0 ? completedCount / totalCount : 0.0;
 
       return Container(
         margin: const EdgeInsets.only(top: 16),
-        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFF13131A),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFFFD700).withOpacity(0.3),
-            width: 1.5,
-          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.015),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.08),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    'Daily Progress Task',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  // Liquid Glass Icon
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/images/id_daily_icon.png',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Reward: +50 XP +15 Gold Coins',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFFFFD700).withOpacity(0.8),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(width: 16),
+                  // Middle Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ID Daily Tasks',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$completedCount of $totalCount completed',
+                          style: GoogleFonts.poppins(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Mini Linear Progress
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progressVal,
+                            minHeight: 4,
+                            backgroundColor: Colors.white.withOpacity(0.05),
+                            valueColor: const AlwaysStoppedAnimation(AppTheme.accentColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  // Arrow action button
+                  GestureDetector(
+                    onTap: () => Get.to(() => const DailyTaskScreen(initialCategory: 'id')),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            GestureDetector(
-              onTap: (allCompleted && !isClaimed) 
-                  ? () {
-                      _storeCtrl.coinsBalance.value += todayPack.coinReward;
-                      _studyCtrl.xpEarnedToday.value += todayPack.xpReward;
-                      Get.snackbar(
-                        'Daily Task Claimed! 🏆',
-                        'Earned +${todayPack.xpReward} XP & +${todayPack.coinReward} Coins!',
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: const Color(0xFFFFD700),
-                        colorText: Colors.black,
-                      );
-                    }
-                  : () {
-                      Get.to(() => const DailyTaskScreen());
-                    },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isClaimed
-                        ? [Colors.grey.shade800, Colors.grey.shade900]
-                        : (allCompleted 
-                            ? [const Color(0xFFFFD700), const Color(0xFFFBBF24)]
-                            : [const Color(0xFFFFD700).withOpacity(0.5), const Color(0xFFFBBF24).withOpacity(0.5)]),
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  isClaimed 
-                      ? 'Claimed ✓' 
-                      : (allCompleted ? 'Claim Rewards' : 'Go to Tasks'),
-                  style: GoogleFonts.poppins(
-                    color: isClaimed ? Colors.white54 : Colors.black,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       );
     });
   }
 
   Widget _buildCareerTaskCard() {
+    final careerCtrl = Get.find<CareerDailyController>();
     return Obx(() {
-      final activeCat = _studyCtrl.selectedCategory.value ?? 'Design';
-      final progress = 0.45; // 45% complete matching mockup
+      final completedCount = careerCtrl.completedTasksCount;
+      final totalCount = careerCtrl.totalTasksCount;
+      final progressVal = totalCount > 0 ? completedCount / totalCount : 0.0;
 
       return Container(
         margin: const EdgeInsets.only(top: 16),
-        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFF13131A),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFF8B5CF6).withOpacity(0.3),
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  activeCat.endsWith('Path') ? activeCat : '$activeCat Path',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  '${(progress * 100).toStringAsFixed(0)}% Complete',
-                  style: GoogleFonts.poppins(
-                    color: const Color(0xFFFFD700),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              height: 8,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: FractionallySizedBox(
-                  widthFactor: progress,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFFD700), Color(0xFF8B5CF6)],
-                      ),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.015),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.08),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                children: [
+                  // Liquid Glass Icon
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/images/career_daily_icon.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Middle Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Career Daily Tasks',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$completedCount of $totalCount completed',
+                          style: GoogleFonts.poppins(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Mini Linear Progress
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progressVal,
+                            minHeight: 4,
+                            backgroundColor: Colors.white.withOpacity(0.05),
+                            valueColor: const AlwaysStoppedAnimation(AppTheme.primaryColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  // Arrow action button
+                  GestureDetector(
+                    onTap: () => Get.to(() => const DailyTaskScreen(initialCategory: 'career')),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       );
     });
@@ -2042,7 +2273,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildStudyVaultDeck() {
-    final vaultItems = [
+    final List<Map<String, dynamic>> vaultItems = [
       {
         'title': 'Study Vault',
         'sub': 'Explore Bookshelf',
@@ -2064,21 +2295,25 @@ class _ProfileScreenState extends State<ProfileScreen>
         'color': const Color(0xFF3B82F6),
         'target': () => const SellerDashboardScreen(),
       },
-      {
+    ];
+
+    if (_isAdmin) {
+      vaultItems.add({
         'title': 'Admin Panel',
         'sub': 'Approvals & Payouts',
         'icon': Icons.admin_panel_settings_rounded,
         'color': const Color(0xFFEC4899),
         'target': () => const AdminVaultPanelScreen(),
-      },
-      {
-        'title': 'Membership Center',
-        'sub': 'Upgrade VIP & Novel',
-        'icon': Icons.card_membership_rounded,
-        'color': const Color(0xFF8B5CF6),
-        'target': () => const MembershipCenterScreen(),
-      },
-    ];
+      });
+    }
+
+    vaultItems.add({
+      'title': 'Membership Center',
+      'sub': 'Upgrade VIP & Novel',
+      'icon': Icons.card_membership_rounded,
+      'color': const Color(0xFF8B5CF6),
+      'target': () => const MembershipCenterScreen(),
+    });
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
@@ -2163,7 +2398,34 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // ─────────── Tabs ───────────
 
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: AppTheme.textTertiary.withOpacity(0.5)),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPostsTab() {
+    if (_posts.isEmpty) {
+      return _buildEmptyState('No posts shared yet', Icons.notes_rounded);
+    }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _posts.length,
@@ -2320,6 +2582,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildQuestionsTab() {
+    if (_questions.isEmpty) {
+      return _buildEmptyState('No questions asked yet', Icons.help_outline_rounded);
+    }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _questions.length,
@@ -2438,6 +2703,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildCommunitiesTab() {
+    if (_communities.isEmpty) {
+      return _buildEmptyState('No communities joined yet', Icons.groups_rounded);
+    }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _communities.length,
@@ -2528,108 +2796,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditProfileSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.bgLight,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Edit Profile',
-                  style: TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: AppTheme.textTertiary),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: Stack(
-                children: [
-                  Obx(() {
-                    final avatarUrl = _custCtrl.getAvatarUrl(
-                        _custCtrl.activeAvatar.value, _user.avatar ?? '');
-                    final bool isWebUrl = avatarUrl.startsWith('http://') ||
-                        avatarUrl.startsWith('https://');
-                    return Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: const Color(0xFF8B5CF6), width: 2),
-                        image: DecorationImage(
-                          image: avatarUrl.isNotEmpty
-                              ? (isWebUrl
-                                  ? NetworkImage(avatarUrl) as ImageProvider
-                                  : FileImage(File(avatarUrl)) as ImageProvider)
-                              : const AssetImage('assets/images/logo.png')
-                                  as ImageProvider,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    );
-                  }),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: () {
-                        _showEditAvatarSheet(context);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF8B5CF6),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.camera_alt_rounded,
-                            color: Colors.white, size: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            _editField('Display Name', _user.displayName),
-            const SizedBox(height: 12),
-            _editField('Username', '@${_user.username}'),
-            const SizedBox(height: 12),
-            _editField('Bio', _user.bio ?? '', maxLines: 3),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Save Changes'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    Get.to(() => const EditProfileScreen())?.then((_) {
+      _loadUserProfile();
+    });
   }
 
   Widget _editField(String label, String value, {int maxLines = 1}) {
@@ -2759,6 +2928,112 @@ class _ProfileScreenState extends State<ProfileScreen>
           color: AppTheme.primaryColor,
           fontWeight: FontWeight.w700,
         ),
+      ),
+    );
+  }
+
+  Widget _buildAboutCard() {
+    final hasAboutInfo = (_user.profession != null && _user.profession!.isNotEmpty) ||
+        (_user.education != null && _user.education!.isNotEmpty) ||
+        (_user.country != null && _user.country!.isNotEmpty) ||
+        _user.dob != null ||
+        (_user.gender != null && _user.gender!.isNotEmpty) ||
+        (_user.website != null && _user.website!.isNotEmpty) ||
+        (_user.instagram != null && _user.instagram!.isNotEmpty) ||
+        (_user.youtube != null && _user.youtube!.isNotEmpty) ||
+        (_user.twitter != null && _user.twitter!.isNotEmpty);
+
+    if (!hasAboutInfo) return const SizedBox();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16, bottom: 8),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF13131A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('ℹ️', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              Text(
+                'ABOUT ME',
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_user.profession != null && _user.profession!.isNotEmpty)
+            _aboutItem(Icons.work_outline_rounded, 'Profession', _user.profession!),
+          if (_user.education != null && _user.education!.isNotEmpty)
+            _aboutItem(Icons.school_outlined, 'Education', _user.education!),
+          if ((_user.city != null && _user.city!.isNotEmpty) ||
+              (_user.state != null && _user.state!.isNotEmpty) ||
+              (_user.country != null && _user.country!.isNotEmpty))
+            _aboutItem(
+              Icons.location_on_outlined,
+              'Location',
+              [
+                if (_user.city != null && _user.city!.isNotEmpty) _user.city,
+                if (_user.state != null && _user.state!.isNotEmpty) _user.state,
+                if (_user.country != null && _user.country!.isNotEmpty) _user.country,
+              ].join(', '),
+            ),
+          if (_user.dob != null)
+            _aboutItem(
+              Icons.cake_outlined,
+              'Birthday',
+              '${DateFormat('dd MMM yyyy').format(_user.dob!)} (${_user.age} years old)',
+            ),
+          if (_user.gender != null && _user.gender!.isNotEmpty)
+            _aboutItem(Icons.person_outline_rounded, 'Gender', _user.gender!),
+          if (_user.website != null && _user.website!.isNotEmpty)
+            _aboutItem(Icons.language_rounded, 'Website', _user.website!, isLink: true),
+          if (_user.instagram != null && _user.instagram!.isNotEmpty)
+            _aboutItem(Icons.camera_alt_rounded, 'Instagram', _user.instagram!),
+          if (_user.youtube != null && _user.youtube!.isNotEmpty)
+            _aboutItem(Icons.play_circle_outline_rounded, 'YouTube', _user.youtube!),
+          if (_user.twitter != null && _user.twitter!.isNotEmpty)
+            _aboutItem(Icons.chat_bubble_outline_rounded, 'Twitter/X', _user.twitter!),
+        ],
+      ),
+    );
+  }
+
+  Widget _aboutItem(IconData icon, String label, String value, {bool isLink = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 15, color: Colors.white54),
+          const SizedBox(width: 10),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.white70, height: 1.3),
+                children: [
+                  TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white54)),
+                  TextSpan(
+                    text: value,
+                    style: isLink
+                        ? const TextStyle(color: Color(0xFF38BDF8), decoration: TextDecoration.underline)
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

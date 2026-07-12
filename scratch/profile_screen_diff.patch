@@ -1,0 +1,792 @@
+﻿diff --git a/lib/screens/profile/profile_screen.dart b/lib/screens/profile/profile_screen.dart
+index 3b081b4..26706d4 100644
+--- a/lib/screens/profile/profile_screen.dart
++++ b/lib/screens/profile/profile_screen.dart
+@@ -1,7 +1,11 @@
++import 'dart:io';
+ import 'package:flutter/material.dart';
+ import 'package:flutter/services.dart';
+ import 'package:get/get.dart';
+ import 'package:cached_network_image/cached_network_image.dart';
++import 'package:share_plus/share_plus.dart';
++import 'package:image_picker/image_picker.dart';
++import 'package:google_fonts/google_fonts.dart';
+ import '../../core/theme.dart';
+ import '../../models/user_model.dart';
+ import '../../models/post_model.dart';
+@@ -34,7 +38,8 @@ class _ProfileScreenState extends State<ProfileScreen>
+     isVerified: true,
+     isPremium: true,
+     reputation: 4850,
+-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
++    avatar:
++        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
+     sid: '773091',
+     level: 14,
+     xp: 3450,
+@@ -72,7 +77,9 @@ class _ProfileScreenState extends State<ProfileScreen>
+       ];
+       final videosList = [
+         null,
+-        ['https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4'],
++        [
++          'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4'
++        ],
+         null,
+         null,
+         null,
+@@ -147,10 +154,20 @@ class _ProfileScreenState extends State<ProfileScreen>
+   );
+ 
+   final List<Map<String, dynamic>> _communities = [
+-    {'name': 'Flutter India', 'members': '12.4K', 'icon': '🦋', 'role': 'Admin'},
++    {
++      'name': 'Flutter India',
++      'members': '12.4K',
++      'icon': '🦋',
++      'role': 'Admin'
++    },
+     {'name': 'AI & ML Hub', 'members': '8.2K', 'icon': '🤖', 'role': 'Member'},
+     {'name': 'DSA Grind', 'members': '5.6K', 'icon': '🧠', 'role': 'Moderator'},
+-    {'name': 'Open Source Dev', 'members': '3.1K', 'icon': '🌍', 'role': 'Member'},
++    {
++      'name': 'Open Source Dev',
++      'members': '3.1K',
++      'icon': '🌍',
++      'role': 'Member'
++    },
+   ];
+ 
+   @override
+@@ -173,6 +190,340 @@ class _ProfileScreenState extends State<ProfileScreen>
+     return const Color(0xFFFBBF24);
+   }
+ 
++  Future<void> _pickAndCropAvatar(
++      BuildContext context, ImageSource source) async {
++    final ImagePicker picker = ImagePicker();
++    final XFile? image = await picker.pickImage(source: source);
++    if (image == null) return;
++
++    // Show Custom Crop & Preview Dialog
++    Get.dialog(
++      Dialog(
++        backgroundColor: const Color(0xFF13131A),
++        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
++        child: Padding(
++          padding: const EdgeInsets.all(16.0),
++          child: Column(
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              Text(
++                'PREVIEW & CROP AVATAR',
++                style: GoogleFonts.outfit(
++                  color: Colors.white,
++                  fontWeight: FontWeight.bold,
++                  fontSize: 14,
++                  letterSpacing: 1.2,
++                ),
++              ),
++              const SizedBox(height: 16),
++              // Crop Area with Circular Overlay
++              Stack(
++                alignment: Alignment.center,
++                children: [
++                  Container(
++                    width: 200,
++                    height: 200,
++                    decoration: BoxDecoration(
++                      borderRadius: BorderRadius.circular(8),
++                      image: DecorationImage(
++                        image: FileImage(File(image.path)),
++                        fit: BoxFit.cover,
++                      ),
++                    ),
++                  ),
++                  // Semi-transparent circular crop guide overlay
++                  Container(
++                    width: 200,
++                    height: 200,
++                    decoration: BoxDecoration(
++                      shape: BoxShape.circle,
++                      border:
++                          Border.all(color: const Color(0xFF8B5CF6), width: 3),
++                      boxShadow: [
++                        BoxShadow(
++                          color: Colors.black.withOpacity(0.5),
++                          blurRadius: 10,
++                        )
++                      ],
++                    ),
++                  ),
++                ],
++              ),
++              const SizedBox(height: 16),
++              Text(
++                'Adjust your photo inside the circle',
++                style: GoogleFonts.poppins(color: Colors.white54, fontSize: 11),
++              ),
++              const SizedBox(height: 20),
++              Row(
++                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
++                children: [
++                  TextButton(
++                    onPressed: () => Get.back(),
++                    child: Text('Cancel',
++                        style: GoogleFonts.poppins(color: Colors.white38)),
++                  ),
++                  ElevatedButton(
++                    onPressed: () async {
++                      // Save custom avatar path to customization controller
++                      _custCtrl.customAvatarPath.value = image.path;
++                      await _custCtrl.equipItem('Avatar',
++                          'Default'); // ensure default avatar is selected
++                      Get.back();
++                      Get.snackbar(
++                        'Avatar Cropped! ✂️',
++                        'Preview updated. Tap "Save Changes" to apply.',
++                        snackPosition: SnackPosition.BOTTOM,
++                        backgroundColor: const Color(0xFF10B981),
++                        colorText: Colors.white,
++                      );
++                    },
++                    style: ElevatedButton.styleFrom(
++                        backgroundColor: const Color(0xFF8B5CF6)),
++                    child: Text('Crop & Save',
++                        style:
++                            GoogleFonts.poppins(fontWeight: FontWeight.bold)),
++                  ),
++                ],
++              )
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++
++  void _toggleLike(Post post) {
++    final idx = _posts.indexWhere((p) => p.id == post.id);
++    if (idx != -1) {
++      setState(() {
++        final current = _posts[idx];
++        final newIsLiked = !current.isLiked;
++        _posts[idx] = current.copyWith(
++          isLiked: newIsLiked,
++          likes: current.likes + (newIsLiked ? 1 : -1),
++        );
++      });
++    }
++  }
++
++  void _toggleBookmark(Post post) {
++    final idx = _posts.indexWhere((p) => p.id == post.id);
++    if (idx != -1) {
++      setState(() {
++        final current = _posts[idx];
++        final newIsBookmarked = !current.isBookmarked;
++        _posts[idx] = current.copyWith(isBookmarked: newIsBookmarked);
++      });
++      Get.snackbar(
++        post.isBookmarked ? 'Bookmark Removed 📂' : 'Saved to Bookmarks 📂',
++        post.isBookmarked
++            ? 'Post removed from your bookmarks.'
++            : 'Post added to your bookmarks.',
++        snackPosition: SnackPosition.BOTTOM,
++        backgroundColor: const Color(0xFF1F1F2E),
++        colorText: Colors.white,
++        duration: const Duration(seconds: 1),
++      );
++    }
++  }
++
++  void _commentPost(BuildContext context, Post post) {
++    final TextEditingController controller = TextEditingController();
++    Get.dialog(
++      Dialog(
++        backgroundColor: const Color(0xFF13131A),
++        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
++        child: Padding(
++          padding: const EdgeInsets.all(16.0),
++          child: Column(
++            mainAxisSize: MainAxisSize.min,
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              Text(
++                'ADD COMMENT',
++                style: GoogleFonts.outfit(
++                  color: Colors.white,
++                  fontWeight: FontWeight.bold,
++                  fontSize: 14,
++                  letterSpacing: 1.2,
++                ),
++              ),
++              const SizedBox(height: 12),
++              TextField(
++                controller: controller,
++                maxLines: 3,
++                style: GoogleFonts.poppins(color: Colors.white, fontSize: 13),
++                decoration: InputDecoration(
++                  hintText: 'Write your comment...',
++                  hintStyle:
++                      GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
++                  filled: true,
++                  fillColor: Colors.black.withOpacity(0.2),
++                  border: OutlineInputBorder(
++                    borderRadius: BorderRadius.circular(10),
++                    borderSide: const BorderSide(color: Colors.white12),
++                  ),
++                ),
++              ),
++              const SizedBox(height: 16),
++              Row(
++                mainAxisAlignment: MainAxisAlignment.end,
++                children: [
++                  TextButton(
++                    onPressed: () => Get.back(),
++                    child: Text('Cancel',
++                        style: GoogleFonts.poppins(color: Colors.white38)),
++                  ),
++                  const SizedBox(width: 8),
++                  ElevatedButton(
++                    onPressed: () {
++                      if (controller.text.trim().isEmpty) return;
++                      final idx = _posts.indexWhere((p) => p.id == post.id);
++                      if (idx != -1) {
++                        setState(() {
++                          final current = _posts[idx];
++                          _posts[idx] =
++                              current.copyWith(comments: current.comments + 1);
++                        });
++                      }
++                      Get.back();
++                      Get.snackbar(
++                        'Comment Posted 💬',
++                        'Your comment was posted successfully!',
++                        snackPosition: SnackPosition.BOTTOM,
++                        backgroundColor: const Color(0xFF10B981),
++                        colorText: Colors.white,
++                        duration: const Duration(seconds: 1),
++                      );
++                    },
++                    style: ElevatedButton.styleFrom(
++                        backgroundColor: const Color(0xFF8B5CF6)),
++                    child: Text('Post',
++                        style:
++                            GoogleFonts.poppins(fontWeight: FontWeight.bold)),
++                  ),
++                ],
++              )
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++
++  void _sharePost(Post post) {
++    Share.share(post.content);
++    final idx = _posts.indexWhere((p) => p.id == post.id);
++    if (idx != -1) {
++      setState(() {
++        final current = _posts[idx];
++        _posts[idx] = current.copyWith(shares: current.shares + 1);
++      });
++    }
++  }
++
++  void _toggleUpvoteQuestion(Question q) {
++    final idx = _questions.indexWhere((item) => item.id == q.id);
++    if (idx != -1) {
++      setState(() {
++        final current = _questions[idx];
++        final newIsUpvoted = !current.isUpvoted;
++        _questions[idx] = current.copyWith(
++          isUpvoted: newIsUpvoted,
++          upvotes: current.upvotes + (newIsUpvoted ? 1 : -1),
++        );
++      });
++    }
++  }
++
++  void _answerQuestion(BuildContext context, Question q) {
++    final TextEditingController controller = TextEditingController();
++    Get.dialog(
++      Dialog(
++        backgroundColor: const Color(0xFF13131A),
++        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
++        child: Padding(
++          padding: const EdgeInsets.all(16.0),
++          child: Column(
++            mainAxisSize: MainAxisSize.min,
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              Text(
++                'SUBMIT YOUR ANSWER',
++                style: GoogleFonts.outfit(
++                  color: Colors.white,
++                  fontWeight: FontWeight.bold,
++                  fontSize: 14,
++                  letterSpacing: 1.2,
++                ),
++              ),
++              const SizedBox(height: 12),
++              TextField(
++                controller: controller,
++                maxLines: 4,
++                style: GoogleFonts.poppins(color: Colors.white, fontSize: 13),
++                decoration: InputDecoration(
++                  hintText: 'Type your answer details here...',
++                  hintStyle:
++                      GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
++                  filled: true,
++                  fillColor: Colors.black.withOpacity(0.2),
++                  border: OutlineInputBorder(
++                    borderRadius: BorderRadius.circular(10),
++                    borderSide: const BorderSide(color: Colors.white12),
++                  ),
++                ),
++              ),
++              const SizedBox(height: 16),
++              Row(
++                mainAxisAlignment: MainAxisAlignment.end,
++                children: [
++                  TextButton(
++                    onPressed: () => Get.back(),
++                    child: Text('Cancel',
++                        style: GoogleFonts.poppins(color: Colors.white38)),
++                  ),
++                  const SizedBox(width: 8),
++                  ElevatedButton(
++                    onPressed: () {
++                      if (controller.text.trim().isEmpty) return;
++                      final idx =
++                          _questions.indexWhere((item) => item.id == q.id);
++                      if (idx != -1) {
++                        setState(() {
++                          final current = _questions[idx];
++                          _questions[idx] = current.copyWith(
++                            answers: current.answers + 1,
++                            isAnswered: true,
++                          );
++                        });
++                      }
++                      Get.back();
++                      Get.snackbar(
++                        'Answer Submitted 🎉',
++                        'Thank you! Your answer has been posted.',
++                        snackPosition: SnackPosition.BOTTOM,
++                        backgroundColor: const Color(0xFF10B981),
++                        colorText: Colors.white,
++                        duration: const Duration(seconds: 1.5),
++                      );
++                    },
++                    style: ElevatedButton.styleFrom(
++                        backgroundColor: const Color(0xFF8B5CF6)),
++                    child: Text('Submit',
++                        style:
++                            GoogleFonts.poppins(fontWeight: FontWeight.bold)),
++                  ),
++                ],
++              )
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++
+   String _formatNumber(int n) {
+     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+@@ -239,7 +590,8 @@ class _ProfileScreenState extends State<ProfileScreen>
+         IconButton(
+           icon: const Icon(Icons.share_outlined, color: Colors.white),
+           onPressed: () {
+-            Clipboard.setData(ClipboardData(text: 'https://agorax.com/profile/${_user.sid}'));
++            Clipboard.setData(
++                ClipboardData(text: 'https://agorax.com/profile/${_user.sid}'));
+             Get.snackbar(
+               'Share Link Copied 🔗',
+               'Profile link copied to clipboard.',
+@@ -311,7 +663,8 @@ class _ProfileScreenState extends State<ProfileScreen>
+                   );
+                 },
+                 child: Container(
+-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
++                  padding:
++                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                   decoration: BoxDecoration(
+                     color: Colors.black.withOpacity(0.5),
+                     borderRadius: BorderRadius.circular(20),
+@@ -320,11 +673,15 @@ class _ProfileScreenState extends State<ProfileScreen>
+                   child: const Row(
+                     mainAxisSize: MainAxisSize.min,
+                     children: [
+-                      Icon(Icons.camera_alt_outlined, size: 12, color: Colors.white),
++                      Icon(Icons.camera_alt_outlined,
++                          size: 12, color: Colors.white),
+                       SizedBox(width: 4),
+                       Text(
+                         'Edit Cover',
+-                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
++                        style: TextStyle(
++                            color: Colors.white,
++                            fontSize: 11,
++                            fontWeight: FontWeight.bold),
+                       ),
+                     ],
+                   ),
+@@ -348,7 +705,8 @@ class _ProfileScreenState extends State<ProfileScreen>
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: AppTheme.bgLight,
+                   foregroundColor: AppTheme.textPrimary,
+-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
++                  padding:
++                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                   shape: RoundedRectangleBorder(
+                     borderRadius: BorderRadius.circular(10),
+                     side: const BorderSide(color: AppTheme.borderColor),
+@@ -360,7 +718,7 @@ class _ProfileScreenState extends State<ProfileScreen>
+           ],
+         ),
+         const SizedBox(height: 50), // space for overlapping avatar
+-        
++
+         Padding(
+           padding: const EdgeInsets.symmetric(horizontal: 20),
+           child: Column(
+@@ -379,12 +737,13 @@ class _ProfileScreenState extends State<ProfileScreen>
+                   ),
+                   if (_user.isVerified) ...[
+                     const SizedBox(width: 6),
+-                    const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 20),
++                    const Icon(Icons.verified_rounded,
++                        color: Color(0xFF60A5FA), size: 20),
+                   ],
+                 ],
+               ),
+               const SizedBox(height: 4),
+-              
++
+               // Unique ID Display
+               Row(
+                 children: [
+@@ -408,10 +767,11 @@ class _ProfileScreenState extends State<ProfileScreen>
+                 ],
+               ),
+               const SizedBox(height: 12),
+-              
++
+               // Level Badge
+               Container(
+-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
++                padding:
++                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                 decoration: BoxDecoration(
+                   color: _levelColor.withOpacity(0.15),
+                   borderRadius: BorderRadius.circular(8),
+@@ -434,7 +794,7 @@ class _ProfileScreenState extends State<ProfileScreen>
+                 ),
+               ),
+               const SizedBox(height: 16),
+-              
++
+               // Bio
+               Text(
+                 _user.bio ?? '',
+@@ -445,15 +805,15 @@ class _ProfileScreenState extends State<ProfileScreen>
+                 ),
+               ),
+               const SizedBox(height: 16),
+-              
++
+               // XP Bar
+               _buildXpBar(),
+               const SizedBox(height: 20),
+-              
++
+               // Stats Row
+               _buildStatsRow(),
+               const SizedBox(height: 20),
+-              
++
+               // Badges
+               _buildBadgesRow(),
+               const SizedBox(height: 8),
+@@ -500,11 +860,14 @@ class _ProfileScreenState extends State<ProfileScreen>
+                               child: SizedBox(
+                                 width: 20,
+                                 height: 20,
+-                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor),
++                                child: CircularProgressIndicator(
++                                    strokeWidth: 2,
++                                    color: AppTheme.primaryColor),
+                               ),
+                             ),
+                           ),
+-                          errorWidget: (context, url, error) => _buildInitialsAvatar(),
++                          errorWidget: (context, url, error) =>
++                              _buildInitialsAvatar(),
+                         )
+                       : _buildInitialsAvatar(),
+                 ),
+@@ -550,7 +913,8 @@ class _ProfileScreenState extends State<ProfileScreen>
+                 shape: BoxShape.circle,
+                 border: Border.all(color: AppTheme.bgDark, width: 2),
+               ),
+-              child: const Icon(Icons.camera_alt, color: Colors.white, size: 12),
++              child:
++                  const Icon(Icons.camera_alt, color: Colors.white, size: 12),
+             ),
+           ),
+         ),
+@@ -575,8 +939,8 @@ class _ProfileScreenState extends State<ProfileScreen>
+             ),
+             Text(
+               '${_formatNumber(_user.totalXp)} XP to Lv.${_user.level + 1}',
+-              style: const TextStyle(
+-                  color: AppTheme.textTertiary, fontSize: 12),
++              style:
++                  const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+             ),
+           ],
+         ),
+@@ -664,7 +1028,8 @@ class _ProfileScreenState extends State<ProfileScreen>
+             separatorBuilder: (_, __) => const SizedBox(width: 8),
+             itemBuilder: (context, i) {
+               return Container(
+-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
++                padding:
++                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                 decoration: BoxDecoration(
+                   gradient: LinearGradient(
+                     colors: [
+@@ -729,7 +1094,8 @@ class _ProfileScreenState extends State<ProfileScreen>
+                         placeholder: (context, url) => Container(
+                           color: AppTheme.primaryColor.withOpacity(0.1),
+                         ),
+-                        errorWidget: (context, url, error) => _buildAuthorInitialsAvatar(),
++                        errorWidget: (context, url, error) =>
++                            _buildAuthorInitialsAvatar(),
+                       )
+                     : _buildAuthorInitialsAvatar(),
+               ),
+@@ -795,25 +1161,40 @@ class _ProfileScreenState extends State<ProfileScreen>
+           // Actions
+           Row(
+             children: [
+-              _postAction(
++              GestureDetector(
++                onTap: () => _toggleLike(post),
++                behavior: HitTestBehavior.opaque,
++                child: _postAction(
+                   post.isLiked ? Icons.favorite : Icons.favorite_outline,
+                   '${post.likes}',
+-                  post.isLiked ? AppTheme.errorColor : AppTheme.textTertiary),
++                  post.isLiked ? AppTheme.errorColor : AppTheme.textTertiary,
++                ),
++              ),
+               const SizedBox(width: 20),
+-              _postAction(Icons.chat_bubble_outline, '${post.comments}',
+-                  AppTheme.textTertiary),
++              GestureDetector(
++                onTap: () => _commentPost(context, post),
++                behavior: HitTestBehavior.opaque,
++                child: _postAction(Icons.chat_bubble_outline,
++                    '${post.comments}', AppTheme.textTertiary),
++              ),
+               const SizedBox(width: 20),
+-              _postAction(
+-                  Icons.repeat_rounded, '${post.shares}', AppTheme.textTertiary),
++              GestureDetector(
++                onTap: () => _sharePost(post),
++                behavior: HitTestBehavior.opaque,
++                child: _postAction(Icons.repeat_rounded, '${post.shares}',
++                    AppTheme.textTertiary),
++              ),
+               const Spacer(),
+-              Icon(
+-                post.isBookmarked
+-                    ? Icons.bookmark
+-                    : Icons.bookmark_outline,
+-                size: 18,
+-                color: post.isBookmarked
+-                    ? AppTheme.primaryColor
+-                    : AppTheme.textTertiary,
++              GestureDetector(
++                onTap: () => _toggleBookmark(post),
++                behavior: HitTestBehavior.opaque,
++                child: Icon(
++                  post.isBookmarked ? Icons.bookmark : Icons.bookmark_outline,
++                  size: 18,
++                  color: post.isBookmarked
++                      ? AppTheme.primaryColor
++                      : AppTheme.textTertiary,
++                ),
+               ),
+             ],
+           ),
+@@ -910,19 +1291,30 @@ class _ProfileScreenState extends State<ProfileScreen>
+           // Stats
+           Row(
+             children: [
+-              _qStat(Icons.arrow_upward_rounded, '${q.upvotes}',
+-                  q.isUpvoted ? AppTheme.primaryColor : AppTheme.textTertiary),
++              GestureDetector(
++                onTap: () => _toggleUpvoteQuestion(q),
++                behavior: HitTestBehavior.opaque,
++                child: _qStat(
++                  Icons.arrow_upward_rounded,
++                  '${q.upvotes}',
++                  q.isUpvoted ? AppTheme.primaryColor : AppTheme.textTertiary,
++                ),
++              ),
+               const SizedBox(width: 16),
+-              _qStat(Icons.chat_bubble_outline_rounded, '${q.answers} answers',
+-                  AppTheme.textTertiary),
++              GestureDetector(
++                onTap: () => _answerQuestion(context, q),
++                behavior: HitTestBehavior.opaque,
++                child: _qStat(Icons.chat_bubble_outline_rounded,
++                    '${q.answers} answers', AppTheme.textTertiary),
++              ),
+               const SizedBox(width: 16),
+               _qStat(Icons.visibility_outlined, '${q.views}',
+                   AppTheme.textTertiary),
+               const Spacer(),
+               Text(
+                 _timeAgo(q.createdAt),
+-                style: const TextStyle(
+-                    color: AppTheme.textTertiary, fontSize: 11),
++                style:
++                    const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+               ),
+             ],
+           ),
+@@ -973,8 +1365,8 @@ class _ProfileScreenState extends State<ProfileScreen>
+               ),
+               borderRadius: BorderRadius.circular(14),
+             ),
+-            child:
+-                Center(child: Text(c['icon'], style: const TextStyle(fontSize: 26))),
++            child: Center(
++                child: Text(c['icon'], style: const TextStyle(fontSize: 26))),
+           ),
+           const SizedBox(width: 14),
+           Expanded(
+@@ -1069,6 +1461,55 @@ class _ProfileScreenState extends State<ProfileScreen>
+               ],
+             ),
+             const SizedBox(height: 20),
++            Center(
++              child: Stack(
++                children: [
++                  Obx(() {
++                    final avatarUrl = _custCtrl.getAvatarUrl(
++                        _custCtrl.activeAvatar.value, _user.avatar ?? '');
++                    final bool isWebUrl = avatarUrl.startsWith('http://') ||
++                        avatarUrl.startsWith('https://');
++                    return Container(
++                      width: 90,
++                      height: 90,
++                      decoration: BoxDecoration(
++                        shape: BoxShape.circle,
++                        border: Border.all(
++                            color: const Color(0xFF8B5CF6), width: 2),
++                        image: DecorationImage(
++                          image: avatarUrl.isNotEmpty
++                              ? (isWebUrl
++                                  ? NetworkImage(avatarUrl) as ImageProvider
++                                  : FileImage(File(avatarUrl)) as ImageProvider)
++                              : const AssetImage('assets/images/logo.png')
++                                  as ImageProvider,
++                          fit: BoxFit.cover,
++                        ),
++                      ),
++                    );
++                  }),
++                  Positioned(
++                    bottom: 0,
++                    right: 0,
++                    child: GestureDetector(
++                      onTap: () async {
++                        await _pickAndCropAvatar(context);
++                      },
++                      child: Container(
++                        padding: const EdgeInsets.all(6),
++                        decoration: const BoxDecoration(
++                          color: Color(0xFF8B5CF6),
++                          shape: BoxShape.circle,
++                        ),
++                        child: const Icon(Icons.camera_alt_rounded,
++                            color: Colors.white, size: 16),
++                      ),
++                    ),
++                  ),
++                ],
++              ),
++            ),
++            const SizedBox(height: 20),
+             _editField('Display Name', _user.displayName),
+             const SizedBox(height: 12),
+             _editField('Username', '@${_user.username}'),
+@@ -1151,26 +1592,33 @@ class _ProfileScreenState extends State<ProfileScreen>
+             ),
+             const SizedBox(height: 20),
+             ListTile(
+-              leading: const Icon(Icons.photo_camera_rounded, color: AppTheme.primaryColor),
+-              title: const Text('Take Photo', style: TextStyle(color: AppTheme.textPrimary)),
++              leading: const Icon(Icons.photo_camera_rounded,
++                  color: AppTheme.primaryColor),
++              title: const Text('Take Photo',
++                  style: TextStyle(color: AppTheme.textPrimary)),
+               onTap: () {
+                 Navigator.pop(context);
+-                _mockPickImage('Camera');
++                _pickAndCropAvatar(context, ImageSource.camera);
+               },
+             ),
+             ListTile(
+-              leading: const Icon(Icons.photo_library_rounded, color: AppTheme.primaryColor),
+-              title: const Text('Choose from Gallery', style: TextStyle(color: AppTheme.textPrimary)),
++              leading: const Icon(Icons.photo_library_rounded,
++                  color: AppTheme.primaryColor),
++              title: const Text('Choose from Gallery',
++                  style: TextStyle(color: AppTheme.textPrimary)),
+               onTap: () {
+                 Navigator.pop(context);
+-                _mockPickImage('Gallery');
++                _pickAndCropAvatar(context, ImageSource.gallery);
+               },
+             ),
+             ListTile(
+-              leading: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorColor),
+-              title: const Text('Remove Photo', style: TextStyle(color: AppTheme.errorColor)),
++              leading: const Icon(Icons.delete_outline_rounded,
++                  color: AppTheme.errorColor),
++              title: const Text('Remove Photo',
++                  style: TextStyle(color: AppTheme.errorColor)),
+               onTap: () {
+                 Navigator.pop(context);
++                _custCtrl.customAvatarPath.value = '';
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   const SnackBar(
+                     content: Text('Profile photo removed'),
+@@ -1185,16 +1633,6 @@ class _ProfileScreenState extends State<ProfileScreen>
+     );
+   }
+ 
+-  void _mockPickImage(String source) {
+-    ScaffoldMessenger.of(context).showSnackBar(
+-      SnackBar(
+-        content: Text('Profile photo updated from $source!'),
+-        backgroundColor: AppTheme.accentColor,
+-        behavior: SnackBarBehavior.floating,
+-      ),
+-    );
+-  }
+-
+   Widget _buildInitialsAvatar() {
+     return Center(
+       child: Text(

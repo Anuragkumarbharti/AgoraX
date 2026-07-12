@@ -106,11 +106,11 @@ class _WalletScreenState extends State<WalletScreen> {
               backgroundColor: AppTheme.primaryColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: () {
+            onPressed: () async {
               if (_withdrawFormKey.currentState!.validate()) {
                 final amt = double.parse(_amountController.text);
                 final upi = _upiController.text.trim();
-                final success = _controller.withdrawCash(amt, upi);
+                final success = await _controller.withdrawCash(amt, upi);
                 Get.back();
                 if (success) {
                   Get.snackbar(

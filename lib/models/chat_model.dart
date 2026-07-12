@@ -58,6 +58,40 @@ class ChatMessage {
       isEdited: isEdited ?? this.isEdited,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'senderId': senderId,
+        'receiverId': receiverId,
+        'conversationId': conversationId,
+        'content': content,
+        'type': type.index,
+        'status': status.index,
+        'timestamp': timestamp.toIso8601String(),
+        'isDeleted': isDeleted,
+        'replyToId': replyToId,
+        'replyToContent': replyToContent,
+        'reactions': reactions,
+        'mediaUrl': mediaUrl,
+        'isEdited': isEdited,
+      };
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
+        id: json['id'] ?? '',
+        senderId: json['senderId'] ?? '',
+        receiverId: json['receiverId'] ?? '',
+        conversationId: json['conversationId'] ?? '',
+        content: json['content'] ?? '',
+        type: MessageType.values[(json['type'] as int?) ?? 0],
+        status: MessageStatus.values[(json['status'] as int?) ?? 0],
+        timestamp: DateTime.parse(json['timestamp'] ?? DateTime.now().toIso8601String()),
+        isDeleted: json['isDeleted'] ?? false,
+        replyToId: json['replyToId'],
+        replyToContent: json['replyToContent'],
+        reactions: json['reactions'] != null ? List<String>.from(json['reactions']) : null,
+        mediaUrl: json['mediaUrl'],
+        isEdited: json['isEdited'] ?? false,
+      );
 }
 
 class Conversation {
@@ -94,4 +128,40 @@ class Conversation {
     this.levelTitle = 'Member',
     this.level = 1,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'otherUserId': otherUserId,
+        'otherUserName': otherUserName,
+        'otherUserAvatar': otherUserAvatar,
+        'otherUserOnline': otherUserOnline,
+        'isVerified': isVerified,
+        'lastMessage': lastMessage,
+        'lastMessageTime': lastMessageTime.toIso8601String(),
+        'unreadCount': unreadCount,
+        'isPinned': isPinned,
+        'isMuted': isMuted,
+        'isBlocked': isBlocked,
+        'lastMessageSenderId': lastMessageSenderId,
+        'levelTitle': levelTitle,
+        'level': level,
+      };
+
+  factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
+        id: json['id'] ?? '',
+        otherUserId: json['otherUserId'] ?? '',
+        otherUserName: json['otherUserName'] ?? '',
+        otherUserAvatar: json['otherUserAvatar'] ?? '',
+        otherUserOnline: json['otherUserOnline'] ?? false,
+        isVerified: json['isVerified'] ?? false,
+        lastMessage: json['lastMessage'] ?? '',
+        lastMessageTime: DateTime.parse(json['lastMessageTime'] ?? DateTime.now().toIso8601String()),
+        unreadCount: json['unreadCount'] ?? 0,
+        isPinned: json['isPinned'] ?? false,
+        isMuted: json['isMuted'] ?? false,
+        isBlocked: json['isBlocked'] ?? false,
+        lastMessageSenderId: json['lastMessageSenderId'],
+        levelTitle: json['levelTitle'] ?? 'Member',
+        level: json['level'] ?? 1,
+      );
 }

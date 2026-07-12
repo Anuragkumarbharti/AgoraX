@@ -1,6 +1,6 @@
-# AgoraX - Flutter Mobile App
+# Creania - Flutter Mobile App
 
-**AgoraX** is a community platform that combines Discord, Quora, and Clubhouse with a strong creator economy focus.
+**Creania** is a community platform that combines Discord, Quora, and Clubhouse with a strong creator economy focus.
 
 ## 🚀 Quick Start
 
@@ -206,7 +206,7 @@ See `.agent.md` for development guidelines.
 
 ## 📄 License
 
-Proprietary - AgoraX Inc.
+Proprietary - Creania Inc.
 
 ## 📞 Support
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import 'interests_screen.dart';
 
@@ -61,10 +62,25 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
     setState(() => _isLoading = true);
 
-    Future.delayed(const Duration(seconds: 2), () {
+    Supabase.instance.client.auth.verifyOTP(
+      token: otp,
+      type: OtpType.signup,
+      email: widget.email,
+    ).then((_) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       Get.to(
         () => InterestsScreen(userId: widget.userId),
+      );
+    }).catchError((e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Get.snackbar(
+        'Verification Failed ⚠️',
+        e.toString().replaceAll('AuthException: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
       );
     });
   }

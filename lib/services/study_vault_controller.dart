@@ -7,6 +7,8 @@ import '../models/study_vault_model.dart';
 import 'vip_controller.dart';
 import 'store_controller.dart';
 import 'novel_controller.dart';
+import 'user_progress_sync_service.dart';
+import 'user_profile_cache_manager.dart';
 
 class StudyVaultController extends GetxController {
   static StudyVaultController get to => Get.find<StudyVaultController>();
@@ -25,25 +27,20 @@ class StudyVaultController extends GetxController {
   final RxString lastAccessDate = ''.obs;
 
   // Gamification stats
-  final RxInt totalXp = 4250.obs;
-  final RxInt readingStreak = 5.obs;
-  final RxInt pagesRead = 1250.obs;
-  final RxInt booksReadCount = 14.obs;
-  final RxList<String> unlockedBadges = <String>[
-    '📚 Bookworm',
-    '🔥 Page Turner',
-    '⚡ Academic Streak',
-    '⭐ Top Reader'
-  ].obs;
+  final RxInt totalXp = 0.obs;
+  final RxInt readingStreak = 0.obs;
+  final RxInt pagesRead = 0.obs;
+  final RxInt booksReadCount = 0.obs;
+  final RxList<String> unlockedBadges = <String>[].obs;
 
   // Seller Dashboard variables (simulated for current user as a seller)
   final Rx<VaultWallet> sellerWallet = VaultWallet().obs;
   final RxList<VaultTransaction> sellerTransactions = <VaultTransaction>[].obs;
-  final RxInt sellerFollowers = 184.obs;
-  final RxDouble sellerRating = 4.8.obs;
-  final RxInt sellerTotalSales = 245.obs;
-  final RxDouble responseRate = 98.0.obs;
-  final RxString sellerJoinedDate = '12 Jan 2025'.obs;
+  final RxInt sellerFollowers = 0.obs;
+  final RxDouble sellerRating = 0.0.obs;
+  final RxInt sellerTotalSales = 0.obs;
+  final RxDouble responseRate = 0.0.obs;
+  final RxString sellerJoinedDate = ''.obs;
 
   // Admin Configuration parameters
   final RxInt downloadLimitPerDevice = 3.obs; // configurable by admin
@@ -57,8 +54,9 @@ class StudyVaultController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _seedMockData();
     _loadState();
+    loadCatalogFromDatabase();
+    loadPurchasedBooks();
   }
 
   Future<void> _loadState() async {
@@ -69,8 +67,7 @@ class StudyVaultController extends GetxController {
     if (purchased != null) {
       purchasedBookIds.assignAll(purchased);
     } else {
-      // Seed default purchased books for simulation
-      purchasedBookIds.assignAll(['book_notes_flutter_dsa', 'book_btech_project_guide']);
+      purchasedBookIds.clear();
     }
 
     // Load wishlist list
@@ -78,7 +75,7 @@ class StudyVaultController extends GetxController {
     if (wishlist != null) {
       wishlistBookIds.assignAll(wishlist);
     } else {
-      wishlistBookIds.assignAll(['book_upsc_history_notes']);
+      wishlistBookIds.clear();
     }
 
     // Load membership read list and date
@@ -89,10 +86,10 @@ class StudyVaultController extends GetxController {
     lastAccessDate.value = prefs.getString('vault_last_access_date') ?? '';
 
     // Load gamification stats
-    totalXp.value = prefs.getInt('vault_user_xp') ?? 4250;
-    readingStreak.value = prefs.getInt('vault_reading_streak') ?? 5;
-    pagesRead.value = prefs.getInt('vault_pages_read') ?? 1250;
-    booksReadCount.value = prefs.getInt('vault_books_read_count') ?? 14;
+    totalXp.value = prefs.getInt('vault_user_xp') ?? 0;
+    readingStreak.value = prefs.getInt('vault_reading_streak') ?? 0;
+    pagesRead.value = prefs.getInt('vault_pages_read') ?? 0;
+    booksReadCount.value = prefs.getInt('vault_books_read_count') ?? 0;
 
     _saveLocalState();
   }
@@ -107,404 +104,84 @@ class StudyVaultController extends GetxController {
     await prefs.setInt('vault_reading_streak', readingStreak.value);
     await prefs.setInt('vault_pages_read', pagesRead.value);
     await prefs.setInt('vault_books_read_count', booksReadCount.value);
+    UserProgressSyncService.syncToSupabase();
+  }
+
+  StudyVaultItem _itemFromMap(Map<String, dynamic> m) {
+    return StudyVaultItem(
+      id: m['id'] ?? '',
+      title: m['title'] ?? '',
+      subtitle: m['subtitle'] ?? '',
+      description: m['description'] ?? '',
+      coverImage: m['cover_image'] ?? '',
+      category: m['category'] ?? '',
+      course: m['course'] ?? '',
+      semester: m['semester'] ?? '',
+      branch: m['branch'] ?? '',
+      university: m['university'] ?? '',
+      language: m['language'] ?? 'English',
+      tags: List<String>.from(m['tags'] ?? []),
+      authorName: m['author_name'] ?? '',
+      publisher: m['publisher'] ?? '',
+      edition: m['edition'] ?? '',
+      isbn: m['isbn'],
+      pages: m['pages'] ?? 10,
+      fileType: m['file_type'] ?? 'PDF',
+      pdfUrl: m['pdf_url'] ?? '',
+      thumbnail: m['thumbnail'] ?? '',
+      previewPagesCount: m['preview_pages_count'] ?? 3,
+      sellingPrice: (m['selling_price'] as num?)?.toDouble() ?? 0.0,
+      license: m['license'] ?? 'Standard Digital License',
+      copyrightDeclaration: m['copyright_declaration'] ?? true,
+      isOfficial: m['is_official'] ?? false,
+      requiredVipLevel: m['required_vip_level'] ?? 0,
+      sellerId: m['seller_id'] ?? '',
+      sellerName: m['seller_name'] ?? '',
+      sellerAvatar: m['seller_avatar'] ?? '',
+      rating: (m['rating'] as num?)?.toDouble() ?? 0.0,
+      reviewsCount: m['reviews_count'] ?? 0,
+      viewsCount: m['views_count'] ?? 0,
+      downloadsCount: m['downloads_count'] ?? 0,
+      purchasesCount: m['purchases_count'] ?? 0,
+      createdAt: m['created_at'] != null ? DateTime.tryParse(m['created_at']) ?? DateTime.now() : DateTime.now(),
+      watermarkText: m['watermark_text'] ?? 'Creania',
+      isFeatured: m['is_featured'] ?? false,
+      status: m['status'] ?? 'Pending',
+      adminComment: m['admin_comment'],
+    );
+  }
+
+  Future<void> loadCatalogFromDatabase() async {
+    try {
+      final List<dynamic> list = await Supabase.instance.client
+          .from('study_vault_items')
+          .select();
+
+      final loadedItems = list.map((m) => _itemFromMap(m)).toList();
+      items.assignAll(loadedItems);
+    } catch (_) {}
+  }
+
+  Future<void> loadPurchasedBooks() async {
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
+      
+      final canonicalId = await UserProfileCacheManager.getOrFetchCanonicalId();
+      final List<dynamic> list = await Supabase.instance.client
+          .from('purchase_history')
+          .select('item_id')
+          .eq('user_id', canonicalId)
+          .eq('item_type', 'Book');
+
+      final ids = list.map((m) => m['item_id'].toString()).toList();
+      purchasedBookIds.assignAll(ids);
+      _saveLocalState();
+    } catch (_) {}
   }
 
   void _seedMockData() {
-    // ── Clear and seed catalog items ──
-    items.assignAll([
-      // User Uploaded - Paid
-      StudyVaultItem(
-        id: 'book_notes_flutter_dsa',
-        title: 'Flutter DSA Cheatsheet',
-        subtitle: 'Crack Flutter technical interviews with visual algorithms and Dart code.',
-        description: 'A comprehensive handbook containing 50+ solved Data Structures and Algorithms questions written entirely in Dart and tailored specifically for Flutter/Dart developer interviews. Covers lists, maps, trees, graphs, dynamic programming, and custom state controllers.',
-        coverImage: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400',
-        category: 'Coding',
-        course: 'BTech',
-        semester: '7th',
-        branch: 'Computer Science',
-        university: 'KTU',
-        language: 'English',
-        tags: ['Flutter', 'DSA', 'Interview', 'Dart'],
-        authorName: 'Rohan Sharma',
-        publisher: 'Self-Published',
-        edition: '2nd Edition',
-        isbn: '978-3-16-148410-0',
-        pages: 120,
-        fileType: 'Notes',
-        pdfUrl: 'mock_flutter_dsa_handbook.pdf',
-        thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=100',
-        previewPagesCount: 5,
-        sellingPrice: 150.0,
-        license: 'Standard Commercial License',
-        copyrightDeclaration: true,
-        isOfficial: false,
-        requiredVipLevel: 0,
-        sellerId: 'seller_rohan',
-        sellerName: 'Rohan Sharma',
-        sellerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-        rating: 4.8,
-        reviewsCount: 34,
-        viewsCount: 1420,
-        downloadsCount: 180,
-        purchasesCount: 88,
-        createdAt: DateTime.now().subtract(const Duration(days: 30)),
-        isFeatured: true,
-        status: 'Approved',
-      ),
-      StudyVaultItem(
-        id: 'book_upsc_history_notes',
-        title: 'Modern Indian History Visualized',
-        subtitle: 'Handwritten timeline notes for UPSC CSE Prelims & Mains.',
-        description: 'Complete Modern Indian History timeline simplified into diagrams, mind maps, and bullet points. Made by a verified UPSC mentor, this document has helped 500+ candidates clear historical MCQ sections with ease.',
-        coverImage: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=400',
-        category: 'UPSC',
-        course: 'Civil Services',
-        semester: 'N/A',
-        branch: 'General Studies',
-        university: 'N/A',
-        language: 'Hindi / English',
-        tags: ['UPSC', 'History', 'GS1', 'Handwritten'],
-        authorName: 'IAS Guru Priya',
-        publisher: 'Chanakya Academy',
-        edition: '2026 Edition',
-        pages: 250,
-        fileType: 'Notes',
-        pdfUrl: 'mock_upsc_history_notes.pdf',
-        thumbnail: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=100',
-        previewPagesCount: 10,
-        sellingPrice: 250.0,
-        license: 'Educational Use Only',
-        copyrightDeclaration: true,
-        isOfficial: false,
-        requiredVipLevel: 0,
-        sellerId: 'seller_priya',
-        sellerName: 'Priya Mehta',
-        sellerAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-        rating: 4.9,
-        reviewsCount: 112,
-        viewsCount: 4500,
-        downloadsCount: 820,
-        purchasesCount: 420,
-        createdAt: DateTime.now().subtract(const Duration(days: 45)),
-        isFeatured: true,
-        status: 'Approved',
-      ),
-      StudyVaultItem(
-        id: 'book_btech_project_guide',
-        title: 'AI Smart Mirror Project Manual',
-        subtitle: 'Complete BTech Capstone Project documentation, code, & hardware list.',
-        description: 'Looking for a final year BTech project? This guide includes complete Raspberry Pi code, hardware assembly guide, wood working diagrams, UI design using Flutter web, and a 80-page formal seminar report ready to submit.',
-        coverImage: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=400',
-        category: 'Projects',
-        course: 'BTech',
-        semester: '8th',
-        branch: 'ECE / CSE',
-        university: 'VTU',
-        language: 'English',
-        tags: ['Project', 'Raspberry Pi', 'Smart Mirror', 'Capstone'],
-        authorName: 'Innovator Arjun',
-        publisher: 'Arjun Labs',
-        edition: 'v1.4',
-        pages: 90,
-        fileType: 'Projects',
-        pdfUrl: 'mock_smart_mirror_btech.pdf',
-        thumbnail: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=100',
-        previewPagesCount: 3,
-        sellingPrice: 499.0,
-        license: 'Developer Commons License',
-        copyrightDeclaration: true,
-        isOfficial: false,
-        requiredVipLevel: 0,
-        sellerId: 'seller_arjun',
-        sellerName: 'Arjun Singh',
-        sellerAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-        rating: 4.6,
-        reviewsCount: 15,
-        viewsCount: 850,
-        downloadsCount: 45,
-        purchasesCount: 22,
-        createdAt: DateTime.now().subtract(const Duration(days: 10)),
-        isFeatured: false,
-        status: 'Approved',
-      ),
-
-      // User Uploaded - Free
-      StudyVaultItem(
-        id: 'book_engineering_physics_lab',
-        title: 'First Year Physics Lab Manual Solved',
-        subtitle: 'Fully written lab record with graphs, calculations, and viva questions.',
-        description: 'Complete solved record book for Engineering Physics Practical Lab. Includes Torsional Pendulum, Spectrometer, Laser divergence, Solar cell characteristics, and Newton Rings. Zero errors, checked by college professor.',
-        coverImage: 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=400',
-        category: 'Engineering',
-        course: 'BTech / Diploma',
-        semester: '1st & 2nd',
-        branch: 'All Branches',
-        university: 'Mumbai University',
-        language: 'English',
-        tags: ['Physics', 'Lab Record', 'Viva', 'Practical'],
-        authorName: 'Kavya Nair',
-        publisher: 'MU Student Union',
-        edition: '2025 Edition',
-        pages: 45,
-        fileType: 'Lab Manuals',
-        pdfUrl: 'mock_physics_lab_solved.pdf',
-        thumbnail: 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=100',
-        previewPagesCount: 5,
-        sellingPrice: 0.0, // Free resource
-        license: 'Open Source',
-        copyrightDeclaration: true,
-        isOfficial: false,
-        requiredVipLevel: 0,
-        sellerId: 'seller_kavya',
-        sellerName: 'Kavya Nair',
-        sellerAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
-        rating: 4.7,
-        reviewsCount: 48,
-        viewsCount: 3200,
-        downloadsCount: 1100,
-        purchasesCount: 0,
-        createdAt: DateTime.now().subtract(const Duration(days: 60)),
-        isFeatured: false,
-        status: 'Approved',
-      ),
-
-      // Official AgoraX - VIP Locked
-      StudyVaultItem(
-        id: 'official_ai_summary',
-        title: 'Deep Learning Mastery Guide',
-        subtitle: 'Comprehensive lecture series, mathematical proofs, and notebook snippets.',
-        description: 'Official AgoraX Educational Resource. Covers backpropagation math, transformer architectures, CNN filter designs, and reinforcement learning. Curated by DeepMind researchers and IIT professors.',
-        coverImage: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=400',
-        category: 'AI',
-        course: 'MTech / Research',
-        semester: 'N/A',
-        branch: 'AI & Data Science',
-        university: 'AgoraX Academy',
-        language: 'English',
-        tags: ['AI', 'Deep Learning', 'Transformers', 'Math'],
-        authorName: 'AgoraX Board',
-        publisher: 'AgoraX Press',
-        edition: '1st Edition',
-        pages: 320,
-        fileType: 'Books',
-        pdfUrl: 'official_deep_learning_mastery.pdf',
-        thumbnail: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=100',
-        previewPagesCount: 15,
-        sellingPrice: 0.0, // Membership unlock only
-        license: 'AgoraX Enterprise License',
-        copyrightDeclaration: true,
-        isOfficial: true,
-        requiredVipLevel: 5, // VIP 5 ONLY
-        sellerId: 'admin_agorax',
-        sellerName: 'AgoraX Official',
-        sellerAvatar: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150',
-        rating: 5.0,
-        reviewsCount: 180,
-        viewsCount: 9200,
-        downloadsCount: 2300,
-        purchasesCount: 0,
-        createdAt: DateTime.now().subtract(const Duration(days: 90)),
-        isFeatured: true,
-        status: 'Approved',
-      ),
-      StudyVaultItem(
-        id: 'official_gate_cse',
-        title: 'GATE CSE Master Class Notes',
-        subtitle: 'Official theory handbooks for GATE aspirants (CS & IT).',
-        description: 'Official AgoraX study vaults for GATE Exam preparation. Contains core theory for Operating Systems, DBMS, Theory of Computation, Compiler Design, and Discrete Mathematics, with short tricks and formulas.',
-        coverImage: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400',
-        category: 'GATE',
-        course: 'GATE Prep',
-        semester: 'N/A',
-        branch: 'Computer Science',
-        university: 'AgoraX Prep',
-        language: 'English',
-        tags: ['GATE', 'CSE', 'DBMS', 'OS'],
-        authorName: 'AgoraX Exam Board',
-        publisher: 'AgoraX Press',
-        edition: '2026 Revision',
-        pages: 410,
-        fileType: 'Question Banks',
-        pdfUrl: 'official_gate_cse_notes.pdf',
-        thumbnail: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=100',
-        previewPagesCount: 20,
-        sellingPrice: 0.0,
-        license: 'AgoraX Student License',
-        copyrightDeclaration: true,
-        isOfficial: true,
-        requiredVipLevel: 3, // VIP 3 or above
-        sellerId: 'admin_agorax',
-        sellerName: 'AgoraX Official',
-        sellerAvatar: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150',
-        rating: 4.8,
-        reviewsCount: 92,
-        viewsCount: 4120,
-        downloadsCount: 980,
-        purchasesCount: 0,
-        createdAt: DateTime.now().subtract(const Duration(days: 80)),
-        isFeatured: true,
-        status: 'Approved',
-      ),
-      StudyVaultItem(
-        id: 'official_python_kids',
-        title: 'Python Coding for Beginners',
-        subtitle: 'Visual interactive workbook for school students and coding newbies.',
-        description: 'Interactive introduction to Python programming. Ideal for K-12 students. Includes animations prompts, puzzle sheets, and mini game templates.',
-        coverImage: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=400',
-        category: 'Programming',
-        course: 'School Coding',
-        semester: 'Grade 6-10',
-        branch: 'Coding',
-        university: 'AgoraX Kids',
-        language: 'English',
-        tags: ['Python', 'Beginners', 'Kids', 'Coding'],
-        authorName: 'AgoraX Kids Team',
-        publisher: 'AgoraX Press',
-        edition: 'v2.0',
-        pages: 110,
-        fileType: 'Books',
-        pdfUrl: 'official_python_kids.pdf',
-        thumbnail: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=100',
-        previewPagesCount: 15,
-        sellingPrice: 0.0,
-        license: 'AgoraX Free Educational License',
-        copyrightDeclaration: true,
-        isOfficial: true,
-        requiredVipLevel: 1, // VIP 1 or above
-        sellerId: 'admin_agorax',
-        sellerName: 'AgoraX Official',
-        sellerAvatar: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150',
-        rating: 4.9,
-        reviewsCount: 220,
-        viewsCount: 11500,
-        downloadsCount: 5200,
-        purchasesCount: 0,
-        createdAt: DateTime.now().subtract(const Duration(days: 120)),
-        isFeatured: false,
-        status: 'Approved',
-      ),
-
-      // Pending Approvals for Simulation
-      StudyVaultItem(
-        id: 'pending_notes_web3',
-        title: 'Solidity Smart Contracts Security Audit Notes',
-        subtitle: 'Handwritten notes on flash loan attacks and reentrancy exploits.',
-        description: 'Advanced Ethereum contract security guidelines. Contains real code snippets from famous exploits (DAO, Euler Finance) and remediation techniques.',
-        coverImage: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400',
-        category: 'Cyber Security',
-        course: 'Security Auditor',
-        semester: 'N/A',
-        branch: 'Blockchain',
-        university: 'Open Web',
-        language: 'English',
-        tags: ['Web3', 'Blockchain', 'Solidity', 'Security'],
-        authorName: 'Web3 Guru Dev',
-        publisher: 'DeFi Labs',
-        edition: 'v1.0',
-        pages: 68,
-        fileType: 'Notes',
-        pdfUrl: 'pending_web3_security.pdf',
-        thumbnail: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=100',
-        previewPagesCount: 3,
-        sellingPrice: 320.0,
-        license: 'Commercial',
-        copyrightDeclaration: true,
-        isOfficial: false,
-        requiredVipLevel: 0,
-        sellerId: 'me', // Current user uploaded!
-        sellerName: 'Anurag Kumar',
-        sellerAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
-        rating: 0.0,
-        reviewsCount: 0,
-        viewsCount: 0,
-        downloadsCount: 0,
-        purchasesCount: 0,
-        createdAt: DateTime.now().subtract(const Duration(hours: 4)),
-        isFeatured: false,
-        status: 'Pending',
-      ),
-    ]);
-
-    // Seed mock reviews
-    reviews.assignAll([
-      StudyReview(
-        id: 'rev1',
-        bookId: 'book_notes_flutter_dsa',
-        userName: 'Aman Verma',
-        userAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150',
-        rating: 5,
-        reviewText: 'Perfect handbook for interviews! The algorithmic explanations are extremely intuitive and having Dart code makes practicing directly in Flutter super easy. Highly recommended.',
-        helpfulCount: 14,
-        createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      ),
-      StudyReview(
-        id: 'rev2',
-        bookId: 'book_notes_flutter_dsa',
-        userName: 'Kirti Sen',
-        userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-        rating: 4,
-        reviewText: 'Excellent mind maps and clean code. Only minor issue is a few typos in chapter 4 but the algorithms are solid.',
-        helpfulCount: 3,
-        createdAt: DateTime.now().subtract(const Duration(days: 5)),
-      ),
-    ]);
-
-    // Seed default piracy reports
-    piracyReports.assignAll([
-      {
-        'id': 'rep_001',
-        'bookTitle': 'Modern Indian History Visualized',
-        'reporter': 'Chanakya Academy Rep',
-        'reason': 'Copyright Infringement - Uses our copyrighted notes diagrams directly.',
-        'dateTime': DateTime.now().subtract(const Duration(days: 2)).toString(),
-        'status': 'Open',
-      }
-    ]);
-
-    // Seed Seller Wallet
-    sellerWallet.value = VaultWallet(
-      currentBalance: 15450.0,
-      pendingBalance: 1200.0,
-      withdrawableBalance: 14250.0,
-      totalEarnings: 35800.0,
-      totalSales: 245,
-      refunds: 320.0,
-    );
-
-    // Seed Seller Transactions
-    sellerTransactions.assignAll([
-      VaultTransaction(
-        id: 'TXN-9021',
-        bookId: 'book_notes_flutter_dsa',
-        bookTitle: 'Flutter DSA Cheatsheet',
-        type: 'Sale',
-        amount: 94.5, // Base 150 * 0.63
-        status: 'Completed',
-        dateTime: DateTime.now().subtract(const Duration(hours: 3)),
-        details: 'Gold Coins purchase by @user_xyz',
-      ),
-      VaultTransaction(
-        id: 'TXN-8812',
-        bookId: 'N/A',
-        bookTitle: 'Withdrawal to UPI (anurag@upi)',
-        type: 'Withdrawal',
-        amount: 5000.0,
-        status: 'Completed',
-        dateTime: DateTime.now().subtract(const Duration(days: 4)),
-        details: 'Transferred to bank account',
-      ),
-      VaultTransaction(
-        id: 'TXN-7734',
-        bookId: 'book_btech_project_guide',
-        bookTitle: 'AI Smart Mirror Project Manual',
-        type: 'Sale',
-        amount: 314.37, // Base 499 * 0.63
-        status: 'Completed',
-        dateTime: DateTime.now().subtract(const Duration(days: 8)),
-        details: 'Purchase by @student_dev',
-      ),
-    ]);
+    // Left empty for production backend loads
   }
 
   // ── Pricing Engine Calculations ──
@@ -711,7 +388,7 @@ class StudyVaultController extends GetxController {
       final client = Supabase.instance.client;
       if (client.auth.currentUser != null) {
         client.from('wallet_transactions').insert({
-          'wallet_id': client.auth.currentUser!.id,
+          'wallet_id': UserProfileCacheManager.currentUserId,
           'amount': payout,
           'currency': 'INR',
           'type': 'Payout',
@@ -782,7 +459,7 @@ class StudyVaultController extends GetxController {
       final client = Supabase.instance.client;
       if (client.auth.currentUser != null) {
         await client.from('wallet_transactions').insert({
-          'wallet_id': client.auth.currentUser!.id,
+          'wallet_id': UserProfileCacheManager.currentUserId,
           'amount': goldCoinsPrice.toDouble(),
           'currency': 'Coins',
           'type': 'Payout',
@@ -792,7 +469,7 @@ class StudyVaultController extends GetxController {
         });
 
         await client.from('purchase_history').insert({
-          'user_id': client.auth.currentUser!.id,
+          'user_id': UserProfileCacheManager.currentUserId,
           'item_id': book.id,
           'item_type': 'Book',
           'price': goldCoinsPrice.toDouble(),
@@ -843,7 +520,7 @@ class StudyVaultController extends GetxController {
   }
 
   // ── Seller Upload system ──
-  void uploadBook({
+  Future<void> uploadBook({
     required String title,
     required String subtitle,
     required String description,
@@ -864,51 +541,65 @@ class StudyVaultController extends GetxController {
     required int previewPages,
     required String pdfName,
     required String coverUrl,
-  }) {
-    final newBook = StudyVaultItem(
-      id: 'book_user_${Random().nextInt(90000) + 10000}',
-      title: title,
-      subtitle: subtitle,
-      description: description,
-      coverImage: coverUrl,
-      category: category,
-      course: course,
-      semester: semester,
-      branch: branch,
-      university: university,
-      language: language,
-      tags: tags,
-      authorName: authorName,
-      publisher: publisher,
-      edition: edition,
-      isbn: isbn,
-      pages: pages,
-      fileType: fileType,
-      pdfUrl: pdfName,
-      thumbnail: coverUrl,
-      previewPagesCount: previewPages,
-      sellingPrice: basePrice,
-      license: 'Standard Digital License',
-      copyrightDeclaration: true,
-      isOfficial: false,
-      requiredVipLevel: 0,
-      sellerId: 'me', // Current user
-      sellerName: 'Anurag Kumar',
-      sellerAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
-      rating: 0.0,
-      reviewsCount: 0,
-      createdAt: DateTime.now(),
-      status: 'Pending', // Requires Admin approval
-    );
+  }) async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) {
+      Get.snackbar('Upload Failed ⚠️', 'User is not logged in.');
+      return;
+    }
 
-    items.add(newBook);
-    Get.snackbar(
-      'Upload Submitted! 📚',
-      'Your book has been sent to Admin queue for review.',
-      backgroundColor: Colors.amber.withOpacity(0.9),
-      colorText: Colors.black,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    final newBookMap = {
+      'title': title,
+      'subtitle': subtitle,
+      'description': description,
+      'cover_image': coverUrl,
+      'category': category,
+      'course': course,
+      'semester': semester,
+      'branch': branch,
+      'university': university,
+      'language': language,
+      'tags': tags,
+      'author_name': authorName,
+      'publisher': publisher,
+      'edition': edition,
+      'isbn': isbn,
+      'pages': pages,
+      'file_type': fileType,
+      'pdf_url': pdfName,
+      'thumbnail': coverUrl,
+      'preview_pages_count': previewPages,
+      'selling_price': basePrice,
+      'license': 'Standard Digital License',
+      'copyright_declaration': true,
+      'is_official': false,
+      'required_vip_level': 0,
+      'seller_id': UserProfileCacheManager.currentUserId,
+      'seller_name': 'Me',
+      'seller_avatar': '',
+      'status': 'Pending',
+    };
+
+    try {
+      final inserted = await Supabase.instance.client
+          .from('study_vault_items')
+          .insert(newBookMap)
+          .select()
+          .single();
+
+      final newBook = _itemFromMap(inserted);
+      items.add(newBook);
+      
+      Get.snackbar(
+        'Upload Submitted! 📚',
+        'Your book has been sent to Admin queue for review.',
+        backgroundColor: Colors.amber.withOpacity(0.9),
+        colorText: Colors.black,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar('Upload Failed ⚠️', 'Error uploading: $e');
+    }
   }
 
   // ── Wallet / Withdrawal Flow ──
@@ -990,14 +681,14 @@ class StudyVaultController extends GetxController {
       description: description,
       coverImage: coverUrl,
       category: category,
-      course: 'AgoraX Official Academy',
+      course: 'Creania Official Academy',
       semester: 'N/A',
       branch: 'All Sciences',
-      university: 'AgoraX Board',
+      university: 'Creania Board',
       language: 'English',
       tags: [category, 'Official', 'Membership'],
-      authorName: 'AgoraX Authors',
-      publisher: 'AgoraX Press',
+      authorName: 'Creania Authors',
+      publisher: 'Creania Press',
       edition: '1st Edition',
       pages: pages,
       fileType: 'Books',
@@ -1005,12 +696,12 @@ class StudyVaultController extends GetxController {
       thumbnail: coverUrl,
       previewPagesCount: 10,
       sellingPrice: 0.0,
-      license: 'AgoraX Enterprise License',
+      license: 'Creania Enterprise License',
       copyrightDeclaration: true,
       isOfficial: true,
       requiredVipLevel: vipLevel,
-      sellerId: 'admin_agorax',
-      sellerName: 'AgoraX Official',
+      sellerId: 'admin_creania',
+      sellerName: 'Creania Official',
       sellerAvatar: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150',
       rating: 5.0,
       createdAt: DateTime.now(),

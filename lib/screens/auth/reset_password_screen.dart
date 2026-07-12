@@ -4,7 +4,8 @@ import '../../core/theme.dart';
 import 'login_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({Key? key}) : super(key: key);
+  final String emailOrPhone;
+  const ResetPasswordScreen({Key? key, required this.emailOrPhone}) : super(key: key);
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();

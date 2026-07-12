@@ -1,4 +1,4 @@
-// app.js - AgoraX Admin Portal Operations & Charts Binding
+// app.js - Creania Admin Portal Operations & Charts Binding
 
 document.addEventListener("DOMContentLoaded", () => {
     initTabs();
@@ -263,14 +263,14 @@ function initSettings() {
         const url = document.getElementById("supabase-url").value;
         const key = document.getElementById("supabase-key").value;
         
-        localStorage.setItem("agorax_supabase_url", url);
-        localStorage.setItem("agorax_supabase_key", key);
+        localStorage.setItem("creania_supabase_url", url);
+        localStorage.setItem("creania_supabase_key", key);
 
         alert("Backend settings saved. Direct RLS data channels connected!");
     });
 
-    const url = localStorage.getItem("agorax_supabase_url");
-    const key = localStorage.getItem("agorax_supabase_key");
+    const url = localStorage.getItem("creania_supabase_url");
+    const key = localStorage.getItem("creania_supabase_key");
     if (url) document.getElementById("supabase-url").value = url;
     if (key) document.getElementById("supabase-key").value = key;
 }

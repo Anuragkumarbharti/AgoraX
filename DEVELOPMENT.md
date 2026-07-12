@@ -1,8 +1,8 @@
-# AgoraX Development Guide
+# Creania Development Guide
 
 ## 🏗️ Project Architecture
 
-AgoraX follows a **Clean Architecture** pattern with clear separation of concerns:
+Creania follows a **Clean Architecture** pattern with clear separation of concerns:
 
 ```
 Presentation Layer (UI)
@@ -353,7 +353,7 @@ flutter build appbundle --release
 ### Environment Variables
 Create `.env` file:
 ```
-API_BASE_URL=https://api.agorax.com
+API_BASE_URL=https://api.creania.com
 ZEGOCLOUD_APP_ID=1604838463
 ZEGOCLOUD_APP_SIGN=49d9be471e524acf50081fec3680d19df0fe4c1a532953d08a3cd6fac1a19fe3
 ```

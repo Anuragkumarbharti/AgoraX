@@ -482,7 +482,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'AgoraX Anti-Piracy Active: This document features non-removable invisible buyer watermarks. Distribution is legally tracked.',
+              'Creania Anti-Piracy Active: This document features non-removable invisible buyer watermarks. Distribution is legally tracked.',
               style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, height: 1.4),
             ),
           )

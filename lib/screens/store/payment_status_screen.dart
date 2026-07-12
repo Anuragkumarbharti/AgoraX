@@ -114,7 +114,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
                     const SizedBox(height: 10),
                     Text(
                       widget.isSuccess
-                          ? 'Thank you for upgrading! Your premium credentials are now active on your Agorax profile.'
+                          ? 'Thank you for upgrading! Your premium credentials are now active on your Creania profile.'
                           : widget.errorMessage ?? 'Something went wrong while communicating with Razorpay security channels. No coins were deducted.',
                       style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12),
                       textAlign: TextAlign.center,
