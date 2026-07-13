@@ -1676,12 +1676,10 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             // 2. Main Content area (with static headers/seats and scrollable chat)
             Positioned.fill(
               top: 55,
-              bottom: 120, // Leave space for bottom control bar
+              bottom: 76, // Leave space for bottom control bar
               child: Column(
                 children: [
-                  _buildRoomLevelAndXpProgress(),
-                  
-                   // Task Badges and Program Info Row
+                  // Task Badges and Program Info Row
                   _buildTaskBadgesAndProgramInfo(),
                   
                   const SizedBox(height: 16),
@@ -1984,21 +1982,24 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         ),
       );
 
-      final avatarWidget = isOccupied
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(innerAvatarSize / 2),
-              child: SizedBox(
-                width: innerAvatarSize,
-                height: innerAvatarSize,
+      final seatAndAvatarStack = GestureDetector(
+        onTap: () {
+          _handleSeatClick(
+            index,
+            isOccupied ? ZegoUIKitUser(id: userId!, name: userName) : null,
+          );
+        },
+        child: isOccupied
+            ? CustomAvatarFrame(
+                userId: userId!,
+                username: userName,
+                size: size,
+                vipLevel: vipLevel,
+                novelLevel: nobleLevel,
+                level: userLevel,
+                isSpeaking: isSpeaking && micStatus != 'muted',
                 child: avatarUrl != null && avatarUrl.isNotEmpty
-                    ? Image.network(
-                        avatarUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey.shade900,
-                          child: const Icon(Icons.person, color: Colors.white24, size: 16),
-                        ),
-                      )
+                    ? Image.network(avatarUrl, fit: BoxFit.cover)
                     : Container(
                         color: AppTheme.primaryColor.withOpacity(0.2),
                         child: Center(
@@ -2012,56 +2013,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                           ),
                         ),
                       ),
-              ),
-            )
-          : const SizedBox.shrink();
-
-      final frameWidget = IgnorePointer(
-        child: isOccupied
-            ? SeatVoiceEffect(
-                userId: userId!,
-                size: size,
-                frameColor: frameColor,
-                isMuted: micStatus == 'muted',
               )
-            : Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white10,
-                    width: 1.5,
-                  ),
-                ),
-              ),
-      );
-
-      final seatAndAvatarStack = GestureDetector(
-        onTap: () {
-          _handleSeatClick(
-            index,
-            isOccupied ? ZegoUIKitUser(id: userId!, name: userName) : null,
-          );
-        },
-        child: Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            seatBackground,
-            avatarWidget,
-            frameWidget,
-            if (isOccupied)
-              Positioned(
-                right: -10,
-                top: 12,
-                child: VoiceWaveformWidget(
-                  userId: userId!,
-                  isMuted: micStatus == 'muted',
-                ),
-              ),
-          ],
-        ),
+            : seatBackground,
       );
 
       return Column(
@@ -3064,49 +3017,64 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ],
           ),
           // Capsule 3: Program info with red edit circle
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F203C).withOpacity(0.6),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10, width: 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF3B30), // Red edit button
-                    shape: BoxShape.circle,
+          GestureDetector(
+            onTap: () {
+              final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+              if (room == null) return;
+              final callerRole = _controller.getUserRole(room, widget.userId);
+              final callerWeight = _controller.getRoleWeight(callerRole);
+              if (callerWeight >= 7) {
+                Get.dialog(RoomSettingsDialog(roomId: widget.roomId, room: room));
+              } else {
+                Get.snackbar('Permission Denied',
+                    'Only moderators and above can edit the arena.',
+                    snackPosition: SnackPosition.BOTTOM);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F203C).withOpacity(0.6),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white10, width: 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF3B30), // Red edit button
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.edit, color: Colors.white, size: 10),
                   ),
-                  child: const Icon(Icons.edit, color: Colors.white, size: 10),
-                ),
-                const SizedBox(width: 6),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Program',
-                      style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'granmmer_yet_go...',
-                      style: GoogleFonts.poppins(
-                          color: Colors.white38,
-                          fontSize: 7.5,
-                          fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right_rounded,
-                    color: Colors.white38, size: 14),
-              ],
+                  const SizedBox(width: 6),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Program',
+                        style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'granmmer_yet_go...',
+                        style: GoogleFonts.poppins(
+                            color: Colors.white38,
+                            fontSize: 7.5,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right_rounded,
+                      color: Colors.white38, size: 14),
+                ],
+              ),
             ),
           ),
         ],
@@ -3226,201 +3194,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Room Info Bar ──────────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
-              border: Border(
-                top: BorderSide(color: Colors.white.withOpacity(0.08)),
-                bottom: BorderSide(color: Colors.white.withOpacity(0.05)),
-              ),
-            ),
-            child: Row(
-              children: [
-                // Room DP (tappable, opens settings for moderators+)
-                Obx(() {
-                  final roomList = _controller.rooms;
-                  final roomAvatar = roomList.any((r) => r.id == widget.roomId)
-                      ? (roomList
-                              .firstWhere((r) => r.id == widget.roomId)
-                              .avatar ??
-                          '')
-                      : '';
-                  return GestureDetector(
-                    onTap: () {
-                      final room = _controller.rooms
-                          .firstWhere((r) => r.id == widget.roomId);
-                      final callerRole =
-                          _controller.getUserRole(room, widget.userId);
-                      final callerWeight =
-                          _controller.getRoleWeight(callerRole);
-                      if (callerWeight >= 7) {
-                        Get.dialog(RoomSettingsDialog(
-                            roomId: widget.roomId, room: room));
-                      } else {
-                        Get.snackbar('Permission Denied',
-                            'Only moderators and above can edit the arena.',
-                            snackPosition: SnackPosition.BOTTOM);
-                      }
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: roomAvatar.isNotEmpty
-                          ? Image.network(
-                              roomAvatar,
-                              width: 28,
-                              height: 28,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                    color: Colors.pinkAccent.withOpacity(0.3),
-                                    borderRadius: BorderRadius.circular(6)),
-                                child: const Icon(Icons.music_note,
-                                    color: Colors.pinkAccent, size: 16),
-                              ),
-                            )
-                          : Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                  color: Colors.pinkAccent.withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(6)),
-                              child: const Icon(Icons.music_note,
-                                  color: Colors.pinkAccent, size: 16),
-                            ),
-                    ),
-                  );
-                }),
-                const SizedBox(width: 10),
-                // Arena Name + Who Can Join
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.roomName,
-                        style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Obx(() {
-                        final roomList = _controller.rooms;
-                        final whoCanJoin =
-                            roomList.any((r) => r.id == widget.roomId)
-                                ? roomList
-                                    .firstWhere((r) => r.id == widget.roomId)
-                                    .whoCanJoin
-                                : 'Everyone';
-                        return Text(
-                          '👥 $whoCanJoin',
-                          style: GoogleFonts.poppins(
-                              color: Colors.white38, fontSize: 9),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-                // Quick action icons: members, edit room, exit
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        final room = _controller.rooms
-                            .firstWhere((r) => r.id == widget.roomId);
-                        Get.dialog(MemberListDialog(
-                            roomId: widget.roomId, room: room));
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.07),
-                            shape: BoxShape.circle),
-                        child: const Icon(Icons.people_outline,
-                            color: Colors.white70, size: 15),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        final room = _controller.rooms
-                            .firstWhere((r) => r.id == widget.roomId);
-                        final callerRole =
-                            _controller.getUserRole(room, widget.userId);
-                        final callerWeight =
-                            _controller.getRoleWeight(callerRole);
-                        if (callerWeight >= 7) {
-                          Get.dialog(RoomSettingsDialog(
-                              roomId: widget.roomId, room: room));
-                        } else {
-                          Get.snackbar('Permission Denied',
-                              'Only moderators and above can edit the arena.',
-                              snackPosition: SnackPosition.BOTTOM);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.07),
-                            shape: BoxShape.circle),
-                        child: const Icon(Icons.edit_outlined,
-                            color: Colors.white70, size: 15),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Exit room button (red logout icon)
-                    GestureDetector(
-                      onTap: () {
-                        Get.defaultDialog(
-                          backgroundColor: AppTheme.bgLight,
-                          title: 'Exit Arena?',
-                          titleStyle: const TextStyle(
-                              color: Colors.white, fontSize: 16),
-                          middleText:
-                              'Are you sure you want to leave the arena?',
-                          middleTextStyle: const TextStyle(
-                              color: Colors.white70, fontSize: 13),
-                          confirm: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red),
-                            onPressed: () {
-                              Get.back();
-                              _leaveRoom();
-                            },
-                            child: const Text('Exit'),
-                          ),
-                          cancel: TextButton(
-                            onPressed: () => Get.back(),
-                            child: const Text('Stay',
-                                style: TextStyle(color: Colors.white70)),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: Colors.redAccent.withOpacity(0.4),
-                              width: 1),
-                        ),
-                        child: const Icon(Icons.logout_rounded,
-                            color: Colors.redAccent, size: 15),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
 
           // ── Chat Input + Action Buttons Row ───────────────────────────
           Padding(
@@ -3987,6 +3760,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       final roomLevel = liveRoom?.level ?? 1;
       final roomId = liveRoom?.id ?? widget.roomId;
 
+      final String? coverUrl = (liveRoom?.avatar != null && liveRoom!.avatar!.isNotEmpty) ? liveRoom.avatar : liveRoom?.banner;
+
       return Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
         child: Row(
@@ -4028,13 +3803,32 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            roomName,
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                roomName,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (coverUrl != null && coverUrl.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    image: DecorationImage(
+                                      image: NetworkImage(coverUrl),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           Text(
                             'ID: $roomId',
@@ -4072,43 +3866,41 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             // Right: Participant capsule + leave button
             Row(
               children: [
-                // Capsule with user icon and count
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person, color: Colors.white70, size: 12),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${liveRoom?.totalMembers ?? 3}',
-                        style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                GestureDetector(
+                  onTap: () {
+                    if (liveRoom != null) {
+                      Get.dialog(OnlineMembersDialog(roomId: roomId, room: liveRoom));
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.people_alt, color: Colors.white70, size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${liveRoom?.totalMembers ?? 3}',
+                          style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),
                 
-                // Top Bar Minimize Button
+                // Top Bar Dropdown Button for Seat Applications
                 _buildTopBarButton(
                   icon: Icons.keyboard_arrow_down_rounded,
                   onTap: () {
-                    Get.back();
-                    _controller.showPipBubble(
-                      widget.roomId,
-                      widget.roomName,
-                      _controller.rooms
-                              .firstWhereOrNull((r) => r.id == widget.roomId)
-                              ?.avatar ??
-                          '',
-                    );
+                    Get.dialog(SeatApplicationsDialog(roomId: roomId));
                   },
                 ),
                 const SizedBox(width: 6),
@@ -5554,6 +5346,151 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         onMoveToAudience: () => _leaveSeat(seatIndex),
       ),
       barrierColor: Colors.black54,
+    );
+  }
+
+  void _insertMention(String username, String targetUserId) {
+    final currentText = _chatInputController.text;
+    final mentionText = '@${username.replaceAll(' ', '_')} ';
+    
+    if (currentText.contains(mentionText.trim())) {
+      final index = currentText.indexOf(mentionText.trim());
+      _chatInputController.selection = TextSelection(
+        baseOffset: index,
+        extentOffset: index + mentionText.trim().length,
+      );
+      return;
+    }
+
+    final newText = currentText.isNotEmpty
+        ? (currentText.endsWith(' ') ? '$currentText$mentionText' : '$currentText $mentionText')
+        : mentionText;
+
+    _chatInputController.text = newText;
+    final mentionStart = newText.length - mentionText.length;
+    final mentionEnd = newText.length - 1; // before the trailing space
+    
+    _chatInputController.selection = TextSelection(
+      baseOffset: mentionStart,
+      extentOffset: mentionEnd,
+    );
+  }
+
+  void _showMemberContextMenu(String targetUserId, String targetUserName, String targetRole, int seatIndex) {
+    final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
+    final myRole = _controller.getUserRole(room, widget.userId);
+    final myWeight = _controller.getRoleWeight(myRole);
+    final isFollowing = _followedUsers.contains(targetUserId);
+
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: AppTheme.bgLight,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          border: Border.all(color: Colors.white10),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Actions for $targetUserName',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.alternate_email_rounded, color: Colors.amberAccent),
+              title: const Text('Mention', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _insertMention(targetUserName, targetUserId);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_outline_rounded, color: Colors.cyanAccent),
+              title: const Text('View Profile', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _showMiniProfileDialog(targetUserId, targetUserName, targetRole, seatIndex);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.card_giftcard_rounded, color: Colors.pinkAccent),
+              title: const Text('Send Gift', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                final occupiedSeats = _seats.where((s) => s['userId'] != null).length;
+                Get.dialog(SendGiftDialog(
+                  roomId: widget.roomId,
+                  occupiedSeatsCount: occupiedSeats,
+                  targetUserId: targetUserId,
+                  targetUserName: targetUserName,
+                ));
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                isFollowing ? Icons.person_remove_rounded : Icons.person_add_rounded,
+                color: Colors.greenAccent,
+              ),
+              title: Text(isFollowing ? 'Unfollow' : 'Follow', style: const TextStyle(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                if (isFollowing) {
+                  _followedUsers.remove(targetUserId);
+                  Get.snackbar('Unfollowed', 'You unfollowed $targetUserName.', snackPosition: SnackPosition.BOTTOM);
+                } else {
+                  _followedUsers.add(targetUserId);
+                  Get.snackbar('Followed', 'You followed $targetUserName!', snackPosition: SnackPosition.BOTTOM);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.blueAccent),
+              title: const Text('Send Message', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                final conversation = Conversation(
+                  id: 'room-${widget.roomId}-$targetUserId',
+                  otherUserId: targetUserId,
+                  otherUserName: targetUserName,
+                  otherUserAvatar: '',
+                  lastMessage: '',
+                  lastMessageTime: DateTime.now(),
+                  level: PremiumIdentityController.getIdentity(targetUserId, targetUserName).idLevel,
+                );
+                Get.to(() => ChatScreen(conversation: conversation));
+              },
+            ),
+            if (myWeight >= 7 && seatIndex == -1) // If caller has permission and target is in audience
+              ListTile(
+                leading: const Icon(Icons.airline_seat_recline_normal_rounded, color: Colors.purpleAccent),
+                title: const Text('Invite to Seat', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Get.back();
+                  // Find first empty seat index
+                  final emptyIndex = _seats.indexWhere((s) => s['userId'] == null && s['isLocked'] != true);
+                  if (emptyIndex != -1) {
+                    _controller.joinRoomSeat(widget.roomId, emptyIndex).then((_) {
+                      // Simulating joining by assigning user ID to the seat if owner/moderator invites
+                      _seats[emptyIndex] = {..._seats[emptyIndex], 'userId': targetUserId};
+                    });
+                    Get.snackbar('Invited', 'Sent seat invitation to $targetUserName.', snackPosition: SnackPosition.BOTTOM);
+                  } else {
+                    Get.snackbar('Error', 'No empty seats available.', snackPosition: SnackPosition.BOTTOM);
+                  }
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -8109,46 +8046,52 @@ class SeatVoiceEffect extends StatelessWidget {
         final isSpeaking = volume > 5.0; // Silence threshold
         final factor = (volume / 100.0).clamp(0.0, 1.0);
 
-        return Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            // Glowing ring around the avatar
-            if (isSpeaking)
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 100),
-                width: size + 4.0 + (14.0 * factor),
-                height: size + 4.0 + (14.0 * factor),
+        return SizedBox(
+          width: size,
+          height: size,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // Glowing ring around the avatar
+              if (isSpeaking)
+                Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    width: size + 4.0 + (14.0 * factor),
+                    height: size + 4.0 + (14.0 * factor),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: frameColor.withOpacity(0.15 * (1 - factor)),
+                      border: Border.all(
+                        color: frameColor.withOpacity(0.6 * (1 - factor)),
+                        width: 1.5 + (2.0 * factor),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: frameColor.withOpacity(0.5 + (0.5 * factor)),
+                          blurRadius: 6.0 + (18.0 * factor),
+                          spreadRadius: 1.0 + (5.0 * factor),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Dynamic border ring
+              Container(
+                width: size,
+                height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: frameColor.withOpacity(0.15 * (1 - factor)),
                   border: Border.all(
-                    color: frameColor.withOpacity(0.6 * (1 - factor)),
-                    width: 1.5 + (2.0 * factor),
+                    color: isSpeaking ? frameColor : Colors.white24,
+                    width: isSpeaking ? 2.5 : 1.5,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: frameColor.withOpacity(0.5 + (0.5 * factor)),
-                      blurRadius: 6.0 + (18.0 * factor),
-                      spreadRadius: 1.0 + (5.0 * factor),
-                    )
-                  ],
                 ),
               ),
-
-            // Dynamic border ring
-            Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSpeaking ? frameColor : Colors.white24,
-                  width: isSpeaking ? 2.5 : 1.5,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -8281,6 +8224,14 @@ class OnlineMembersDialog extends StatelessWidget {
                       final member = RoomController.to.activeMembers
                           .firstWhereOrNull((m) => m.userId == u.id);
                       final role = member?.role ?? 'Audience';
+                      final String mappedRole;
+                      if (role == 'Host' || role == 'Founder') {
+                        mappedRole = 'Owner';
+                      } else if (role == 'Co-Host') {
+                        mappedRole = 'Co-host';
+                      } else {
+                        mappedRole = 'Member';
+                      }
 
                       final seatsList =
                           RoomController.to.roomSeatsInfo[roomId] ?? [];
@@ -8409,14 +8360,43 @@ class OnlineMembersDialog extends StatelessWidget {
                                           ),
                                           const SizedBox(width: 4),
                                         ],
-                                        Flexible(
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: mappedRole == 'Owner'
+                                                ? Colors.redAccent.withOpacity(0.15)
+                                                : (mappedRole == 'Co-host'
+                                                    ? Colors.orangeAccent.withOpacity(0.15)
+                                                    : Colors.blueAccent.withOpacity(0.15)),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
                                           child: Text(
-                                            seatText,
-                                            style: GoogleFonts.poppins(
-                                                color: Colors.white30,
-                                                fontSize: 8),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                            mappedRole,
+                                            style: TextStyle(
+                                              color: mappedRole == 'Owner'
+                                                  ? Colors.redAccent
+                                                  : (mappedRole == 'Co-host'
+                                                      ? Colors.orangeAccent
+                                                      : Colors.blueAccent),
+                                              fontSize: 7,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF00FF66).withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: const Text(
+                                            'Online',
+                                            style: TextStyle(
+                                              color: Color(0xFF00FF66),
+                                              fontSize: 7,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -8469,6 +8449,243 @@ class OnlineMembersDialog extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class SeatApplicationsDialog extends StatefulWidget {
+  final String roomId;
+  const SeatApplicationsDialog({required this.roomId, Key? key}) : super(key: key);
+
+  @override
+  State<SeatApplicationsDialog> createState() => _SeatApplicationsDialogState();
+}
+
+class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
+  final SupabaseClient _supabase = Supabase.instance.client;
+  bool _isChecking = true;
+  bool _hasApplied = false;
+  String _userRole = 'Listener';
+  List<Map<String, dynamic>> _applications = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDetails();
+  }
+
+  Future<void> _fetchDetails() async {
+    setState(() => _isChecking = true);
+    try {
+      final currentUserId = _supabase.auth.currentUser?.id;
+      if (currentUserId == null) return;
+
+      // 1. Get room role
+      final roomRes = await _supabase.from('rooms').select().eq('id', widget.roomId).maybeSingle();
+      if (roomRes != null) {
+        if (roomRes['host_id'] == currentUserId || roomRes['founder_id'] == currentUserId) {
+          _userRole = 'Host';
+        } else {
+          final memberRes = await _supabase
+              .from('room_members')
+              .select()
+              .eq('room_id', widget.roomId)
+              .eq('user_id', currentUserId)
+              .maybeSingle();
+          if (memberRes != null) {
+            _userRole = memberRes['role'] ?? 'Listener';
+          }
+        }
+      }
+
+      // 2. Check if current user has pending application
+      final appRes = await _supabase
+          .from('room_seat_applications')
+          .select()
+          .eq('room_id', widget.roomId)
+          .eq('applicant_id', currentUserId)
+          .eq('status', 'pending')
+          .maybeSingle();
+      _hasApplied = appRes != null;
+
+      // 3. If Host/Co-Host, load all pending applications
+      if (_userRole == 'Host' || _userRole == 'Co-Host') {
+        final apps = await _supabase
+            .from('room_seat_applications')
+            .select('*, profiles(username, avatar)')
+            .eq('room_id', widget.roomId)
+            .eq('status', 'pending');
+        _applications = List<Map<String, dynamic>>.from(apps);
+      }
+    } catch (e) {
+      debugPrint('Error fetching seat application details: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isChecking = false);
+      }
+    }
+  }
+
+  Future<void> _applyForSeat() async {
+    final currentUserId = _supabase.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
+    try {
+      await _supabase.from('room_seat_applications').upsert({
+        'room_id': widget.roomId,
+        'applicant_id': currentUserId,
+        'status': 'pending',
+      });
+      Get.snackbar('Success', 'Application submitted successfully!');
+      _fetchDetails();
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to apply: $e');
+    }
+  }
+
+  Future<void> _acceptApplication(String id, String applicantId, String applicantName) async {
+    try {
+      // Find first empty seat
+      final emptyIndex = RoomController.to.roomSeatsInfo[widget.roomId]?.indexWhere((s) => s['userId'] == null && s['isLocked'] != true) ?? -1;
+      if (emptyIndex == -1) {
+        Get.snackbar('Error', 'No empty seats available.');
+        return;
+      }
+
+      // 1. Assign applicant to seat via joinRoomSeat
+      await RoomController.to.joinRoomSeat(widget.roomId, emptyIndex);
+      await _supabase.from('room_seat_applications').update({'status': 'accepted'}).eq('id', id);
+
+      Get.snackbar('Accepted', '$applicantName has been assigned to Seat ${emptyIndex + 1}.');
+      _fetchDetails();
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to accept: $e');
+    }
+  }
+
+  Future<void> _rejectApplication(String id) async {
+    try {
+      await _supabase.from('room_seat_applications').delete().eq('id', id);
+      Get.snackbar('Rejected', 'Application rejected.');
+      _fetchDetails();
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to reject: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isManager = _userRole == 'Host' || _userRole == 'Co-Host';
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: Get.width * 0.9,
+        height: 400,
+        decoration: BoxDecoration(
+          color: AppTheme.bgDark.withOpacity(0.96),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white10),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: _isChecking
+            ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppTheme.primaryColor)))
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Seat Applications',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: isManager
+                        ? (_applications.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No pending applications',
+                                  style: GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: _applications.length,
+                                itemBuilder: (context, index) {
+                                  final app = _applications[index];
+                                  final profile = app['profiles'] as Map<String, dynamic>?;
+                                  final name = profile?['username'] ?? 'User';
+                                  final avatarUrl = profile?['avatar'] ?? '';
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.02),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.white.withOpacity(0.04)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 16,
+                                          backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                                          child: avatarUrl.isEmpty ? const Icon(Icons.person, size: 16) : null,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            name,
+                                            style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.check_circle_outline, color: Colors.greenAccent),
+                                          onPressed: () => _acceptApplication(app['id'], app['applicant_id'], name),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
+                                          onPressed: () => _rejectApplication(app['id']),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ))
+                        : Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _hasApplied ? 'Your application is pending' : 'Apply to speak on stage',
+                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _hasApplied ? Colors.grey : AppTheme.primaryColor,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  ),
+                                  onPressed: _hasApplied ? null : _applyForSeat,
+                                  child: Text(_hasApplied ? 'Applied' : 'Apply for Seat'),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => Get.back(),
+                      child: Text('Close', style: GoogleFonts.poppins(color: Colors.white54)),
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
