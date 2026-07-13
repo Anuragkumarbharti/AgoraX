@@ -22,8 +22,6 @@ import '../../services/novel_controller.dart';
 import '../../services/customization_controller.dart';
 import '../../services/study_category_controller.dart';
 import '../../services/career_progression_controller.dart';
-import '../../services/career_daily_controller.dart';
-import '../../services/id_daily_controller.dart';
 import '../../services/premium_identity_controller.dart';
 import '../../services/study_vault_controller.dart';
 import '../../services/user_profile_cache_manager.dart';

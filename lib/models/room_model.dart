@@ -46,6 +46,11 @@ class VoiceRoom {
     this.todayRoomGifts = 0,
     this.totalRoomStars = 0,
     this.todayRoomStars = 0,
+    this.roomCoverUrl,
+    this.updatedBy,
+    this.updatedAt,
+    this.coHostCanEditCover = false,
+    this.adminCanEditCover = false,
     
     // New Roles Hierarchy IDs
     this.founderId = 'uid_anurag_101',
@@ -169,6 +174,11 @@ class VoiceRoom {
       activeMode: json['activeMode'] ?? 'Social',
       pinnedAnnouncement: json['pinnedAnnouncement'] ?? 'Check out the active Poll in the menu!',
       currentDebateRound: json['currentDebateRound'] ?? 1,
+      roomCoverUrl: json['room_cover_url'] ?? json['roomCoverUrl'],
+      updatedBy: json['updated_by'] ?? json['updatedBy'],
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : (json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null),
+      coHostCanEditCover: json['co_host_can_edit_cover'] ?? json['coHostCanEditCover'] ?? false,
+      adminCanEditCover: json['admin_can_edit_cover'] ?? json['adminCanEditCover'] ?? false,
     );
   }
 
@@ -254,6 +264,11 @@ class VoiceRoom {
   final String activeMode;
   final String pinnedAnnouncement;
   final int currentDebateRound;
+  final String? roomCoverUrl;
+  final String? updatedBy;
+  final DateTime? updatedAt;
+  final bool coHostCanEditCover;
+  final bool adminCanEditCover;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -276,6 +291,11 @@ class VoiceRoom {
     'endedAt': endedAt?.toIso8601String(),
     'avatar': avatar,
     'banner': banner,
+    'room_cover_url': roomCoverUrl,
+    'updated_by': updatedBy,
+    'updated_at': updatedAt?.toIso8601String(),
+    'co_host_can_edit_cover': coHostCanEditCover,
+    'admin_can_edit_cover': adminCanEditCover,
     'ownerName': ownerName,
     'category': category,
     'country': country,

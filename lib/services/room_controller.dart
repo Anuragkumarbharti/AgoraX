@@ -180,32 +180,7 @@ class RoomController extends GetxController {
 
   void initializeChatForRoom(String roomId) {
     if (!roomChats.containsKey(roomId)) {
-      roomChats[roomId] = <RoomChatMessage>[
-        RoomChatMessage(
-          senderId: 'system',
-          senderName: 'System',
-          text: 'Welcome to the Room! Please read the rules and stay respectful. 🎉',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-          isSystem: true,
-          messageType: 'system',
-        ),
-        RoomChatMessage(
-          senderId: 'user_co_1',
-          senderName: 'Priya Sharma',
-          senderRole: 'Co-owner',
-          senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-          text: 'Hey everyone! Welcome to Creania. 😊',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 4)),
-        ),
-        RoomChatMessage(
-          senderId: 'user_adm_1',
-          senderName: 'Vikram Aditya',
-          senderRole: 'Admin',
-          senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-          text: 'Glad to be here! Let\'s have a great conversation today.',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 3)),
-        ),
-      ].obs;
+      roomChats[roomId] = <RoomChatMessage>[].obs;
     }
   }
 
@@ -1658,6 +1633,9 @@ class RoomController extends GetxController {
     String? activeMode,
     String? pinnedAnnouncement,
     String? avatar,
+    String? roomCoverUrl,
+    bool? coHostCanEditCover,
+    bool? adminCanEditCover,
   }) {
     final int index = rooms.indexWhere((r) => r.id == roomId);
     if (index != -1) {
@@ -1732,6 +1710,9 @@ class RoomController extends GetxController {
         activeMode: activeMode ?? old.activeMode,
         pinnedAnnouncement: pinnedAnnouncement ?? old.pinnedAnnouncement,
         currentDebateRound: old.currentDebateRound,
+        coHostCanEditCover: coHostCanEditCover ?? old.coHostCanEditCover,
+        adminCanEditCover: adminCanEditCover ?? old.adminCanEditCover,
+        roomCoverUrl: roomCoverUrl ?? old.roomCoverUrl,
       );
 
       if (bulletin != null || pinnedAnnouncement != null) {
@@ -1742,7 +1723,7 @@ class RoomController extends GetxController {
           roomId,
           eventSettings == 'Enabled' ? '🎊 Room event has started.' : '✅ Room event has ended.',
           messageType: 'activity',
-        );
+         );
       }
       
       Supabase.instance.client.from('rooms').update({
@@ -1750,6 +1731,9 @@ class RoomController extends GetxController {
         if (description != null) 'description': description,
         if (avatar != null) 'avatar': avatar,
         if (avatar != null) 'banner': avatar,
+        if (roomCoverUrl != null) 'room_cover_url': roomCoverUrl,
+        if (coHostCanEditCover != null) 'co_host_can_edit_cover': coHostCanEditCover,
+        if (adminCanEditCover != null) 'admin_can_edit_cover': adminCanEditCover,
       }).eq('id', roomId).then((_) {
         debugPrint('Room settings updated in Supabase.');
       }).catchError((err) {
@@ -1763,6 +1747,115 @@ class RoomController extends GetxController {
         backgroundColor: Colors.green.withOpacity(0.8),
         colorText: Colors.white,
       );
+    }
+  }
+
+  Future<String?> uploadRoomCoverPhoto(String roomId, io.File file) async {
+    try {
+      final client = Supabase.instance.client;
+      final fileExtension = file.path.split('.').last;
+      final fileName = '${roomId}_cover_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+      
+      await client.storage.from('avatars').uploadBinary(
+        fileName,
+        await file.readAsBytes(),
+        fileOptions: const FileOptions(upsert: true),
+      );
+
+      final publicUrl = client.storage.from('avatars').getPublicUrl(fileName);
+      
+      await client.from('rooms').update({
+        'avatar': publicUrl,
+        'room_cover_url': publicUrl,
+        'updated_by': currentUserId,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', roomId);
+
+      final idx = rooms.indexWhere((r) => r.id == roomId);
+      if (idx != -1) {
+        final old = rooms[idx];
+        rooms[idx] = VoiceRoom(
+          id: old.id,
+          name: old.name,
+          username: old.username,
+          description: old.description,
+          hostId: old.hostId,
+          communityId: old.communityId,
+          type: old.type,
+          isLive: old.isLive,
+          participantCount: old.participantCount,
+          maxParticipants: old.maxParticipants,
+          speakerIds: old.speakerIds,
+          listenerIds: old.listenerIds,
+          recordingUrl: old.recordingUrl,
+          allowRecording: old.allowRecording,
+          allowScreenShare: old.allowScreenShare,
+          createdAt: old.createdAt,
+          startedAt: old.startedAt,
+          endedAt: old.endedAt,
+          avatar: publicUrl,
+          roomCoverUrl: publicUrl,
+          banner: old.banner,
+          ownerName: old.ownerName,
+          category: old.category,
+          country: old.country,
+          language: old.language,
+          tags: old.tags,
+          rules: old.rules,
+          level: old.level,
+          xp: old.xp,
+          badges: old.badges,
+          totalMembers: old.totalMembers,
+          totalFollowers: old.totalFollowers,
+          totalGiftsReceived: old.totalGiftsReceived,
+          isPermanent: old.isPermanent,
+          entryPermission: old.entryPermission,
+          coOwnerIds: old.coOwnerIds,
+          adminIds: old.adminIds,
+          starMemberIds: old.starMemberIds,
+          extraCoOwnerSlots: old.extraCoOwnerSlots,
+          extraAdminSlots: old.extraAdminSlots,
+          extraStarMemberSlots: old.extraStarMemberSlots,
+          founderId: old.founderId,
+          managerIds: old.managerIds,
+          moderatorIds: old.moderatorIds,
+          hostIds: old.hostIds,
+          mentorIds: old.mentorIds,
+          judgeIds: old.judgeIds,
+          performerIds: old.performerIds,
+          eliteMemberIds: old.eliteMemberIds,
+          vipMemberIds: old.vipMemberIds,
+          memberIds: old.memberIds,
+          visitorIds: old.visitorIds,
+          bulletin: old.bulletin,
+          greetings: old.greetings,
+          roomTheme: old.roomTheme,
+          wordFilter: old.wordFilter,
+          muteAll: old.muteAll,
+          blockList: old.blockList,
+          whoCanJoin: old.whoCanJoin,
+          whoCanSpeak: old.whoCanSpeak,
+          seatPermissions: old.seatPermissions,
+          invitePermissions: old.invitePermissions,
+          giftSettings: old.giftSettings,
+          recommendationSettings: old.recommendationSettings,
+          musicSettings: old.musicSettings,
+          recordingSettings: old.recordingSettings,
+          eventSettings: old.eventSettings,
+          autoModeration: old.autoModeration,
+          activeMode: old.activeMode,
+          pinnedAnnouncement: old.pinnedAnnouncement,
+          currentDebateRound: old.currentDebateRound,
+          coHostCanEditCover: old.coHostCanEditCover,
+          adminCanEditCover: old.adminCanEditCover,
+          updatedBy: currentUserId,
+          updatedAt: DateTime.now(),
+        );
+      }
+      return publicUrl;
+    } catch (e) {
+      debugPrint('Error uploading room cover: $e');
+      rethrow;
     }
   }
 

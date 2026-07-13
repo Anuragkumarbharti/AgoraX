@@ -305,88 +305,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   }
 
   void _initializeSeats() {
-    _seats.assignAll([
-      {
-        'seatIndex': 0,
-        'role': 'Owner',
-        'userId': widget.isHost ? widget.userId : 'user_host_1',
-        'name': widget.isHost ? widget.userName : 'Karan Malhotra',
-        'isSpeaking': widget.isHost,
-        'isLocked': false,
-      },
-      {
-        'seatIndex': 1,
-        'role': 'Co-owner',
-        'userId': 'user_co_1',
-        'name': 'Priya Sharma',
-        'isSpeaking': false,
-        'isLocked': false,
-      },
-      {
-        'seatIndex': 2,
-        'role': 'Admin',
-        'userId': 'user_adm_1',
-        'name': 'Vikram Aditya',
-        'isSpeaking': false,
-        'isLocked': false,
-      },
-      {
-        'seatIndex': 3,
-        'role': 'Star Member',
-        'userId': 'user_star_1',
-        'name': 'Rahul Roy',
-        'isSpeaking': false,
-        'isLocked': false,
-      },
-      {
-        'seatIndex': 4,
-        'role': 'Guest',
-        'userId': null,
-        'name': 'Seat 5',
-        'isSpeaking': false,
-        'isLocked': false,
-      },
-      {
-        'seatIndex': 5,
-        'role': 'Guest',
-        'userId': null,
-        'name': 'Seat 6',
-        'isSpeaking': false,
-        'isLocked': false,
-      },
-      {
-        'seatIndex': 6,
-        'role': 'Guest',
-        'userId': null,
-        'name': 'Seat 7',
-        'isSpeaking': false,
-        'isLocked': false,
-      },
-      {
-        'seatIndex': 7,
-        'role': 'Guest',
-        'userId': null,
-        'name': 'Seat 8',
-        'isSpeaking': false,
-        'isLocked': false,
-      },
-      {
-        'seatIndex': 8,
-        'role': 'Guest',
-        'userId': null,
-        'name': 'Seat 9',
-        'isSpeaking': false,
-        'isLocked': false,
-      },
-      {
-        'seatIndex': 9,
-        'role': 'Guest',
-        'userId': null,
-        'name': 'Seat 10',
-        'isSpeaking': false,
-        'isLocked': false,
-      },
-    ]);
+    _seats.assignAll(List.generate(10, (index) => {
+      'seatIndex': index,
+      'role': index == 0 ? 'Owner' : (index == 1 ? 'Co-owner' : 'Guest'),
+      'userId': (index == 0 && widget.isHost) ? widget.userId : null,
+      'name': (index == 0 && widget.isHost) ? widget.userName : 'Seat ${index + 1}',
+      'isSpeaking': index == 0 && widget.isHost,
+      'isLocked': false,
+    }));
   }
 
   Future<void> _initializeRoom() async {
@@ -1437,24 +1363,20 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                           ],
                         ),
                       ),
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSpeaking ? const Color(0xFF10B981) : roleColor.withOpacity(0.55),
-                          width: 2.0,
-                        ),
-                      ),
-                      child: ClipOval(
-                        child: msg.senderAvatar != null
-                            ? Image.network(
-                                msg.senderAvatar!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _buildDefaultAvatar(msg.senderName, roleColor),
-                              )
-                            : _buildDefaultAvatar(msg.senderName, roleColor),
+                    CustomAvatarFrame(
+                      userId: msg.senderId,
+                      username: msg.senderName,
+                      size: 50,
+                      isSpeaking: isSpeaking,
+                      role: msg.senderRole,
+                      child: CircleAvatar(
+                        radius: 23,
+                        backgroundImage: msg.senderAvatar != null && msg.senderAvatar!.isNotEmpty
+                            ? NetworkImage(msg.senderAvatar!)
+                            : null,
+                        child: msg.senderAvatar == null || msg.senderAvatar!.isEmpty
+                            ? _buildDefaultAvatar(msg.senderName, roleColor)
+                            : null,
                       ),
                     ),
                   ],
@@ -4318,7 +4240,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
                       return GestureDetector(
                         onTap: () {
-                          Get.dialog(MemberListDialog(
+                          Get.dialog(OnlineMembersDialog(
                             roomId: widget.roomId,
                             room: room,
                           ));
@@ -7096,6 +7018,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   late String _whoCanBeSeated;
   late String _avatar;
   bool _elitesPriority = true;
+  late bool _coHostCanEditCover;
+  late bool _adminCanEditCover;
 
   @override
   void initState() {
@@ -7108,6 +7032,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
     _whoCanBeSeated = widget.room.seatPermissions;
     _avatar = widget.room.avatar ??
         'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150';
+    _coHostCanEditCover = widget.room.coHostCanEditCover;
+    _adminCanEditCover = widget.room.adminCanEditCover;
   }
 
   void _saveField(String field, String value) {
@@ -7194,67 +7120,105 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   }
 
   void _showCoverPhotoPicker() {
-    final presets = [
-      'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150', // Classic Mic
-      'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150', // DJ Mixer
-      'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=150', // Concert
-      'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=150', // Neon
-      'https://images.unsplash.com/photo-1516280440614-37939bbacd6a?w=150', // Acoustic
-      'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=150', // Stage Lights
-    ];
-    Get.dialog(
-      Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppTheme.bgLight,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white10),
+    final ImagePicker picker = ImagePicker();
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppTheme.bgDark.withOpacity(0.95),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Choose Cover Photo',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Change Room Cover Photo',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 16),
-              GridView.builder(
-                shrinkWrap: true,
-                itemCount: presets.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemBuilder: (context, idx) {
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _avatar = presets[idx]);
-                      _controller.updateRoomSettings(widget.roomId,
-                          avatar: presets[idx]);
-                      Get.back();
-                      Get.snackbar('Cover Changed',
-                          'Arena cover photo updated successfully.');
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(presets[idx], fit: BoxFit.cover),
-                    ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Colors.white),
+              title: const Text('Take Photo', style: TextStyle(color: Colors.white)),
+              onTap: () async {
+                Get.back();
+                try {
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.camera,
+                    imageQuality: 75,
+                    maxWidth: 1024,
+                    maxHeight: 1024,
                   );
-                },
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                  onPressed: () => Get.back(),
-                  child: const Text('Cancel',
-                      style: TextStyle(color: Colors.white54))),
-            ],
-          ),
+                  if (image != null) {
+                    final uploadedUrl = await _controller.uploadRoomCoverPhoto(
+                      widget.roomId,
+                      io.File(image.path),
+                    );
+                    if (uploadedUrl != null) {
+                      setState(() => _avatar = uploadedUrl);
+                      Get.snackbar('Success', 'Cover photo updated successfully.', snackPosition: SnackPosition.BOTTOM);
+                    }
+                  }
+                } catch (e) {
+                  Get.snackbar('Error', 'Failed to pick image: $e', snackPosition: SnackPosition.BOTTOM);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Colors.white),
+              title: const Text('Choose from Gallery', style: TextStyle(color: Colors.white)),
+              onTap: () async {
+                Get.back();
+                try {
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 75,
+                    maxWidth: 1024,
+                    maxHeight: 1024,
+                  );
+                  if (image != null) {
+                    final uploadedUrl = await _controller.uploadRoomCoverPhoto(
+                      widget.roomId,
+                      io.File(image.path),
+                    );
+                    if (uploadedUrl != null) {
+                      setState(() => _avatar = uploadedUrl);
+                      Get.snackbar('Success', 'Cover photo updated successfully.', snackPosition: SnackPosition.BOTTOM);
+                    }
+                  }
+                } catch (e) {
+                  Get.snackbar('Error', 'Failed to pick image: $e', snackPosition: SnackPosition.BOTTOM);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('Remove Cover', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Get.back();
+                setState(() => _avatar = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150');
+                _controller.updateRoomSettings(
+                  widget.roomId,
+                  avatar: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
+                  roomCoverUrl: '',
+                );
+                Get.snackbar('Success', 'Cover photo removed.', snackPosition: SnackPosition.BOTTOM);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+          ],
         ),
       ),
     );
@@ -7364,7 +7328,28 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       child: Image.network(_avatar,
                           width: 28, height: 28, fit: BoxFit.cover),
                     ),
-                    onTap: _showCoverPhotoPicker,
+                    onTap: () {
+                      final currentUid = Supabase.instance.client.auth.currentUser?.id;
+                      final isHost = widget.room.hostId == currentUid || widget.room.founderId == currentUid;
+                      final isCoHost = widget.room.coOwnerIds.contains(currentUid);
+                      final isAdmin = widget.room.adminIds.contains(currentUid);
+                      
+                      final canEditCover = isHost ||
+                          (isCoHost && widget.room.coHostCanEditCover) ||
+                          (isAdmin && widget.room.adminCanEditCover);
+
+                      if (canEditCover) {
+                        _showCoverPhotoPicker();
+                      } else {
+                        Get.snackbar(
+                          'Permission Denied',
+                          'Only Owner/Host or permitted roles can change the cover.',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.red.withOpacity(0.8),
+                          colorText: Colors.white,
+                        );
+                      }
+                    },
                   ),
                   _buildDivider(),
                   _buildListTile('Background',
@@ -7407,9 +7392,10 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
 
               if (room == null) return const SizedBox.shrink();
 
-              final coOwners = List<String>.from(room.coOwnerIds);
-              final admins = List<String>.from(room.adminIds);
-              final starMembers = List<String>.from(room.starMemberIds);
+              final activeUserIds = _controller.activeMembers.map((m) => m.userId).toSet();
+              final coOwners = List<String>.from(room.coOwnerIds).where((id) => activeUserIds.contains(id)).toList();
+              final admins = List<String>.from(room.adminIds).where((id) => activeUserIds.contains(id)).toList();
+              final starMembers = List<String>.from(room.starMemberIds).where((id) => activeUserIds.contains(id)).toList();
               final ownerId = room.hostId;
 
               return Container(
@@ -7502,6 +7488,40 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       onTap: () => _showBlockListManager(context, liveRoom),
                     );
                   }),
+                  if (widget.room.hostId == Supabase.instance.client.auth.currentUser?.id || widget.room.founderId == Supabase.instance.client.auth.currentUser?.id) ...[
+                    _buildDivider(),
+                    _buildListTile(
+                      'Co-owners can edit cover photo',
+                      trailingWidget: Switch(
+                        value: _coHostCanEditCover,
+                        onChanged: (val) {
+                          setState(() => _coHostCanEditCover = val);
+                          _controller.updateRoomSettings(
+                            widget.roomId,
+                            coHostCanEditCover: val,
+                          );
+                        },
+                        activeColor: AppTheme.primaryColor,
+                      ),
+                      onTap: () {},
+                    ),
+                    _buildDivider(),
+                    _buildListTile(
+                      'Admins can edit cover photo',
+                      trailingWidget: Switch(
+                        value: _adminCanEditCover,
+                        onChanged: (val) {
+                          setState(() => _adminCanEditCover = val);
+                          _controller.updateRoomSettings(
+                            widget.roomId,
+                            adminCanEditCover: val,
+                          );
+                        },
+                        activeColor: AppTheme.primaryColor,
+                      ),
+                      onTap: () {},
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -7640,35 +7660,23 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
 
   String _getRoomUserName(String userId) {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == 'uid_anurag_101' || userId == 'me' || (currentUid != null && userId == currentUid)) {
-      return UserProfileCacheManager.currentUser?.username ?? 'Anurag Kumar Bharti';
+    if (userId == 'me' || (currentUid != null && userId == currentUid)) {
+      return UserProfileCacheManager.currentUser?.username ?? 'Host';
     }
     final cached = UserProfileCacheManager.getCachedUser(userId);
     if (cached != null) return cached.username;
-    if (userId == 'user_co_1') return 'Priya Sharma';
-    if (userId == 'user_adm_1') return 'Vikram Aditya';
-    if (userId == 'user_speaker_2') return 'Mohit Yadav';
-    return 'User ${userId.hashCode.abs() % 90000 + 10000}';
+    return 'User_${userId.substring(0, min(userId.length, 5))}';
   }
 
   String _getRoomUserAvatar(String userId) {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == 'uid_anurag_101' || userId == 'me' || (currentUid != null && userId == currentUid)) {
+    if (userId == 'me' || (currentUid != null && userId == currentUid)) {
       final avatarUrl = UserProfileCacheManager.currentUser?.avatar;
       if (avatarUrl != null && avatarUrl.isNotEmpty) return avatarUrl;
       return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
     }
     final cached = UserProfileCacheManager.getCachedUser(userId);
     if (cached != null && cached.avatar != null && cached.avatar!.isNotEmpty) return cached.avatar!;
-    if (userId == 'user_co_1') {
-      return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100';
-    }
-    if (userId == 'user_adm_1') {
-      return 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100';
-    }
-    if (userId == 'user_speaker_2') {
-      return 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100';
-    }
     return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
   }
 
