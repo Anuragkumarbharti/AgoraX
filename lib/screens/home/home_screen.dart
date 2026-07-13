@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final response = await Supabase.instance.client
           .from('posts')
-          .select('*, profiles(username, avatar_url)')
+          .select('*, profiles!posts_user_id_fkey(username, avatar_url)')
           .order('created_at', ascending: false)
           .limit(20);
 

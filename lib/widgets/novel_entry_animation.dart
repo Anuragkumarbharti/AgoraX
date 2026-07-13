@@ -18,7 +18,6 @@ class EntryParticlePainter extends CustomPainter {
     for (int i = 0; i < 12; i++) {
       final double localProgress = (progress + (i * 0.12)) % 1.0;
       final double x = size.width * localProgress;
-      // Beautiful wavy magic portal particles trail
       final double y = (size.height / 2) + 16 * math.sin(localProgress * 4 * math.pi + i);
       final double radius = 1.0 + 2.5 * (1.0 - localProgress);
       canvas.drawCircle(Offset(x, y), radius, paint);
@@ -31,12 +30,14 @@ class EntryParticlePainter extends CustomPainter {
 
 class NovelEntryAnimation extends StatefulWidget {
   final String username;
+  final String? avatarUrl;
   final int novelLevel;
   final VoidCallback? onFinished;
 
   const NovelEntryAnimation({
     Key? key,
     required this.username,
+    this.avatarUrl,
     required this.novelLevel,
     this.onFinished,
   }) : super(key: key);
@@ -51,13 +52,17 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
   late AnimationController _shineController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  
+  // Staggered Opacities & Scales
+  late Animation<double> _usernameOpacity;
+  late Animation<double> _avatarScale;
 
   @override
   void initState() {
     super.initState();
     
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
 
@@ -71,7 +76,7 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _slideController,
-      curve: Curves.elasticOut,
+      curve: const Interval(0.0, 0.4, curve: Curves.elasticOut),
     ));
 
     _fadeAnimation = Tween<double>(
@@ -79,7 +84,23 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _slideController,
-      curve: Curves.easeIn,
+      curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
+    ));
+
+    _usernameOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: const Interval(0.4, 0.7, curve: Curves.easeIn),
+    ));
+
+    _avatarScale = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: const Interval(0.7, 1.0, curve: Curves.elasticOut),
     ));
 
     // Slide in, pause, then slide out
@@ -103,57 +124,40 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
   }
 
   Color _getNovelAccentColor() {
-    switch (widget.novelLevel) {
-      case 1:
-        return const Color(0xFF2563EB); // Royal Blue
-      case 2:
-        return const Color(0xFF8B5CF6); // Galaxy Purple
-      case 3:
-        return const Color(0xFFFFD700); // Gold Palace
-      case 4:
-        return const Color(0xFFDC2626); // Dragon Red
-      case 5:
-        return const Color(0xFFF97316); // Phoenix Orange
-      case 6:
-        return const Color(0xFF06B6D4); // Celestial Cyan
-      case 7:
-        return const Color(0xFFFFD700); // Immortal Gold/Black
-      default:
-        return Colors.grey;
+    if (widget.novelLevel >= 1 && widget.novelLevel <= 10) {
+      return const Color(0xFFEF4444); // Mystic Ruby Red
+    } else if (widget.novelLevel >= 11 && widget.novelLevel <= 20) {
+      return const Color(0xFF3B82F6); // Sapphire Blue
+    } else if (widget.novelLevel >= 21 && widget.novelLevel <= 30) {
+      return const Color(0xFF10B981); // Emerald Green
+    } else if (widget.novelLevel >= 31 && widget.novelLevel <= 40) {
+      return const Color(0xFFF59E0B); // Amber Bronze
+    } else if (widget.novelLevel >= 41 && widget.novelLevel <= 50) {
+      return const Color(0xFFD946EF); // Fuchsia Amethyst
+    } else if (widget.novelLevel >= 51 && widget.novelLevel <= 70) {
+      return const Color(0xFFF97316); // Sun Flare Orange
+    } else if (widget.novelLevel >= 71 && widget.novelLevel <= 99) {
+      return const Color(0xFF8B5CF6); // Astral Indigo
+    } else if (widget.novelLevel == 100) {
+      return const Color(0xFFFFD700); // Divine Gold
     }
-  }
-
-  String _getNovelTitle() {
-    switch (widget.novelLevel) {
-      case 1: return 'Classic Novel';
-      case 2: return 'Galaxy Novel';
-      case 3: return 'Royal Palace Novel';
-      case 4: return 'Dragon Fire Novel';
-      case 5: return 'Phoenix Flame Novel';
-      case 6: return 'Celestial Diamond Novel';
-      case 7: return 'IMMORTAL NOVEL';
-      default: return 'Novel Member';
-    }
+    return Colors.grey;
   }
 
   String _getJoinMessage() {
-    if (widget.novelLevel == 7) {
-      return 'The Cosmic Legend is here! 👑';
-    } else if (widget.novelLevel >= 5) {
-      return 'Flames of prestige have entered!';
-    } else {
-      return 'Has entered the room.';
-    }
+    if (widget.novelLevel == 100) return 'Ascended to the Room Divinely! ☄️';
+    if (widget.novelLevel >= 71) return 'Materialized into the Room! ✨';
+    if (widget.novelLevel >= 41) return 'Manifested into the Room! 🌟';
+    return 'Has entered the room.';
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.novelLevel < 1 || widget.novelLevel > 7) {
+    if (widget.novelLevel < 1 || widget.novelLevel > 100) {
       return const SizedBox.shrink();
     }
 
     final accentColor = _getNovelAccentColor();
-    final String title = _getNovelTitle();
 
     return SlideTransition(
       position: _slideAnimation,
@@ -161,23 +165,23 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
         opacity: _fadeAnimation,
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 64,
+          height: 60,
           child: Stack(
             children: [
               // 1. Background Card Glassmorphism
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(30),
-                  color: widget.novelLevel == 7 ? const Color(0xFF09090B) : Colors.black.withOpacity(0.85),
+                  color: Colors.black.withOpacity(0.85),
                   border: Border.all(
-                    color: accentColor.withOpacity(0.75),
-                    width: widget.novelLevel >= 6 ? 2.0 : 1.2,
+                    color: accentColor.withOpacity(0.65),
+                    width: widget.novelLevel >= 51 ? 2.0 : 1.3,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: accentColor.withOpacity(0.35),
                       blurRadius: 14,
-                      spreadRadius: 2.5,
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
@@ -202,80 +206,99 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
                       Padding(
                         padding: const EdgeInsets.only(left: 12, right: 24, top: 4, bottom: 4),
                         child: Row(
-                    children: [
-                      // Embellished Avatar Emblem
-                      Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: SweepGradient(
-                            colors: widget.novelLevel == 7
-                                ? const [Color(0xFFFFD700), Color(0xFF1C1917), Color(0xFFFFD700)]
-                                : [accentColor, Colors.black, accentColor],
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '🔮',
-                            style: TextStyle(fontSize: 24),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Text Info
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                NovelBadgeWidget(level: widget.novelLevel, fontSize: 10),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ShaderMask(
-                                    shaderCallback: (bounds) {
-                                      return LinearGradient(
-                                        colors: widget.novelLevel >= 6
-                                            ? const [
-                                                Color(0xFFFFD700),
-                                                Color(0xFFE2E8F0),
-                                                Color(0xFFFFD700),
-                                              ]
-                                            : [Colors.white, accentColor],
-                                      ).createShader(bounds);
-                                    },
-                                    child: Text(
-                                      widget.username,
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w900,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
+                            // Avatar circle or novel badge
+                            ScaleTransition(
+                              scale: _avatarScale,
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: accentColor.withOpacity(0.6), width: 1.5),
+                                  image: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+                                      ? DecorationImage(
+                                          image: NetworkImage(widget.avatarUrl!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
+                                  gradient: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
+                                      ? SweepGradient(
+                                          colors: [
+                                            accentColor,
+                                            Colors.black,
+                                            accentColor,
+                                          ],
+                                        )
+                                      : null,
                                 ),
-                              ],
+                                child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          widget.novelLevel == 100 ? '👑' : '☄️',
+                                          style: const TextStyle(fontSize: 22),
+                                        ),
+                                      )
+                                    : null,
+                              ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _getJoinMessage(),
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w500,
+                            const SizedBox(width: 14),
+
+                            // Text Info
+                            Expanded(
+                              child: FadeTransition(
+                                opacity: _usernameOpacity,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        NovelBadgeWidget(level: widget.novelLevel, fontSize: 10),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: ShaderMask(
+                                            shaderCallback: (bounds) {
+                                              return LinearGradient(
+                                                colors: widget.novelLevel >= 51
+                                                    ? const [
+                                                        Color(0xFFE0F2FE),
+                                                        Color(0xFFC084FC),
+                                                        Color(0xFFF472B6),
+                                                      ]
+                                                    : [Colors.white, accentColor],
+                                              ).createShader(bounds);
+                                            },
+                                            child: Text(
+                                              widget.username,
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _getJoinMessage(),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
                     ],
                   ),
                 ),

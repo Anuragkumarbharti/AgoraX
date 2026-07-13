@@ -931,7 +931,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           mainAxisSpacing: 6,
           children: [
             _buildSourceTile('Gifts Received', '\$480.00', '🎁'),
-            _buildSourceTile('Voice Rooms', '\$320.00', '🎙️'),
+            _buildSourceTile('Voice Arenas', '\$320.00', '🎙️'),
             _buildSourceTile('Events Hosted', '\$150.00', '🎪'),
             _buildSourceTile('Completed Tasks', '\$75.00', '📋'),
             _buildSourceTile('Referrals', '\$115.00', '👥'),
@@ -1263,8 +1263,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             ),
             const Divider(color: Colors.white10),
             _buildFeatureTile(
-              title: 'My Rooms',
-              subtitle: '3 owned active voice rooms',
+              title: 'My Arenas',
+              subtitle: '3 owned active voice arenas',
               trailing: const Text('Configure', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
             const Divider(color: Colors.white10),
@@ -1370,7 +1370,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
         const Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Report Problem',
-          subtitle: 'Submit bug reports & room abuse logs',
+          subtitle: 'Submit bug reports & arena abuse logs',
           onTap: () => _showReportDialog(),
         ),
         const Divider(color: Colors.white10),
@@ -1946,7 +1946,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           children: [
             Text('Active Task Center', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
-            _buildTaskTile('Host a voice room for 30 mins', '+200 XP • +50 Gold', true),
+            _buildTaskTile('Host a voice arena for 30 mins', '+200 XP • +50 Gold', true),
             _buildTaskTile('Comment on 5 trending posts', '+100 XP • +10 Gold', false),
             _buildTaskTile('Send a gift to any co-host speaker', '+150 XP • +30 Gold', true),
             const SizedBox(height: 16),
@@ -2191,8 +2191,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           children: [
             Text('Sent & Received Gifts', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
-            _buildHistoryItem('Rose Gift 🌹 from sky_limit', '+\$2.50', 'Received in Voice Room #12', 'Success'),
-            _buildHistoryItem('Crown Castle 🏰 to anurag_dev', '-\$15.00', 'Sent in Voice Room #24', 'Success'),
+            _buildHistoryItem('Rose Gift 🌹 from sky_limit', '+\$2.50', 'Received in Voice Arena #12', 'Success'),
+            _buildHistoryItem('Crown Castle 🏰 to anurag_dev', '-\$15.00', 'Sent in Voice Arena #24', 'Success'),
             _buildHistoryItem('Love Balloon 🎈 from user_482', '+\$1.20', 'Received in Private Message', 'Success'),
             const SizedBox(height: 16),
             SizedBox(

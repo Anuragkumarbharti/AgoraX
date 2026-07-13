@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/daily_learning_model.dart';
+
 import '../models/study_category_model.dart';
 import '../models/user_model.dart';
 import '../widgets/level_up_dialog.dart';
@@ -1012,5 +1012,81 @@ class StudyCategoryController extends GetxController {
       final storeCtrl = Get.find<StoreController>();
       storeCtrl.silverCoinsBalance.value += coinReward;
     }
+  }
+}
+
+class MCQQuestion {
+  final String questionText;
+  final List<String> options;
+  final int correctAnswerIndex;
+  final String explanation;
+
+  MCQQuestion({
+    required this.questionText,
+    required this.options,
+    required this.correctAnswerIndex,
+    required this.explanation,
+  });
+
+  Map<String, dynamic> toJson() => {};
+  
+  factory MCQQuestion.fromJson(dynamic val) {
+    return MCQQuestion(questionText: '', options: [], correctAnswerIndex: 0, explanation: '');
+  }
+}
+
+class DailyLearningDay {
+  final int dayNumber;
+  final String youtubeUrl;
+  final String videoTitle;
+  final int videoDurationSeconds;
+  final List<MCQQuestion> questions;
+  final int xpReward;
+  final int coinReward;
+  final String difficultyLevel;
+  final DateTime publishDate;
+
+  DailyLearningDay({
+    required this.dayNumber,
+    required this.youtubeUrl,
+    required this.videoTitle,
+    required this.videoDurationSeconds,
+    required this.questions,
+    required this.xpReward,
+    required this.coinReward,
+    required this.difficultyLevel,
+    required this.publishDate,
+  });
+
+  Map<String, dynamic> toJson() => {};
+  
+  factory DailyLearningDay.fromJson(dynamic val) {
+    return DailyLearningDay(
+      dayNumber: 1,
+      youtubeUrl: '',
+      videoTitle: '',
+      videoDurationSeconds: 300,
+      questions: [],
+      xpReward: 50,
+      coinReward: 10,
+      difficultyLevel: 'Medium',
+      publishDate: DateTime.now(),
+    );
+  }
+}
+
+class CategoryLearningPack {
+  final String categoryId;
+  final List<DailyLearningDay> days;
+
+  CategoryLearningPack({
+    required this.categoryId,
+    required this.days,
+  });
+
+  Map<String, dynamic> toJson() => {};
+  
+  factory CategoryLearningPack.fromJson(dynamic val) {
+    return CategoryLearningPack(categoryId: '', days: []);
   }
 }

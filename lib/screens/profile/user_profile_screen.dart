@@ -141,7 +141,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     try {
       final response = await Supabase.instance.client
           .from('posts')
-          .select('*, profiles(username, avatar_url)')
+          .select('*, profiles!posts_user_id_fkey(username, avatar_url)')
           .eq('user_id', widget.user.id)
           .order('created_at', ascending: false);
 

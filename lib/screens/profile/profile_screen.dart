@@ -1716,12 +1716,11 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _buildDailyTaskCard() {
     final idCtrl = Get.find<IdDailyController>();
-    return Obx(() {
-      final completedCount = idCtrl.completedTasksCount;
-      final totalCount = idCtrl.totalTasksCount;
-      final progressVal = totalCount > 0 ? completedCount / totalCount : 0.0;
+    final completedCount = idCtrl.completedTasksCount;
+    final totalCount = idCtrl.totalTasksCount;
+    final progressVal = totalCount > 0 ? completedCount / totalCount : 0.0;
 
-      return Container(
+    return Container(
         margin: const EdgeInsets.only(top: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
@@ -1826,17 +1825,15 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ),
       );
-    });
   }
 
   Widget _buildCareerTaskCard() {
     final careerCtrl = Get.find<CareerDailyController>();
-    return Obx(() {
-      final completedCount = careerCtrl.completedTasksCount;
-      final totalCount = careerCtrl.totalTasksCount;
-      final progressVal = totalCount > 0 ? completedCount / totalCount : 0.0;
+    final completedCount = careerCtrl.completedTasksCount;
+    final totalCount = careerCtrl.totalTasksCount;
+    final progressVal = totalCount > 0 ? completedCount / totalCount : 0.0;
 
-      return Container(
+    return Container(
         margin: const EdgeInsets.only(top: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
@@ -1941,7 +1938,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ),
       );
-    });
   }
 
   Widget _buildVipManagementCard() {

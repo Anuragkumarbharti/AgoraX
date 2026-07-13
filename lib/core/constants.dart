@@ -1,7 +1,6 @@
 // ZEGOCLOUD Configuration
 class ZegoCloudConfig {
-  static const String appID = '1604838463';
-  static const String appSign = '49d9be471e524acf50081fec3680d19df0fe4c1a532953d08a3cd6fac1a19fe3';
+  static const String appID = '393055653';
 }
 
 // API Configuration

@@ -58,6 +58,8 @@ class MiniProfileWidget extends StatefulWidget {
 class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   late bool _isFollowing;
 
+  User get _user => UserProfileCacheManager.rxCache[widget.user.id] ?? widget.user;
+
   @override
   void initState() {
     super.initState();
@@ -66,86 +68,92 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
 
   void _navigateToProfile() {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    final isMe = widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid);
+    final isMe = _user.id == 'me' || _user.id == 'uid_anurag_101' || (currentUid != null && _user.id == currentUid);
     if (isMe) {
       Get.to(() => const ProfileScreen());
     } else {
-      Get.to(() => UserProfileScreen(user: widget.user));
+      Get.to(() => UserProfileScreen(user: _user));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap ?? _navigateToProfile,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.02),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.05),
-            width: 1,
+    return Obx(() {
+      // Trigger reactivity on changes to this user in the cache
+      final u = UserProfileCacheManager.rxCache[widget.user.id] ?? widget.user;
+
+      return GestureDetector(
+        onTap: widget.onTap ?? _navigateToProfile,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.02),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.05),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              // DP with avatar border and online status
+              _buildAvatar(),
+              const SizedBox(width: 12),
+
+              // Middle Section: Name, Verified, Tags
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildNameRow(),
+                    const SizedBox(height: 2),
+                    _buildStatsRow(),
+                    const SizedBox(height: 4),
+                    _buildTagRow(),
+                  ],
+                ),
+              ),
+
+              // Right Action / Info Section based on variant
+              _buildRightAction(),
+            ],
           ),
         ),
-        child: Row(
-          children: [
-            // DP with avatar border and online status
-            _buildAvatar(),
-            const SizedBox(width: 12),
-
-            // Middle Section: Name, Verified, Tags
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildNameRow(),
-                  const SizedBox(height: 2),
-                  _buildStatsRow(),
-                  const SizedBox(height: 4),
-                  _buildTagRow(),
-                ],
-              ),
-            ),
-
-            // Right Action / Info Section based on variant
-            _buildRightAction(),
-          ],
-        ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildAvatar() {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    final isMe = widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid) || widget.user.username == 'Anurag Kumar' || widget.user.displayName == 'Anurag Kumar';
+    final u = _user;
+    final isMe = u.id == 'me' || u.id == 'uid_anurag_101' || (currentUid != null && u.id == currentUid) || u.username == 'Anurag Kumar' || u.displayName == 'Anurag Kumar';
 
     int novelLevel = 0;
     int activeNovel = 0;
     int vipLevel = 0;
 
     if (!isMe) {
-      if (widget.user.isPremium) {
-        if (widget.user.reputation > 6000) {
+      if (u.isPremium) {
+        if (u.reputation > 6000) {
           novelLevel = 7;
           activeNovel = 7;
-        } else if (widget.user.reputation > 4000) {
+        } else if (u.reputation > 4000) {
           novelLevel = 5;
           activeNovel = 5;
-        } else if (widget.user.reputation > 2500) {
+        } else if (u.reputation > 2500) {
           novelLevel = 3;
           activeNovel = 3;
-        } else if (widget.user.reputation > 1500) {
+        } else if (u.reputation > 1500) {
           novelLevel = 1;
           activeNovel = 1;
         }
 
-        if (widget.user.reputation > 5000) {
+        if (u.reputation > 5000) {
           vipLevel = 7;
-        } else if (widget.user.reputation > 3000) {
+        } else if (u.reputation > 3000) {
           vipLevel = 5;
-        } else if (widget.user.reputation > 1000) {
+        } else if (u.reputation > 1000) {
           vipLevel = 3;
         } else {
           vipLevel = 2;
@@ -153,56 +161,54 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
       }
     }
 
-    return Obx(() {
-      final custCtrl = Get.find<CustomizationController>();
-      final avatarUrl = isMe 
-          ? custCtrl.getAvatarUrl(custCtrl.activeAvatar.value, widget.user.avatar ?? '')
-          : (widget.user.avatar ?? '');
+    final custCtrl = Get.find<CustomizationController>();
+    final avatarUrl = isMe 
+        ? custCtrl.getAvatarUrl(custCtrl.activeAvatar.value, u.avatar ?? '')
+        : (u.avatar ?? '');
 
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          CustomAvatarFrame(
-            userId: widget.user.id,
-            username: widget.user.username,
-            size: 44,
-            defaultNovelLevel: activeNovel,
-            defaultVipLevel: vipLevel,
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: avatarUrl.isNotEmpty
-                  ? (avatarUrl.startsWith('http')
-                      ? CachedNetworkImage(
-                          imageUrl: avatarUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(color: AppTheme.bgLight),
-                          errorWidget: (context, url, error) => _buildInitials(),
-                        )
-                      : Image.file(
-                          File(avatarUrl),
-                          fit: BoxFit.cover,
-                        ))
-                  : _buildInitials(),
-            ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        CustomAvatarFrame(
+          userId: u.id,
+          username: u.username,
+          size: 44,
+          defaultNovelLevel: activeNovel,
+          defaultVipLevel: vipLevel,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: avatarUrl.isNotEmpty
+                ? (avatarUrl.startsWith('http')
+                    ? CachedNetworkImage(
+                        imageUrl: avatarUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(color: AppTheme.bgLight),
+                        errorWidget: (context, url, error) => _buildInitials(),
+                      )
+                    : Image.file(
+                        File(avatarUrl),
+                        fit: BoxFit.cover,
+                      ))
+                : _buildInitials(),
           ),
-          if (widget.isOnline)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 11,
-                height: 11,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF22C55E),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF0F172A), width: 1.8),
-                ),
+        ),
+        if (widget.isOnline)
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              width: 11,
+              height: 11,
+              decoration: BoxDecoration(
+                color: const Color(0xFF22C55E),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF0F172A), width: 1.8),
               ),
             ),
-        ],
-      );
-    });
+          ),
+      ],
+    );
   }
 
   Widget _buildInitials() {
@@ -210,7 +216,7 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
       color: AppTheme.primaryColor.withOpacity(0.2),
       child: Center(
         child: Text(
-          widget.user.displayName.substring(0, 1).toUpperCase(),
+          _user.displayName.substring(0, 1).toUpperCase(),
           style: GoogleFonts.poppins(
             color: AppTheme.primaryColor,
             fontWeight: FontWeight.bold,
@@ -342,23 +348,24 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   Widget _buildNameRow() {
     int novelLevel = 0;
     int activeNovel = 0;
+    final u = _user;
 
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    if (widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid)) {
+    if (u.id == 'me' || u.id == 'uid_anurag_101' || (currentUid != null && u.id == currentUid)) {
       final novelCtrl = Get.find<NovelController>();
       novelLevel = novelCtrl.novelLevel.value;
       activeNovel = novelCtrl.activeNovelStyle.value;
-    } else if (widget.user.isPremium) {
-      if (widget.user.reputation > 6000) {
+    } else if (u.isPremium) {
+      if (u.reputation > 6000) {
         novelLevel = 7;
         activeNovel = 7;
-      } else if (widget.user.reputation > 4000) {
+      } else if (u.reputation > 4000) {
         novelLevel = 5;
         activeNovel = 5;
-      } else if (widget.user.reputation > 2500) {
+      } else if (u.reputation > 2500) {
         novelLevel = 3;
         activeNovel = 3;
-      } else if (widget.user.reputation > 1500) {
+      } else if (u.reputation > 1500) {
         novelLevel = 1;
         activeNovel = 1;
       }
@@ -367,15 +374,15 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     int vipLevel = 0;
     if (novelLevel <= 0) {
       final currentUid = Supabase.instance.client.auth.currentUser?.id;
-      if (widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid)) {
+      if (u.id == 'me' || u.id == 'uid_anurag_101' || (currentUid != null && u.id == currentUid)) {
         final vipCtrl = Get.find<VipController>();
         vipLevel = vipCtrl.vipLevel.value;
-      } else if (widget.user.isPremium) {
-        if (widget.user.reputation > 5000) {
+      } else if (u.isPremium) {
+        if (u.reputation > 5000) {
           vipLevel = 7;
-        } else if (widget.user.reputation > 3000) {
+        } else if (u.reputation > 3000) {
           vipLevel = 5;
-        } else if (widget.user.reputation > 1000) {
+        } else if (u.reputation > 1000) {
           vipLevel = 3;
         } else {
           vipLevel = 2;
@@ -388,8 +395,8 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
       children: [
         Flexible(
           child: PremiumNameWidget(
-            name: widget.user.displayName,
-            userId: widget.user.id,
+            name: u.displayName,
+            userId: u.id,
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -399,9 +406,9 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
         ),
         const SizedBox(width: 4),
         Text(
-          widget.user.id.hashCode % 2 == 0 ? '♂' : '♀',
+          u.id.hashCode % 2 == 0 ? '♂' : '♀',
           style: TextStyle(
-            color: widget.user.id.hashCode % 2 == 0 ? const Color(0xFF38BDF8) : const Color(0xFFF43F5E),
+            color: u.id.hashCode % 2 == 0 ? const Color(0xFF38BDF8) : const Color(0xFFF43F5E),
             fontSize: 11,
             fontWeight: FontWeight.bold,
           ),
@@ -411,7 +418,7 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   }
 
   Widget _buildTagRow() {
-    final identity = PremiumIdentityController.getIdentity(widget.user.id, widget.user.displayName);
+    final identity = PremiumIdentityController.getIdentity(_user.id, _user.displayName);
     return _buildBadgesRowForVariant(identity);
   }
 

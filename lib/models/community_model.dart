@@ -54,6 +54,7 @@ class Community {
   Community({
     required this.id,
     required this.name,
+    String? username,
     required this.description,
     this.image,
     this.banner,
@@ -73,12 +74,15 @@ class Community {
     this.isLogoUnlocked = true,
     this.tasks = const [],
     this.rules = 'Be respectful. No spamming or self-promotion.',
-  });
+  }) : username = username ?? ('@' + id.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), ''));
 
   factory Community.fromJson(Map<String, dynamic> json) {
     return Community(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
+      username: (json['username'] ?? 'cm_' + (json['id'] ?? '').toString().replaceAll('CRN-CM-', '').toLowerCase()).toString().startsWith('@')
+          ? (json['username'] ?? 'cm_' + (json['id'] ?? '').toString().replaceAll('CRN-CM-', '').toLowerCase()).toString()
+          : '@${json['username'] ?? 'cm_' + (json['id'] ?? '').toString().replaceAll('CRN-CM-', '').toLowerCase()}',
       description: json['description'] ?? '',
       image: json['image'],
       banner: json['banner'],
@@ -88,9 +92,9 @@ class Community {
       coOwnerIds: List<String>.from(json['coOwnerIds'] ?? []),
       admins: List<String>.from(json['admins'] ?? []),
       members: List<String>.from(json['members'] ?? []),
-      memberCount: json['memberCount'] ?? 0,
-      isVerified: json['isVerified'] ?? false,
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      memberCount: json['memberCount'] ?? json['member_count'] ?? 0,
+      isVerified: json['isVerified'] ?? json['is_verified'] ?? false,
+      createdAt: DateTime.parse(json['createdAt'] ?? json['created_at'] ?? DateTime.now().toIso8601String()),
       level: json['level'] ?? 1,
       xp: json['xp'] ?? 0,
       creationType: json['creationType'] ?? 'coins',
@@ -102,6 +106,7 @@ class Community {
   }
   final String id;
   final String name;
+  final String username;
   final String description;
   final String? image;
   final String? banner;
@@ -114,6 +119,7 @@ class Community {
   final int memberCount;
   final bool isVerified;
   final DateTime createdAt;
+  bool get isPrivate => type == 'private';
   
   // Starmaker/Role attributes
   final int level;
@@ -126,6 +132,7 @@ class Community {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'username': username.startsWith('@') ? username.substring(1) : username,
         'name': name,
         'description': description,
         'image': image,
@@ -150,6 +157,7 @@ class Community {
 
   Community copyWith({
     String? name,
+    String? username,
     String? description,
     String? image,
     String? banner,
@@ -172,6 +180,7 @@ class Community {
     return Community(
       id: id,
       name: name ?? this.name,
+      username: username ?? this.username,
       description: description ?? this.description,
       image: image ?? this.image,
       banner: banner ?? this.banner,

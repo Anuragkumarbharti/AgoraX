@@ -37,8 +37,8 @@ class CareerProgressionController extends GetxController {
   final Rxn<DateTime> rollbackExpiryDate = Rxn<DateTime>();
 
   // Dynamic daily task lists
-  final RxList<TaskProgress> careerTasks = <TaskProgress>[].obs;
-  final RxList<TaskProgress> idTasks = <TaskProgress>[].obs;
+  final RxList<dynamic> careerTasks = <dynamic>[].obs;
+  final RxList<dynamic> idTasks = <dynamic>[].obs;
   final RxBool isLoadingTasks = false.obs;
 
   // Rollback Backup Data
@@ -291,95 +291,43 @@ class CareerProgressionController extends GetxController {
   }
 
   Future<void> fetchAndRotateTasks() async {
-    try {
-      isLoadingTasks.value = true;
-      final response = await Supabase.instance.client.rpc(
-        'rotate_daily_tasks',
-        params: {'p_user_id': currentUserId},
-      );
-
-      if (response != null) {
-        final List<dynamic> list = response as List<dynamic>;
-        final allTasks = list.map((item) => TaskProgress.fromJson(item as Map<String, dynamic>)).toList();
-
-        careerTasks.assignAll(allTasks.where((t) => t.taskType == 'career').toList());
-        idTasks.assignAll(allTasks.where((t) => t.taskType == 'id').toList());
-      }
-    } catch (e) {
-      debugPrint('Error rotating/fetching tasks: $e');
-    } finally {
-      isLoadingTasks.value = false;
-    }
+    // Daily tasks removed
   }
 
   Future<void> claimTaskReward(String progressId) async {
-    try {
-      final res = await Supabase.instance.client.rpc(
-        'claim_task_reward',
-        params: {'p_progress_id': progressId},
-      );
-
-      if (res != null) {
-        final data = Map<String, dynamic>.from(res);
-        final xpEarned = data['xp_earned'] ?? 0;
-        final coinsEarned = data['coins_earned'] ?? 0;
-        final newXp = data['new_xp'] ?? 0;
-        final newLevel = data['new_level'] ?? 1;
-        final newCoins = data['new_coins'] ?? 0;
-
-        // Find progress record and mark it claimed locally
-        int idx = careerTasks.indexWhere((t) => t.id == progressId);
-        if (idx != -1) {
-          careerTasks[idx] = careerTasks[idx].copyWith(claimed: true);
-          careerTasks.refresh();
-          careerXp.value = newXp;
-          careerLevel.value = newLevel;
-        } else {
-          idx = idTasks.indexWhere((t) => t.id == progressId);
-          if (idx != -1) {
-            idTasks[idx] = idTasks[idx].copyWith(claimed: true);
-            idTasks.refresh();
-            idXp.value = newXp;
-            idLevel.value = newLevel;
-          }
-        }
-
-        // Update local wallet balance
-        final storeCtrl = Get.find<StoreController>();
-        storeCtrl.coinsBalance.value = newCoins.toInt();
-
-        // Invalidate profile cache
-        UserProfileCacheManager.invalidateCache(currentUserId);
-
-        Get.snackbar(
-          'Reward Claimed! 🎉',
-          'Earned $xpEarned XP & $coinsEarned Silver Coins.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFF10B981),
-          colorText: Colors.white,
-        );
-      }
-    } catch (e) {
-      Get.snackbar('Claim Failed ⚠️', 'Error claiming reward: $e');
-    }
+    // Daily tasks removed
   }
 
   Future<bool> incrementGlobalTaskProgress(String taskCode, {int amount = 1}) async {
-    try {
-      final bool success = await Supabase.instance.client.rpc(
-        'increment_task_progress',
-        params: {
-          'p_task_code': taskCode,
-          'p_amount': amount,
-        },
-      );
-      if (success) {
-        await fetchAndRotateTasks();
-        return true;
-      }
-    } catch (e) {
-      debugPrint('Error incrementing task progress: $e');
-    }
+    // Daily tasks removed
     return false;
   }
+}
+
+class IdDailyController extends GetxController {
+  final RxInt idLevel = 1.obs;
+  final RxInt idXp = 0.obs;
+  final RxInt idStreak = 0.obs;
+  final RxList<dynamic> tasks = <dynamic>[].obs;
+  final RxBool isLoading = false.obs;
+  
+  double getLevelProgress() => 0.0;
+  int get completedTasksCount => 0;
+  int get totalTasksCount => 0;
+  
+  Future<void> fetchAndRotateIdTasks() async {}
+}
+
+class CareerDailyController extends GetxController {
+  final RxInt careerLevel = 1.obs;
+  final RxInt careerXp = 0.obs;
+  final RxInt careerStreak = 0.obs;
+  final RxList<dynamic> tasks = <dynamic>[].obs;
+  final RxBool isLoading = false.obs;
+  
+  double getLevelProgress() => 0.0;
+  int get completedTasksCount => 0;
+  int get totalTasksCount => 0;
+  
+  Future<void> fetchAndRotateCareerTasks() async {}
 }

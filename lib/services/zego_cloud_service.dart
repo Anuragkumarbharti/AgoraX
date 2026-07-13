@@ -1,5 +1,5 @@
 import 'package:zego_uikit/zego_uikit.dart';
-import '../core/constants.dart';
+import 'zego_config.dart';
 
 class ZegoCloudService {
   static final ZegoCloudService _instance = ZegoCloudService._internal();
@@ -10,14 +10,14 @@ class ZegoCloudService {
 
   ZegoCloudService._internal();
 
-  /// Initialize ZEGOCLOUD
+  /// Initialize ZEGOCLOUD with empty appSign (for Token Authentication)
   Future<void> init() async {
     try {
       await ZegoUIKit.instance.init(
-        appID: int.parse(ZegoCloudConfig.appID),
-        appSign: ZegoCloudConfig.appSign,
+        appID: ZegoConfig.appId,
+        appSign: '', // Set empty to use token authentication in production
       );
-      print('✅ ZEGOCLOUD initialized successfully');
+      print('✅ ZEGOCLOUD initialized successfully (Token Mode)');
     } catch (e) {
       print('❌ ZEGOCLOUD initialization error: $e');
       rethrow;
@@ -34,20 +34,31 @@ class ZegoCloudService {
     }
   }
 
-  /// Join a room
+  /// Join a room with token
   Future<void> joinRoom({
     required String roomId,
     required bool enableMic,
     required bool enableCamera,
+    required String token,
   }) async {
     try {
-      await ZegoUIKit.instance.joinRoom(roomId);
+      await ZegoUIKit.instance.joinRoom(roomId, token: token);
       ZegoUIKit.instance.turnMicrophoneOn(enableMic);
       ZegoUIKit.instance.turnCameraOn(enableCamera);
-      print('✅ Joined room: $roomId');
+      print('✅ Joined room: $roomId with token');
     } catch (e) {
       print('❌ Error joining room: $e');
       rethrow;
+    }
+  }
+
+  /// Renew token in active room
+  Future<void> renewToken(String token) async {
+    try {
+      await ZegoUIKit.instance.renewRoomToken(token);
+      print('✅ ZEGOCLOUD token renewed successfully');
+    } catch (e) {
+      print('❌ Error renewing ZEGOCLOUD token: $e');
     }
   }
 

@@ -30,12 +30,14 @@ class EntryParticlePainter extends CustomPainter {
 
 class VipEntryAnimation extends StatefulWidget {
   final String username;
+  final String? avatarUrl;
   final int vipLevel;
   final VoidCallback? onFinished;
 
   const VipEntryAnimation({
     Key? key,
     required this.username,
+    this.avatarUrl,
     required this.vipLevel,
     this.onFinished,
   }) : super(key: key);
@@ -50,13 +52,17 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
   late AnimationController _shineController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  
+  // Staggered Opacities & Scales
+  late Animation<double> _usernameOpacity;
+  late Animation<double> _avatarScale;
 
   @override
   void initState() {
     super.initState();
     
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1400),
       vsync: this,
     );
 
@@ -70,7 +76,7 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _slideController,
-      curve: Curves.elasticOut,
+      curve: const Interval(0.0, 0.4, curve: Curves.elasticOut),
     ));
 
     _fadeAnimation = Tween<double>(
@@ -78,7 +84,23 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _slideController,
-      curve: Curves.easeIn,
+      curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
+    ));
+
+    _usernameOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: const Interval(0.4, 0.7, curve: Curves.easeIn),
+    ));
+
+    _avatarScale = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: const Interval(0.7, 1.0, curve: Curves.elasticOut),
     ));
 
     // Slide in, pause, then slide out
@@ -177,84 +199,101 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
                       Padding(
                         padding: const EdgeInsets.only(left: 12, right: 24, top: 4, bottom: 4),
                         child: Row(
-                    children: [
-                      // Avatar circle icon or crown emblem
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: SweepGradient(
-                            colors: [
-                              accentColor,
-                              Colors.black,
-                              accentColor,
-                            ],
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '🌟',
-                            style: TextStyle(fontSize: 22),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Text Info
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                VipBadgeWidget(level: widget.vipLevel, fontSize: 10),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ShaderMask(
-                                    shaderCallback: (bounds) {
-                                      return LinearGradient(
-                                        colors: widget.vipLevel >= 6
-                                            ? const [
-                                                Color(0xFFFF007F),
-                                                Color(0xFFFFBF00),
-                                                Color(0xFF00F0FF),
-                                              ]
-                                            : [Colors.white, accentColor],
-                                      ).createShader(bounds);
-                                    },
-                                    child: Text(
-                                      widget.username,
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w900,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
+                            // Avatar Circle
+                            ScaleTransition(
+                              scale: _avatarScale,
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: accentColor.withOpacity(0.6), width: 1.5),
+                                  image: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+                                      ? DecorationImage(
+                                          image: NetworkImage(widget.avatarUrl!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
+                                  gradient: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
+                                      ? SweepGradient(
+                                          colors: [
+                                            accentColor,
+                                            Colors.black,
+                                            accentColor,
+                                          ],
+                                        )
+                                      : null,
                                 ),
-                              ],
+                                child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
+                                    ? const Center(
+                                        child: Text(
+                                          '🌟',
+                                          style: TextStyle(fontSize: 22),
+                                        ),
+                                      )
+                                    : null,
+                              ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              widget.vipLevel == 7
-                                  ? 'Entered the Room Legendarily! 👑'
-                                  : 'Has entered the room.',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w500,
+                            const SizedBox(width: 14),
+
+                            // Text Info (Faded in after slide in)
+                            Expanded(
+                              child: FadeTransition(
+                                opacity: _usernameOpacity,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        VipBadgeWidget(level: widget.vipLevel, fontSize: 10),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: ShaderMask(
+                                            shaderCallback: (bounds) {
+                                              return LinearGradient(
+                                                colors: widget.vipLevel >= 6
+                                                    ? const [
+                                                        Color(0xFFFF007F),
+                                                        Color(0xFFFFBF00),
+                                                        Color(0xFF00F0FF),
+                                                      ]
+                                                    : [Colors.white, accentColor],
+                                              ).createShader(bounds);
+                                            },
+                                            child: Text(
+                                              widget.username,
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      widget.vipLevel == 7
+                                          ? 'Entered the Room Legendarily! 👑'
+                                          : 'Has entered the room.',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
                     ],
                   ),
                 ),

@@ -11,6 +11,7 @@ import 'career_progression_controller.dart';
 
 class UserProfileCacheManager {
   static final Map<String, User> _cache = {};
+  static final RxMap<String, User> rxCache = <String, User>{}.obs;
   static User? _currentUser;
   static final List<VoidCallback> _listeners = [];
   static RealtimeChannel? _realtimeChannel;
@@ -40,6 +41,7 @@ class UserProfileCacheManager {
   static void setCurrentUser(User user) {
     _currentUser = user;
     _cache[user.id] = user;
+    rxCache[user.id] = user;
     _notifyListeners();
   }
 
@@ -86,6 +88,7 @@ class UserProfileCacheManager {
       if (data != null) {
         final userObj = User.fromJson(data);
         _cache[idToQuery] = userObj;
+        rxCache[idToQuery] = userObj;
         if (idToQuery == currentId) {
           _currentUser = userObj;
         }
@@ -118,6 +121,7 @@ class UserProfileCacheManager {
 
   static void invalidateCache(String userId) {
     _cache.remove(userId);
+    rxCache.remove(userId);
     if (userId == currentUserId) {
       _currentUser = null;
     }
@@ -126,6 +130,7 @@ class UserProfileCacheManager {
 
   static void clear() {
     _cache.clear();
+    rxCache.clear();
     _currentUser = null;
     _notifyListeners();
   }
@@ -149,6 +154,7 @@ class UserProfileCacheManager {
                 final userObj = User.fromJson(Map<String, dynamic>.from(newRecord));
                 
                 _cache[userId] = userObj;
+                rxCache[userId] = userObj;
                 if (userId == currentUserId) {
                   _currentUser = userObj;
 

@@ -7,9 +7,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme.dart';
 import '../../models/room_model.dart';
 import '../../services/room_controller.dart';
+import '../../services/user_profile_cache_manager.dart';
 import 'create_room_screen.dart';
 import 'room_profile_screen.dart';
 import 'voice_room_call_screen.dart';
+import '../../widgets/custom_avatar_frame.dart';
+import '../../widgets/premium_name_widget.dart';
+import '../../models/user_model.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({Key? key}) : super(key: key);
@@ -42,6 +46,27 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   String _filterLanguage = 'All';
   String _filterCountry = 'All';
   String _filterRoomType = 'All';
+
+  String _getRoomPrivilege(int level) {
+    if (level >= 10) return 'Diamond Privilege';
+    if (level >= 7) return 'Gold Privilege';
+    if (level >= 4) return 'Silver Privilege';
+    return 'Bronze Privilege';
+  }
+
+  Color _getPrivilegeColor(int level) {
+    if (level >= 10) return const Color(0xFF00E5FF);
+    if (level >= 7) return Colors.amber;
+    if (level >= 4) return const Color(0xFFC0C0C0);
+    return const Color(0xFFCD7F32);
+  }
+
+  String _formatXpValue(int value) {
+    if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(0)}k';
+    }
+    return value.toString();
+  }
   String _sortBy = 'Trending'; // 'Trending' or 'Online Users'
 
   // Constant Categories
@@ -158,33 +183,36 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     // Record visit in recents
     _controller.addRecentRoom(room.id);
 
+    final currentUid = UserProfileCacheManager.currentUserId;
+    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+
     Get.to(
       () => VoiceRoomCallScreen(
         roomId: room.id,
         roomName: room.name,
-        userId: 'uid_anurag_101', // Fixed unique User ID
-        userName: 'anurag_kumar', // Copyable username
-        isHost: room.hostId == 'uid_anurag_101',
+        userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
+        userName: currentUsername != 'Creania Student' ? currentUsername : 'anurag_kumar',
+        isHost: room.hostId == currentUid || room.hostId == 'uid_anurag_101',
       ),
     );
   }
 
   // Check role of current user in a room
   String? _getUserRoleInArena(VoiceRoom room) {
-    const userId = 'uid_anurag_101';
-    if (room.ownerName == 'Anurag Kumar Bharti' || room.ownerName == 'Current User' || room.hostId == userId) {
+    final userId = UserProfileCacheManager.currentUserId;
+    if (room.hostId == userId || room.ownerName == 'Current User' || room.hostId == 'uid_anurag_101') {
       return 'Owner';
     }
-    if (room.coOwnerIds.contains(userId)) {
+    if (room.coOwnerIds.contains(userId) || room.coOwnerIds.contains('uid_anurag_101')) {
       return 'Co-owner';
     }
-    if (room.adminIds.contains(userId)) {
+    if (room.adminIds.contains(userId) || room.adminIds.contains('uid_anurag_101')) {
       return 'Admin';
     }
-    if (room.hostId == userId) {
+    if (room.hostId == userId || room.hostId == 'uid_anurag_101') {
       return 'Host';
     }
-    if (room.starMemberIds.contains(userId)) {
+    if (room.starMemberIds.contains(userId) || room.starMemberIds.contains('uid_anurag_101')) {
       return 'Star Member';
     }
     return null;
@@ -669,6 +697,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         setState(() {
                           _searchQuery = val;
                         });
+                        _controller.searchRooms(val);
                       },
                       decoration: const InputDecoration(
                         hintText: 'Search arenas by ID, name, tag...',
@@ -689,6 +718,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         setState(() {
                           _searchQuery = '';
                         });
+                        _controller.searchRooms('');
                       },
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -786,129 +816,173 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header stats block (Like first reference image: User EXP / Level status)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF6366F1).withOpacity(0.15),
-                    const Color(0xFF8B5CF6).withOpacity(0.05),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            // Header stats block
+            Obx(() {
+              final myUid = UserProfileCacheManager.currentUserId;
+              
+              // Find first room where user is Owner, Co-owner, or Admin
+              final activeRoom = _controller.rooms.firstWhereOrNull((r) {
+                final role = _getUserRoleInArena(r);
+                return role == 'Owner' || role == 'Co-owner' || role == 'Admin';
+              });
+
+              final hasRoom = activeRoom != null;
+              final roomName = hasRoom ? activeRoom.name : 'Create your Arena';
+              final roomAvatar = hasRoom ? activeRoom.avatar : null;
+              final roomId = hasRoom ? 'Arena ID: ${activeRoom.id}' : '';
+
+              final roomProgress = hasRoom ? _controller.roomLevelProgresses[activeRoom.id] : null;
+              final stats = hasRoom ? _controller.roomStats[activeRoom.id] : null;
+
+              final int currentLevel = roomProgress?.currentLevel ?? activeRoom?.level ?? 1;
+              final int currentXp = roomProgress?.currentXp ?? activeRoom?.xp ?? 0;
+              final int xpNeeded = _controller.getXpForNextLevel(currentLevel);
+              final double xpProgress = xpNeeded > 0 ? (currentXp / xpNeeded).clamp(0.0, 1.0) : 0.0;
+              final int todayExtraXp = stats?.todayExtraXpPoints ?? 0;
+              
+              final String privilegeName = _getRoomPrivilege(currentLevel);
+              final Color privilegeColor = _getPrivilegeColor(currentLevel);
+
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF6366F1).withOpacity(0.15),
+                      const Color(0xFF8B5CF6).withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: const Border(
+                    bottom: BorderSide(color: Colors.white10, width: 0.5),
+                  ),
                 ),
-                border: const Border(
-                  bottom: BorderSide(color: Colors.white10, width: 0.5),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      // Simulated user avatar
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.amber, width: 1.5),
-                          image: const DecorationImage(
-                            image: CachedNetworkImageProvider('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'),
-                            fit: BoxFit.cover,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        // Room avatar (shows blank circle or placeholder if no room)
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: hasRoom ? privilegeColor : Colors.white24,
+                              width: 1.5,
+                            ),
+                            image: hasRoom && roomAvatar != null && roomAvatar.isNotEmpty
+                                ? DecorationImage(
+                                    image: NetworkImage(roomAvatar),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                            color: Colors.white.withOpacity(0.05),
                           ),
+                          child: !hasRoom
+                              ? const Center(
+                                  child: Icon(
+                                    Icons.meeting_room_outlined,
+                                    color: Colors.white30,
+                                    size: 20,
+                                  ),
+                                )
+                              : null,
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                roomName,
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              if (hasRoom) ...[
+                                const SizedBox(height: 2),
                                 Text(
-                                  'Anurag Kumar Bharti',
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: Colors.white,
+                                  roomId,
+                                  style: const TextStyle(
+                                    color: AppTheme.textTertiary,
+                                    fontSize: 11,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.verified, color: Colors.blueAccent, size: 14),
+                              ],
+                            ],
+                          ),
+                        ),
+                        // Only show Privilege if hasRoom
+                        if (hasRoom)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: privilegeColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: privilegeColor, width: 0.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  privilegeName,
+                                  style: TextStyle(color: privilegeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 2),
+                                Icon(Icons.arrow_forward_ios, size: 8, color: privilegeColor),
                               ],
                             ),
-                            const Text(
-                              'ID: 2095195',
-                              style: TextStyle(color: AppTheme.textTertiary, fontSize: 11),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.amber, width: 0.5),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Gold Privilege',
-                              style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(width: 2),
-                            const Icon(Icons.arrow_forward_ios, size: 8, color: Colors.amber),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Progress Bar for user EXP
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'LV.5 / Creator EXP',
-                        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                      const Text(
-                        '158k/240k',
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 10),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: const LinearProgressIndicator(
-                      value: 0.65,
-                      minHeight: 5,
-                      backgroundColor: Colors.white10,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                          ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Today\'s EXP: +1,240',
-                        style: TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                    const SizedBox(height: 12),
+                    // Progress Bar for user EXP
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'LV.$currentLevel / Creator EXP',
+                          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${_formatXpValue(currentXp)}/${_formatXpValue(xpNeeded)}',
+                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: xpProgress,
+                        minHeight: 5,
+                        backgroundColor: Colors.white10,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
                       ),
-                      Text(
-                        'Next Reward at LV.6',
-                        style: TextStyle(color: Colors.amber, fontSize: 10),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Today\'s EXP: +$todayExtraXp',
+                          style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                        ),
+                        Text(
+                          'Next Reward at LV.${currentLevel + 1}',
+                          style: TextStyle(color: privilegeColor, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
 
             // Middle: 4 Quick Actions (Room Income, Report, Gifts, Course)
             Padding(
@@ -919,7 +993,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   _buildMyRoomsQuickAction(Icons.account_balance_wallet_rounded, 'Income', Colors.amber),
                   _buildMyRoomsQuickAction(Icons.analytics_rounded, 'Report', Colors.blue),
                   _buildMyRoomsQuickAction(Icons.card_giftcard_rounded, 'Gifts', Colors.pink),
-                  _buildMyRoomsQuickAction(Icons.school_rounded, 'Academy', Colors.teal), // Fixed: Colors.emerald -> Colors.teal
+                  _buildMyRoomsQuickAction(Icons.school_rounded, 'Academy', Colors.teal),
                 ],
               ),
             ),
@@ -932,80 +1006,277 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             // Horizontal sub-tabs for Roles
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Obx(() {
+                final ownerCount = _getMyRoomsByRole('Owner').length;
+                final coOwnerCount = _getMyRoomsByRole('Co-owner').length;
+                final adminCount = _getMyRoomsByRole('Admin').length;
+                final activeCount = _getMyRoomsByRole(_myRoomsActiveRole).length;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Managed Arenas',
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white70),
+                        ),
+                        Text(
+                          '($activeCount Active)',
+                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.white38),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildRoleChip('Owner', ownerCount),
+                          const SizedBox(width: 8),
+                          _buildRoleChip('Co-owner', coOwnerCount),
+                          const SizedBox(width: 8),
+                          _buildRoleChip('Admin', adminCount),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+
+            Obx(() {
+              final myUid = UserProfileCacheManager.currentUserId;
+              final matchingRooms = _getMyRoomsByRole(_myRoomsActiveRole);
+
+              if (matchingRooms.isNotEmpty) {
+                return Column(
+                  children: matchingRooms.map((room) => _buildOwnedRoomCard(room)).toList(),
+                );
+              } else {
+                if (_myRoomsActiveRole == 'Owner') {
+                  return _buildCreateRoomCard();
+                } else {
+                  return Container(
+                    margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.02),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.06)),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'You are not a ${_myRoomsActiveRole.toLowerCase()} in any active arenas.',
+                        style: GoogleFonts.poppins(fontSize: 12, color: Colors.white38),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+              }
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreateRoomCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.03),
+            Colors.white.withOpacity(0.005),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.add_to_photos_rounded, color: AppTheme.primaryColor, size: 24),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Host Your Own Arena',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Host live voice panels, gaming lounges, study circles, and build your community.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: Colors.white38,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => Get.to(() => const CreateRoomScreen()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: Text(
+              'Create Arena',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 12.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOwnedRoomCard(VoiceRoom room) {
+    return GestureDetector(
+      onTap: () {
+        Get.to(
+          () => VoiceRoomCallScreen(
+            roomId: room.id,
+            roomName: room.name,
+            userId: UserProfileCacheManager.currentUserId,
+            userName: UserProfileCacheManager.currentUser?.username ?? 'Creania Student',
+            isHost: true,
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.02),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: (room.avatar != null && room.avatar!.isNotEmpty) || (room.banner != null && room.banner!.isNotEmpty)
+                  ? Image.network(
+                      (room.avatar != null && room.avatar!.isNotEmpty) ? room.avatar! : room.banner!,
+                      height: 100,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _buildCardDefaultBanner(),
+                    )
+                  : _buildCardDefaultBanner(),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Managed Arenas',
-                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white70),
+                  // Avatar / DP
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundImage: room.avatar != null && room.avatar!.isNotEmpty
+                        ? NetworkImage(room.avatar!)
+                        : null,
+                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                    child: room.avatar == null || room.avatar!.isEmpty
+                        ? const Icon(Icons.meeting_room_rounded, color: AppTheme.primaryColor)
+                        : null,
                   ),
-                  Text(
-                    '(${matchingMyRooms.length} Active)',
-                    style: const TextStyle(fontSize: 11, color: AppTheme.textTertiary),
+                  const SizedBox(width: 12),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          room.name,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          room.username.startsWith('@') ? room.username : '@${room.username}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Arena ID: ${room.id}',
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            color: Colors.white38,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Arrow
+                  IconButton(
+                    onPressed: () {
+                      Get.to(
+                        () => VoiceRoomCallScreen(
+                          roomId: room.id,
+                          roomName: room.name,
+                          userId: UserProfileCacheManager.currentUserId,
+                          userName: UserProfileCacheManager.currentUser?.username ?? 'Creania Student',
+                          isHost: true,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 14),
                   ),
                 ],
               ),
             ),
-
-            // Horizontal Chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: _myRoomsRoles.map((role) {
-                  final isSelected = _myRoomsActiveRole == role;
-                  final roleCount = _getMyRoomsByRole(role).length;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ChoiceChip(
-                      label: Text('$role ($roleCount)'),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _myRoomsActiveRole = role;
-                          });
-                        }
-                      },
-                      backgroundColor: Colors.white.withOpacity(0.03),
-                      selectedColor: _getRoleBadgeColor(role).withOpacity(0.15),
-                      labelStyle: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        color: isSelected ? _getRoleBadgeColor(role) : Colors.white60,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: isSelected ? _getRoleBadgeColor(role).withOpacity(0.6) : Colors.white12,
-                          width: 1,
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-
-            // Cards section
-            AnimatedSize(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-              child: matchingMyRooms.isEmpty
-                  ? _buildMyRoomsEmptyState(_myRoomsActiveRole)
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                      itemCount: matchingMyRooms.length,
-                      itemBuilder: (context, index) {
-                        return _buildMyArenaRoleCard(matchingMyRooms[index], _myRoomsActiveRole);
-                      },
-                    ),
-            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCardDefaultBanner() {
+    return Container(
+      height: 100,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryColor.withOpacity(0.2),
+            const Color(0xFF6366F1).withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.image, color: Colors.white24, size: 28),
       ),
     );
   }
@@ -1038,6 +1309,46 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w500, color: AppTheme.textSecondary),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRoleChip(String role, int count) {
+    final isSelected = _myRoomsActiveRole == role;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _myRoomsActiveRole = role;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.amber.withOpacity(0.1) : Colors.white.withOpacity(0.02),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.amber : Colors.white.withOpacity(0.06),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              const Icon(Icons.check, size: 12, color: Colors.amber),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              '$role ($count)',
+              style: GoogleFonts.poppins(
+                fontSize: 11.5,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.amber : Colors.white70,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1354,9 +1665,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   Widget _buildDiscoveryEmptyState(String type) {
     String message = "No recently visited arenas.";
     if (type == 'Favorite') {
-      message = "No favorite rooms."; // Exact string from reqs
+      message = "No favorite arenas.";
     } else if (type == 'Recent') {
-      message = "No recently visited rooms."; // Exact string from reqs
+      message = "No recently visited arenas.";
     }
 
     return Container(
@@ -1529,10 +1840,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           fit: StackFit.expand,
           children: [
             // Cover Image
-            room.avatar != null
+            (room.avatar != null && room.avatar!.isNotEmpty) || (room.banner != null && room.banner!.isNotEmpty)
                 ? CachedNetworkImage(
-                    imageUrl: room.avatar!,
+                    imageUrl: (room.avatar != null && room.avatar!.isNotEmpty) ? room.avatar! : room.banner!,
                     fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: const Color(0xFF1E293B),
+                      child: const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor, strokeWidth: 2)),
+                    ),
                     errorWidget: (context, url, error) => Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
@@ -1733,37 +2048,88 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   const SizedBox(height: 6),
 
                   // Host Details and Participant Counts
-                  Row(
-                    children: [
-                      // Host Avatar
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white54, width: 0.8),
-                          image: const DecorationImage(
-                            image: CachedNetworkImageProvider('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'),
-                            fit: BoxFit.cover,
-                          ),
+                  Obx(() {
+                    final u = UserProfileCacheManager.rxCache[room.hostId] ?? UserProfileCacheManager.getCachedUser(room.hostId);
+                    final String uName = u?.username ?? room.ownerName ?? 'Host';
+                    final String uAvatar = u?.avatar ?? '';
+                    final int uLevel = u?.level ?? 1;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            // Host Avatar & Frame
+                            CustomAvatarFrame(
+                              userId: room.hostId,
+                              username: uName,
+                              size: 20,
+                              child: CircleAvatar(
+                                radius: 10,
+                                backgroundImage: uAvatar.isNotEmpty ? CachedNetworkImageProvider(uAvatar) : null,
+                                backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                                child: uAvatar.isEmpty ? const Icon(Icons.person, size: 10, color: Colors.white70) : null,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            // Owner Name
+                            Expanded(
+                              child: PremiumNameWidget(
+                                name: uName,
+                                userId: room.hostId,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      // Online participants
-                      Expanded(
-                        child: Text(
-                          room.isLive ? '$liveParticipants online' : 'Offline',
-                          style: TextStyle(
-                            color: room.isLive ? const Color(0xFF10B981) : Colors.white54,
-                            fontSize: 9,
-                            fontWeight: room.isLive ? FontWeight.bold : FontWeight.normal,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blueAccent.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'LV.$uLevel',
+                                    style: const TextStyle(color: Colors.blueAccent, fontSize: 8, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'Owner',
+                                    style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              room.isLive ? '$liveParticipants live' : 'Offline',
+                              style: TextStyle(
+                                color: room.isLive ? const Color(0xFF10B981) : Colors.white54,
+                                fontSize: 8.5,
+                                fontWeight: room.isLive ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  }),
                 ],
               ),
             ),

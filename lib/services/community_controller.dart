@@ -144,6 +144,7 @@ class CommunityController extends GetxController {
 
   Future<String?> createCommunity({
     required String name,
+    required String username,
     required String description,
     required String category,
     required String creationType,
@@ -202,6 +203,7 @@ class CommunityController extends GetxController {
       final payload = {
         'id': id,
         'name': name,
+        'username': username,
         'description': description,
         'category': category,
         'type': 'public',
@@ -434,5 +436,24 @@ class CommunityController extends GetxController {
       return power != 'manage_roles';
     }
     return false;
+  }
+
+  Future<List<Community>> searchCommunities(String query) async {
+    if (query.trim().isEmpty) return communities;
+    try {
+      final response = await Supabase.instance.client
+          .rpc('search_communities', params: {'p_query': query});
+      if (response != null && response is List) {
+        return (response as List)
+            .map((json) => Community.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('Search communities failed: $e');
+    }
+    return communities.where((c) =>
+        c.name.toLowerCase().contains(query.toLowerCase()) ||
+        c.username.toLowerCase().contains(query.toLowerCase()) ||
+        c.id.toLowerCase().contains(query.toLowerCase())).toList();
   }
 }

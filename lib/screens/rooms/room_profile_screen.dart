@@ -22,7 +22,7 @@ class RoomProfileScreen extends StatelessWidget {
       body: Obx(() {
         final roomIndex = controller.rooms.indexWhere((r) => r.id == roomId);
         if (roomIndex == -1) {
-          return const Center(child: Text('Room not found'));
+          return const Center(child: Text('Arena not found'));
         }
         final VoiceRoom room = controller.rooms[roomIndex];
 
@@ -295,7 +295,7 @@ class RoomProfileScreen extends StatelessWidget {
                   const Icon(Icons.military_tech, color: Colors.amber, size: 24),
                   const SizedBox(width: 6),
                   Text(
-                    'Room Level ${room.level}',
+                    'Arena Level ${room.level}',
                     style: const TextStyle(
                       color: Colors.amber,
                       fontWeight: FontWeight.bold,
@@ -434,7 +434,7 @@ class RoomProfileScreen extends StatelessWidget {
   Widget _buildRulesAccordion(BuildContext context, List<String> rules) {
     return ExpansionTile(
       title: const Text(
-        'Room Rules 📝',
+        'Arena Rules 📝',
         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
       ),
       collapsedShape: RoundedRectangleBorder(
@@ -501,7 +501,7 @@ class RoomProfileScreen extends StatelessWidget {
       childrenPadding: const EdgeInsets.all(16),
       children: [
         // Owner
-        _buildRoleGroupHeader('Room Owner', '1/1', Colors.amber),
+        _buildRoleGroupHeader('Arena Owner', '1/1', Colors.amber),
         _buildUserTile('Current Owner (Anurag Kumar Bharti)', 'Owner', Colors.amber),
         const SizedBox(height: 12),
 

@@ -65,29 +65,31 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> {
       });
     }
 
-    // Try to get cached profile frame
-    final u = UserProfileCacheManager.getCachedUser(widget.userId);
-    if (u != null) {
-      return _buildFrameWidget(u.avatarFrame);
-    }
+    return Obx(() {
+      final u = UserProfileCacheManager.rxCache[widget.userId];
+      final frame = u?.avatarFrame ?? UserProfileCacheManager.getCachedUser(widget.userId)?.avatarFrame;
+      if (frame != null) {
+        return _buildFrameWidget(frame);
+      }
 
-    // Fallback behavior for other users based on default levels
-    if (widget.defaultNovelLevel > 0) {
-      return NovelAvatarDecorator(level: widget.defaultNovelLevel, size: widget.size, child: widget.child);
-    } else if (widget.defaultVipLevel > 0) {
-      return VipAvatarDecorator(level: widget.defaultVipLevel, size: widget.size, child: widget.child);
-    } else {
-      return Container(
-        width: widget.size,
-        height: widget.size,
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white24, width: 1.5),
-        ),
-        child: ClipOval(child: widget.child),
-      );
-    }
+      // Fallback behavior for other users based on default levels
+      if (widget.defaultNovelLevel > 0) {
+        return NovelAvatarDecorator(level: widget.defaultNovelLevel, size: widget.size, child: widget.child);
+      } else if (widget.defaultVipLevel > 0) {
+        return VipAvatarDecorator(level: widget.defaultVipLevel, size: widget.size, child: widget.child);
+      } else {
+        return Container(
+          width: widget.size,
+          height: widget.size,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white24, width: 1.5),
+          ),
+          child: ClipOval(child: widget.child),
+        );
+      }
+    });
   }
 
   Widget _buildFrameWidget(String frame) {

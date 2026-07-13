@@ -70,7 +70,7 @@ class _MainScreenState extends State<MainScreen> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.radio_button_checked_outlined),
               activeIcon: Icon(Icons.radio_button_checked),
-              label: 'Rooms',
+              label: 'Arenas',
             ),
             BottomNavigationBarItem(
               icon: Badge(

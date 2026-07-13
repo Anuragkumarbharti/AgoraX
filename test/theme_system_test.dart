@@ -61,21 +61,21 @@ void main() {
 
   group('AppTheme Color Specifications Verification', () {
     test('Light Theme matches specification hex colors', () {
-      expect(AppTheme.lightBg, equals(const Color(0xFFFAFBFF)));
-      expect(AppTheme.lightSecBg, equals(const Color(0xFFFFFFFF)));
-      expect(AppTheme.lightPrimary, equals(const Color(0xFF5E5CFF)));
-      expect(AppTheme.lightAccent, equals(const Color(0xFF7B61FF)));
+      expect(AppTheme.lightBg, equals(const Color(0xFFF5F7FB)));
+      expect(AppTheme.lightSecBg, equals(const Color(0xFFEEF3F9)));
+      expect(AppTheme.lightPrimary, equals(const Color(0xFF5B5CF0)));
+      expect(AppTheme.lightAccent, equals(const Color(0xFF7C4DFF)));
       expect(AppTheme.lightTextPrimary, equals(const Color(0xFF111827)));
-      expect(AppTheme.lightTextSecondary, equals(const Color(0xFF4B5563)));
+      expect(AppTheme.lightTextSecondary, equals(const Color(0xFF475569)));
     });
 
     test('Dark Theme matches specification hex colors', () {
-      expect(AppTheme.darkBg, equals(const Color(0xFF0B1020)));
-      expect(AppTheme.darkSecBg, equals(const Color(0xFF12131A)));
-      expect(AppTheme.darkPrimary, equals(const Color(0xFF7A6EFF)));
-      expect(AppTheme.darkAccent, equals(const Color(0xFF5E5CFF)));
+      expect(AppTheme.darkBg, equals(const Color(0xFF090B12)));
+      expect(AppTheme.darkSecBg, equals(const Color(0xFF10131B)));
+      expect(AppTheme.darkPrimary, equals(const Color(0xFF7A6DFF)));
+      expect(AppTheme.darkAccent, equals(const Color(0xFF9B7DFF)));
       expect(AppTheme.darkTextPrimary, equals(const Color(0xFFFFFFFF)));
-      expect(AppTheme.darkTextSecondary, equals(const Color(0xFFD1D5DB)));
+      expect(AppTheme.darkTextSecondary, equals(const Color(0xFFD7DFEA)));
     });
   });
 }

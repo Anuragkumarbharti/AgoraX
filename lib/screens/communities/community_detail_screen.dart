@@ -66,6 +66,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         orElse: () => Community(
           id: '',
           name: 'Not Found',
+          username: '',
           description: '',
           category: '',
           type: 'public',

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io' as io;
+import 'package:image_picker/image_picker.dart';
 import '../../core/theme.dart';
 import '../../services/room_controller.dart';
+import '../../services/user_profile_cache_manager.dart';
 import 'voice_room_call_screen.dart';
 
 class CreateRoomScreen extends StatefulWidget {
@@ -17,28 +21,31 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   final RoomController _controller = RoomController.to;
 
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _rulesController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  String _selectedCategory = 'Social Room';
+  String _selectedCategory = 'Social Arena';
   String _selectedCountry = 'India';
   String _selectedLanguage = 'English';
   String _selectedPermission = 'everyone';
   bool _isPermanent = false;
+  String? _selectedCoverPhoto = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'; // Default preset
+  io.File? _customCoverFile;
 
-  // 10 Creania Room Types
+  // 10 Creania Arena Types
   final List<String> _categories = [
-    'Social Room',
-    'Debate Room',
-    'Study Room',
-    'Coaching Room',
-    'Family Room',
-    'Music Room',
-    'Gaming Room',
-    'Community Room',
-    'Private Room',
-    'Event Room'
+    'Social Arena',
+    'Debate Arena',
+    'Study Arena',
+    'Coaching Arena',
+    'Family Arena',
+    'Music Arena',
+    'Gaming Arena',
+    'Community Arena',
+    'Private Arena',
+    'Event Arena'
   ];
 
   // 19 standard tags
@@ -65,16 +72,21 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _descriptionController.dispose();
     _rulesController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
+    var username = _usernameController.text.trim().toLowerCase();
+    if (!username.startsWith('@')) {
+      username = '@$username';
+    }
     final description = _descriptionController.text.trim();
     
     // Parse rules (new line separated or fallback)
@@ -85,11 +97,11 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         .toList();
 
     // If private or password required, validate password
-    if (_selectedCategory == 'Private Room' || _selectedPermission == 'password_required') {
+    if (_selectedCategory == 'Private Arena' || _selectedPermission == 'password_required') {
       if (_passwordController.text.trim().isEmpty) {
         Get.snackbar(
           'Password Required',
-          'Please specify a room access password.',
+          'Please specify an arena access password.',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.redAccent,
           colorText: Colors.white,
@@ -98,52 +110,70 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       }
     }
 
-    bool success = true;
-    String newRoomId = '';
-
-    if (_isPermanent) {
-      success = _controller.createPermanentRoom(
-        name: name,
-        description: description,
-        category: _selectedCategory,
-        country: _selectedCountry,
-        language: _selectedLanguage,
-        tags: _selectedTags,
-        rules: rules.isEmpty ? ['Be respectful to others.'] : rules,
-        entryPermission: _selectedCategory == 'Private Room' ? 'password' : _selectedPermission,
+    // Show loading spinner if custom cover needs uploading
+    if (_customCoverFile != null) {
+      Get.dialog(
+        const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+        barrierDismissible: false,
       );
-      if (success) {
-        newRoomId = _controller.rooms.first.id;
-      }
-    } else {
-      success = _controller.createTemporaryRoom(
-        name: name,
-        description: description,
-        category: _selectedCategory,
-        country: _selectedCountry,
-        language: _selectedLanguage,
-        tags: _selectedTags,
-        rules: rules.isEmpty ? ['Be respectful to others.'] : rules,
-        entryPermission: _selectedCategory == 'Private Room' ? 'password' : _selectedPermission,
-      );
-      if (success) {
-        newRoomId = _controller.rooms.first.id;
-      }
     }
 
-    if (success) {
+    String? newRoomId;
+
+    if (_isPermanent) {
+      newRoomId = await _controller.createPermanentRoom(
+        name: name,
+        username: username,
+        description: description,
+        category: _selectedCategory,
+        country: _selectedCountry,
+        language: _selectedLanguage,
+        tags: _selectedTags,
+        rules: rules.isEmpty ? ['Be respectful to others.'] : rules,
+        entryPermission: _selectedCategory == 'Private Arena' ? 'password' : _selectedPermission,
+        avatar: _selectedCoverPhoto,
+        banner: _selectedCoverPhoto,
+      );
+    } else {
+      newRoomId = await _controller.createTemporaryRoom(
+        name: name,
+        username: username,
+        description: description,
+        category: _selectedCategory,
+        country: _selectedCountry,
+        language: _selectedLanguage,
+        tags: _selectedTags,
+        rules: rules.isEmpty ? ['Be respectful to others.'] : rules,
+        entryPermission: _selectedCategory == 'Private Arena' ? 'password' : _selectedPermission,
+        avatar: _selectedCoverPhoto,
+        banner: _selectedCoverPhoto,
+      );
+    }
+
+    if (newRoomId != null) {
+      if (_customCoverFile != null) {
+        await _controller.uploadRoomBanner(newRoomId, _customCoverFile!);
+        Get.back(); // close loading spinner
+      }
       Get.back(); // Pop create screen
       
+      final currentUid = UserProfileCacheManager.currentUserId;
+      final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+
       // Auto-join the newly created room as host
       Get.to(
         () => VoiceRoomCallScreen(
-          roomId: newRoomId,
+          roomId: newRoomId!,
           roomName: name,
-          userId: 'uid_anurag_101',
-          userName: 'anurag_kumar',
+          userId: currentUid,
+          userName: currentUsername,
           isHost: true,
         ),
       );
+    } else {
+      if (_customCoverFile != null) {
+        Get.back(); // close loading spinner if creation failed
+      }
     }
   }
 
@@ -159,7 +189,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
           onPressed: () => Get.back(),
         ),
         title: Text(
-          'Create Arena Room',
+          'Create Arena',
           style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
@@ -198,12 +228,12 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Room Type Selector Card
+                // Arena Type Selector Card
                 _buildRoomTypeSelector(),
                 const SizedBox(height: 24),
 
                 // Name
-                Text('Room Name', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text('Arena Name', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
@@ -220,7 +250,54 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().length < 3) {
-                      return 'Room name must be at least 3 characters';
+                      return 'Arena name must be at least 3 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Username
+                Text('Arena Username', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _usernameController,
+                  style: const TextStyle(color: Colors.white),
+                  inputFormatters: [
+                    TextInputFormatter.withFunction((oldValue, newValue) {
+                      if (newValue.text.startsWith('@')) {
+                        return TextEditingValue(
+                          text: newValue.text.substring(1),
+                          selection: TextSelection.collapsed(offset: newValue.selection.end - 1),
+                        );
+                      }
+                      return newValue;
+                    }),
+                  ],
+                  decoration: InputDecoration(
+                    prefixText: '@',
+                    prefixStyle: const TextStyle(color: Colors.white, fontSize: 16),
+                    hintText: 'studyhub',
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    filled: true,
+                    fillColor: AppTheme.bgLight,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Username is required';
+                    }
+                    var trim = value.trim().toLowerCase();
+                    if (trim.startsWith('@')) {
+                      trim = trim.substring(1);
+                    }
+                    if (trim.length < 3 || trim.length > 30) {
+                      return 'Username must be between 3 and 30 characters';
+                    }
+                    final regex = RegExp(r'^[a-z0-9_]+$');
+                    if (!regex.hasMatch(trim)) {
+                      return 'Only letters, numbers, and underscores allowed';
                     }
                     return null;
                   },
@@ -235,7 +312,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   maxLines: 2,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: 'What is this room about? Write a catchy summary...',
+                    hintText: 'What is this arena about? Write a catchy summary...',
                     hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
                     filled: true,
                     fillColor: AppTheme.bgLight,
@@ -251,6 +328,12 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Cover Photo Selector
+                Text('Arena Cover Photo', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                _buildCoverPhotoSelector(),
+                const SizedBox(height: 16),
+
                 // Category & Permission (Two Column Dropdowns)
                 Row(
                   children: [
@@ -258,7 +341,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Category Room', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                          Text('Category Arena', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 8),
                           _buildDropdown(_categories, _selectedCategory, (val) {
                             setState(() {
@@ -407,7 +490,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                 const SizedBox(height: 16),
 
                 // Rules
-                Text('Room Rules (one rule per line)', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text('Arena Rules (one rule per line)', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _rulesController,
@@ -592,5 +675,123 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildCoverPhotoSelector() {
+    final presets = [
+      'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150', // Classic Mic
+      'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150', // DJ Mixer
+      'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=150', // Concert
+      'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=150', // Neon
+      'https://images.unsplash.com/photo-1516280440614-37939bbacd6a?w=150', // Acoustic
+      'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=150', // Stage Lights
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.bgLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white24),
+                  image: _customCoverFile != null
+                      ? DecorationImage(image: FileImage(_customCoverFile!), fit: BoxFit.cover)
+                      : (_selectedCoverPhoto != null
+                          ? DecorationImage(image: NetworkImage(_selectedCoverPhoto!), fit: BoxFit.cover)
+                          : null),
+                ),
+                child: (_selectedCoverPhoto == null && _customCoverFile == null)
+                    ? const Center(child: Icon(Icons.image_outlined, color: Colors.white30))
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _customCoverFile != null ? 'Custom Cover Selected' : 'Preset Cover Selected',
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    ElevatedButton.icon(
+                      onPressed: _pickCustomCover,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white10,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      icon: const Icon(Icons.cloud_upload_outlined, size: 16),
+                      label: Text('Upload Custom', style: GoogleFonts.poppins(fontSize: 11)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white10),
+          const SizedBox(height: 8),
+          Text('Select from presets:', style: GoogleFonts.poppins(color: Colors.white60, fontSize: 11)),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 60,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: presets.length,
+              itemBuilder: (context, idx) {
+                final isSelected = _customCoverFile == null && _selectedCoverPhoto == presets[idx];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedCoverPhoto = presets[idx];
+                      _customCoverFile = null;
+                    });
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    width: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(presets[idx], fit: BoxFit.cover),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickCustomCover() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _customCoverFile = io.File(pickedFile.path);
+        _selectedCoverPhoto = null;
+      });
+    }
   }
 }

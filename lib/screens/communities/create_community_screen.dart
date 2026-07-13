@@ -14,6 +14,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   final _controller = Get.find<CommunityController>();
   
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _descController = TextEditingController();
   
   String _selectedCategory = 'Technology';
@@ -33,12 +34,14 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _descController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final name = _nameController.text.trim();
+    final username = _usernameController.text.trim();
     final desc = _descController.text.trim();
 
     if (name.isEmpty) {
@@ -52,8 +55,55 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       return;
     }
 
+    if (username.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Please enter a community username',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (!username.startsWith('@')) {
+      Get.snackbar(
+        'Validation Error',
+        'Username must start with @',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final namePart = username.substring(1);
+    if (namePart.length < 3) {
+      Get.snackbar(
+        'Validation Error',
+        'Username must be at least 3 characters after @',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final regex = RegExp(r'^[a-z0-9_]+$');
+    if (!regex.hasMatch(namePart)) {
+      Get.snackbar(
+        'Validation Error',
+        'Only lowercase letters, numbers, and underscores allowed',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     final error = await _controller.createCommunity(
       name: name,
+      username: username,
       description: desc.isNotEmpty ? desc : 'A beautiful new community for $name enthusiasts.',
       category: _selectedCategory,
       creationType: _creationType,
@@ -140,6 +190,27 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: InputDecoration(
                 hintText: 'e.g. Flutter Superstars',
+                hintStyle: const TextStyle(color: AppTheme.textTertiary),
+                filled: true,
+                fillColor: AppTheme.bgLight,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            const Text(
+              'Community Username',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _usernameController,
+              style: const TextStyle(color: AppTheme.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'e.g. @gate2027',
                 hintStyle: const TextStyle(color: AppTheme.textTertiary),
                 filled: true,
                 fillColor: AppTheme.bgLight,

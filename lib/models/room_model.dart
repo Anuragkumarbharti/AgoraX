@@ -3,6 +3,7 @@ class VoiceRoom {
   VoiceRoom({
     required this.id,
     required this.name,
+    String? username,
     required this.description,
     required this.hostId,
     required this.communityId,
@@ -40,6 +41,11 @@ class VoiceRoom {
     this.extraCoOwnerSlots = 0,
     this.extraAdminSlots = 0,
     this.extraStarMemberSlots = 0,
+    this.todayRoomXp = 0,
+    this.totalRoomGifts = 0,
+    this.todayRoomGifts = 0,
+    this.totalRoomStars = 0,
+    this.todayRoomStars = 0,
     
     // New Roles Hierarchy IDs
     this.founderId = 'uid_anurag_101',
@@ -76,49 +82,57 @@ class VoiceRoom {
     this.activeMode = 'Social', // Social, Debate, Study, Coaching, Family, Music, Gaming, Community, Event
     this.pinnedAnnouncement = 'Check out the active Poll in the menu!',
     this.currentDebateRound = 1,
-  });
+  }) : username = username ?? ('@' + id.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), ''));
 
   factory VoiceRoom.fromJson(Map<String, dynamic> json) {
     return VoiceRoom(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
+      username: (json['username'] ?? json['room_username'] ?? 'room_' + (json['id'] ?? '').toString().replaceAll('CRN-RM-', '').toLowerCase()).toString().startsWith('@')
+          ? (json['username'] ?? json['room_username'] ?? 'room_' + (json['id'] ?? '').toString().replaceAll('CRN-RM-', '').toLowerCase()).toString()
+          : '@${json['username'] ?? json['room_username'] ?? 'room_' + (json['id'] ?? '').toString().replaceAll('CRN-RM-', '').toLowerCase()}',
       description: json['description'] ?? '',
-      hostId: json['hostId'] ?? '',
-      communityId: json['communityId'] ?? '',
+      hostId: json['hostId'] ?? json['host_id'] ?? '',
+      communityId: json['communityId'] ?? json['community_id'] ?? '',
       type: json['type'] ?? 'discussion',
-      isLive: json['isLive'] ?? false,
-      participantCount: json['participantCount'] ?? 0,
-      maxParticipants: json['maxParticipants'] ?? 500,
-      speakerIds: List<String>.from(json['speakerIds'] ?? []),
-      listenerIds: List<String>.from(json['listenerIds'] ?? []),
-      recordingUrl: json['recordingUrl'] != null ? List<String>.from(json['recordingUrl']) : null,
-      allowRecording: json['allowRecording'] ?? true,
-      allowScreenShare: json['allowScreenShare'] ?? true,
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      startedAt: json['startedAt'] != null ? DateTime.parse(json['startedAt']) : null,
-      endedAt: json['endedAt'] != null ? DateTime.parse(json['endedAt']) : null,
+      isLive: json['isLive'] ?? json['is_live'] ?? false,
+      participantCount: json['participantCount'] ?? json['participant_count'] ?? 0,
+      maxParticipants: json['maxParticipants'] ?? json['max_participants'] ?? 500,
+      speakerIds: List<String>.from(json['speakerIds'] ?? json['speaker_ids'] ?? []),
+      listenerIds: List<String>.from(json['listenerIds'] ?? json['listener_ids'] ?? []),
+      recordingUrl: json['recordingUrl'] != null ? List<String>.from(json['recordingUrl']) : (json['recording_url'] != null ? List<String>.from(json['recording_url']) : null),
+      allowRecording: json['allowRecording'] ?? json['allow_recording'] ?? true,
+      allowScreenShare: json['allowScreenShare'] ?? json['allow_screen_share'] ?? true,
+      createdAt: DateTime.parse(json['createdAt'] ?? json['created_at'] ?? DateTime.now().toIso8601String()),
+      startedAt: json['startedAt'] != null ? DateTime.parse(json['startedAt']) : (json['started_at'] != null ? DateTime.parse(json['started_at']) : null),
+      endedAt: json['endedAt'] != null ? DateTime.parse(json['endedAt']) : (json['ended_at'] != null ? DateTime.parse(json['ended_at']) : null),
       avatar: json['avatar'],
       banner: json['banner'],
-      ownerName: json['ownerName'] ?? 'Anurag Kumar Bharti',
+      ownerName: json['ownerName'] ?? json['owner_name'] ?? 'Anurag Kumar Bharti',
       category: json['category'] ?? 'Education',
       country: json['country'] ?? 'India',
       language: json['language'] ?? 'English',
       tags: List<String>.from(json['tags'] ?? []),
       rules: List<String>.from(json['rules'] ?? []),
-      level: json['level'] ?? 1,
-      xp: json['xp'] ?? 0,
+      level: json['level'] ?? json['room_level'] ?? 1,
+      xp: json['xp'] ?? json['room_xp'] ?? 0,
       badges: json['badges'] ?? 1,
-      totalMembers: json['totalMembers'] ?? 0,
+      totalMembers: json['totalMembers'] ?? json['online_members'] ?? json['total_members'] ?? 0,
       totalFollowers: json['totalFollowers'] ?? 0,
-      totalGiftsReceived: json['totalGiftsReceived'] ?? 0,
-      isPermanent: json['isPermanent'] ?? false,
-      entryPermission: json['entryPermission'] ?? 'everyone',
+      totalGiftsReceived: json['totalGiftsReceived'] ?? json['total_room_gifts'] ?? 0,
+      isPermanent: json['isPermanent'] ?? json['is_permanent'] ?? false,
+      entryPermission: json['entryPermission'] ?? json['visibility'] ?? 'everyone',
       coOwnerIds: List<String>.from(json['coOwnerIds'] ?? []),
       adminIds: List<String>.from(json['adminIds'] ?? []),
       starMemberIds: List<String>.from(json['starMemberIds'] ?? []),
       extraCoOwnerSlots: json['extraCoOwnerSlots'] ?? 0,
       extraAdminSlots: json['extraAdminSlots'] ?? 0,
       extraStarMemberSlots: json['extraStarMemberSlots'] ?? 0,
+      todayRoomXp: json['todayRoomXp'] ?? json['today_room_xp'] ?? 0,
+      totalRoomGifts: json['totalRoomGifts'] ?? json['total_room_gifts'] ?? 0,
+      todayRoomGifts: json['todayRoomGifts'] ?? json['today_room_gifts'] ?? 0,
+      totalRoomStars: json['totalRoomStars'] ?? json['total_room_stars'] ?? 0,
+      todayRoomStars: json['todayRoomStars'] ?? json['today_room_stars'] ?? 0,
 
       // New Roles Hierarchy
       founderId: json['founderId'] ?? 'uid_anurag_101',
@@ -160,6 +174,7 @@ class VoiceRoom {
 
   final String id;
   final String name;
+  final String username;
   final String description;
   final String hostId;
   final String communityId;
@@ -198,6 +213,11 @@ class VoiceRoom {
   final int extraCoOwnerSlots;
   final int extraAdminSlots;
   final int extraStarMemberSlots;
+  final int todayRoomXp;
+  final int totalRoomGifts;
+  final int todayRoomGifts;
+  final int totalRoomStars;
+  final int todayRoomStars;
 
   // New Roles Hierarchy
   final String founderId;
@@ -237,6 +257,7 @@ class VoiceRoom {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'username': username.startsWith('@') ? username.substring(1) : username,
     'name': name,
     'description': description,
     'hostId': hostId,
@@ -275,6 +296,11 @@ class VoiceRoom {
     'extraCoOwnerSlots': extraCoOwnerSlots,
     'extraAdminSlots': extraAdminSlots,
     'extraStarMemberSlots': extraStarMemberSlots,
+    'todayRoomXp': todayRoomXp,
+    'totalRoomGifts': totalRoomGifts,
+    'todayRoomGifts': todayRoomGifts,
+    'totalRoomStars': totalRoomStars,
+    'todayRoomStars': todayRoomStars,
     
     // New Roles Hierarchy
     'founderId': founderId,
@@ -312,4 +338,34 @@ class VoiceRoom {
     'pinnedAnnouncement': pinnedAnnouncement,
     'currentDebateRound': currentDebateRound,
   };
+}
+
+class RoomMember {
+  final String userId;
+  final String role;
+  final bool isMuted;
+  final bool hasRaisedHand;
+
+  RoomMember({
+    required this.userId,
+    required this.role,
+    this.isMuted = false,
+    this.hasRaisedHand = false,
+  });
+
+  factory RoomMember.fromJson(Map<String, dynamic> json) {
+    return RoomMember(
+      userId: json['user_id'] ?? json['userId'] ?? '',
+      role: json['role'] ?? 'Listener',
+      isMuted: json['is_muted'] ?? json['isMuted'] ?? false,
+      hasRaisedHand: json['has_raised_hand'] ?? json['hasRaisedHand'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'user_id': userId,
+        'role': role,
+        'is_muted': isMuted,
+        'has_raised_hand': hasRaisedHand,
+      };
 }

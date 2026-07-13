@@ -91,6 +91,15 @@ begin
     end;
   end;
 
+  -- Ensure wallet exists
+  begin
+    insert into public.wallets (id, coins_balance, inr_balance, withdrawable_balance)
+    values (new.id, 0, 0.00, 0.00)
+    on conflict (id) do nothing;
+  exception when others then
+    raise notice 'Failed to insert wallet: %', SQLERRM;
+  end;
+
   return new;
 end;
 $$ language plpgsql security definer;

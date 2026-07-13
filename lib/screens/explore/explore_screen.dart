@@ -55,7 +55,7 @@ class _ExploreScreenState extends State<ExploreScreen>
               'WebSocket vs SSE vs Long Polling — I tested all 3 in a real app. The winner might surprise you...',
               'Rust is taking over backend development and I\'m here for it. Rewrote our API, memory usage dropped 80%.',
               'My team just shipped real-time collaboration using CRDTs. Here\'s what we learned about distributed state 🔬',
-              'Voice rooms are the future of online communities. That\'s why we built Creania 🎙️',
+              'Voice arenas are the future of online communities. That\'s why we built Creania 🎙️',
             ][i % 10],
             images: [
               [
@@ -815,7 +815,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _sectionHeader('⚔️ Trending Room Events'),
+              _sectionHeader('⚔️ Trending Arena Events'),
               TextButton(
                 onPressed: () {},
                 child: const Text('View All',
