@@ -1,4 +1,5 @@
-import 'dart:convert';
+import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,6 +17,10 @@ class ChatSocketService extends GetxService {
 
   // Production Northflank service endpoint
   static const String _serverUrl = 'https://site--creania-chat-service--h2dn6lgrlrxc.code.run'; 
+
+  final Map<String, Timer?> _pendingMessageTimers = {};
+  final Map<String, int> _messageRetryAttempts = {};
+  final List<int> _retryBackoffDelays = [2, 5, 10, 20, 30];
 
   void init() {
     final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
@@ -40,8 +45,8 @@ class ChatSocketService extends GetxService {
 
     // ─── Event Observers ───
 
-    // 1. Message Relayed from Server
-    _socket.on('receive_message', (data) async {
+    // 1. Message Relayed from Server (E2EE payload)
+    _socket.on('message', (data) async {
       try {
         final payload = Map<String, dynamic>.from(data);
         final String msgUuid = payload['id'] ?? '';
@@ -95,7 +100,7 @@ class ChatSocketService extends GetxService {
           ),
         );
 
-        // Emit Delivery ACK to Socket.IO immediately so the server deletes the message from Redis queue
+        // Emit Delivery ACK to Socket.IO immediately (Double Grey Tick)
         _socket.emit('delivery_ack', {
           'messageId': msgUuid,
           'senderId': senderId,
@@ -104,21 +109,34 @@ class ChatSocketService extends GetxService {
       } catch (_) {}
     });
 
-    // 2. Delivery Acknowledged
+    // 2. Server ACK (Single Tick)
+    _socket.on('server_ack', (data) async {
+      try {
+        final payload = Map<String, dynamic>.from(data);
+        final String msgUuid = payload['messageId'] ?? '';
+        
+        _clearMessageFromRetryLoop(msgUuid);
+
+        // Update status locally in Isar
+        await IsarStorageService.to.updateMessageStatus(msgUuid, MessageStatus.sent.index);
+
+        // Update in active GetX Controller memory stream
+        Get.find<ChatController>().updateMessageStatus(msgUuid, MessageStatus.sent);
+      } catch (_) {}
+    });
+
+    // 3. Delivery Acknowledged (Double Grey Tick)
     _socket.on('delivery_ack', (data) async {
       try {
         final payload = Map<String, dynamic>.from(data);
         final String msgUuid = payload['messageId'] ?? '';
         
-        // Update status locally in Isar
         await IsarStorageService.to.updateMessageStatus(msgUuid, MessageStatus.delivered.index);
-
-        // Update in active GetX Controller memory stream
         Get.find<ChatController>().updateMessageStatus(msgUuid, MessageStatus.delivered);
       } catch (_) {}
     });
 
-    // 3. Read Acknowledged
+    // 4. Read Acknowledged (Double Blue Tick)
     _socket.on('read_ack', (data) async {
       try {
         final payload = Map<String, dynamic>.from(data);
@@ -129,14 +147,43 @@ class ChatSocketService extends GetxService {
       } catch (_) {}
     });
 
-    // 4. Typing indicators
-    _socket.on('typing_state', (data) {
+    // 5. Typing indicators
+    _socket.on('typing_start', (data) {
       try {
         final payload = Map<String, dynamic>.from(data);
         final String conversationId = payload['conversationId'] ?? '';
-        final bool isTyping = payload['isTyping'] ?? false;
+        Get.find<ChatController>().setTypingFromSocket(conversationId, true);
+      } catch (_) {}
+    });
 
-        Get.find<ChatController>().setTypingFromSocket(conversationId, isTyping);
+    _socket.on('typing_stop', (data) {
+      try {
+        final payload = Map<String, dynamic>.from(data);
+        final String conversationId = payload['conversationId'] ?? '';
+        Get.find<ChatController>().setTypingFromSocket(conversationId, false);
+      } catch (_) {}
+    });
+
+    // 6. Presence & Last Seen updates
+    _socket.on('presence_update', (data) {
+      try {
+        final payload = Map<String, dynamic>.from(data);
+        final String uid = payload['userId'] ?? '';
+        final String status = payload['status'] ?? 'offline';
+        final String? lastSeen = payload['lastSeen'];
+
+        Get.find<ChatController>().updateUserPresence(uid, status == 'online', lastSeen);
+      } catch (_) {}
+    });
+
+    _socket.on('last_seen_update', (data) {
+      try {
+        final payload = Map<String, dynamic>.from(data);
+        final String uid = payload['userId'] ?? '';
+        final String status = payload['status'] ?? 'offline';
+        final String? lastSeen = payload['lastSeen'];
+
+        Get.find<ChatController>().updateUserPresence(uid, status == 'online', lastSeen);
       } catch (_) {}
     });
 
@@ -151,7 +198,7 @@ class ChatSocketService extends GetxService {
 
   /// Send encrypted message through Socket.IO and save locally
   Future<void> emitMessage(ChatMessage msg) async {
-    // 1. Encrypt plaintext payload client-side before transmission
+    // Encrypt plaintext payload client-side before transmission
     final aesKey = ChatCrypto.deriveFallbackKey(msg.senderId, msg.receiverId);
     final encryptedContent = ChatCrypto.encryptMessage(msg.content, aesKey);
 
@@ -165,47 +212,95 @@ class ChatSocketService extends GetxService {
       'timestamp': msg.timestamp.toIso8601String(),
     };
 
-    if (isConnected.value) {
-      // Direct relay
-      _socket.emit('send_message', payload);
-    } else {
-      // Remains as pending in Isar local DB until next reconnect
-    }
+    _startRetryLoop(msg.id, payload);
   }
 
-  /// Relay typing indicator
-  void emitTypingState(String conversationId, bool isTyping) {
+  void _startRetryLoop(String msgId, Map<String, dynamic> payload) {
+    if (_pendingMessageTimers.containsKey(msgId)) return;
+    _sendOrRetry(msgId, payload);
+  }
+
+  void _sendOrRetry(String msgId, Map<String, dynamic> payload) {
+    if (!isConnected.value) {
+      _scheduleNextRetry(msgId, payload, 5000);
+      return;
+    }
+
+    _socket.emit('message', payload);
+
+    _pendingMessageTimers[msgId]?.cancel();
+    _pendingMessageTimers[msgId] = Timer(const Duration(seconds: 5), () {
+      final attempt = _messageRetryAttempts[msgId] ?? 0;
+      final delaySeconds = _retryBackoffDelays[attempt.clamp(0, _retryBackoffDelays.length - 1)];
+      _messageRetryAttempts[msgId] = attempt + 1;
+      
+      _scheduleNextRetry(msgId, payload, delaySeconds * 1000);
+    });
+  }
+
+  void _scheduleNextRetry(String msgId, Map<String, dynamic> payload, int delayMs) {
+    _pendingMessageTimers[msgId]?.cancel();
+    _pendingMessageTimers[msgId] = Timer(Duration(milliseconds: delayMs), () {
+      _sendOrRetry(msgId, payload);
+    });
+  }
+
+  void _clearMessageFromRetryLoop(String msgId) {
+    _pendingMessageTimers[msgId]?.cancel();
+    _pendingMessageTimers.remove(msgId);
+    _messageRetryAttempts.remove(msgId);
+  }
+
+  /// Relay typing start
+  void emitTypingStart(String conversationId, String receiverId) {
     if (!isConnected.value) return;
-    _socket.emit('typing_state', {
+    _socket.emit('typing_start', {
       'conversationId': conversationId,
-      'isTyping': isTyping,
+      'receiverId': receiverId,
+    });
+  }
+
+  /// Relay typing stop
+  void emitTypingStop(String conversationId, String receiverId) {
+    if (!isConnected.value) return;
+    _socket.emit('typing_stop', {
+      'conversationId': conversationId,
+      'receiverId': receiverId,
     });
   }
 
   /// Relay read receipts
-  void emitReadReceipt(String conversationId, String otherUserId) {
+  void emitReadReceipt(String conversationId, String msgId, String otherUserId) {
     if (!isConnected.value) return;
     _socket.emit('read_ack', {
       'conversationId': conversationId,
+      'messageId': msgId,
+      'senderId': Supabase.instance.client.auth.currentUser?.id ?? 'me',
       'receiverId': otherUserId,
+    });
+  }
+
+  /// Manually request presence / last seen of a user
+  void requestLastSeen(String targetUserId) {
+    if (!isConnected.value) return;
+    _socket.emit('last_seen_update', {
+      'targetUserId': targetUserId,
     });
   }
 
   /// Drain pending (sending status) messages on reconnect
   Future<void> _onConnected() async {
     try {
-      // Find all conversations and messages with statusValue = MessageStatus.sending.index
       final allConvs = await IsarStorageService.to.getAllConversations();
       for (final conv in allConvs) {
         final pendingMsgs = await IsarStorageService.to.getMessagesForConversation(conv.uuid, limit: 100);
         final filteredPending = pendingMsgs.where((m) => m.statusValue == MessageStatus.sending.index).toList();
 
         for (final isarMsg in filteredPending) {
-          // Encrypt and relay
           final aesKey = ChatCrypto.deriveFallbackKey(isarMsg.senderId, isarMsg.receiverId);
           final encrypted = ChatCrypto.encryptMessage(isarMsg.content, aesKey);
 
-          _socket.emit('send_message', {
+          final payload = {
             'id': isarMsg.uuid,
             'senderId': isarMsg.senderId,
             'receiverId': isarMsg.receiverId,
@@ -213,7 +308,9 @@ class ChatSocketService extends GetxService {
             'content': encrypted,
             'type': isarMsg.typeValue,
             'timestamp': isarMsg.timestamp.toIso8601String(),
-          });
+          };
+
+          _startRetryLoop(isarMsg.uuid, payload);
         }
       }
     } catch (_) {}

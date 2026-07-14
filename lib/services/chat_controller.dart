@@ -432,7 +432,13 @@ class ChatController extends GetxController {
 
       // Notify peer via Socket
       final msgs = _messages[conversationId] ?? [];
-      final lastPeerMsg = msgs.lastWhereOrNull((m) => m.senderId != currentUserId);
+      ChatMessage? lastPeerMsg;
+      for (int i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].senderId != currentUserId) {
+          lastPeerMsg = msgs[i];
+          break;
+        }
+      }
       if (lastPeerMsg != null) {
         ChatSocketService.to.emitReadReceipt(conversationId, lastPeerMsg.id, conv.otherUserId);
       }

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme.dart';
 import '../../models/chat_model.dart';
 import '../../services/chat_controller.dart';
+import '../../services/chat_socket_service.dart';
 import 'chat_settings_screen.dart';
 
 class ChatScreen extends StatefulWidget {
