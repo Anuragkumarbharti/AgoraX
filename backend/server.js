@@ -21,19 +21,74 @@ const io = socketIo(server, {
 });
 
 // Initialize Redis Client
+let isRedisConnected = false;
 const redisClient = redis.createClient({ url: REDIS_URL });
 
-redisClient.on('error', (err) => console.error('Redis Client Error:', err));
+redisClient.on('error', (err) => {
+  console.error('Redis Client Error:', err);
+  isRedisConnected = false;
+});
+
 redisClient.connect()
-  .then(() => console.log('Successfully connected to Redis Server.'))
-  .catch((err) => console.error('Failed connecting to Redis:', err));
+  .then(() => {
+    console.log('Successfully connected to Redis Server.');
+    isRedisConnected = true;
+  })
+  .catch((err) => {
+    console.warn('Redis connection failed. Falling back to In-Memory Queue.');
+    isRedisConnected = false;
+  });
+
+// Resilient In-Memory Queue fallback map (receiverId -> { messageId: payloadStr })
+const memoryQueue = new Map();
+
+async function hSetQueue(receiverId, messageId, payload) {
+  if (isRedisConnected) {
+    try {
+      await redisClient.hSet(`chat:queue:${receiverId}`, messageId, JSON.stringify(payload));
+      return;
+    } catch (e) {
+      console.warn('Redis write failed, falling back to memory:', e);
+    }
+  }
+  if (!memoryQueue.has(receiverId)) {
+    memoryQueue.set(receiverId, {});
+  }
+  memoryQueue.get(receiverId)[messageId] = JSON.stringify(payload);
+}
+
+async function hDelQueue(receiverId, messageId) {
+  if (isRedisConnected) {
+    try {
+      await redisClient.hDel(`chat:queue:${receiverId}`, messageId);
+      return;
+    } catch (e) {
+      console.warn('Redis delete failed, falling back to memory:', e);
+    }
+  }
+  if (memoryQueue.has(receiverId)) {
+    delete memoryQueue.get(receiverId)[messageId];
+  }
+}
+
+async function hGetAllQueue(receiverId) {
+  if (isRedisConnected) {
+    try {
+      const data = await redisClient.hGetAll(`chat:queue:${receiverId}`);
+      if (data && Object.keys(data).length > 0) return data;
+    } catch (e) {
+      console.warn('Redis read failed, falling back to memory:', e);
+    }
+  }
+  return memoryQueue.get(receiverId) || {};
+}
 
 // In-memory registry for online users: userId -> socketId
 const activeUsers = new Map();
 
 // API Health Check
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', onlineUsers: activeUsers.size });
+  res.status(200).json({ status: 'ok', onlineUsers: activeUsers.size, redisOnline: isRedisConnected });
 });
 
 // Socket.IO Event Engine
@@ -50,21 +105,18 @@ io.on('connection', async (socket) => {
   // Broadcast online status
   socket.broadcast.emit('user_presence', { userId, status: 'online' });
 
-  // 1. Drain offline Redis Queue
+  // 1. Drain offline Redis/Memory Queue
   try {
-    const queueKey = `chat:queue:${userId}`;
-    const offlineMsgs = await redisClient.hGetAll(queueKey);
+    const offlineMsgs = await hGetAllQueue(userId);
     if (offlineMsgs && Object.keys(offlineMsgs).length > 0) {
       console.log(`Draining ${Object.keys(offlineMsgs).length} offline messages to user ${userId}...`);
       for (const [msgId, payloadStr] of Object.entries(offlineMsgs)) {
         const payload = JSON.parse(payloadStr);
         socket.emit('receive_message', payload);
-        // Note: The message stays in Redis until the client decrypts, saves to Isar,
-        // and emits a 'delivery_ack' back to the server.
       }
     }
   } catch (err) {
-    console.error(`Error draining Redis queue for user ${userId}:`, err);
+    console.error(`Error draining queue for user ${userId}:`, err);
   }
 
   // 2. Relay Message
@@ -73,15 +125,15 @@ io.on('connection', async (socket) => {
       const { id, senderId, receiverId } = payload;
       const receiverSocketId = activeUsers.get(receiverId);
 
-      // Store in receiver's Redis queue instantly (fail-safe fallback)
-      await redisClient.hSet(`chat:queue:${receiverId}`, id, JSON.stringify(payload));
+      // Store in receiver's queue instantly (fail-safe fallback)
+      await hSetQueue(receiverId, id, payload);
 
       if (receiverSocketId) {
         // Receiver is online, relay instantly
         io.to(receiverSocketId).emit('receive_message', payload);
         console.log(`Relayed message ${id} from ${senderId} to online receiver ${receiverId}`);
       } else {
-        console.log(`Buffered message ${id} from ${senderId} in Redis queue for offline receiver ${receiverId}`);
+        console.log(`Buffered message ${id} from ${senderId} in queue for offline receiver ${receiverId}`);
       }
 
       // ACK to sender that message reached the relay server
@@ -96,9 +148,9 @@ io.on('connection', async (socket) => {
     try {
       const { messageId, senderId, receiverId } = data;
 
-      // Remove from receiver's temporary Redis delivery queue
-      await redisClient.hDel(`chat:queue:${receiverId}`, messageId);
-      console.log(`Purged delivered message ${messageId} from Redis queue of user ${receiverId}`);
+      // Remove from receiver's temporary delivery queue
+      await hDelQueue(receiverId, messageId);
+      console.log(`Purged delivered message ${messageId} from queue of user ${receiverId}`);
 
       // Forward delivery status update to sender
       const senderSocketId = activeUsers.get(senderId);
