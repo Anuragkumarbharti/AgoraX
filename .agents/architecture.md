@@ -37,13 +37,13 @@ Isar Local Database              Socket.IO Client                     Firebase C
 Supabase                    Northflank
 (Auth + Database + Storage)   (Realtime Backend)
  │                               │
- ├── OTP Login                  ├── Node.js
- ├── JWT                        ├── Express REST API
- ├── Refresh Token              ├── Socket.IO
- ├── PostgreSQL                 ├── Redis
- ├── Profiles                   ├── BullMQ
- ├── Followers                  ├── PM2
- ├── Following                  └── Nginx
+ ├── OTP Login                  ├── Node.js [x] (Implemented & Live)
+ ├── JWT                        ├── Express REST API [x] (Implemented & Live)
+ ├── Refresh Token              ├── Socket.IO [x] (Implemented & Live)
+ ├── PostgreSQL                 ├── Redis [x] (Addon Connected & Active)
+ ├── Profiles                   ├── BullMQ [ ] (Staged in server worker)
+ ├── Followers                  ├── PM2 [x] (Active in Northflank manager)
+ ├── Following                  └── Nginx [x] (Active in Northflank proxy)
  ├── Friends
  ├── Rooms
  ├── Wallet
