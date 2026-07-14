@@ -20,10 +20,10 @@ The chat system is split into two primary components: client-side offline storag
        ▼
    Northflank (Relay Node Server)
        │
-       ├── Node.js
-       ├── Express
-       ├── Socket.IO
-       └── Redis Queue
+       ├── Node.js [x] (Implemented & Live)
+       ├── Express [x] (Implemented & Live)
+       ├── Socket.IO [x] (Implemented & Live)
+       └── Redis Queue [x] (Addon Connected & Active)
 ```
 
 ---
@@ -43,6 +43,6 @@ The chat system is split into two primary components: client-side offline storag
 - Auto-reconnects and drains the pending queue.
 
 ### ☁️ Northflank
-- **Node.js + Express + Socket.IO**: Low-latency event engine.
-- **Redis Queue**: Temporary in-memory transit storage. Messages are deleted instantly upon receiving `delivery_ack`. The backend never logs or stores chat logs permanently.
+- **Node.js + Express + Socket.IO [x] (Live)**: Low-latency event engine.
+- **Redis Queue [x] (Active)**: Temporary in-memory transit storage. Messages are deleted instantly upon receiving `delivery_ack`. The backend never logs or stores chat logs permanently.
 - **E2EE Guarantee**: Relays only GCM-encrypted payloads. The server cannot read message content.
