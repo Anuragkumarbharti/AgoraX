@@ -41,7 +41,7 @@ Supabase                    Northflank
  ├── JWT                        ├── Express REST API [x] (Implemented & Live)
  ├── Refresh Token              ├── Socket.IO [x] (Implemented & Live)
  ├── PostgreSQL                 ├── Redis [x] (Addon Connected & Active)
- ├── Profiles                   ├── BullMQ [ ] (Staged in server worker)
+ ├── Profiles                   ├── BullMQ [x] (Active background jobs)
  ├── Followers                  ├── PM2 [x] (Active in Northflank manager)
  ├── Following                  └── Nginx [x] (Active in Northflank proxy)
  ├── Friends
