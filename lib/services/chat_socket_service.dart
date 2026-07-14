@@ -14,8 +14,8 @@ class ChatSocketService extends GetxService {
   late IO.Socket _socket;
   final RxBool isConnected = false.obs;
 
-  // Change this to your production Northflank service endpoint or local test IP
-  static const String _serverUrl = 'http://152.67.10.10:3000'; 
+  // Change this to your production Northflank service endpoint or local emulator IP (10.0.2.2:3000)
+  static const String _serverUrl = 'http://10.0.2.2:3000'; 
 
   void init() {
     final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
