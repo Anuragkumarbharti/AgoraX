@@ -29,7 +29,7 @@ class ChatSocketService extends GetxService {
       _serverUrl,
       IO.OptionBuilder()
           .setTransports(['websocket'])
-          .disableAutoConnect()
+          .enableAutoConnect()
           .setQuery({'userId': currentUserId})
           .build(),
     );
@@ -221,7 +221,8 @@ class ChatSocketService extends GetxService {
   }
 
   void _sendOrRetry(String msgId, Map<String, dynamic> payload) {
-    if (!isConnected.value) {
+    final bool currentlyConnected = isConnected.value || _socket.connected;
+    if (!currentlyConnected) {
       _scheduleNextRetry(msgId, payload, 5000);
       return;
     }

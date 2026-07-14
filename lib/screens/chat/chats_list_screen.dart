@@ -34,8 +34,6 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   late final AnimationController _glowAnimCtrl;
   late final AnimationController _typingAnimCtrl;
 
-  // Map to track typing states
-  final RxMap<String, bool> _typingStates = <String, bool>{}.obs;
 
   @override
   void initState() {
@@ -566,8 +564,11 @@ class _ChatsListScreenState extends State<ChatsListScreen>
 
   Widget _buildConversationTile(Conversation conv) {
     return Obx(() {
-      final isTyping = _typingStates[conv.id] ?? false;
+      final isTyping = Get.find<ChatController>().typingState[conv.id] ?? false;
       final isMe = conv.lastMessageSenderId == 'me';
+      final msgs = Get.find<ChatController>().getMessages(conv.id);
+      final lastMsg = msgs.isNotEmpty ? msgs.last : null;
+      final lastStatus = lastMsg?.status ?? MessageStatus.sent;
 
       return InkWell(
         onTap: () => _openChat(conv),
@@ -704,7 +705,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                       children: [
                         // Status Ticks
                         if (isMe && !isTyping) ...[
-                          _buildDeliveryStatusIcon(MessageStatus.read),
+                          _buildDeliveryStatusIcon(lastStatus),
                           const SizedBox(width: 4),
                         ],
                         // Last message or Typing indicator
