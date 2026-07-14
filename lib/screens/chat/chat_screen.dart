@@ -39,6 +39,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   // Custom mock reply state
   final Rxn<ChatMessage> _replyToMessage = Rxn<ChatMessage>();
+  
+  Timer? _typingTimer;
+  bool _isTyping = false;
 
   @override
   void initState() {
@@ -51,9 +54,21 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     _msgCtrl.addListener(() {
       _hasText.value = _msgCtrl.text.trim().isNotEmpty;
+      if (!_isTyping && _msgCtrl.text.isNotEmpty) {
+        _isTyping = true;
+        _ctrl.setTyping(widget.conversation.id, true);
+      }
+      _typingTimer?.cancel();
+      _typingTimer = Timer(const Duration(seconds: 1), () {
+        if (_isTyping) {
+          _isTyping = false;
+          _ctrl.setTyping(widget.conversation.id, false);
+        }
+      });
     });
 
     _loadConversationMessages();
+    ChatSocketService.to.requestLastSeen(widget.conversation.otherUserId);
 
     // Initial scroll to bottom
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
@@ -61,6 +76,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _typingTimer?.cancel();
+    _ctrl.setTyping(widget.conversation.id, false);
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     _focusNode.dispose();
@@ -251,20 +268,25 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   backgroundImage: NetworkImage(conv.otherUserAvatar),
                 ),
               ),
-              if (conv.otherUserOnline)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: AppTheme.successColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.bgDark, width: 1.5),
+              Obx(() {
+                final isOnline = _ctrl.conversations.firstWhereOrNull((c) => c.id == conv.id)?.otherUserOnline ?? conv.otherUserOnline;
+                if (isOnline) {
+                  return Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: AppTheme.successColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.bgDark, width: 1.5),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
             ],
           ),
           const SizedBox(width: 10),
@@ -280,14 +302,33 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
-                  conv.otherUserOnline ? 'Online' : 'Offline',
-                  style: GoogleFonts.outfit(
-                    color: conv.otherUserOnline ? AppTheme.successColor : AppTheme.textTertiary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Obx(() {
+                  final isTyping = _ctrl.typingState[conv.id] ?? false;
+                  final isOnline = _ctrl.conversations.firstWhereOrNull((c) => c.id == conv.id)?.otherUserOnline ?? conv.otherUserOnline;
+                  final lastSeenStr = _ctrl.userLastSeen[conv.otherUserId];
+                  
+                  String statusText = 'Offline';
+                  Color statusColor = AppTheme.textTertiary;
+                  
+                  if (isTyping) {
+                    statusText = 'Typing...';
+                    statusColor = AppTheme.primaryColor;
+                  } else if (isOnline) {
+                    statusText = 'Online';
+                    statusColor = AppTheme.successColor;
+                  } else if (lastSeenStr != null) {
+                    statusText = lastSeenStr;
+                  }
+
+                  return Text(
+                    statusText,
+                    style: GoogleFonts.outfit(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  );
+                }),
               ],
             ),
           ),

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/chat_model.dart';
 import '../models/isar_chat_model.dart';
@@ -23,6 +24,9 @@ class ChatController extends GetxController {
 
   // ─── Typing state ───
   final RxMap<String, bool> typingState = <String, bool>{}.obs;
+
+  // ─── Last seen presence ───
+  final RxMap<String, String> userLastSeen = <String, String>{}.obs;
 
   // ─── Search ───
   final RxString searchQuery = ''.obs;
@@ -306,6 +310,64 @@ class ChatController extends GetxController {
     typingState.refresh();
   }
 
+  void updateUserPresence(String userId, bool isOnline, String? lastSeen) async {
+    if (lastSeen != null) {
+      try {
+        final dt = DateTime.parse(lastSeen);
+        userLastSeen[userId] = _formatLastSeen(dt);
+      } catch (_) {}
+    } else if (isOnline) {
+      userLastSeen.remove(userId);
+    }
+    userLastSeen.refresh();
+
+    // Update in conversation list memory
+    final idx = conversations.indexWhere((c) => c.otherUserId == userId);
+    if (idx != -1) {
+      final conv = conversations[idx];
+      conversations[idx] = Conversation(
+        id: conv.id,
+        otherUserId: conv.otherUserId,
+        otherUserName: conv.otherUserName,
+        otherUserAvatar: conv.otherUserAvatar,
+        otherUserOnline: isOnline,
+        isVerified: conv.isVerified,
+        lastMessage: conv.lastMessage,
+        lastMessageTime: conv.lastMessageTime,
+        unreadCount: conv.unreadCount,
+        isPinned: conv.isPinned,
+        isMuted: conv.isMuted,
+        levelTitle: conv.levelTitle,
+        level: conv.level,
+        lastMessageSenderId: conv.lastMessageSenderId,
+      );
+      conversations.refresh();
+      
+      // Update local Isar DB
+      final isarConv = await IsarStorageService.to.getConversation(conv.id);
+      if (isarConv != null) {
+        isarConv.otherUserOnline = isOnline;
+        await IsarStorageService.to.saveConversation(isarConv);
+      }
+    }
+  }
+
+  String _formatLastSeen(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final checkDate = DateTime(dt.year, dt.month, dt.day);
+
+    final timeStr = DateFormat('h:mm a').format(dt);
+    if (checkDate == today) {
+      return 'Last seen today at $timeStr';
+    } else if (checkDate == yesterday) {
+      return 'Last seen yesterday at $timeStr';
+    } else {
+      return 'Last seen on ${DateFormat('dd MMM').format(dt)} at $timeStr';
+    }
+  }
+
   // ─── Actions ───
 
   void addReaction(String conversationId, String messageId, String emoji) {
@@ -369,14 +431,25 @@ class ChatController extends GetxController {
       }
 
       // Notify peer via Socket
-      ChatSocketService.to.emitReadReceipt(conversationId, conv.otherUserId);
+      final msgs = _messages[conversationId] ?? [];
+      final lastPeerMsg = msgs.lastWhereOrNull((m) => m.senderId != currentUserId);
+      if (lastPeerMsg != null) {
+        ChatSocketService.to.emitReadReceipt(conversationId, lastPeerMsg.id, conv.otherUserId);
+      }
     }
   }
 
   void setTyping(String conversationId, bool value) {
     typingState[conversationId] = value;
     typingState.refresh();
-    ChatSocketService.to.emitTypingState(conversationId, value);
+    final conv = conversations.firstWhereOrNull((c) => c.id == conversationId);
+    if (conv != null) {
+      if (value) {
+        ChatSocketService.to.emitTypingStart(conversationId, conv.otherUserId);
+      } else {
+        ChatSocketService.to.emitTypingStop(conversationId, conv.otherUserId);
+      }
+    }
   }
 
   int get totalUnread =>
