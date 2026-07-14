@@ -53,7 +53,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       final response = await Supabase.instance.client
           .from('profiles')
           .select()
-          .in_('id', followedIds);
+          .inFilter('id', followedIds);
       
       final List<User> loadedFollowing = [];
       if (response != null) {
