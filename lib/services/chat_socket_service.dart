@@ -14,8 +14,8 @@ class ChatSocketService extends GetxService {
   late IO.Socket _socket;
   final RxBool isConnected = false.obs;
 
-  // Change this to your production Northflank service endpoint or local emulator IP (10.0.2.2:3000)
-  static const String _serverUrl = 'http://10.0.2.2:3000'; 
+  // Production Northflank service endpoint
+  static const String _serverUrl = 'https://site--creania-chat-service--h2dn6lgrlrxc.code.run'; 
 
   void init() {
     final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';

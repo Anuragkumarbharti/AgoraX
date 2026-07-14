@@ -200,11 +200,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   Widget _buildMainContent() {
+    final chatCtrl = Get.find<ChatController>();
     // 1. Recent Contacts: Only users actually chatted with (from ChatController.to.conversations)
-    final recents = ChatController.to.conversations.take(4).toList();
+    final recents = chatCtrl.conversations.take(4).toList();
     
     // 2. Online Friends: Filter from real active chat list where online status is true
-    final online = ChatController.to.conversations.where((c) => c.otherUserOnline).toList();
+    final online = chatCtrl.conversations.where((c) => c.otherUserOnline).toList();
     
     // 3. Suggested Creators: Real high-level/vip users returned by backend
     final suggested = _realContacts.where((u) => u.vipLevel > 0 || u.level > 1).toList();
