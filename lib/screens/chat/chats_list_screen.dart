@@ -8,6 +8,10 @@ import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../models/chat_model.dart';
 import '../../services/chat_controller.dart';
+import '../../services/room_controller.dart';
+import '../../models/room_model.dart';
+import '../rooms/voice_room_call_screen.dart';
+import '../profile/user_profile_screen.dart';
 import 'chat_screen.dart';
 import 'new_chat_screen.dart';
 
@@ -28,115 +32,6 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   late final AnimationController _glowAnimCtrl;
   late final AnimationController _typingAnimCtrl;
 
-  // Realistic mock data matching the reference images
-  final List<Conversation> _dummyConversations = [
-    Conversation(
-      id: 'conv_aisha',
-      otherUserId: 'aisha_k',
-      otherUserName: 'Aisha Khan',
-      otherUserAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-      otherUserOnline: true,
-      isVerified: true,
-      lastMessage: 'Kaise ho? Kal milte hain 😊',
-      lastMessageTime: DateTime.now().subtract(const Duration(minutes: 5)),
-      unreadCount: 3,
-      isPinned: true,
-      isMuted: false,
-      levelTitle: 'VIP 3',
-      level: 3,
-      lastMessageSenderId: 'aisha_k',
-    ),
-    Conversation(
-      id: 'conv_arjun',
-      otherUserId: 'arjun_v',
-      otherUserName: 'Arjun Verma',
-      otherUserAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-      otherUserOnline: true,
-      isVerified: false,
-      lastMessage: 'Bhai room mein aaja jaldi!',
-      lastMessageTime: DateTime.now().subtract(const Duration(minutes: 50)),
-      unreadCount: 1,
-      isPinned: true,
-      isMuted: false,
-      levelTitle: 'VIP 0',
-      level: 0,
-      lastMessageSenderId: 'arjun_v',
-    ),
-    Conversation(
-      id: 'conv_mehak',
-      otherUserId: 'mehak_s',
-      otherUserName: 'Mehak Sharma',
-      otherUserAvatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150',
-      otherUserOnline: true,
-      isVerified: true,
-      lastMessage: 'Chalo theek hai, thanks!',
-      lastMessageTime: DateTime.now().subtract(const Duration(hours: 3)),
-      unreadCount: 2,
-      isPinned: false,
-      isMuted: false,
-      levelTitle: 'VIP 4',
-      level: 4,
-      lastMessageSenderId: 'mehak_s',
-    ),
-    Conversation(
-      id: 'conv_kabir',
-      otherUserId: 'kabir_m',
-      otherUserName: 'Kabir Malhotra',
-      otherUserAvatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
-      otherUserOnline: false,
-      isVerified: false,
-      lastMessage: 'Okay bro 👍',
-      lastMessageTime: DateTime.now().subtract(const Duration(days: 1)),
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      levelTitle: 'VIP 2',
-      level: 2,
-      lastMessageSenderId: 'me',
-    ),
-    Conversation(
-      id: 'conv_riya',
-      otherUserId: 'riya_s',
-      otherUserName: 'Riya Singh',
-      otherUserAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-      otherUserOnline: true,
-      isVerified: true,
-      lastMessage: 'Missed your call',
-      lastMessageTime: DateTime.now().subtract(const Duration(days: 1)),
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: true,
-      levelTitle: 'VIP 5',
-      level: 5,
-      lastMessageSenderId: 'riya_s',
-    ),
-    Conversation(
-      id: 'conv_vivek',
-      otherUserId: 'vivek_r',
-      otherUserName: 'Vivek Raj',
-      otherUserAvatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150',
-      otherUserOnline: false,
-      isVerified: false,
-      lastMessage: 'Money transferred successfully.',
-      lastMessageTime: DateTime.now().subtract(const Duration(days: 2)),
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      levelTitle: 'VIP 0',
-      level: 0,
-      lastMessageSenderId: 'me',
-    ),
-  ];
-
-  // Active users inside the Arena for the horizontal scroll
-  final List<ArenaUser> _arenaUsers = [
-    ArenaUser(name: 'Zoya', avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=120', frameColor: AppTheme.accentColor),
-    ArenaUser(name: 'Arjun', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120', frameColor: Colors.green),
-    ArenaUser(name: 'Kashif', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120', frameColor: Colors.blue),
-    ArenaUser(name: 'Riya', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120', frameColor: Colors.purple),
-    ArenaUser(name: 'Vivek', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120', frameColor: Colors.amber),
-  ];
-
   // Map to track typing states
   final RxMap<String, bool> _typingStates = <String, bool>{}.obs;
 
@@ -144,11 +39,6 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   void initState() {
     super.initState();
     _ctrl = Get.put(ChatController());
-    
-    // Initialize dummy conversations into ChatController list if empty
-    if (_ctrl.conversations.isEmpty) {
-      _ctrl.conversations.assignAll(_dummyConversations);
-    }
 
     _entranceAnimCtrl = AnimationController(
       vsync: this,
@@ -169,24 +59,6 @@ class _ChatsListScreenState extends State<ChatsListScreen>
       _ctrl.searchQuery.value = _searchCtrl.text;
     });
 
-    // Simulate occasional typing from Aisha and Arjun for premium UX demonstration
-    Timer.periodic(const Duration(seconds: 12), (timer) {
-      if (!mounted) return;
-      _typingStates['conv_aisha'] = true;
-      Future.delayed(const Duration(seconds: 4), () {
-        if (!mounted) return;
-        _typingStates['conv_aisha'] = false;
-      });
-    });
-
-    Timer.periodic(const Duration(seconds: 19), (timer) {
-      if (!mounted) return;
-      _typingStates['conv_arjun'] = true;
-      Future.delayed(const Duration(seconds: 5), () {
-        if (!mounted) return;
-        _typingStates['conv_arjun'] = false;
-      });
-    });
   }
 
   @override
@@ -333,54 +205,134 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     );
   }
 
+  List<LiveArenaUser> _getLiveArenaUsers() {
+    final List<LiveArenaUser> list = [];
+    
+    // Safety check RoomController registration
+    if (!Get.isRegistered<RoomController>()) {
+      return list;
+    }
+    
+    final roomCtrl = Get.find<RoomController>();
+    for (final room in roomCtrl.rooms) {
+      if (!room.isLive) continue;
+      
+      final isFollowed = roomCtrl.favoriteRoomIds.contains(room.id);
+      
+      list.add(LiveArenaUser(
+        userId: room.hostId,
+        username: room.ownerName,
+        avatar: room.avatar ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+        avatarFrame: room.roomTheme.toLowerCase().contains('gold') ? 'Golden Frame' : 'Normal',
+        vipBadge: room.level > 1 ? 'VIP ${room.level}' : null,
+        isSpeaking: room.speakerIds.contains(room.hostId) || room.hostIds.contains(room.hostId),
+        roomId: room.id,
+        room: room,
+        isFollowed: isFollowed,
+      ));
+    }
+    
+    // Sort so followed users appear first
+    list.sort((a, b) {
+      if (a.isFollowed && !b.isFollowed) return -1;
+      if (!a.isFollowed && b.isFollowed) return 1;
+      return 0;
+    });
+    
+    return list;
+  }
+
+  void _joinArena(VoiceRoom room) {
+    if (room.isPrivate) {
+      final currentUid = UserProfileCacheManager.currentUserId;
+      final allowed = room.coOwnerIds.contains(currentUid) ||
+                      room.adminIds.contains(currentUid) ||
+                      room.moderatorIds.contains(currentUid) ||
+                      room.hostId == currentUid;
+      if (!allowed) {
+        Get.snackbar(
+          'Private Arena',
+          'You do not have permission to join this private room.',
+          backgroundColor: Colors.red.withOpacity(0.8),
+          colorText: Colors.white,
+        );
+        return;
+      }
+    }
+    
+    final currentUid = UserProfileCacheManager.currentUserId;
+    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+    
+    // Record visit in recents
+    if (Get.isRegistered<RoomController>()) {
+      Get.find<RoomController>().addRecentRoom(room.id);
+    }
+
+    Get.to(
+      () => VoiceRoomCallScreen(
+        roomId: room.id,
+        roomName: room.name,
+        userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
+        userName: currentUsername != 'Creania Student' ? currentUsername : 'anurag_kumar',
+        isHost: room.hostId == currentUid || room.hostId == 'uid_anurag_101',
+      ),
+    );
+  }
+
   Widget _buildLiveInArenaSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Live in Arena',
-                style: GoogleFonts.outfit(
-                  color: AppTheme.textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {},
-                child: Text(
-                  'View All',
+    return Obx(() {
+      final liveUsers = _getLiveArenaUsers();
+      if (liveUsers.isEmpty) {
+        return const SizedBox.shrink(); // Hide if no live users exist
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Live in Arena',
                   style: GoogleFonts.outfit(
-                    color: AppTheme.primaryColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-            ],
+                GestureDetector(
+                  onTap: () {},
+                  child: Text(
+                    'View All',
+                    style: GoogleFonts.outfit(
+                      color: AppTheme.primaryColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        SizedBox(
-          height: 100,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            physics: const BouncingScrollPhysics(),
-            children: [
-              // 1. Party Broadcast (Always First, Circular Icon)
-              _buildPartyBroadcastItem(),
-              
-              // 2. Following Arena Users
-              ..._arenaUsers.map((user) => _buildArenaUserAvatar(user)),
-            ],
+          SizedBox(
+            height: 100,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              physics: const BouncingScrollPhysics(),
+              children: [
+                // 1. Party Broadcast (Always First, Circular Icon)
+                _buildPartyBroadcastItem(),
+                
+                // 2. Real Live Arena Users
+                ...liveUsers.map((user) => _buildArenaUserAvatar(user)),
+              ],
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 
   Widget _buildPartyBroadcastItem() {
@@ -437,67 +389,74 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     );
   }
 
-  Widget _buildArenaUserAvatar(ArenaUser user) {
-    return Container(
-      width: 72,
-      margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              AnimatedBuilder(
-                animation: _glowAnimCtrl,
-                builder: (context, child) {
-                  return Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.green.withOpacity(0.3 + 0.7 * _glowAnimCtrl.value),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.green.withOpacity(0.2 * _glowAnimCtrl.value),
-                          blurRadius: 6,
+  Widget _buildArenaUserAvatar(LiveArenaUser user) {
+    return GestureDetector(
+      onTap: () => _joinArena(user.room),
+      child: Container(
+        width: 72,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                AnimatedBuilder(
+                  animation: _glowAnimCtrl,
+                  builder: (context, child) {
+                    return Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: user.isSpeaking
+                              ? AppTheme.accentColor.withOpacity(0.3 + 0.7 * _glowAnimCtrl.value)
+                              : Colors.green.withOpacity(0.3 + 0.7 * _glowAnimCtrl.value),
+                          width: 2,
                         ),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: user.isSpeaking
+                                ? AppTheme.accentColor.withOpacity(0.2 * _glowAnimCtrl.value)
+                                : Colors.green.withOpacity(0.2 * _glowAnimCtrl.value),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 24,
+                        backgroundImage: NetworkImage(user.avatar),
+                      ),
+                    );
+                  },
+                ),
+                Positioned(
+                  bottom: 2,
+                  right: 2,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppTheme.successColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.bgDark, width: 2),
                     ),
-                    child: CircleAvatar(
-                      radius: 24,
-                      backgroundImage: NetworkImage(user.avatar),
-                    ),
-                  );
-                },
-              ),
-              Positioned(
-                bottom: 2,
-                right: 2,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: AppTheme.successColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppTheme.bgDark, width: 2),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            user.name,
-            style: GoogleFonts.outfit(
-              color: AppTheme.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+              ],
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              user.username,
+              style: GoogleFonts.outfit(
+                color: AppTheme.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -616,57 +575,60 @@ class _ChatsListScreenState extends State<ChatsListScreen>
           child: Row(
             children: [
               // Avatar with frame and online indicator
-              Stack(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(2.5),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: conv.level > 0 ? AppTheme.accentColor : Colors.transparent,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 26,
-                      backgroundImage: NetworkImage(conv.otherUserAvatar),
-                    ),
-                  ),
-                  if (conv.otherUserOnline)
-                    Positioned(
-                      bottom: 2,
-                      right: 2,
-                      child: Container(
-                        width: 13,
-                        height: 13,
-                        decoration: BoxDecoration(
-                          color: AppTheme.successColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppTheme.bgDark, width: 2),
+              GestureDetector(
+                onTap: () => Get.to(() => UserProfileScreen(userId: conv.otherUserId)),
+                child: Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(2.5),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: conv.level > 0 ? AppTheme.accentColor : Colors.transparent,
+                          width: 1.5,
                         ),
                       ),
+                      child: CircleAvatar(
+                        radius: 26,
+                        backgroundImage: NetworkImage(conv.otherUserAvatar),
+                      ),
                     ),
-                  // "ARENA" Tag if inside Arena (Zoya, Arjun etc have them in reference)
-                  if (conv.otherUserOnline)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Center(
+                    if (conv.otherUserOnline)
+                      Positioned(
+                        bottom: 2,
+                        right: 2,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          width: 13,
+                          height: 13,
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'ARENA',
-                            style: TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.bold),
+                            color: AppTheme.successColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppTheme.bgDark, width: 2),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                    // "ARENA" Tag if inside Arena (Zoya, Arjun etc have them in reference)
+                    if (conv.otherUserOnline)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'ARENA',
+                              style: TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(width: 14),
               // Message Details
@@ -676,12 +638,15 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                   children: [
                     Row(
                       children: [
-                        Text(
-                          conv.otherUserName,
-                          style: GoogleFonts.outfit(
-                            color: AppTheme.textPrimary,
-                            fontWeight: conv.unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
-                            fontSize: 15,
+                        GestureDetector(
+                          onTap: () => Get.to(() => UserProfileScreen(userId: conv.otherUserId)),
+                          child: Text(
+                            conv.otherUserName,
+                            style: GoogleFonts.outfit(
+                              color: AppTheme.textPrimary,
+                              fontWeight: conv.unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                         if (conv.isVerified) ...[
@@ -902,12 +867,28 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   }
 }
 
-class ArenaUser {
-  final String name;
+class LiveArenaUser {
+  final String userId;
+  final String username;
   final String avatar;
-  final Color frameColor;
+  final String? avatarFrame;
+  final String? vipBadge;
+  final bool isSpeaking;
+  final String roomId;
+  final VoiceRoom room;
+  final bool isFollowed;
 
-  ArenaUser({required this.name, required this.avatar, required this.frameColor});
+  LiveArenaUser({
+    required this.userId,
+    required this.username,
+    required this.avatar,
+    this.avatarFrame,
+    this.vipBadge,
+    required this.isSpeaking,
+    required this.roomId,
+    required this.room,
+    this.isFollowed = false,
+  });
 }
 
 // Simple copyWith extension for Conversation
