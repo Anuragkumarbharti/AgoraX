@@ -79,96 +79,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _loadConversationMessages() {
-    // Populate realistic messages exactly matching the reference images
-    if (widget.conversation.otherUserId == 'aisha_k' || widget.conversation.id.contains('aisha')) {
-      final baseTime = DateTime.now().subtract(const Duration(hours: 1));
-      _messagesList.assignAll([
-        ChatMessage(
-          id: 'm1',
-          senderId: 'aisha_k',
-          receiverId: 'me',
-          conversationId: widget.conversation.id,
-          content: 'Heyy! 😊',
-          timestamp: baseTime,
-          status: MessageStatus.read,
-        ),
-        ChatMessage(
-          id: 'm2',
-          senderId: 'me',
-          receiverId: 'aisha_k',
-          conversationId: widget.conversation.id,
-          content: 'Hey Aisha! Kaisi ho?',
-          timestamp: baseTime.add(const Duration(minutes: 1)),
-          status: MessageStatus.read,
-        ),
-        ChatMessage(
-          id: 'm3',
-          senderId: 'aisha_k',
-          receiverId: 'me',
-          conversationId: widget.conversation.id,
-          content: 'Main theek hu, tum batao?',
-          timestamp: baseTime.add(const Duration(minutes: 2)),
-          status: MessageStatus.read,
-        ),
-        ChatMessage(
-          id: 'm4',
-          senderId: 'me',
-          receiverId: 'aisha_k',
-          conversationId: widget.conversation.id,
-          content: 'Main bhi theek hu 😊\nKal ka plan confirm?',
-          timestamp: baseTime.add(const Duration(minutes: 3)),
-          status: MessageStatus.read,
-        ),
-        ChatMessage(
-          id: 'm5',
-          senderId: 'aisha_k',
-          receiverId: 'me',
-          conversationId: widget.conversation.id,
-          content: 'Haan yaar, kal 5 baje cafe mein?',
-          timestamp: baseTime.add(const Duration(minutes: 3)),
-          status: MessageStatus.read,
-        ),
-        ChatMessage(
-          id: 'm6',
-          senderId: 'me',
-          receiverId: 'aisha_k',
-          conversationId: widget.conversation.id,
-          content: 'Done! Main 5 baje tak pahunch jaunga. 👍',
-          timestamp: baseTime.add(const Duration(minutes: 4)),
-          status: MessageStatus.read,
-        ),
-        ChatMessage(
-          id: 'm7',
-          senderId: 'aisha_k',
-          receiverId: 'me',
-          conversationId: widget.conversation.id,
-          content: 'Great! See you kal 😊',
-          timestamp: baseTime.add(const Duration(minutes: 5)),
-          status: MessageStatus.read,
-        ),
-        ChatMessage(
-          id: 'm8',
-          senderId: 'me',
-          receiverId: 'aisha_k',
-          conversationId: widget.conversation.id,
-          content: 'See you! Take care ✌️',
-          timestamp: baseTime.add(const Duration(minutes: 5)),
-          status: MessageStatus.read,
-        ),
-      ]);
-    } else {
-      // Default initial mock messages
-      _messagesList.assignAll([
-        ChatMessage(
-          id: 'm_init',
-          senderId: widget.conversation.otherUserId,
-          receiverId: 'me',
-          conversationId: widget.conversation.id,
-          content: 'Hey there! How are you doing today?',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 10)),
-          status: MessageStatus.read,
-        ),
-      ]);
+    final msgs = _ctrl.getMessages(widget.conversation.id);
+    if (msgs.isEmpty) {
+      if (widget.conversation.otherUserId == 'aisha_k' || widget.conversation.id.contains('aisha')) {
+        _ctrl.sendMessage(widget.conversation.id, 'Heyy! 😊');
+        _ctrl.sendMessage(widget.conversation.id, 'Hey Aisha! Kaisi ho?');
+        _ctrl.sendMessage(widget.conversation.id, 'Main theek hu, tum batao?');
+        _ctrl.sendMessage(widget.conversation.id, 'Main bhi theek hu 😊\nKal ka plan confirm?');
+        _ctrl.sendMessage(widget.conversation.id, 'Haan yaar, kal 5 baje cafe mein?');
+        _ctrl.sendMessage(widget.conversation.id, 'Done! Main 5 baje tak pahunch jaunga. 👍');
+        _ctrl.sendMessage(widget.conversation.id, 'Great! See you kal 😊');
+        _ctrl.sendMessage(widget.conversation.id, 'See you! Take care ✌️');
+      } else {
+        _ctrl.sendMessage(widget.conversation.id, 'Hey there! How are you doing today?');
+      }
     }
   }
 
@@ -176,72 +100,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final body = text ?? _msgCtrl.text.trim();
     if (body.isEmpty && mediaUrl == null) return;
 
-    final newMsgId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
-    final chatMsg = ChatMessage(
-      id: newMsgId,
-      senderId: 'me',
-      receiverId: widget.conversation.otherUserId,
-      conversationId: widget.conversation.id,
-      content: body,
-      type: type,
-      status: MessageStatus.sending,
-      timestamp: DateTime.now(),
-      replyToId: _replyToMessage.value?.id,
-      replyToContent: _replyToMessage.value?.content,
-      mediaUrl: mediaUrl,
-    );
+    // Send through ChatController which writes to Isar and relays over Socket
+    _ctrl.sendMessage(widget.conversation.id, body);
 
-    _messagesList.add(chatMsg);
     _msgCtrl.clear();
     _replyToMessage.value = null;
     HapticFeedback.lightImpact();
     _scrollToBottom();
-
-    // Update conversation last message in list
-    final idx = _ctrl.conversations.indexWhere((c) => c.id == widget.conversation.id);
-    if (idx != -1) {
-      final conv = _ctrl.conversations[idx];
-      _ctrl.conversations[idx] = Conversation(
-        id: conv.id,
-        otherUserId: conv.otherUserId,
-        otherUserName: conv.otherUserName,
-        otherUserAvatar: conv.otherUserAvatar,
-        otherUserOnline: conv.otherUserOnline,
-        isVerified: conv.isVerified,
-        lastMessage: type == MessageType.audio ? '🎤 Voice note' : body,
-        lastMessageTime: DateTime.now(),
-        unreadCount: conv.unreadCount,
-        isPinned: conv.isPinned,
-        isMuted: conv.isMuted,
-        levelTitle: conv.levelTitle,
-        level: conv.level,
-        lastMessageSenderId: 'me',
-      );
-      _ctrl.conversations.refresh();
-    }
-
-    // Simulated status update sequence: sending -> sent -> delivered -> read
-    Future.delayed(const Duration(milliseconds: 600), () {
-      final idx = _messagesList.indexWhere((m) => m.id == newMsgId);
-      if (idx != -1) {
-        _messagesList[idx] = _messagesList[idx].copyWith(status: MessageStatus.sent);
-      }
-    });
-    Future.delayed(const Duration(seconds: 2), () {
-      final idx = _messagesList.indexWhere((m) => m.id == newMsgId);
-      if (idx != -1) {
-        _messagesList[idx] = _messagesList[idx].copyWith(status: MessageStatus.delivered);
-      }
-    });
-    Future.delayed(const Duration(seconds: 4), () {
-      final idx = _messagesList.indexWhere((m) => m.id == newMsgId);
-      if (idx != -1) {
-        _messagesList[idx] = _messagesList[idx].copyWith(status: MessageStatus.read);
-      }
-      
-      // Auto-simulate quick reply for dynamic feel
-      _simulateReply();
-    });
   }
 
   void _simulateReply() {
@@ -413,24 +278,24 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   Widget _buildChatArea() {
     return Obx(() {
+      final messages = _ctrl.getMessages(widget.conversation.id);
       return ListView.builder(
         controller: _scrollCtrl,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        itemCount: _messagesList.length + 1, // Add space for date separators & bottom typing
+        itemCount: messages.length + 1, // Add space for date separators & bottom typing
         itemBuilder: (context, index) {
-          if (index == _messagesList.length) {
-            // Show custom Typing bubble if needed
+          if (index == messages.length) {
             return const SizedBox(height: 40);
           }
-          final msg = _messagesList[index];
-          final isMe = msg.senderId == 'me';
+          final msg = messages[index];
+          final isMe = msg.senderId == 'me' || msg.senderId == ChatController.currentUserId;
 
           // Simple date separator
           bool showDateSep = false;
           if (index == 0) {
             showDateSep = true;
           } else {
-            final prev = _messagesList[index - 1];
+            final prev = messages[index - 1];
             if (msg.timestamp.day != prev.timestamp.day) {
               showDateSep = true;
             }
