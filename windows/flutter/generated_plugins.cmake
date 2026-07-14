@@ -10,6 +10,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_core
   flutter_volume_controller
   flutter_webrtc
+  isar_flutter_libs
   permission_handler_windows
   record_windows
   screen_brightness_windows

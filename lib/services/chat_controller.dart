@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/chat_model.dart';
+import '../models/isar_chat_model.dart';
 import '../core/chat_crypto.dart';
+import 'isar_storage_service.dart';
+import 'chat_socket_service.dart';
 import 'user_profile_cache_manager.dart';
 
 class ChatController extends GetxController {
@@ -19,135 +21,6 @@ class ChatController extends GetxController {
   final RxMap<String, List<ChatMessage>> _messages =
       <String, List<ChatMessage>>{}.obs;
 
-  @override
-  void onInit() {
-    super.onInit();
-    _loadConversations().then((_) {
-      _initSupabaseRealtime();
-      ever(conversations, (_) => _saveConversations());
-    });
-  }
-
-  Future<void> _saveConversations() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = json.encode(conversations.map((c) => c.toJson()).toList());
-      await prefs.setString('chat_conversations', jsonStr);
-    } catch (_) {}
-  }
-
-  Future<void> _loadConversations() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('chat_conversations');
-      if (jsonStr != null) {
-        final List<dynamic> decoded = json.decode(jsonStr);
-        final list = decoded.map((item) => Conversation.fromJson(item)).toList();
-        conversations.assignAll(list);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _saveMessages(String convId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final list = _messages[convId] ?? [];
-      final jsonStr = json.encode(list.map((m) => m.toJson()).toList());
-      await prefs.setString('chat_messages_$convId', jsonStr);
-    } catch (_) {}
-  }
-
-  Future<void> _loadMessages(String convId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('chat_messages_$convId');
-      if (jsonStr != null) {
-        final List<dynamic> decoded = json.decode(jsonStr);
-        final list = decoded.map((item) => ChatMessage.fromJson(item)).toList();
-        _messages[convId] = list;
-        _messages.refresh();
-      }
-    } catch (_) {}
-  }
-
-  void _initSupabaseRealtime() {
-    try {
-      final client = Supabase.instance.client;
-      final currentAuthUser = client.auth.currentUser;
-      if (currentAuthUser == null) return;
-
-      client
-          .from('messages')
-          .stream(primaryKey: ['id'])
-          .order('created_at', ascending: true)
-          .listen((List<Map<String, dynamic>> data) {
-            for (var row in data) {
-              final String? senderId = row['sender_id'];
-              final String? receiverId = row['receiver_id'];
-              final String? encryptedContent = row['encrypted_content'];
-              final String? messageId = row['id']?.toString();
-              final String? createdAtStr = row['created_at'];
-
-              if (senderId == null || receiverId == null || encryptedContent == null) continue;
-
-              final String myId = currentAuthUser.id;
-              if (senderId != myId && receiverId != myId) continue;
-
-              final String otherUserId = (senderId == myId) ? receiverId : senderId;
-              final String convId = 'conv_$otherUserId';
-
-              final key = ChatCrypto.deriveFallbackKey(myId, otherUserId);
-              final decrypted = ChatCrypto.decryptMessage(encryptedContent, key);
-
-              final timestamp = createdAtStr != null 
-                  ? DateTime.tryParse(createdAtStr) ?? DateTime.now() 
-                  : DateTime.now();
-
-              final currentMsgs = _messages[convId] ?? [];
-              if (!currentMsgs.any((m) => m.id == messageId)) {
-                final newMsg = ChatMessage(
-                  id: messageId ?? 'msg_${DateTime.now().millisecondsSinceEpoch}',
-                  senderId: senderId == myId ? currentUserId : otherUserId,
-                  receiverId: receiverId == myId ? currentUserId : otherUserId,
-                  conversationId: convId,
-                  content: decrypted,
-                  timestamp: timestamp,
-                  status: MessageStatus.read,
-                );
-                _messages[convId] = [...currentMsgs, newMsg];
-                _messages.refresh();
-                _saveMessages(convId);
-
-                getOrCreateConversation(otherUserId, 'User $otherUserId', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100');
-                final idx = conversations.indexWhere((c) => c.id == convId);
-                if (idx != -1) {
-                  final conv = conversations[idx];
-                  conversations[idx] = Conversation(
-                    id: conv.id,
-                    otherUserId: conv.otherUserId,
-                    otherUserName: conv.otherUserName,
-                    otherUserAvatar: conv.otherUserAvatar,
-                    otherUserOnline: conv.otherUserOnline,
-                    isVerified: conv.isVerified,
-                    lastMessage: decrypted,
-                    lastMessageTime: timestamp,
-                    unreadCount: conv.unreadCount,
-                    isPinned: conv.isPinned,
-                    isMuted: conv.isMuted,
-                    levelTitle: conv.levelTitle,
-                    level: conv.level,
-                    lastMessageSenderId: senderId,
-                  );
-                  conversations.refresh();
-                }
-              }
-            }
-          }, onError: (error) {
-            print('Supabase Realtime Stream Error: $error');
-          });
-    } catch (_) {}
-  }
-
   // ─── Typing state ───
   final RxMap<String, bool> typingState = <String, bool>{}.obs;
 
@@ -158,6 +31,66 @@ class ChatController extends GetxController {
   // ─── Selected messages (for multi-select) ───
   final RxSet<String> selectedMessageIds = <String>{}.obs;
   final RxBool isSelectionMode = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadConversationsFromIsar();
+  }
+
+  Future<void> _loadConversationsFromIsar() async {
+    try {
+      final isarConvs = await IsarStorageService.to.getAllConversations();
+      final list = isarConvs.map((c) {
+        return Conversation(
+          id: c.uuid,
+          otherUserId: c.otherUserId,
+          otherUserName: c.otherUserName,
+          otherUserAvatar: c.otherUserAvatar,
+          otherUserOnline: c.otherUserOnline,
+          isVerified: c.isVerified,
+          lastMessage: c.lastMessage,
+          lastMessageTime: c.lastMessageTime,
+          unreadCount: c.unreadCount,
+          isPinned: c.isPinned,
+          isMuted: c.isMuted,
+          levelTitle: c.levelTitle,
+          level: c.level,
+          lastMessageSenderId: c.lastMessageSenderId,
+        );
+      }).toList();
+      
+      Future.microtask(() {
+        conversations.assignAll(list);
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _loadMessagesFromIsar(String convId) async {
+    try {
+      final isarMsgs = await IsarStorageService.to.getMessagesForConversation(convId, limit: 100);
+      final list = isarMsgs.map((m) {
+        return ChatMessage(
+          id: m.uuid,
+          senderId: m.senderId,
+          receiverId: m.receiverId,
+          conversationId: m.conversationId,
+          content: m.content,
+          timestamp: m.timestamp,
+          status: MessageStatus.values[m.statusValue],
+          type: MessageType.values[m.typeValue],
+          reactions: m.reactions,
+          isDeleted: m.isDeleted,
+          isEdited: m.isEdited,
+        );
+      }).toList();
+      
+      Future.microtask(() {
+        _messages[convId] = list.reversed.toList(); // Isar returns chronological order
+        _messages.refresh();
+      });
+    } catch (_) {}
+  }
 
   List<Conversation> get filteredConversations {
     if (searchQuery.isEmpty) return conversations;
@@ -188,14 +121,32 @@ class ChatController extends GetxController {
       otherUserOnline: true,
     );
     conversations.add(newConv);
-    _saveConversations();
+
+    // Save to local Isar DB (Single Source of Truth)
+    final isarConv = IsarConversation()
+      ..uuid = convId
+      ..otherUserId = otherUserId
+      ..otherUserName = otherUserName
+      ..otherUserAvatar = otherUserAvatar
+      ..lastMessage = 'Started chat'
+      ..lastMessageTime = DateTime.now()
+      ..otherUserOnline = true
+      ..isVerified = false
+      ..unreadCount = 0
+      ..isPinned = false
+      ..isMuted = false
+      ..levelTitle = 'Newbie'
+      ..level = 0
+      ..lastMessageSenderId = '';
+    IsarStorageService.to.saveConversation(isarConv);
+
     return newConv;
   }
 
   List<ChatMessage> getMessages(String conversationId) {
     if (!_messages.containsKey(conversationId)) {
       _messages[conversationId] = [];
-      _loadMessages(conversationId);
+      _loadMessagesFromIsar(conversationId);
     }
     return _messages[conversationId] ?? [];
   }
@@ -212,39 +163,56 @@ class ChatController extends GetxController {
             'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
           );
 
-    final key = ChatCrypto.deriveFallbackKey(currentUserId, conv.otherUserId);
-    final String encrypted = ChatCrypto.encryptMessage(content.trim(), key);
-
-    // Try inserting into Supabase
-    try {
-      final client = Supabase.instance.client;
-      if (client.auth.currentUser != null) {
-        await client.from('messages').insert({
-          'sender_id': currentUserId,
-          'receiver_id': conv.otherUserId.length == 36 ? conv.otherUserId : null,
-          'encrypted_content': encrypted,
-          'is_private': true,
-        });
-      }
-    } catch (_) {
-      // Fail silently to allow simulated offline fallback
-    }
+    final msgId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
+    final now = DateTime.now();
 
     final msg = ChatMessage(
-      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+      id: msgId,
       senderId: currentUserId,
       receiverId: conv.otherUserId,
       conversationId: conversationId,
       content: content.trim(),
-      timestamp: DateTime.now(),
+      timestamp: now,
       status: MessageStatus.sending,
     );
 
+    // 1. Write message directly to local Isar DB (Single Source of Truth)
+    final isarMsg = IsarChatMessage()
+      ..uuid = msgId
+      ..senderId = currentUserId
+      ..receiverId = conv.otherUserId
+      ..conversationId = conversationId
+      ..content = content.trim()
+      ..typeValue = MessageType.text.index
+      ..statusValue = MessageStatus.sending.index
+      ..timestamp = now
+      ..isDeleted = false
+      ..isEdited = false;
+    await IsarStorageService.to.saveMessage(isarMsg);
+
+    // Update conversation metadata locally in Isar
+    final isarConv = IsarConversation()
+      ..uuid = conv.id
+      ..otherUserId = conv.otherUserId
+      ..otherUserName = conv.otherUserName
+      ..otherUserAvatar = conv.otherUserAvatar
+      ..lastMessage = content.trim()
+      ..lastMessageTime = now
+      ..otherUserOnline = conv.otherUserOnline
+      ..isVerified = conv.isVerified
+      ..unreadCount = 0
+      ..isPinned = conv.isPinned
+      ..isMuted = conv.isMuted
+      ..levelTitle = conv.levelTitle
+      ..level = conv.level
+      ..lastMessageSenderId = currentUserId;
+    await IsarStorageService.to.saveConversation(isarConv);
+
+    // 2. Update memory stream and trigger state updates instantly
     final current = getMessages(conversationId);
     _messages[conversationId] = [...current, msg];
-    _saveMessages(conversationId);
+    _messages.refresh();
 
-    // Update conversation last message
     final idx = conversations.indexWhere((c) => c.id == conversationId);
     if (idx != -1) {
       conversations[idx] = Conversation(
@@ -255,7 +223,7 @@ class ChatController extends GetxController {
         otherUserOnline: conv.otherUserOnline,
         isVerified: conv.isVerified,
         lastMessage: content.trim(),
-        lastMessageTime: DateTime.now(),
+        lastMessageTime: now,
         unreadCount: 0,
         isPinned: conv.isPinned,
         isMuted: conv.isMuted,
@@ -263,37 +231,82 @@ class ChatController extends GetxController {
         level: conv.level,
         lastMessageSenderId: currentUserId,
       );
-      _saveConversations();
     }
-
-    // Simulate sent after delay
-    Future.delayed(const Duration(milliseconds: 800), () {
-      final msgs = _messages[conversationId] ?? [];
-      final updatedMsgs = msgs.map((m) {
-        if (m.id == msg.id) return m.copyWith(status: MessageStatus.sent);
-        return m;
-      }).toList();
-      _messages[conversationId] = updatedMsgs;
-      _messages.refresh();
-      _saveMessages(conversationId);
-
-      // Simulate delivered
-      Future.delayed(const Duration(seconds: 2), () {
-        final msgs2 = _messages[conversationId] ?? [];
-        final updatedMsgs2 = msgs2.map((m) {
-          if (m.id == msg.id) return m.copyWith(status: MessageStatus.delivered);
-          return m;
-        }).toList();
-        _messages[conversationId] = updatedMsgs2;
-        _messages.refresh();
-        _saveMessages(conversationId);
-      });
-    });
-
-    _messages.refresh();
     conversations.refresh();
-    _saveConversations();
+
+    // 3. Emit message event to Socket.IO layer (handled asynchronously)
+    ChatSocketService.to.emitMessage(msg);
   }
+
+  // ─── Socket Event Receivers ───
+
+  void onMessageReceivedFromSocket(ChatMessage msg) async {
+    final current = getMessages(msg.conversationId);
+    if (!current.any((m) => m.id == msg.id)) {
+      _messages[msg.conversationId] = [...current, msg];
+      _messages.refresh();
+
+      // Update conversation last message in memory list
+      final idx = conversations.indexWhere((c) => c.id == msg.conversationId);
+      if (idx != -1) {
+        final conv = conversations[idx];
+        conversations[idx] = Conversation(
+          id: conv.id,
+          otherUserId: conv.otherUserId,
+          otherUserName: conv.otherUserName,
+          otherUserAvatar: conv.otherUserAvatar,
+          otherUserOnline: conv.otherUserOnline,
+          isVerified: conv.isVerified,
+          lastMessage: msg.content,
+          lastMessageTime: msg.timestamp,
+          unreadCount: conv.unreadCount + 1,
+          isPinned: conv.isPinned,
+          isMuted: conv.isMuted,
+          levelTitle: conv.levelTitle,
+          level: conv.level,
+          lastMessageSenderId: msg.senderId,
+        );
+
+        // Save new conversation state in Isar
+        final isarConv = IsarConversation()
+          ..uuid = conv.id
+          ..otherUserId = conv.otherUserId
+          ..otherUserName = conv.otherUserName
+          ..otherUserAvatar = conv.otherUserAvatar
+          ..lastMessage = msg.content
+          ..lastMessageTime = msg.timestamp
+          ..otherUserOnline = conv.otherUserOnline
+          ..isVerified = conv.isVerified
+          ..unreadCount = conv.unreadCount + 1
+          ..isPinned = conv.isPinned
+          ..isMuted = conv.isMuted
+          ..levelTitle = conv.levelTitle
+          ..level = conv.level
+          ..lastMessageSenderId = msg.senderId;
+        await IsarStorageService.to.saveConversation(isarConv);
+      }
+      conversations.refresh();
+    }
+  }
+
+  void updateMessageStatus(String msgId, MessageStatus status) {
+    _messages.forEach((convId, list) {
+      final idx = list.indexWhere((m) => m.id == msgId);
+      if (idx != -1) {
+        final currentList = List<ChatMessage>.from(list);
+        currentList[idx] = currentList[idx].copyWith(status: status);
+        _messages[convId] = currentList;
+        _messages.refresh();
+      }
+    });
+  }
+
+  void setTypingFromSocket(String conversationId, bool isTyping) {
+    typingState[conversationId] = isTyping;
+    typingState.refresh();
+  }
+
+  // ─── Actions ───
 
   void addReaction(String conversationId, String messageId, String emoji) {
     final msgs = _messages[conversationId] ?? [];
@@ -313,7 +326,7 @@ class ChatController extends GetxController {
     _messages.refresh();
   }
 
-  void deleteMessage(String conversationId, String messageId) {
+  void deleteMessage(String conversationId, String messageId) async {
     final msgs = _messages[conversationId] ?? [];
     final updatedMsgs = msgs.map((m) {
       if (m.id == messageId) return m.copyWith(isDeleted: true);
@@ -321,9 +334,12 @@ class ChatController extends GetxController {
     }).toList();
     _messages[conversationId] = updatedMsgs;
     _messages.refresh();
+
+    // Delete in Isar
+    await IsarStorageService.to.deleteMessage(messageId);
   }
 
-  void markConversationRead(String conversationId) {
+  void markConversationRead(String conversationId) async {
     final idx = conversations.indexWhere((c) => c.id == conversationId);
     if (idx != -1) {
       final conv = conversations[idx];
@@ -344,18 +360,29 @@ class ChatController extends GetxController {
         lastMessageSenderId: conv.lastMessageSenderId,
       );
       conversations.refresh();
+
+      // Update Isar
+      final isarConv = await IsarStorageService.to.getConversation(conversationId);
+      if (isarConv != null) {
+        isarConv.unreadCount = 0;
+        await IsarStorageService.to.saveConversation(isarConv);
+      }
+
+      // Notify peer via Socket
+      ChatSocketService.to.emitReadReceipt(conversationId, conv.otherUserId);
     }
   }
 
   void setTyping(String conversationId, bool value) {
     typingState[conversationId] = value;
     typingState.refresh();
+    ChatSocketService.to.emitTypingState(conversationId, value);
   }
 
   int get totalUnread =>
       conversations.fold(0, (sum, c) => sum + c.unreadCount);
 
-  void togglePin(String conversationId) {
+  void togglePin(String conversationId) async {
     final idx = conversations.indexWhere((c) => c.id == conversationId);
     if (idx == -1) return;
     final conv = conversations[idx];
@@ -375,9 +402,16 @@ class ChatController extends GetxController {
       level: conv.level,
     );
     conversations.refresh();
+
+    // Update Isar
+    final isarConv = await IsarStorageService.to.getConversation(conversationId);
+    if (isarConv != null) {
+      isarConv.isPinned = !isarConv.isPinned;
+      await IsarStorageService.to.saveConversation(isarConv);
+    }
   }
 
-  void toggleMute(String conversationId) {
+  void toggleMute(String conversationId) async {
     final idx = conversations.indexWhere((c) => c.id == conversationId);
     if (idx == -1) return;
     final conv = conversations[idx];
@@ -397,10 +431,18 @@ class ChatController extends GetxController {
       level: conv.level,
     );
     conversations.refresh();
+
+    // Update Isar
+    final isarConv = await IsarStorageService.to.getConversation(conversationId);
+    if (isarConv != null) {
+      isarConv.isMuted = !isarConv.isMuted;
+      await IsarStorageService.to.saveConversation(isarConv);
+    }
   }
 
-  void deleteConversation(String conversationId) {
+  void deleteConversation(String conversationId) async {
     conversations.removeWhere((c) => c.id == conversationId);
     _messages.remove(conversationId);
+    await IsarStorageService.to.deleteConversation(conversationId);
   }
 }

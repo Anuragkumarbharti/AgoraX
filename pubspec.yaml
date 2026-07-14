@@ -31,6 +31,8 @@ dependencies:
   # Local Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  isar: 3.1.0+1
+  isar_flutter_libs: 3.1.0+1
   
   # ZEGOCLOUD SDK for Voice
   zego_uikit: ^2.29.1
@@ -41,6 +43,7 @@ dependencies:
   
   # Real-time
   web_socket_channel: ^3.0.3
+  socket_io_client: ^2.0.3+1
   
   # Firebase for notifications
   firebase_core: ^4.11.0
@@ -82,6 +85,7 @@ dependencies:
   
   # Local Preferences (first launch tracking)
   shared_preferences: ^2.3.2
+  path_provider: ^2.1.1
 
 dev_dependencies:
   flutter_test:
