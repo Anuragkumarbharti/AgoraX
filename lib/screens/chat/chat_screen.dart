@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme.dart';
 import '../../models/chat_model.dart';
 import '../../services/chat_controller.dart';
@@ -96,9 +97,35 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _sendMessage({String? text, MessageType type = MessageType.text, String? mediaUrl}) {
+  void _sendMessage({String? text, MessageType type = MessageType.text, String? mediaUrl}) async {
     final body = text ?? _msgCtrl.text.trim();
     if (body.isEmpty && mediaUrl == null) return;
+
+    // Enforce 3-message limit without follow relationship
+    final prefs = await SharedPreferences.getInstance();
+    final followedIds = prefs.getStringList('followed_user_ids') ?? [];
+    final bool isFollowed = followedIds.contains(widget.conversation.otherUserId);
+    
+    if (!isFollowed) {
+      int outboundCount = 0;
+      for (int i = _messagesList.length - 1; i >= 0; i--) {
+        final m = _messagesList[i];
+        if (m.senderId != 'me') {
+          break; // Stop counting once they replied
+        }
+        outboundCount++;
+      }
+      if (outboundCount >= 3) {
+        Get.snackbar(
+          'Limit Exceeded 🔒',
+          'Follow the user to message freely, or wait for them to reply.',
+          backgroundColor: Colors.amber.withOpacity(0.95),
+          colorText: Colors.black,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+    }
 
     // Send through ChatController which writes to Isar and relays over Socket
     _ctrl.sendMessage(widget.conversation.id, body);

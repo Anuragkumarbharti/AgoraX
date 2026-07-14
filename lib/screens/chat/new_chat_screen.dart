@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../core/theme.dart';
-import 'chat_screen.dart';
 import '../../models/chat_model.dart';
+import '../../models/user_model.dart';
+import '../../services/chat_controller.dart';
+import '../../services/user_profile_cache_manager.dart';
+import 'chat_screen.dart';
 
 class NewChatScreen extends StatefulWidget {
   const NewChatScreen({Key? key}) : super(key: key);
@@ -15,42 +19,88 @@ class NewChatScreen extends StatefulWidget {
 class _NewChatScreenState extends State<NewChatScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   final RxString _searchQuery = ''.obs;
-
-  // Realistic mock users
-  final List<MockContact> _allContacts = [
-    MockContact(name: 'Aisha Khan', username: 'aisha_k', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120', isOnline: true, isVerified: true, vipLevel: 3),
-    MockContact(name: 'Arjun Verma', username: 'arjun_v', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120', isOnline: true, isVerified: false, vipLevel: 0),
-    MockContact(name: 'Bhavna Sharma', username: 'bhavna_s', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120', isOnline: false, isVerified: true, vipLevel: 1),
-    MockContact(name: 'Chirag Sen', username: 'chirag_sen', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120', isOnline: true, isVerified: false, vipLevel: 4),
-    MockContact(name: 'Devika Nair', username: 'devika_n', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120', isOnline: true, isVerified: true, vipLevel: 5),
-    MockContact(name: 'Kabir Malhotra', username: 'kabir_m', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120', isOnline: true, isVerified: false, vipLevel: 2),
-    MockContact(name: 'Mehak Sharma', username: 'mehak_s', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=120', isOnline: true, isVerified: true, vipLevel: 0),
-    MockContact(name: 'Pranav Joshi', username: 'pranav_j', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120', isOnline: false, isVerified: false, vipLevel: 1),
-    MockContact(name: 'Riya Singh', username: 'riya_s', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120', isOnline: true, isVerified: true, vipLevel: 3),
-    MockContact(name: 'Vivek Raj', username: 'vivek_r', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120', isOnline: true, isVerified: false, vipLevel: 0),
-    MockContact(name: 'Zoya Qureshi', username: 'zoya_q', avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=120', isOnline: true, isVerified: true, vipLevel: 5),
-  ];
+  final RxList<User> _realContacts = <User>[].obs;
+  final RxList<User> _searchResultsList = <User>[].obs;
+  final RxBool _isLoading = false.obs;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
+    _fetchRealProfiles();
     _searchCtrl.addListener(() {
       _searchQuery.value = _searchCtrl.text;
+      _searchProfilesFromSupabase(_searchCtrl.text);
+    });
+  }
+
+  void _fetchRealProfiles() async {
+    _isLoading.value = true;
+    try {
+      final currentUid = UserProfileCacheManager.currentUserId;
+      final response = await Supabase.instance.client
+          .from('profiles')
+          .select()
+          .limit(50);
+      
+      final List<User> loaded = [];
+      if (response != null) {
+        for (final item in response) {
+          final uObj = User.fromJson(item);
+          if (uObj.id != currentUid) {
+            loaded.add(uObj);
+          }
+        }
+      }
+      _realContacts.assignAll(loaded);
+    } catch (e) {
+      debugPrint('Error fetching real profiles: $e');
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
+  void _searchProfilesFromSupabase(String query) {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      final cleanQuery = query.trim();
+      if (cleanQuery.isEmpty) {
+        _searchResultsList.clear();
+        return;
+      }
+      try {
+        final currentUid = UserProfileCacheManager.currentUserId;
+        var queryBuilder = Supabase.instance.client.from('profiles').select();
+        
+        final isUuid = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(cleanQuery);
+        if (isUuid) {
+          queryBuilder = queryBuilder.eq('id', cleanQuery);
+        } else {
+          queryBuilder = queryBuilder.ilike('username', '%$cleanQuery%');
+        }
+
+        final response = await queryBuilder.limit(20);
+        final List<User> loaded = [];
+        if (response != null) {
+          for (final item in response) {
+            final uObj = User.fromJson(item);
+            if (uObj.id != currentUid) {
+              loaded.add(uObj);
+            }
+          }
+        }
+        _searchResultsList.assignAll(loaded);
+      } catch (e) {
+        debugPrint('Error searching profiles: $e');
+      }
     });
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
-  }
-
-  List<MockContact> get _filteredContacts {
-    final query = _searchQuery.value.trim().toLowerCase();
-    if (query.isEmpty) return _allContacts;
-    return _allContacts.where((c) {
-      return c.name.toLowerCase().contains(query) || c.username.toLowerCase().contains(query);
-    }).toList();
   }
 
   @override
@@ -77,6 +127,9 @@ class _NewChatScreenState extends State<NewChatScreen> {
           _buildSearchBar(),
           Expanded(
             child: Obx(() {
+              if (_isLoading.value) {
+                return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
+              }
               final query = _searchQuery.value;
               if (query.isNotEmpty) {
                 return _buildSearchResults();
@@ -129,7 +182,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   Widget _buildSearchResults() {
-    final list = _filteredContacts;
+    final list = _searchResultsList;
     if (list.isEmpty) {
       return Center(
         child: Text(
@@ -146,29 +199,60 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   Widget _buildMainContent() {
-    // Group categories
-    final recents = _allContacts.take(4).toList();
-    final online = _allContacts.where((c) => c.isOnline).toList();
-    final suggested = _allContacts.where((c) => c.vipLevel >= 3).toList();
+    // 1. Recent Contacts: Only users actually chatted with (from ChatController.to.conversations)
+    final recents = ChatController.to.conversations.take(4).toList();
+    
+    // 2. Online Friends: Filter from real active chat list where online status is true
+    final online = ChatController.to.conversations.where((c) => c.otherUserOnline).toList();
+    
+    // 3. Suggested Creators: Real high-level/vip users returned by backend
+    final suggested = _realContacts.where((u) => u.vipLevel > 0 || u.level > 1).toList();
 
     return ListView(
       physics: const BouncingScrollPhysics(),
       children: [
         // Recent Contacts Horizontal List
-        _buildSectionHeader('Recent Contacts'),
-        _buildHorizontalUserRow(recents),
+        if (recents.isNotEmpty) ...[
+          _buildSectionHeader('Recent Contacts'),
+          _buildHorizontalConversationRow(recents),
+        ],
 
         // Online Friends Horizontal List
-        _buildSectionHeader('Online Friends'),
-        _buildHorizontalUserRow(online),
+        if (online.isNotEmpty) ...[
+          _buildSectionHeader('Online Friends'),
+          _buildHorizontalConversationRow(online),
+        ],
 
         // Suggested Users
-        _buildSectionHeader('Suggested Creators'),
-        ...suggested.map((c) => _contactTile(c)),
+        if (suggested.isNotEmpty) ...[
+          _buildSectionHeader('Suggested Creators'),
+          ...suggested.map((u) => _contactTile(u)),
+        ],
 
         // Alphabetical list header
-        _buildSectionHeader('All Contacts (A-Z)'),
-        ..._allContacts.map((c) => _contactTile(c)),
+        if (_realContacts.isNotEmpty) ...[
+          _buildSectionHeader('All Contacts (A-Z)'),
+          ..._realContacts.map((u) => _contactTile(u)),
+        ],
+
+        // Clean Empty State if no real contacts exist
+        if (_realContacts.isEmpty && recents.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 80.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline_rounded, size: 48, color: AppTheme.textTertiary.withOpacity(0.5)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No contacts found',
+                    style: GoogleFonts.outfit(color: AppTheme.textTertiary, fontSize: 15),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
         const SizedBox(height: 40),
       ],
@@ -203,17 +287,17 @@ class _NewChatScreenState extends State<NewChatScreen> {
     );
   }
 
-  Widget _buildHorizontalUserRow(List<MockContact> users) {
+  Widget _buildHorizontalConversationRow(List<Conversation> convs) {
     return SizedBox(
       height: 96,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: users.length,
+        itemCount: convs.length,
         itemBuilder: (context, idx) {
-          final u = users[idx];
+          final c = convs[idx];
           return GestureDetector(
-            onTap: () => _openPrivateChat(u),
+            onTap: () => _openPrivateChat(c),
             child: Container(
               width: 72,
               margin: const EdgeInsets.only(right: 12),
@@ -226,16 +310,16 @@ class _NewChatScreenState extends State<NewChatScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: u.vipLevel > 0 ? AppTheme.accentColor : Colors.transparent,
-                            width: u.vipLevel > 0 ? 1.5 : 0,
+                            color: c.level > 0 ? AppTheme.accentColor : Colors.transparent,
+                            width: c.level > 0 ? 1.5 : 0,
                           ),
                         ),
                         child: CircleAvatar(
                           radius: 24,
-                          backgroundImage: NetworkImage(u.avatar),
+                          backgroundImage: NetworkImage(c.otherUserAvatar),
                         ),
                       ),
-                      if (u.isOnline)
+                      if (c.otherUserOnline)
                         Positioned(
                           bottom: 2,
                           right: 2,
@@ -253,7 +337,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    u.name.split(' ').first,
+                    c.otherUserName.split(' ').first,
                     style: GoogleFonts.outfit(
                       color: AppTheme.textSecondary,
                       fontSize: 12,
@@ -272,9 +356,9 @@ class _NewChatScreenState extends State<NewChatScreen> {
     );
   }
 
-  Widget _contactTile(MockContact contact) {
+  Widget _contactTile(User contact) {
     return ListTile(
-      onTap: () => _openPrivateChat(contact),
+      onTap: () => _openPrivateChatForUser(contact),
       leading: Stack(
         children: [
           Container(
@@ -288,10 +372,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
             ),
             child: CircleAvatar(
               radius: 22,
-              backgroundImage: NetworkImage(contact.avatar),
+              backgroundImage: NetworkImage(contact.avatar ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'),
             ),
           ),
-          if (contact.isOnline)
+          if (contact.onlineStatus)
             Positioned(
               bottom: 1,
               right: 1,
@@ -310,7 +394,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       title: Row(
         children: [
           Text(
-            contact.name,
+            contact.displayName,
             style: GoogleFonts.outfit(
               color: AppTheme.textPrimary,
               fontWeight: FontWeight.w600,
@@ -357,42 +441,27 @@ class _NewChatScreenState extends State<NewChatScreen> {
     );
   }
 
-  void _openPrivateChat(MockContact contact) {
-    // Generate a dummy conversation object
+  void _openPrivateChat(Conversation conv) {
+    Get.to(() => ChatScreen(conversation: conv));
+  }
+
+  void _openPrivateChatForUser(User u) {
     final conv = Conversation(
-      id: 'conv_${contact.username}',
-      otherUserId: contact.username,
-      otherUserName: contact.name,
-      otherUserAvatar: contact.avatar,
-      otherUserOnline: contact.isOnline,
-      isVerified: contact.isVerified,
-      lastMessage: 'Let\'s start talking!',
+      id: 'conv_${u.id}',
+      otherUserId: u.id,
+      otherUserName: u.displayName,
+      otherUserAvatar: u.avatar ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      otherUserOnline: u.onlineStatus,
+      isVerified: u.isVerified,
+      lastMessage: '',
       lastMessageTime: DateTime.now(),
       unreadCount: 0,
       isPinned: false,
       isMuted: false,
-      levelTitle: 'VIP ${contact.vipLevel}',
-      level: contact.vipLevel,
+      levelTitle: 'VIP ${u.vipLevel}',
+      level: u.vipLevel,
       lastMessageSenderId: 'me',
     );
     Get.to(() => ChatScreen(conversation: conv));
   }
-}
-
-class MockContact {
-  final String name;
-  final String username;
-  final String avatar;
-  final bool isOnline;
-  final bool isVerified;
-  final int vipLevel;
-
-  MockContact({
-    required this.name,
-    required this.username,
-    required this.avatar,
-    required this.isOnline,
-    required this.isVerified,
-    required this.vipLevel,
-  });
 }
