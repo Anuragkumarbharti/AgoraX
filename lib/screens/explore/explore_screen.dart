@@ -279,70 +279,7 @@ class _ExploreScreenState extends State<ExploreScreen>
       debugPrint('Error loading explore users from DB: $e');
     }
 
-    // Fallback Mock Users seeding if DB is empty or fails
-    if (_users.isEmpty) {
-      final mockUsers = List.generate(
-          8,
-          (i) => User(
-                id: 'usr$i',
-                username: [
-                  'top_coder',
-                  'flutter_queen',
-                  'ai_wizard',
-                  'open_src_king',
-                  'dsa_grinder',
-                  'react_dev',
-                  'cloud_arch',
-                  'mobile_guru'
-                ][i],
-                email: '',
-                displayName: [
-                  'Rahul Tiwari',
-                  'Sneha Kapoor',
-                  'Nikhil Gupta',
-                  'Tanvi Shah',
-                  'Mohit Yadav',
-                  'Ritika Singh',
-                  'Saurabh Verma',
-                  'Pooja Mishra'
-                ][i],
-                avatar: [
-                  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
-                  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150',
-                  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150',
-                  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150',
-                  'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150',
-                  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-                ][i % 8],
-                sid: '204${810 + i}',
-                interests: [],
-                communities: ['c1', 'c2'],
-                followers: 800 + i * 400,
-                following: 200 + i * 80,
-                isVerified: i % 3 == 0,
-                isPremium: i % 4 == 0,
-                reputation: 2000 + i * 600,
-                level: 8 + i * 2,
-                xp: 2000 + i * 800,
-                totalXp: 6000,
-                totalPosts: 30 + i * 15,
-                totalQuestions: 8 + i * 4,
-                badges: ['🏆 Top Contributor'],
-                levelTitle: i < 4 ? 'Expert' : 'Legend',
-                vipLevel: i % 3 == 0 ? 2 : 0,
-                novelLevel: i % 4 == 0 ? 1 : 0,
-                careerLevel: 1,
-                avatarFrame: 'Normal',
-              ));
-      if (mounted) {
-        setState(() {
-          _users.clear();
-          _users.addAll(mockUsers);
-        });
-      }
-    }
+    // Fallback Mock Users seeding removed to comply with no mock data rules
   }
 
   @override

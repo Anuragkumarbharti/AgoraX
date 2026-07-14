@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import 'user_profile_screen.dart';
@@ -40,26 +41,29 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
   void _loadConnections() async {
     try {
       final currentUserId = UserProfileCacheManager.currentUserId;
-      final List<dynamic> list = await Supabase.instance.client
+      final prefs = await SharedPreferences.getInstance();
+      final followedIds = prefs.getStringList('followed_user_ids') ?? [];
+      
+      if (followedIds.isEmpty) {
+        _followingList.clear();
+        _followersList.clear();
+        return;
+      }
+      
+      final response = await Supabase.instance.client
           .from('profiles')
           .select()
-          .limit(20);
+          .in_('id', followedIds);
       
-      final loadedUsers = list
-          .map((m) => User.fromJson({
-                'id': m['id'],
-                'username': m['username'] ?? '',
-                'displayName': m['username'] ?? '',
-                'avatar': m['avatar_url'] ?? '',
-                'followers': m['followers'] ?? 0,
-                'following': m['following'] ?? 0,
-                'level': m['level'] ?? 1,
-              }))
-          .where((u) => u.id != currentUserId)
-          .toList();
-
-      _followersList.assignAll(loadedUsers);
-      _followingList.assignAll(loadedUsers);
+      final List<User> loadedFollowing = [];
+      if (response != null) {
+        for (final item in response) {
+          loadedFollowing.add(User.fromJson(item));
+        }
+      }
+      
+      _followingList.assignAll(loadedFollowing);
+      _followersList.clear(); // Empty state by default since no real follower rows exist locally
     } catch (_) {
       _followersList.clear();
       _followingList.clear();
