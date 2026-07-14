@@ -243,7 +243,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   }
 
   void _joinArena(VoiceRoom room) {
-    if (room.isPrivate) {
+    if (room.entryPermission != 'everyone') {
       final currentUid = UserProfileCacheManager.currentUserId;
       final allowed = room.coOwnerIds.contains(currentUid) ||
                       room.adminIds.contains(currentUid) ||
@@ -576,7 +576,14 @@ class _ChatsListScreenState extends State<ChatsListScreen>
             children: [
               // Avatar with frame and online indicator
               GestureDetector(
-                onTap: () => Get.to(() => UserProfileScreen(userId: conv.otherUserId)),
+                onTap: () => Get.to(() => UserProfileScreen(
+                      user: UserProfileCacheManager.getCachedUser(conv.otherUserId) ?? User.fromJson({
+                        'id': conv.otherUserId,
+                        'username': conv.otherUserName,
+                        'displayName': conv.otherUserName,
+                        'avatar_url': conv.otherUserAvatar,
+                      }),
+                    )),
                 child: Stack(
                   children: [
                     Container(
@@ -639,7 +646,14 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                     Row(
                       children: [
                         GestureDetector(
-                          onTap: () => Get.to(() => UserProfileScreen(userId: conv.otherUserId)),
+                          onTap: () => Get.to(() => UserProfileScreen(
+                                user: UserProfileCacheManager.getCachedUser(conv.otherUserId) ?? User.fromJson({
+                                  'id': conv.otherUserId,
+                                  'username': conv.otherUserName,
+                                  'displayName': conv.otherUserName,
+                                  'avatar_url': conv.otherUserAvatar,
+                                }),
+                              )),
                           child: Text(
                             conv.otherUserName,
                             style: GoogleFonts.outfit(
