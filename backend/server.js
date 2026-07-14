@@ -92,6 +92,7 @@ app.get('/health', (req, res) => {
 });
 
 // Socket.IO Event Engine
+// Socket.IO Event Engine
 io.on('connection', async (socket) => {
   const userId = socket.handshake.query.userId;
   if (!userId) {
@@ -102,48 +103,53 @@ io.on('connection', async (socket) => {
   activeUsers.set(userId, socket.id);
   console.log(`User registered: ${userId} (Socket: ${socket.id})`);
 
-  // Broadcast online status
-  socket.broadcast.emit('user_presence', { userId, status: 'online' });
+  // Broadcast presence update (online)
+  io.emit('presence_update', { userId, status: 'online' });
 
-  // 1. Drain offline Redis/Memory Queue
+  // 1. Heartbeat ping-pong
+  socket.on('heartbeat', () => {
+    socket.emit('heartbeat', { status: 'alive' });
+  });
+
+  // 2. Drain offline Redis/Memory Queue
   try {
     const offlineMsgs = await hGetAllQueue(userId);
     if (offlineMsgs && Object.keys(offlineMsgs).length > 0) {
       console.log(`Draining ${Object.keys(offlineMsgs).length} offline messages to user ${userId}...`);
       for (const [msgId, payloadStr] of Object.entries(offlineMsgs)) {
         const payload = JSON.parse(payloadStr);
-        socket.emit('receive_message', payload);
+        socket.emit('message', payload);
       }
     }
   } catch (err) {
     console.error(`Error draining queue for user ${userId}:`, err);
   }
 
-  // 2. Relay Message
-  socket.on('send_message', async (payload) => {
+  // 3. Relay Message (E2EE payload)
+  socket.on('message', async (payload) => {
     try {
       const { id, senderId, receiverId } = payload;
       const receiverSocketId = activeUsers.get(receiverId);
 
-      // Store in receiver's queue instantly (fail-safe fallback)
+      // Store in receiver's delivery queue instantly
       await hSetQueue(receiverId, id, payload);
 
       if (receiverSocketId) {
         // Receiver is online, relay instantly
-        io.to(receiverSocketId).emit('receive_message', payload);
+        io.to(receiverSocketId).emit('message', payload);
         console.log(`Relayed message ${id} from ${senderId} to online receiver ${receiverId}`);
       } else {
         console.log(`Buffered message ${id} from ${senderId} in queue for offline receiver ${receiverId}`);
       }
 
-      // ACK to sender that message reached the relay server
+      // ACK to sender that message reached the relay server (Single Tick)
       socket.emit('server_ack', { messageId: id, status: 'sent' });
     } catch (err) {
-      console.error('Error handling send_message:', err);
+      console.error('Error handling message:', err);
     }
   });
 
-  // 3. Delivery Acknowledgment (triggered when recipient saves message to local Isar)
+  // 4. Delivery Acknowledgment (triggered when recipient saves message to local Isar)
   socket.on('delivery_ack', async (data) => {
     try {
       const { messageId, senderId, receiverId } = data;
@@ -152,7 +158,7 @@ io.on('connection', async (socket) => {
       await hDelQueue(receiverId, messageId);
       console.log(`Purged delivered message ${messageId} from queue of user ${receiverId}`);
 
-      // Forward delivery status update to sender
+      // Forward delivery status update to sender (Double Grey Tick)
       const senderSocketId = activeUsers.get(senderId);
       if (senderSocketId) {
         io.to(senderSocketId).emit('delivery_ack', { messageId, status: 'delivered' });
@@ -162,39 +168,68 @@ io.on('connection', async (socket) => {
     }
   });
 
-  // 4. Read Acknowledgment (triggered when recipient opens chat screen)
+  // 5. Read Acknowledgment (triggered when recipient opens chat screen)
   socket.on('read_ack', async (data) => {
     try {
-      const { conversationId, receiverId } = data;
+      const { messageId, senderId, receiverId, conversationId } = data;
 
-      // Forward read receipts to the conversation participant
+      // Forward read receipts to the conversation participant (Double Blue Tick)
       const senderSocketId = activeUsers.get(receiverId);
       if (senderSocketId) {
-        io.to(senderSocketId).emit('read_ack', { conversationId, status: 'read' });
+        io.to(senderSocketId).emit('read_ack', { messageId, conversationId, status: 'read' });
       }
     } catch (err) {
       console.error('Error handling read_ack:', err);
     }
   });
 
-  // 5. Typing Indicator Relay
-  socket.on('typing_state', (data) => {
+  // 6. Typing Indicators (typing_start & typing_stop)
+  socket.on('typing_start', (data) => {
     try {
-      const { conversationId, isTyping } = data;
-      // Broadcast to other participant
-      socket.broadcast.emit('typing_state', { conversationId, isTyping });
+      const { conversationId, receiverId } = data;
+      const receiverSocketId = activeUsers.get(receiverId);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('typing_start', { conversationId, senderId: userId });
+      }
     } catch (err) {
-      console.error('Error handling typing_state:', err);
+      console.error('Error handling typing_start:', err);
     }
   });
 
-  // 6. Handle Disconnection
+  socket.on('typing_stop', (data) => {
+    try {
+      const { conversationId, receiverId } = data;
+      const receiverSocketId = activeUsers.get(receiverId);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('typing_stop', { conversationId, senderId: userId });
+      }
+    } catch (err) {
+      console.error('Error handling typing_stop:', err);
+    }
+  });
+
+  // 7. Request presence status / last seen manually
+  socket.on('last_seen_update', (data) => {
+    try {
+      const { targetUserId } = data;
+      const isOnline = activeUsers.has(targetUserId);
+      socket.emit('last_seen_update', {
+        userId: targetUserId,
+        status: isOnline ? 'online' : 'offline',
+        lastSeen: isOnline ? null : new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Error handling last_seen_update:', err);
+    }
+  });
+
+  // 8. Handle Disconnection
   socket.on('disconnect', () => {
     activeUsers.delete(userId);
     console.log(`User disconnected: ${userId}`);
     
-    // Broadcast offline presence with last seen timestamp
-    socket.broadcast.emit('user_presence', { 
+    // Broadcast presence update (offline with lastSeen timestamp)
+    io.emit('presence_update', { 
       userId, 
       status: 'offline', 
       lastSeen: new Date().toISOString() 
