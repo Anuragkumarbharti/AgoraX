@@ -453,7 +453,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       ),
                       const SizedBox(width: 8),
                       // VTag shown first with breathing pulse animation
-                      BreathingVTag(
+                      _BreathingVTag(
                         level: getVTagLevel(_user),
                         onTap: () {
                           Get.snackbar('Verification Info', 'This user is verified at the ${getVTagLevel(_user).toUpperCase()} tier.');
@@ -1639,21 +1639,21 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   }
 }
 
-class BreathingVTag extends StatefulWidget {
+class _BreathingVTag extends StatefulWidget {
   final String level;
   final VoidCallback? onTap;
 
-  const BreathingVTag({
+  const _BreathingVTag({
     Key? key,
     required this.level,
     this.onTap,
   }) : super(key: key);
 
   @override
-  State<BreathingVTag> createState() => _BreathingVTagState();
+  State<_BreathingVTag> createState() => _BreathingVTagState();
 }
 
-class _BreathingVTagState extends State<BreathingVTag> with SingleTickerProviderStateMixin {
+class _BreathingVTagState extends State<_BreathingVTag> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -1736,7 +1736,7 @@ class _BreathingVTagState extends State<BreathingVTag> with SingleTickerProvider
                 style: TextStyle(
                   color: widget.level.toLowerCase() == 'diamond' ? Colors.cyanAccent : badgeColor,
                   fontSize: 10,
-                  fontWeight: FontWeight.black,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),
