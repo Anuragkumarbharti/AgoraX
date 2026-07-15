@@ -99,7 +99,7 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: context.scaffoldBackgroundColor,
+      backgroundColor: AppTheme.darkBg,
       body: Stack(
         children: [
           // 1. Subtle Animated Gradient Background
@@ -114,15 +114,15 @@ class _SplashScreenState extends State<SplashScreen>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      context.scaffoldBackgroundColor,
+                      AppTheme.darkBg,
                       Color.lerp(
-                        context.scaffoldBackgroundColor,
-                        Color(0xFF1E1B4B),
+                        AppTheme.darkBg,
+                        AppTheme.darkPrimary,
                         0.4 + 0.1 * sin(_particleController.value * 2 * pi),
                       )!,
                       Color.lerp(
-                        context.scaffoldBackgroundColor,
-                        Color(0xFF311B92),
+                        AppTheme.darkBg,
+                        AppTheme.darkAccentPurple,
                         0.2 + 0.1 * cos(_particleController.value * 2 * pi),
                       )!,
                     ],
@@ -165,14 +165,14 @@ class _SplashScreenState extends State<SplashScreen>
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            context.primaryColor,
+                            AppTheme.darkPrimary,
                             AppTheme.secondaryColor,
                           ],
                         ),
                         borderRadius: BorderRadius.circular(32),
                         boxShadow: [
                           BoxShadow(
-                            color: context.primaryColor.withOpacity(0.3),
+                            color: AppTheme.darkPrimary.withOpacity(0.3),
                             blurRadius: 30,
                             spreadRadius: 5,
                           ),
@@ -211,7 +211,7 @@ class _SplashScreenState extends State<SplashScreen>
                         'Creania',
                         style: GoogleFonts.outfit(
                           fontSize: 40,
-                          color: context.textPrimary,
+                          color: AppTheme.darkTextPrimary,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.5,
                         ),
@@ -223,7 +223,7 @@ class _SplashScreenState extends State<SplashScreen>
                         'Create. Connect. Grow.',
                         style: GoogleFonts.poppins(
                           fontSize: 16,
-                          color: context.accentOrange,
+                          color: AppTheme.darkAccentOrange,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 2.0,
                         ),
@@ -238,7 +238,7 @@ class _SplashScreenState extends State<SplashScreen>
                           textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
                             fontSize: 11,
-                            color: context.textSecondary.withOpacity(0.7),
+                            color: AppTheme.darkTextSecondary.withOpacity(0.7),
                             fontWeight: FontWeight.w500,
                             height: 1.8,
                             letterSpacing: 0.5,

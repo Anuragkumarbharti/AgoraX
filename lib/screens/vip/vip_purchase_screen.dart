@@ -35,6 +35,16 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
     '12 Months',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    if (_vipCtrl.vipLevel.value > 2) {
+      selectedLevel = 2;
+    } else {
+      selectedLevel = _vipCtrl.vipLevel.value.clamp(1, 2);
+    }
+  }
+
   // Pricing Matrix based on VIP level & duration
   final Map<int, Map<String, double>> pricingMatrix = {
     1: {
@@ -203,17 +213,70 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                 SizedBox(height: 18),
                 _buildLevelSelectors(),
                 SizedBox(height: 18),
-                _buildCosmeticsPreviewCard(themeColor),
-                SizedBox(height: 18),
-                _buildDurationSelectorCard(themeColor),
-                SizedBox(height: 18),
-                _buildBenefitsCard(themeColor),
-                SizedBox(height: 18),
-                _buildPaymentSection(themeColor),
-                SizedBox(height: 20),
-                _buildSimulationDevTools(),
+                if (selectedLevel <= 2) ...[
+                  _buildCosmeticsPreviewCard(themeColor),
+                  SizedBox(height: 18),
+                  _buildDurationSelectorCard(themeColor),
+                  SizedBox(height: 18),
+                  _buildBenefitsCard(themeColor),
+                  SizedBox(height: 18),
+                  _buildPaymentSection(themeColor),
+                  SizedBox(height: 20),
+                  _buildSimulationDevTools(),
+                ] else ...[
+                  _buildComingSoonWidget(themeColor),
+                ],
                 SizedBox(height: 40),
               ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComingSoonWidget(Color themeColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: themeColor.withOpacity(0.2), width: 1.5),
+        boxShadow: context.smallShadow,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: themeColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.auto_awesome_outlined,
+              size: 52,
+              color: themeColor,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Coming Soon',
+            style: GoogleFonts.outfit(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: context.textPrimary,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'We are currently designing premium benefits and custom cosmetics for this VIP tier. Stay tuned!',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: context.textSecondary,
+              height: 1.6,
             ),
           ),
         ],
@@ -226,9 +289,16 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
       pinned: true,
       expandedHeight: 150,
       backgroundColor: context.scaffoldBackgroundColor,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
-        onPressed: () => Get.back(),
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.32),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 18),
+          onPressed: () => Get.back(),
+        ),
       ),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
@@ -279,23 +349,14 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
       return Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            colors: hasVip
-                ? [
-                    getLevelTheme(currentLevel)['color'].withOpacity(0.2),
-                    Colors.white.withOpacity(0.02),
-                  ]
-                : [
-                    Colors.white.withOpacity(0.04),
-                    Colors.white.withOpacity(0.01),
-                  ],
-          ),
           border: Border.all(
             color: hasVip
                 ? getLevelTheme(currentLevel)['color'].withOpacity(0.3)
-                : Colors.white12,
+                : context.borderColor,
           ),
+          boxShadow: context.smallShadow,
         ),
         child: Row(
           children: [
@@ -305,7 +366,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                 Text(
                   hasVip ? 'ACTIVE SUBSCRIPTION' : 'VIP STATUS: INACTIVE',
                   style: GoogleFonts.poppins(
-                    color: hasVip ? Color(0xFFFFD700) : Colors.white60,
+                    color: hasVip ? context.accentGold : context.caption,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.5,
@@ -317,7 +378,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                     Text(
                       hasVip ? 'Creania VIP Level $currentLevel' : 'Not Subscribed yet',
                       style: GoogleFonts.outfit(
-                        color: Colors.white,
+                        color: context.textPrimary,
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
                       ),
@@ -332,7 +393,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                 Text(
                   hasVip ? 'Time Remaining: ${remaining['displayText']}' : 'Join today to unlock premium status',
                   style: GoogleFonts.poppins(
-                    color: Colors.white70,
+                    color: context.textSecondary,
                     fontSize: 11,
                   ),
                 ),
@@ -400,12 +461,12 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                 children: [
                   Text(
                     'VIP Membership Expiring',
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 2),
                   Text(
                     'Your membership expires in $timeText. Renew now to maintain your VIP status & perks.',
-                    style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10),
+                    style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 10),
                   ),
                 ],
               ),
@@ -423,7 +484,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
         Text(
           'Select VIP Tier',
           style: GoogleFonts.poppins(
-            color: Colors.white,
+            color: context.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
@@ -433,7 +494,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
           height: 90,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: 7,
+            itemCount: 2,
             separatorBuilder: (_, __) => SizedBox(width: 8),
             itemBuilder: (context, i) {
               final levelNum = i + 1;
@@ -451,12 +512,13 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                   duration: const Duration(milliseconds: 200),
                   width: 90,
                   decoration: BoxDecoration(
-                    color: isSel ? color.withOpacity(0.12) : Colors.white.withOpacity(0.02),
+                    color: isSel ? color.withOpacity(0.12) : context.surfaceColor,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSel ? color : Colors.white.withOpacity(0.05),
+                      color: isSel ? color : context.borderColor,
                       width: isSel ? 2 : 1,
                     ),
+                    boxShadow: isSel ? null : context.smallShadow,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -466,7 +528,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                       Text(
                         'VIP $levelNum',
                         style: GoogleFonts.outfit(
-                          color: isSel ? Colors.white : Colors.white70,
+                          color: isSel ? color : context.textSecondary,
                           fontWeight: FontWeight.w900,
                           fontSize: 12,
                         ),
@@ -474,7 +536,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                       Text(
                         lvlTheme['name'].toString().split(' ')[0],
                         style: GoogleFonts.poppins(
-                          color: isSel ? color : Colors.white30,
+                          color: isSel ? color : context.caption,
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
                         ),
@@ -494,9 +556,10 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.01),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor),
+        boxShadow: context.smallShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -504,7 +567,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
           Text(
             'Cosmetic Avatar & Badge Preview',
             style: GoogleFonts.poppins(
-              color: Colors.white,
+              color: context.textPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 11,
             ),
@@ -518,7 +581,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                 child: Container(
                   color: themeColor.withOpacity(0.2),
                   child: Center(
-                    child: Text('Avatar', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                    child: Text('Avatar', style: TextStyle(color: context.textSecondary, fontSize: 10)),
                   ),
                 ),
               ),
@@ -533,9 +596,9 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                           UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student',
                           style: GoogleFonts.poppins(
                             color: selectedLevel == 3
-                                ? Color(0xFFFFD700)
+                                ? context.accentGold
                                 : selectedLevel == 7
-                                    ? Color(0xFFFFD700)
+                                    ? context.accentGold
                                     : themeColor,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -556,7 +619,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                       child: Text(
                         '💬 Active VIP Chat Bubble preview!',
                         style: GoogleFonts.poppins(
-                          color: Colors.white,
+                          color: context.textPrimary,
                           fontSize: 10,
                         ),
                       ),
@@ -578,7 +641,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
         Text(
           'Select Plan Duration',
           style: GoogleFonts.poppins(
-            color: Colors.white,
+            color: context.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
@@ -607,12 +670,13 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                   width: 100,
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSel ? themeColor.withOpacity(0.12) : Colors.white.withOpacity(0.02),
+                    color: isSel ? themeColor.withOpacity(0.12) : context.surfaceColor,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSel ? themeColor : Colors.white.withOpacity(0.05),
+                      color: isSel ? themeColor : context.borderColor,
                       width: isSel ? 2 : 1,
                     ),
+                    boxShadow: isSel ? null : context.smallShadow,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -620,7 +684,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                       Text(
                         dur,
                         style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: isSel ? themeColor : context.textSecondary,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -630,7 +694,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                         Text(
                           '₹${basePrice.toInt()}',
                           style: GoogleFonts.poppins(
-                            color: Colors.white30,
+                            color: context.caption,
                             fontSize: 10,
                             decoration: TextDecoration.lineThrough,
                           ),
@@ -639,7 +703,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                       Text(
                         '₹${finalPrice.toInt()}',
                         style: GoogleFonts.poppins(
-                          color: isSel ? themeColor : Color(0xFFFBBF24),
+                          color: isSel ? themeColor : context.accentOrange,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -661,9 +725,10 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.01),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor),
+        boxShadow: context.smallShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -674,7 +739,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
               Text(
                 'VIP Level $selectedLevel Privileges',
                 style: GoogleFonts.outfit(
-                  color: Colors.white,
+                  color: context.textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
@@ -690,7 +755,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: benefits.length,
-            separatorBuilder: (_, __) => Divider(color: Colors.white10, height: 12),
+            separatorBuilder: (_, __) => Divider(color: context.borderColor, height: 12),
             itemBuilder: (context, i) {
               return Row(
                 children: [
@@ -700,8 +765,8 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                     child: Text(
                       benefits[i],
                       style: GoogleFonts.poppins(
-                        color: Colors.white70,
-                        fontSize: 11,
+                        color: context.textSecondary,
+                        fontSize: 11.5,
                       ),
                     ),
                   ),
@@ -721,9 +786,10 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: context.borderColor),
+        boxShadow: context.smallShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -731,7 +797,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
           Text(
             'Payment & Checkout',
             style: GoogleFonts.poppins(
-              color: Colors.white,
+              color: context.textPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
@@ -745,16 +811,16 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                   height: 38,
                   child: TextField(
                     controller: _couponTextCtrl,
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 11),
+                    style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 11),
                     decoration: InputDecoration(
                       hintText: 'Enter Promo Code (e.g. ROYALVIP)',
-                      hintStyle: GoogleFonts.poppins(color: Colors.white30, fontSize: 10),
-                      fillColor: Colors.white.withOpacity(0.02),
+                      hintStyle: GoogleFonts.poppins(color: context.placeholder, fontSize: 10),
+                      fillColor: context.scaffoldBackgroundColor,
                       filled: true,
                       contentPadding: EdgeInsets.symmetric(horizontal: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                        borderSide: BorderSide(color: context.borderColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -791,12 +857,12 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
             children: [
               Text(
                 'Total Payable:',
-                style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
               ),
               Text(
                 '₹${finalPrice.toInt()}',
                 style: GoogleFonts.poppins(
-                  color: Color(0xFFFFC107),
+                  color: context.accentGold,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
@@ -851,7 +917,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
       Container(
         padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Color(0xFF16161A),
+          color: context.surfaceColor,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -866,15 +932,15 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
               children: [
                 Text(
                   'Select Payment Mode',
-                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.outfit(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
-                  icon: Icon(Icons.close_rounded, color: Colors.white38),
+                  icon: Icon(Icons.close_rounded, color: context.caption),
                   onPressed: () => Get.back(),
                 ),
               ],
             ),
-            Divider(color: Colors.white10),
+            Divider(color: context.borderColor),
             SizedBox(height: 10),
             _paymentTile('UPI / QR Code', 'Pay using Google Pay, PhonePe, Paytm or Scan QR Code', Icons.mobile_friendly_rounded, () => _startUpiQrPayment(price)),
             _paymentTile('Credit / Debit Card', 'Visa, Mastercard, RuPay', Icons.credit_card_rounded, () => _completePurchase(price)),
@@ -891,14 +957,14 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
       leading: Container(
         padding: EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.03),
+          color: context.secondaryBackgroundColor,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Color(0xFFFFC107), size: 20),
+        child: Icon(icon, color: context.accentGold, size: 20),
       ),
-      title: Text(title, style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-      subtitle: Text(desc, style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9)),
-      trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 12),
+      title: Text(title, style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
+      subtitle: Text(desc, style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 9)),
+      trailing: Icon(Icons.arrow_forward_ios_rounded, color: context.caption, size: 12),
       onTap: onTap,
     );
   }
@@ -912,17 +978,18 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
         child: Container(
           padding: EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Color(0xFF1C1917),
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: context.borderColor),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: Color(0xFFFFC107)),
+              CircularProgressIndicator(color: context.accentGold),
               SizedBox(height: 16),
               Text(
                 'Generating secure UPI QR Order...',
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12, decoration: TextDecoration.none),
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, decoration: TextDecoration.none),
               ),
             ],
           ),
@@ -963,17 +1030,18 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                 child: Container(
                   padding: EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Color(0xFF1C1917),
+                    color: context.surfaceColor,
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: context.borderColor),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(color: Color(0xFFFFC107)),
+                      CircularProgressIndicator(color: context.accentGold),
                       SizedBox(height: 16),
                       Text(
                         'Verifying signature & activating VIP...',
-                        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12, decoration: TextDecoration.none),
+                        style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, decoration: TextDecoration.none),
                       ),
                     ],
                   ),
@@ -1032,17 +1100,18 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
         child: Container(
           padding: EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Color(0xFF1C1917),
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: context.borderColor),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: Color(0xFFFFC107)),
+              CircularProgressIndicator(color: context.accentGold),
               SizedBox(height: 16),
               Text(
                 'Authorizing secure gateway...',
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12, decoration: TextDecoration.none),
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, decoration: TextDecoration.none),
               ),
             ],
           ),
@@ -1069,9 +1138,10 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.01),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.withOpacity(0.15)),
+        border: Border.all(color: context.errorColor.withOpacity(0.15)),
+        boxShadow: context.smallShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1079,7 +1149,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
           Text(
             '⚠️ Developer Sandbox Tools',
             style: GoogleFonts.poppins(
-              color: Colors.redAccent,
+              color: context.errorColor,
               fontWeight: FontWeight.bold,
               fontSize: 11,
             ),
@@ -1096,8 +1166,8 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                   icon: Icon(Icons.timer_off_rounded, size: 14),
                   label: Text('Simulate Expiry', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFEF4444).withOpacity(0.15),
-                    foregroundColor: Color(0xFFEF4444),
+                    backgroundColor: context.errorColor.withOpacity(0.15),
+                    foregroundColor: context.errorColor,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -1111,15 +1181,15 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                       '🎁 Gift VIP Sim',
                       'Successfully simulated gifting VIP Level $selectedLevel to friend!',
                       snackPosition: SnackPosition.BOTTOM,
-                      backgroundColor: Color(0xFF22C55E).withOpacity(0.9),
+                      backgroundColor: context.successColor.withOpacity(0.9),
                       colorText: Colors.white,
                     );
                   },
                   icon: Icon(Icons.card_giftcard_rounded, size: 14),
                   label: Text('Simulate Gift', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF10B981).withOpacity(0.15),
-                    foregroundColor: Color(0xFF10B981),
+                    backgroundColor: context.successColor.withOpacity(0.15),
+                    foregroundColor: context.successColor,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),

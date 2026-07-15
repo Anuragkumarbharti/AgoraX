@@ -1,6 +1,8 @@
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../models/user_model.dart';
 import 'store_controller.dart';
@@ -8,6 +10,10 @@ import 'vip_controller.dart';
 import 'novel_controller.dart';
 import 'customization_controller.dart';
 import 'career_progression_controller.dart';
+
+import 'isar_storage_service.dart';
+import '../models/isar_chat_model.dart';
+import 'asset_cache_manager.dart';
 
 class UserProfileCacheManager {
   static final Map<String, User> _cache = {};
@@ -43,6 +49,7 @@ class UserProfileCacheManager {
     _cache[user.id] = user;
     rxCache[user.id] = user;
     _notifyListeners();
+    _saveCacheToOffline();
   }
 
   /// Fetches canonical mapping for the logged in auth user (returns auth.uid() directly)
@@ -93,6 +100,8 @@ class UserProfileCacheManager {
           _currentUser = userObj;
         }
         _notifyListeners();
+        _saveCacheToOffline();
+        AssetCacheManager.prefetchProfileAssets(userObj);
         debugPrint('[CacheManager] Profile fetch success for $idToQuery');
         return userObj;
       } else {
@@ -191,6 +200,7 @@ class UserProfileCacheManager {
                 }
 
                 _notifyListeners();
+                AssetCacheManager.prefetchProfileAssets(userObj);
                 debugPrint('[UserProfileCacheManager] Realtime update notified for: $userId');
               }
             },
@@ -199,6 +209,76 @@ class UserProfileCacheManager {
       debugPrint('[UserProfileCacheManager] Subscribed to profiles table Realtime updates.');
     } catch (e) {
       debugPrint('[UserProfileCacheManager] Realtime subscription failed: $e');
+    }
+  }
+
+  static Future<void> initOfflineCache() async {
+    try {
+      final isar = IsarStorageService.to;
+      final payload = await isar.getCacheEntryPayload('offline_profiles_cache');
+      if (payload != null && payload.isNotEmpty) {
+        final Map<String, dynamic> decoded = jsonDecode(payload);
+        decoded.forEach((key, value) {
+          final user = User.fromJson(Map<String, dynamic>.from(value));
+          _cache[key] = user;
+          rxCache[key] = user;
+          if (key == currentUserId) {
+            _currentUser = user;
+          }
+        });
+        _notifyListeners();
+        debugPrint('[CacheManager] Loaded ${_cache.length} profiles from Isar offline cache.');
+      }
+    } catch (e) {
+      debugPrint('[CacheManager] Error loading Isar offline cache: $e');
+    }
+  }
+
+  static void _saveCacheToOffline() async {
+    try {
+      final isar = IsarStorageService.to;
+      final Map<String, dynamic> dataToSave = {};
+      _cache.forEach((key, value) {
+        // Cache profile records locally
+        dataToSave[key] = value.toJson();
+      });
+      await isar.saveCacheEntry('offline_profiles_cache', jsonEncode(dataToSave));
+    } catch (e) {
+      debugPrint('[CacheManager] Error saving to Isar offline cache: $e');
+    }
+  }
+
+  static Future<void> syncDeltaProfiles() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? lastSyncStr = prefs.getString('profiles_last_sync_timestamp');
+      
+      var query = Supabase.instance.client
+          .from('profiles')
+          .select();
+          
+      if (lastSyncStr != null) {
+        query = query.gt('updated_at', lastSyncStr);
+      }
+      
+      final response = await query;
+      if (response != null) {
+        final list = response as List<dynamic>;
+        for (final record in list) {
+          final userObj = User.fromJson(Map<String, dynamic>.from(record));
+          _cache[userObj.id] = userObj;
+          rxCache[userObj.id] = userObj;
+          if (userObj.id == currentUserId) {
+            _currentUser = userObj;
+          }
+        }
+        await prefs.setString('profiles_last_sync_timestamp', DateTime.now().toUtc().toIso8601String());
+        _saveCacheToOffline();
+        _notifyListeners();
+        debugPrint('[CacheManager] Delta sync completed. Processed ${list.length} profiles.');
+      }
+    } catch (e) {
+      debugPrint('[CacheManager] Delta sync failed: $e');
     }
   }
 }

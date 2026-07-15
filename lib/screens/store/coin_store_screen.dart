@@ -71,7 +71,7 @@ class CoinStoreScreen extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                       fontSize: 18,
                       letterSpacing: 2,
-                      color: Colors.white,
+                      color: context.textPrimary,
                     ),
                   ),
                   actions: [
@@ -86,7 +86,7 @@ class CoinStoreScreen extends StatelessWidget {
                           child: Center(
                             child: Text(
                               '🪙 ${storeCtrl.coinsBalance.value}',
-                              style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontWeight: FontWeight.bold, fontSize: 13),
+                              style: GoogleFonts.poppins(color: context.accentGold, fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                           ),
                         )),
@@ -98,11 +98,11 @@ class CoinStoreScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTopOffersBanner(),
+                        _buildTopOffersBanner(context),
                         SizedBox(height: 20),
                         Text(
                           'SELECT A COIN PACK',
-                          style: GoogleFonts.outfit(color: Colors.white60, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.5),
+                          style: GoogleFonts.outfit(color: context.textSecondary, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.5),
                         ),
                         SizedBox(height: 12),
                       ],
@@ -136,19 +136,14 @@ class CoinStoreScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopOffersBanner() {
+  Widget _buildTopOffersBanner(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF1E1B4B),
-            Color(0xFF0F172A).withOpacity(0.9),
-          ],
-        ),
-        border: Border.all(color: Color(0xFFFFD700).withOpacity(0.2)),
+        gradient: context.orangeToGoldGradient,
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -160,12 +155,12 @@ class CoinStoreScreen extends StatelessWidget {
               children: [
                 Text(
                   'FIRST PURCHASE BONUS!',
-                  style: GoogleFonts.outfit(color: Color(0xFFFFD700), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                 ),
                 SizedBox(height: 2),
                 Text(
                   'Get double bonus coins on packs above ₹799.',
-                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10),
+                  style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.9), fontSize: 10),
                 ),
               ],
             ),
@@ -220,7 +215,7 @@ class CoinStoreScreen extends StatelessWidget {
                       children: [
                         Text(
                           pack.name,
-                          style: GoogleFonts.poppins(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Row(
@@ -230,7 +225,7 @@ class CoinStoreScreen extends StatelessWidget {
                             SizedBox(width: 4),
                             Text(
                               pack.coins.toString(),
-                              style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                              style: GoogleFonts.outfit(color: context.textPrimary, fontSize: 24, fontWeight: FontWeight.w900),
                             ),
                           ],
                         ),
@@ -244,7 +239,7 @@ class CoinStoreScreen extends StatelessWidget {
                             ),
                             child: Text(
                               '+${pack.bonusCoins} Bonus Coins',
-                              style: GoogleFonts.poppins(color: Color(0xFF34D399), fontSize: 8.5, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.poppins(color: context.successColor, fontSize: 8.5, fontWeight: FontWeight.bold),
                             ),
                           ),
                       ],
@@ -254,15 +249,14 @@ class CoinStoreScreen extends StatelessWidget {
                       children: [
                         Text(
                           'GST Included',
-                          style: GoogleFonts.poppins(color: Colors.white24, fontSize: 8),
+                          style: GoogleFonts.poppins(color: context.caption, fontSize: 8),
                         ),
                         SizedBox(height: 4),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: pack.isSpecial ? Color(0xFFFFD700) : Color(0xFF1E1B4B),
-                              side: BorderSide(color: themeColor.withOpacity(0.5)),
+                              backgroundColor: pack.isSpecial ? context.accentGold : context.primaryColor,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               padding: EdgeInsets.symmetric(vertical: 8),
                             ),

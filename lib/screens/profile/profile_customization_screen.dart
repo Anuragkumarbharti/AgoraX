@@ -14,6 +14,7 @@ import '../../widgets/novel_avatar_decorator.dart';
 import '../../widgets/custom_avatar_frame.dart';
 import '../vip/vip_purchase_screen.dart';
 import '../novel/novel_purchase_screen.dart';
+import '../../services/user_profile_cache_manager.dart';
 
 class ProfileCustomizationScreen extends StatefulWidget {
   const ProfileCustomizationScreen({Key? key}) : super(key: key);
@@ -1251,7 +1252,9 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
 
   // --- SPECIAL SCREEN: BADGES LIST REORDERING ---
   Widget _buildBadgesReorderPanel() {
-    final allBadges = _customizationDb.where((e) => e['category'] == 'Badges').toList();
+    final user = UserProfileCacheManager.currentUser;
+    // List of unlocked badges from user model, or default sample achievements
+    final unlockedBadges = user?.badges ?? ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester', 'Event Winner', 'Top Gifter'];
 
     return Obx(() {
       final activeList = _custCtrl.activeBadges.toList();
@@ -1259,19 +1262,19 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
       return SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Active Badges Row showing Max 5 Ordering
+              // Active Badges Row showing Max 4 Ordering
               Text(
-                'ACTIVE BADGE ORDER (DRAG TO SORT - MAX 5)',
+                'SHOWCASE BADGE ORDER (DRAG TO SORT - MAX 4)',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Container(
                 height: 220,
-                padding: EdgeInsets.all(12),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.02),
                   borderRadius: BorderRadius.circular(20),
@@ -1280,7 +1283,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                 child: activeList.isEmpty
                     ? Center(
                         child: Text(
-                          'No active badges. Equip badges below.',
+                          'No active badges in showcase. Equip badges below.',
                           style: GoogleFonts.poppins(color: Colors.white24, fontSize: 12),
                         ),
                       )
@@ -1288,23 +1291,25 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         physics: const ClampingScrollPhysics(),
                         children: List.generate(activeList.length, (index) {
                           final bName = activeList[index];
-                          final dbBadge = allBadges.firstWhere((e) => e['name'] == bName, orElse: () => allBadges[0]);
-                          final rColor = _getRarityColor(dbBadge['rarity']);
+                          final meta = _custCtrl.badgeMetadata[bName] ?? {'icon': '🏅', 'rarity': 'Common', 'req': 'Special achievement'};
+                          final rColor = _getRarityColor(meta['rarity'] as String);
                           return ListTile(
                             key: ValueKey('active_badge_$bName'),
-                            leading: Icon(Icons.drag_handle_rounded, color: Colors.white30),
+                            leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
                             title: Row(
                               children: [
-                                Text(dbBadge['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                Text(meta['icon'] as String, style: const TextStyle(fontSize: 16)),
+                                const SizedBox(width: 8),
+                                Text(bName, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                                 const Spacer(),
                                 Text(
-                                  (dbBadge['rarity'] as String).toUpperCase(),
+                                  (meta['rarity'] as String).toUpperCase(),
                                   style: GoogleFonts.poppins(color: rColor, fontSize: 9, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
                             trailing: IconButton(
-                              icon: Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
                               onPressed: () => _custCtrl.toggleBadge(bName),
                             ),
                           );
@@ -1314,72 +1319,60 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         },
                       ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
 
               // Available Unlocked Badges list
               Text(
-                'AVAILABLE BADGES',
+                'AVAILABLE UNLOCKED BADGES',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: allBadges.length,
+                itemCount: unlockedBadges.length,
                 itemBuilder: (context, index) {
-                  final b = allBadges[index];
-                  final name = b['name'] as String;
-                  final isUnlocked = _custCtrl.unlockedItems.contains(name);
+                  final name = unlockedBadges[index];
+                  final meta = _custCtrl.badgeMetadata[name] ?? {'icon': '🏅', 'rarity': 'Common', 'req': 'Special achievement'};
                   final isEquipped = activeList.contains(name);
-                  final rColor = _getRarityColor(b['rarity']);
+                  final rColor = _getRarityColor(meta['rarity'] as String);
 
                   return Container(
-                    margin: EdgeInsets.only(bottom: 8),
-                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.01),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isEquipped ? Color(0xFF10B981) : Colors.white.withOpacity(0.04),
+                        color: isEquipped ? const Color(0xFF10B981) : Colors.white.withOpacity(0.04),
                       ),
                     ),
                     child: Row(
                       children: [
-                        Text('🏅', style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 12),
+                        Text(meta['icon'] as String, style: const TextStyle(fontSize: 16)),
+                        const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(name, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                             Text(
-                              (b['rarity'] as String).toUpperCase(),
+                              (meta['rarity'] as String).toUpperCase(),
                               style: GoogleFonts.poppins(color: rColor, fontSize: 9, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                         const Spacer(),
-                        if (isUnlocked)
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isEquipped ? Color(0xFF10B981) : Color(0xFF1E293B),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onPressed: () => _custCtrl.toggleBadge(name),
-                            child: Text(
-                              isEquipped ? 'Remove' : 'Equip',
-                              style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          )
-                        else ElevatedButton.icon(
-                            icon: Icon(Icons.lock_rounded, size: 10, color: Colors.white24),
-                            label: Text('Locked', style: GoogleFonts.outfit(fontSize: 11, color: Colors.white24)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.01),
-                            ),
-                            onPressed: () {
-                              Get.snackbar('Locked Badge', b['req'] as String);
-                            },
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isEquipped ? const Color(0xFF10B981) : const Color(0xFF1E293B),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
+                          onPressed: () => _custCtrl.toggleBadge(name),
+                          child: Text(
+                            isEquipped ? 'Remove' : 'Equip',
+                            style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
                       ],
                     ),
                   );

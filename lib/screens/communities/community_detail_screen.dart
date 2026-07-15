@@ -33,16 +33,16 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     Color color;
     switch (role) {
       case 'Owner':
-        color = Colors.amber;
+        color = context.accentGold;
         break;
       case 'Co-Owner':
-        color = Colors.orange;
+        color = context.accentOrange;
         break;
       case 'Admin':
-        color = Colors.purpleAccent;
+        color = context.accentPurple;
         break;
       default:
-        color = Colors.blue;
+        color = context.accentBlue;
     }
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -134,16 +134,30 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       expandedHeight: 180,
       pinned: true,
       backgroundColor: context.scaffoldBackgroundColor,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-        onPressed: () => Get.back(),
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.32),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+          onPressed: () => Get.back(),
+        ),
       ),
       actions: [
-        IconButton(
-          icon: Icon(Icons.share_rounded, color: Colors.white),
-          onPressed: () {
-            Get.snackbar('Link Shared', 'Link copied to clipboard');
-          },
+        Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.32),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.share_rounded, color: Colors.white, size: 18),
+            onPressed: () {
+              Get.snackbar('Link Shared', 'Link copied to clipboard');
+            },
+          ),
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
@@ -210,11 +224,11 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                       children: [
                         Text(
                           comm.name,
-                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: context.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         if (comm.isVerified) ...[
                           SizedBox(width: 6),
-                          Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 18),
+                          Icon(Icons.verified_rounded, color: context.accentBlue, size: 18),
                         ],
                       ],
                     ),
@@ -351,7 +365,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   Widget _infoStatItem(String value, String label) {
     return Column(
       children: [
-        Text(value, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
         SizedBox(height: 4),
         Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
       ],
@@ -441,7 +455,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
             ),
             SizedBox(width: 12),
             Expanded(
-              child: Text(name, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              child: Text(name, style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
             ),
             _buildRoleLabel(roleLabel),
           ],
@@ -504,7 +518,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(name, style: TextStyle(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
                       SizedBox(height: 4),
                       Row(
                         children: [
@@ -613,7 +627,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   Widget _miniProfileStat(String value, String label) {
     return Column(
       children: [
-        Text(value, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
         SizedBox(height: 2),
         Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
       ],
@@ -634,7 +648,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         ),
         child: Icon(icon, color: color, size: 18),
       ),
-      title: Text(label, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+      title: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w500)),
       trailing: Icon(Icons.chevron_right_rounded, color: context.caption, size: 16),
     );
   }
@@ -647,11 +661,11 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.stars_rounded, color: Colors.amber, size: 52),
+              Icon(Icons.stars_rounded, color: context.accentGold, size: 52),
               SizedBox(height: 12),
               Text(
                 'Verified Coins Family',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 6),
               Text(
@@ -674,15 +688,15 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: allDone ? Colors.green.withOpacity(0.12) : Colors.blue.withOpacity(0.12),
+            color: allDone ? context.successColor.withOpacity(0.12) : context.accentBlue.withOpacity(0.12),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: allDone ? Colors.green.withOpacity(0.3) : Colors.blue.withOpacity(0.3)),
+            border: Border.all(color: allDone ? context.successColor.withOpacity(0.3) : context.accentBlue.withOpacity(0.3)),
           ),
           child: Row(
             children: [
               Icon(
                 allDone ? Icons.check_circle_rounded : Icons.lock_rounded,
-                color: allDone ? Colors.green : Colors.blue,
+                color: allDone ? context.successColor : context.accentBlue,
                 size: 32,
               ),
               SizedBox(width: 14),
@@ -692,7 +706,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   children: [
                     Text(
                       allDone ? 'Logo Badge Unlocked! 🎉' : 'Profile Badge Locked',
-                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(height: 4),
                     Text(
@@ -711,7 +725,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
         Text(
           'Tasks to Complete',
-          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+          style: TextStyle(color: context.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 12),
 
@@ -731,12 +745,12 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text(task.title, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                      child: Text(task.title, style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
                     ),
                     Text(
                       '${task.current}/${task.target}',
                       style: TextStyle(
-                        color: task.isCompleted ? Colors.green : context.primaryColor,
+                        color: task.isCompleted ? context.successColor : context.primaryColor,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
@@ -752,7 +766,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                     value: pct,
                     minHeight: 6,
                     backgroundColor: context.scaffoldBackgroundColor,
-                    valueColor: AlwaysStoppedAnimation(task.isCompleted ? Colors.green : context.primaryColor),
+                    valueColor: AlwaysStoppedAnimation(task.isCompleted ? context.successColor : context.primaryColor),
                   ),
                 ),
               ],
@@ -772,7 +786,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: context.secondaryBackgroundColor,
-              foregroundColor: Colors.white,
+              foregroundColor: context.textPrimary,
             ),
             child: Text('Admin Dev: Auto-Complete Tasks'),
           ),

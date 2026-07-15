@@ -34,44 +34,25 @@ class _VipStoreScreenState extends State<VipStoreScreen>
     'Borders': [
       {'id': 'VIP 1', 'name': 'Royal Blue Shield', 'req': 1, 'desc': 'Dignified royal blue static border'},
       {'id': 'VIP 2', 'name': 'Purple Aura Glow', 'req': 2, 'desc': 'Pulsing violet ring border'},
-      {'id': 'VIP 3', 'name': 'Golden Star Dust', 'req': 3, 'desc': 'Sparkling gold border with particles'},
-      {'id': 'VIP 4', 'name': 'Diamond Wings', 'req': 4, 'desc': 'Side wing diamonds frame decor'},
-      {'id': 'VIP 5', 'name': 'Crystal Cyan Spark', 'req': 5, 'desc': 'Animated neon cyan border'},
-      {'id': 'VIP 6', 'name': 'Rainbow Sweep', 'req': 6, 'desc': 'Dynamic shifting rainbow colors'},
-      {'id': 'VIP 7', 'name': 'Legendary Crown dragon', 'req': 7, 'desc': 'Mythical dragon gold-glow frame & crown'},
     ],
     'Avatar Rings': [
       {'id': 'None', 'name': 'Default Ring', 'req': 0, 'desc': 'No extra rings equipped'},
       {'id': 'VIP 2', 'name': 'Elite Purple Halo', 'req': 2, 'desc': 'Soft purple pulsing rings around avatar'},
-      {'id': 'VIP 4', 'name': 'Diamond Halo', 'req': 4, 'desc': 'White crystalline circular decorations'},
-      {'id': 'VIP 7', 'name': 'Legendary Crown Ring', 'req': 7, 'desc': 'Spiraling gold loops with crown topper'},
     ],
     'Name Colors': [
       {'id': 'None', 'name': 'Default Username', 'req': 0, 'desc': 'Standard name rendering'},
       {'id': 'VIP 1', 'name': 'Royal Blue Text', 'req': 1, 'desc': 'Solid royal blue name text'},
-      {'id': 'VIP 3', 'name': 'Golden Username', 'req': 3, 'desc': 'Beautiful gold gradient username text'},
-      {'id': 'VIP 5', 'name': 'Crystal Cyan Glow', 'req': 5, 'desc': 'Vibrant neon cyan text color'},
-      {'id': 'VIP 6', 'name': 'Rainbow Username', 'req': 6, 'desc': 'Color shifting rainbow text glow'},
-      {'id': 'VIP 7', 'name': 'Legendary Black-Gold', 'req': 7, 'desc': 'Glistening dark gold legendary text gradient'},
     ],
     'Chat Bubbles': [
       {'id': 'None', 'name': 'Standard Bubble', 'req': 0, 'desc': 'Default chat message format'},
       {'id': 'VIP 1', 'name': 'Blue Shield Bubble', 'req': 1, 'desc': 'Soft blue message container'},
-      {'id': 'VIP 3', 'name': 'Golden Shimmer', 'req': 3, 'desc': 'Golden-edged chat bubble gradient'},
-      {'id': 'VIP 5', 'name': 'Crystal Cyan Neon', 'req': 5, 'desc': 'Glowing cyan outline bubble'},
-      {'id': 'VIP 7', 'name': 'Legendary Dark Gold', 'req': 7, 'desc': 'Exquisite black-gold luxury chat frame'},
     ],
     'Themes': [
       {'id': 'None', 'name': 'Default Gray', 'req': 0, 'desc': 'Standard dark mode design'},
       {'id': 'VIP 2', 'name': 'Violet Velvet', 'req': 2, 'desc': 'Rich violet themes with translucent cards'},
-      {'id': 'VIP 5', 'name': 'Crystal Neon Theme', 'req': 5, 'desc': 'Ice cyan theme options'},
-      {'id': 'VIP 7', 'name': 'Legendary Black-Gold Club', 'req': 7, 'desc': 'Top tier luxury black-gold profiles'},
     ],
     'Wallpapers': [
       {'id': 'None', 'name': 'Default Room Wall', 'req': 0, 'desc': 'Standard wallpaper'},
-      {'id': 'VIP 3', 'name': 'Nebula Sky', 'req': 3, 'desc': 'Stars and cosmic details for chats'},
-      {'id': 'VIP 6', 'name': 'Chrono Abstract', 'req': 6, 'desc': 'Interactive color-shifting wallpaper'},
-      {'id': 'VIP 7', 'name': 'Gold Palace', 'req': 7, 'desc': 'Spectacular palace hall wallpaper'},
     ],
   };
 
@@ -141,24 +122,26 @@ class _VipStoreScreenState extends State<VipStoreScreen>
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF09090B),
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'VIP COSMETIC STORE',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, letterSpacing: 1.0),
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.textPrimary, letterSpacing: 1.0),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
+        iconTheme: IconThemeData(color: context.textPrimary),
         elevation: 0,
         bottom: TabBar(
           controller: _categoryTabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          indicatorColor: Color(0xFFD4AF37),
-          labelColor: Color(0xFFD4AF37),
-          unselectedLabelColor: Colors.white60,
+          indicatorColor: context.primaryColor,
+          labelColor: context.primaryColor,
+          unselectedLabelColor: context.textSecondary.withOpacity(0.6),
           labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
           tabs: _categories.map((c) => Tab(text: c)).toList(),
         ),
@@ -211,12 +194,12 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                         margin: EdgeInsets.symmetric(vertical: 8),
                         padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Color(0xFF1E293B).withOpacity(isActive ? 0.25 : 0.12),
+                          color: isActive ? context.primaryColor.withOpacity(0.06) : context.secondaryBackgroundColor,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isActive
                                 ? itemColor
-                                : Colors.white.withOpacity(0.05),
+                                : context.borderColor,
                             width: isActive ? 1.5 : 1,
                           ),
                         ),
@@ -245,7 +228,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                             ),
                             SizedBox(width: 16),
 
-                            // Details
+                             // Details
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,7 +236,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                                   Text(
                                     name,
                                     style: GoogleFonts.outfit(
-                                      color: Colors.white,
+                                      color: context.textPrimary,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
                                     ),
@@ -262,7 +245,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                                   Text(
                                     desc,
                                     style: GoogleFonts.poppins(
-                                      color: Colors.white60,
+                                      color: context.textSecondary,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -286,8 +269,8 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                             else
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: isActive ? Colors.white10 : itemColor,
-                                  foregroundColor: isActive ? Colors.white38 : Colors.white,
+                                  backgroundColor: isActive ? context.borderColor : itemColor,
+                                  foregroundColor: isActive ? context.caption : Colors.white,
                                   elevation: 0,
                                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -328,16 +311,17 @@ class _VipStoreScreenState extends State<VipStoreScreen>
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Color(0xFF1E293B).withOpacity(0.18),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor),
+        boxShadow: context.smallShadow,
       ),
       child: Column(
         children: [
           Text(
             'LIVE PREVIEW CUSTOMIZER',
             style: GoogleFonts.outfit(
-              color: Colors.white38,
+              color: context.caption,
               fontSize: 11,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.0,
@@ -366,7 +350,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                   SizedBox(height: 10),
                   Text(
                     'Avatar Border',
-                    style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12),
+                    style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -394,12 +378,12 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                             ).createShader(bounds);
                           }
                         }
-                        return LinearGradient(colors: [Colors.white, Colors.white]).createShader(bounds);
+                        return LinearGradient(colors: [context.textPrimary, context.textPrimary]).createShader(bounds);
                       },
                       child: Text(
                         UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student',
                         style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: context.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -419,15 +403,15 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                                 ],
                               )
                             : null,
-                        color: bubbleId == 'None' ? Color(0xFF1E293B) : null,
+                        color: bubbleId == 'None' ? context.secondaryBackgroundColor : null,
                         borderRadius: BorderRadius.circular(16),
                         border: bubbleId.startsWith('VIP ')
-                            ? Border.all(color: Color(0xFFFFD700).withOpacity(0.3))
-                            : null,
+                            ? Border.all(color: context.accentGold.withOpacity(0.3))
+                            : Border.all(color: context.borderColor),
                       ),
                       child: Text(
                         'Hello, this is a premium VIP bubble! 👑',
-                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 11),
+                        style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 11),
                         textAlign: TextAlign.center,
                       ),
                     ),

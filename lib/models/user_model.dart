@@ -37,6 +37,9 @@ class User {
     this.totalPosts = 0,
     this.totalQuestions = 0,
     this.badges = const [],
+    this.tagLights = const [],
+    this.rTags = const [],
+    this.showcasedBadges = const [],
     this.levelTitle = 'Newcomer',
     this.selectedStudyCategory,
     this.categoryLockExpiry,
@@ -103,6 +106,9 @@ class User {
       totalPosts: json['totalPosts'] ?? 0,
       totalQuestions: json['totalQuestions'] ?? 0,
       badges: List<String>.from(json['badges'] ?? []),
+      tagLights: List<String>.from(json['tag_lights'] ?? []),
+      rTags: List<String>.from(json['r_tags'] ?? []),
+      showcasedBadges: List<String>.from(json['showcased_badges'] ?? []),
       levelTitle: json['levelTitle'] ?? 'Newcomer',
       selectedStudyCategory: json['selected_study_category'] ?? json['selectedStudyCategory'],
       categoryLockExpiry: json['category_lock_expiry'] != null 
@@ -168,6 +174,9 @@ class User {
   final int totalPosts;
   final int totalQuestions;
   final List<String> badges;
+  final List<String> tagLights;
+  final List<String> rTags;
+  final List<String> showcasedBadges;
   final String levelTitle;
 
   // Study Category & Learning Mission
@@ -238,6 +247,9 @@ class User {
         'totalPosts': totalPosts,
         'totalQuestions': totalQuestions,
         'badges': badges,
+        'tag_lights': tagLights,
+        'r_tags': rTags,
+        'showcased_badges': showcasedBadges,
         'levelTitle': levelTitle,
         'selectedStudyCategory': selectedStudyCategory,
         'selected_study_category': selectedStudyCategory,

@@ -6,7 +6,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme.dart';
 import '../models/user_model.dart';
-import '../screens/profile/user_profile_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../services/user_profile_cache_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
@@ -73,7 +72,7 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     if (isMe) {
       Get.to(() => const ProfileScreen());
     } else {
-      Get.to(() => UserProfileScreen(user: _user));
+      Get.to(() => ProfileScreen(visitorUser: _user));
     }
   }
 

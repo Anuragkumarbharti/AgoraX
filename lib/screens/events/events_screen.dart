@@ -6,6 +6,7 @@ import '../../services/event_controller.dart';
 import 'event_detail_screen.dart';
 import 'create_event_screen.dart';
 import 'wallet_screen.dart';
+import '../coming_soon_screen.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({Key? key}) : super(key: key);
@@ -66,70 +67,7 @@ class _EventsScreenState extends State<EventsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: context.scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
-          onPressed: () => Get.back(),
-        ),
-        title: Text(
-          'Creania Events',
-          style: TextStyle(
-            color: context.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        actions: [
-          Obx(() {
-            return TextButton.icon(
-              style: TextButton.styleFrom(foregroundColor: context.accentOrange),
-              icon: Icon(Icons.account_balance_wallet_outlined, size: 18),
-              label: Text(
-                '₹${_controller.cashBalance.value.toInt()}',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-              onPressed: () => Get.to(() => const WalletScreen()),
-            );
-          }),
-          SizedBox(width: 8),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: context.primaryColor,
-          labelColor: context.primaryColor,
-          unselectedLabelColor: context.caption,
-          labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          tabs: const [
-            Tab(text: 'Official'),
-            Tab(text: 'Community'),
-            Tab(text: 'Past Events'),
-            Tab(text: 'My Events'),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: context.primaryColor,
-        icon: Icon(Icons.add_rounded, color: Colors.white),
-        label: Text('Host Event',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        onPressed: () => Get.to(() => const CreateEventScreen()),
-      ),
-      body: Obx(() {
-        return TabBarView(
-          controller: _tabController,
-          children: [
-            _buildEventsList(_officialEvents, true),
-            _buildEventsList(_communityEvents, false),
-            _buildPastEventsTab(),
-            _buildMyEventsTab(),
-          ],
-        );
-      }),
-    );
+    return const ComingSoonScreen(title: 'Events');
   }
 
   Widget _buildEventsList(List<Event> list, bool isOfficial) {

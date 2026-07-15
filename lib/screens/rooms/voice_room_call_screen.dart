@@ -25,7 +25,6 @@ import '../../services/room_controller.dart';
 import '../../widgets/send_gift_dialog.dart';
 import '../../widgets/room_upgrade_dialog.dart';
 import '../profile/profile_screen.dart';
-import '../profile/user_profile_screen.dart';
 import '../../widgets/mini_profile_widget.dart';
 import '../../services/premium_identity_controller.dart';
 import '../../services/customization_controller.dart';
@@ -1509,7 +1508,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   color: Colors.white60,
                   onTap: () {
                     Get.back();
-                    Get.to(() => UserProfileScreen(user: user));
+                    Get.to(() => ProfileScreen(visitorUser: user));
                   },
                 ),
               ],
@@ -6307,6 +6306,243 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     );
   }
 
+  Widget _buildOverlappingAvatarsDialog(List<String> imageUrls) {
+    return SizedBox(
+      height: 16,
+      width: 40,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: List.generate(imageUrls.length, (index) {
+          return Positioned(
+            left: index * 8.0,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black, width: 0.8),
+              ),
+              child: CircleAvatar(
+                radius: 6,
+                backgroundImage: NetworkImage(imageUrls[index]),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> generateDynamicTagLights(User? user, int fallbackVip, int fallbackNovel, int fallbackLevel) {
+    final List<Map<String, dynamic>> tags = [];
+
+    final vip = user?.vipLevel ?? fallbackVip;
+    final novel = user?.novelLevel ?? fallbackNovel;
+    final level = user?.level ?? fallbackLevel;
+    final isVerified = user?.isVerified ?? false;
+    final commCount = user?.communities.length ?? 0;
+
+    // 1. Verified tag (VTag)
+    if (isVerified) {
+      tags.add({'label': '✓', 'color': const Color(0xFF00C2FF)});
+    }
+
+    // 2. VIP tag (V7)
+    if (vip > 0) {
+      tags.add({'label': 'V$vip', 'color': const Color(0xFF8B5CFF)});
+    }
+
+    // 3. Novel tag (N5)
+    if (novel > 0) {
+      tags.add({'label': 'N$novel', 'color': const Color(0xFFFF4D8D)});
+    }
+
+    // 4. ID Level tag (L42)
+    if (level > 0) {
+      tags.add({'label': 'L$level', 'color': const Color(0xFFFFB020)});
+    }
+
+    // 5. Community Level tag (C20)
+    tags.add({'label': 'C$commCount', 'color': const Color(0xFF22C55E)});
+
+    // 6. DB custom tags (e.g. TOP, DEV, MOD, EMP, BOT, STAR, 🔥)
+    final tagList = user?.tagLights ?? [];
+    final finalTagList = tagList.isEmpty ? ['Verified', 'V5', 'N3', 'L42', 'C12', '🔥'] : tagList;
+    for (var t in finalTagList) {
+      t = t.trim();
+      if (t == 'Verified' || t == '✓') continue;
+      if (t.startsWith('VIP Level ') || t.startsWith('V')) continue;
+      if (t.startsWith('Novel ') || t.startsWith('N')) continue;
+      if (t.startsWith('ID Level ') || t.startsWith('L')) continue;
+      if (t.startsWith('Community Level ') || t.startsWith('C')) continue;
+
+      Color color = const Color(0xFFBEC2FF);
+      if (t.toUpperCase() == 'DEV' || t.toUpperCase() == 'DEVELOPER') {
+        color = const Color(0xFFEF4444);
+      } else if (t.toUpperCase() == 'MOD' || t.toUpperCase() == 'MODERATOR') {
+        color = const Color(0xFF0EA5E9);
+      } else if (t.toUpperCase() == 'EMP' || t.toUpperCase() == 'EMPLOYEE') {
+        color = const Color(0xFFFF7A09);
+      } else if (t.toUpperCase() == 'BOT') {
+        color = const Color(0xFFBEC2FF);
+      } else if (t.toUpperCase() == 'TOP') {
+        color = const Color(0xFFFFB020);
+      } else if (t.toUpperCase() == 'STAR') {
+        color = const Color(0xFFDDB7FF);
+      } else if (t == '🔥') {
+        color = const Color(0xFFFF4D8D);
+      }
+      tags.add({'label': t, 'color': color});
+    }
+
+    return tags;
+  }
+
+  List<Widget> buildTagLightsWidget(List<Map<String, dynamic>> tags, BuildContext context) {
+    final List<Map<String, dynamic>> displayTags = [];
+    bool hasOverflow = false;
+    int overflowCount = 0;
+
+    if (tags.length <= 6) {
+      displayTags.addAll(tags);
+    } else {
+      displayTags.addAll(tags.take(5));
+      hasOverflow = true;
+      overflowCount = tags.length - 5;
+    }
+
+    final List<Widget> widgets = displayTags.map((tag) {
+      return Container(
+        margin: const EdgeInsets.only(left: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+        decoration: BoxDecoration(
+          color: (tag['color'] as Color).withOpacity(0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: (tag['color'] as Color).withOpacity(0.3), width: 0.8),
+        ),
+        child: Text(
+          tag['label'] as String,
+          style: GoogleFonts.poppins(
+            color: tag['color'] as Color,
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }).toList();
+
+    if (hasOverflow) {
+      widgets.add(
+        Container(
+          margin: const EdgeInsets.only(left: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.8),
+          ),
+          child: Text(
+            '+$overflowCount',
+            style: GoogleFonts.poppins(
+              color: Colors.white70,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return widgets;
+  }
+
+  String? getHighestRTag(List<String> rawRoles) {
+    final priority = [
+      'Founder',
+      'Developer',
+      'Official',
+      'Employee',
+      'Admin',
+      'Moderator',
+      'Partner',
+      'Verified',
+      'Tester'
+    ];
+
+    final rolesSet = rawRoles.map((r) => r.trim().toLowerCase()).toSet();
+
+    for (var role in priority) {
+      if (rolesSet.contains(role.toLowerCase())) {
+        return role;
+      }
+    }
+    return null;
+  }
+
+  Widget buildRTagWidget(List<String> rawRoles, BuildContext context) {
+    final rolesToUse = rawRoles.isEmpty ? ['Founder'] : rawRoles;
+    final role = getHighestRTag(rolesToUse);
+    if (role == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF8B5CFF).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF8B5CFF).withOpacity(0.4)),
+      ),
+      child: Text(
+        role,
+        style: GoogleFonts.poppins(
+          color: const Color(0xFF8B5CFF),
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget buildBadgesShowcaseWidget(List<String> activeBadgesList, BuildContext context) {
+    final custCtrl = Get.find<CustomizationController>();
+    final badgesToUse = activeBadgesList.isEmpty ? ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester'] : activeBadgesList;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 38,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            shrinkWrap: true,
+            physics: const BouncingScrollPhysics(),
+            itemCount: badgesToUse.take(4).length,
+            itemBuilder: (context, index) {
+              final bName = badgesToUse[index];
+              final meta = custCtrl.badgeMetadata[bName] ?? {'icon': '🏅', 'rarity': 'Common'};
+              final iconStr = meta['icon'] as String? ?? '🏅';
+              
+              return Container(
+                width: 34,
+                height: 34,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                ),
+                child: Center(
+                  child: Text(
+                    iconStr,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStatColumn(String value, String label) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -6339,6 +6575,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
 
     final callerRole = _controller.getUserRole(room, widget.callerUserId);
     final targetRole = _controller.getUserRole(room, widget.targetUserId);
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    final isMe = widget.targetUserId == widget.callerUserId || (currentUid != null && widget.targetUserId == currentUid);
 
     bool showThreeDotMenu = false;
     if (widget.callerUserId != widget.targetUserId) {
@@ -6443,93 +6681,66 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                     ),
                     const SizedBox(height: 12),
 
-                    // Username
-                    Text(
-                      uName,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
+                    // First Row: Username and TagLights
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          uName,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ...buildTagLightsWidget(generateDynamicTagLights(u, vipLevel, novelLevel, uLevel), context),
+                      ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 6),
 
-                    // User ID
-                    Text(
-                      'id $numericId',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white38,
-                        fontSize: 11,
+                    // Second Row: ID
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: numericId));
+                        Get.snackbar('Copied', 'ID copied to clipboard.');
+                      },
+                      onLongPress: () {
+                        Get.snackbar('Share ID', 'Profile ID: $numericId');
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'ID: $numericId',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF9CA3AF),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.content_copy_rounded,
+                            color: Color(0xFF9CA3AF),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            u?.gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
+                            color: const Color(0xFFBEC2FF),
+                            size: 14,
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 10),
 
-                    // Badges Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF8B5CF6).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 0.8),
-                          ),
-                          child: Text(
-                            'lvl$uLevel',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFFC084FC),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        if (isVIP) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E1B4B),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.5), width: 0.8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 10),
-                                const SizedBox(width: 2),
-                                Text(
-                                  'VIP',
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFFFBBF24),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue.withOpacity(0.3), width: 0.8),
-                          ),
-                          child: Text(
-                            'Novel',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF38BDF8),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    // Third Row: RTag
+                    buildRTagWidget(u?.rTags ?? [], context),
+                    // Fourth Row: Badge Showcase
+                    buildBadgesShowcaseWidget(u?.showcasedBadges ?? [], context),
                     const SizedBox(height: 12),
 
                     // Bio
@@ -6557,11 +6768,145 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                       children: [
                         _buildStatColumn(_formatStatValue(u?.followers ?? 1240), 'Followers'),
                         _buildStatColumn(_formatStatValue(u?.following ?? 380), 'Following'),
-                        _buildStatColumn(isVIP ? '89' : '45', 'Gifts'),
-                        _buildStatColumn(isVIP ? '2.5k' : '1.2k', 'Contribute'),
+                        if (isMe) ...[
+                          _buildStatColumn('89', 'Friends'),
+                          _buildStatColumn('123.5K', 'Gifts'),
+                        ] else ...[
+                          _buildStatColumn('123.5K', 'Gifts'),
+                          _buildStatColumn('450K', 'Contribute'),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 16),
+
+                    // Gift Stats Section (Dialog Compact Version)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.featured_play_list_rounded, color: Color(0xFFFBBF24), size: 14),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Gift Stats',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Monthly received gifts',
+                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                              ),
+                              Text(
+                                '12.5K',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFFBBF24),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'monthly contribute',
+                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                              ),
+                              Text(
+                                '450K',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Gifts',
+                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                              ),
+                              Row(
+                                children: [
+                                  _buildOverlappingAvatarsDialog([
+                                    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80',
+                                    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
+                                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
+                                    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
+                                  ]),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '123.5K',
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFF8B5CFF),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 14),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Contributors',
+                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                              ),
+                              Row(
+                                children: [
+                                  _buildOverlappingAvatarsDialog([
+                                    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80',
+                                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
+                                    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
+                                    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
+                                  ]),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '842k',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 14),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
 
                     // Bottom Buttons
                     Row(
@@ -6584,7 +6929,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                               onPressed: () {
                                 Get.back();
                                 final currentUid = Supabase.instance.client.auth.currentUser?.id;
-                                Get.to(() => UserProfileScreen(user: u ?? User(
+                                Get.to(() => ProfileScreen(visitorUser: u ?? User(
                                       id: widget.targetUserId,
                                       username: uName.toLowerCase().replaceAll(' ', '_'),
                                       email: '${widget.targetUserId}@example.com',
@@ -6628,7 +6973,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                                 final isMe = widget.targetUserId == widget.callerUserId || (currentUid != null && widget.targetUserId == currentUid);
                                 if (isMe) {
                                   Get.to(() => const ProfileScreen());
-                                } else {                                  Get.to(() => UserProfileScreen(user: u ?? User(
+                                } else {                                  Get.to(() => ProfileScreen(visitorUser: u ?? User(
                                     id: widget.targetUserId,
                                     username: uName.toLowerCase().replaceAll(' ', '_'),
                                     email: '${widget.targetUserId}@example.com',

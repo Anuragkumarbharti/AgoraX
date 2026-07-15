@@ -83,8 +83,8 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
         'Preview Limit 🔒',
         'Purchase the full book to unlock pages past page ${widget.book.previewPagesCount}.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.amber,
-        colorText: Colors.black,
+        backgroundColor: context.warningColor,
+        colorText: Colors.white,
       );
       return;
     }
@@ -218,8 +218,8 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
       'Text Highlighted 🖍️',
       'Saved to your highlights deck.',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.yellow.withOpacity(0.9),
-      colorText: Colors.black,
+      backgroundColor: context.accentGold.withOpacity(0.9),
+      colorText: Colors.white,
     );
     _simulatedSelectedText = null;
   }
@@ -240,7 +240,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
       Container(
         padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: _isDarkMode ? context.secondaryBackgroundColor : Colors.white,
+          color: _isDarkMode ? context.secondaryBackgroundColor : context.surfaceColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SingleChildScrollView(
@@ -255,7 +255,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
                   Text(
                     'Creania AI Assistant',
                     style: GoogleFonts.outfit(
-                      color: _isDarkMode ? Colors.white : Colors.black,
+                      color: _isDarkMode ? Colors.white : context.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -293,12 +293,12 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
 
   Widget _aiToolCard(String title, String desc, VoidCallback onTap) {
     return Card(
-      color: _isDarkMode ? context.surfaceColor : Colors.grey.shade100,
+      color: _isDarkMode ? context.surfaceColor : context.secondaryBackgroundColor,
       margin: EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        title: Text(title, style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
-        subtitle: Text(desc, style: TextStyle(color: _isDarkMode ? context.caption : Colors.grey.shade600, fontSize: 10.5)),
+        title: Text(title, style: TextStyle(color: _isDarkMode ? Colors.white : context.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+        subtitle: Text(desc, style: TextStyle(color: _isDarkMode ? context.caption : context.textSecondary, fontSize: 10.5)),
         trailing: Icon(Icons.arrow_forward_ios_rounded, size: 12),
         onTap: onTap,
       ),
@@ -308,13 +308,13 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
   void _showAiResponseDialog(String title, String content) {
     Get.defaultDialog(
       title: title,
-      titleStyle: GoogleFonts.outfit(color: _isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
-      backgroundColor: _isDarkMode ? context.secondaryBackgroundColor : Colors.white,
+      titleStyle: GoogleFonts.outfit(color: _isDarkMode ? Colors.white : context.textPrimary, fontWeight: FontWeight.bold),
+      backgroundColor: _isDarkMode ? context.secondaryBackgroundColor : context.surfaceColor,
       content: Padding(
         padding: EdgeInsets.all(12.0),
         child: Text(
           content,
-          style: GoogleFonts.poppins(color: _isDarkMode ? context.textSecondary : Colors.black87, fontSize: 12.5, height: 1.5),
+          style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12.5, height: 1.5),
         ),
       ),
       cancel: TextButton(onPressed: () => Get.back(), child: Text('Close')),
@@ -324,8 +324,8 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
   void _showAiQuizDialog(List<Map<String, dynamic>> quiz) {
     Get.defaultDialog(
       title: 'AI Practice Quiz 📝',
-      titleStyle: GoogleFonts.outfit(color: _isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
-      backgroundColor: _isDarkMode ? context.secondaryBackgroundColor : Colors.white,
+      titleStyle: GoogleFonts.outfit(color: _isDarkMode ? Colors.white : context.textPrimary, fontWeight: FontWeight.bold),
+      backgroundColor: _isDarkMode ? context.secondaryBackgroundColor : context.surfaceColor,
       content: SizedBox(
         width: double.maxFinite,
         child: ListView.builder(
@@ -338,7 +338,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${i+1}. ${q['question']}', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('${i+1}. ${q['question']}', style: TextStyle(color: _isDarkMode ? Colors.white : context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
                   SizedBox(height: 6),
                   ...(q['options'] as List<String>).asMap().entries.map((entry) {
                     final optIdx = entry.key;
@@ -351,7 +351,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
                           isCorrect ? 'Correct! 🎉' : 'Incorrect ❌',
                           q['explanation'],
                           snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: isCorrect ? Colors.green : Colors.red,
+                          backgroundColor: isCorrect ? context.successColor : context.errorColor,
                           colorText: Colors.white,
                         );
                       },
@@ -359,11 +359,11 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
                         margin: EdgeInsets.only(bottom: 4),
                         padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: _isDarkMode ? Colors.black26 : Colors.grey.shade100,
+                          color: _isDarkMode ? Colors.black26 : context.secondaryBackgroundColor,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white10),
+                          border: Border.all(color: context.borderColor),
                         ),
-                        child: Text(optText, style: TextStyle(color: _isDarkMode ? Colors.white70 : Colors.black87, fontSize: 11)),
+                        child: Text(optText, style: TextStyle(color: _isDarkMode ? Colors.white70 : context.textSecondary, fontSize: 11)),
                       ),
                     );
                   }).toList()
@@ -381,8 +381,8 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
     final TextEditingController doubtCtrl = TextEditingController();
     Get.defaultDialog(
       title: 'AI Doubt Solver 💡',
-      titleStyle: GoogleFonts.outfit(color: _isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
-      backgroundColor: _isDarkMode ? context.secondaryBackgroundColor : Colors.white,
+      titleStyle: GoogleFonts.outfit(color: _isDarkMode ? Colors.white : context.textPrimary, fontWeight: FontWeight.bold),
+      backgroundColor: _isDarkMode ? context.secondaryBackgroundColor : context.surfaceColor,
       content: Padding(
         padding: EdgeInsets.all(12.0),
         child: Column(
@@ -390,10 +390,10 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
             TextField(
               controller: doubtCtrl,
               maxLines: 2,
-              style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black, fontSize: 12),
+              style: TextStyle(color: _isDarkMode ? Colors.white : context.textPrimary, fontSize: 12),
               decoration: InputDecoration(
                 hintText: 'Type your question about this page...',
-                hintStyle: TextStyle(color: _isDarkMode ? Colors.white30 : Colors.black38),
+                hintStyle: TextStyle(color: _isDarkMode ? Colors.white30 : context.placeholder),
               ),
             ),
           ],
@@ -414,8 +414,8 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeBg = _isDarkMode ? Color(0xFF18181C) : Color(0xFFF9F9FB);
-    final themeText = _isDarkMode ? Color(0xFFE2E8F0) : Color(0xFF1E293B);
+    final themeBg = _isDarkMode ? AppTheme.darkBg : AppTheme.lightBg;
+    final themeText = _isDarkMode ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
 
     return Scaffold(
       backgroundColor: themeBg,
@@ -425,20 +425,20 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
           children: [
             Text(
               widget.book.title,
-              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: _isDarkMode ? Colors.white : Colors.black),
+              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: _isDarkMode ? Colors.white : context.textPrimary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             Text(
               widget.isPreview ? 'Preview Mode (Locked after pg ${widget.book.previewPagesCount})' : 'Secure Reader Active',
-              style: GoogleFonts.poppins(fontSize: 10, color: widget.isPreview ? Colors.amber : context.accentOrange, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(fontSize: 10, color: widget.isPreview ? context.accentGold : context.accentOrange, fontWeight: FontWeight.bold),
             )
           ],
         ),
-        backgroundColor: _isDarkMode ? context.secondaryBackgroundColor : Colors.white,
+        backgroundColor: _isDarkMode ? context.secondaryBackgroundColor : context.surfaceColor,
         elevation: 1,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: _isDarkMode ? Colors.white : Colors.black),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: _isDarkMode ? Colors.white : context.textPrimary),
           onPressed: () => Get.back(),
         ),
         actions: [
@@ -557,12 +557,12 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
                         // Highlights render
                         if (_pageHighlights[_currentPage] != null) ...[
                           SizedBox(height: 20),
-                          Text('📝 ACTIVE HIGHLIGHTS:', style: TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold)),
+                          Text('📝 ACTIVE HIGHLIGHTS:', style: TextStyle(color: context.accentGold, fontSize: 9, fontWeight: FontWeight.bold)),
                           ..._pageHighlights[_currentPage]!.map((hl) => Container(
                             margin: EdgeInsets.only(top: 4),
                             padding: EdgeInsets.all(6),
-                            color: Colors.yellow.withOpacity(0.12),
-                            child: Text(hl, style: TextStyle(color: Colors.amber, fontSize: 11)),
+                            color: context.accentGold.withOpacity(0.12),
+                            child: Text(hl, style: TextStyle(color: context.accentGold, fontSize: 11)),
                           )),
                         ],
 
@@ -661,7 +661,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
     Get.bottomSheet(
       Container(
         padding: EdgeInsets.all(20),
-        color: _isDarkMode ? context.secondaryBackgroundColor : Colors.white,
+        color: _isDarkMode ? context.secondaryBackgroundColor : context.surfaceColor,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -676,7 +676,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
             ),
             SizedBox(height: 16),
             ListTile(
-              leading: Icon(Icons.border_color, color: Colors.amber),
+              leading: Icon(Icons.border_color, color: context.accentGold),
               title: Text('Highlight Text', style: TextStyle(fontSize: 13)),
               onTap: () {
                 Get.back();
@@ -703,18 +703,18 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
       height: 350,
       decoration: BoxDecoration(
         color: context.surfaceColor.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.amber.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.accentGold.withOpacity(0.5)),
       ),
       padding: EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.lock_outline_rounded, color: Colors.amber, size: 48),
+          Icon(Icons.lock_outline_rounded, color: context.accentGold, size: 48),
           SizedBox(height: 18),
           Text(
             'Preview Limit Reached 🔒',
-            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           SizedBox(height: 8),
           Text(
@@ -736,14 +736,14 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
   }
 
   Widget _buildBottomToolbar() {
-    final barBg = _isDarkMode ? context.secondaryBackgroundColor : Colors.white;
-    final barText = _isDarkMode ? Colors.white70 : Colors.black87;
+    final barBg = _isDarkMode ? context.secondaryBackgroundColor : context.surfaceColor;
+    final barText = _isDarkMode ? Colors.white70 : context.textSecondary;
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, 10, 16, 14),
       decoration: BoxDecoration(
         color: barBg,
-        border: Border(top: BorderSide(color: _isDarkMode ? Colors.white10 : Colors.grey.shade200)),
+        border: Border(top: BorderSide(color: context.borderColor)),
       ),
       child: Column(
         children: [
@@ -757,7 +757,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
                   min: 1,
                   max: _maxPages.toDouble(),
                   activeColor: context.primaryColor,
-                  inactiveColor: _isDarkMode ? Colors.white10 : Colors.grey.shade200,
+                  inactiveColor: context.borderColor,
                   onChanged: (val) {
                     if (widget.isPreview && val.toInt() > widget.book.previewPagesCount) {
                       return; // locked

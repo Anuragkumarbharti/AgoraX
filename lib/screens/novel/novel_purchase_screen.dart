@@ -504,33 +504,93 @@ class _NovelPurchaseScreenState extends State<NovelPurchaseScreen> {
                 _buildLevelTabsRow(),
                 const SizedBox(height: 16),
 
-                // 4. Detailed preview card
-                _buildPreviewCard(selectedLevel),
-                const SizedBox(height: 28),
+                if (selectedLevel <= 1) ...[
+                  // 4. Detailed preview card
+                  _buildPreviewCard(selectedLevel),
+                  const SizedBox(height: 28),
 
-                // 5. Durations list
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    'CHOOSE COLLECTIBLE DURATION',
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white60,
-                      letterSpacing: 1.0,
+                  // 5. Durations list
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      'CHOOSE COLLECTIBLE DURATION',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white60,
+                        letterSpacing: 1.0,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _buildDurationChips(),
-                const SizedBox(height: 28),
+                  const SizedBox(height: 12),
+                  _buildDurationChips(),
+                  const SizedBox(height: 28),
 
-                // 6. Payment block
-                _buildCheckoutContainer(rawPrice, finalPrice),
+                  // 6. Payment block
+                  _buildCheckoutContainer(rawPrice, finalPrice),
+                ] else ...[
+                  _buildComingSoonWidget(activeColor),
+                ],
               ],
             ),
           );
         }),
+      ),
+    );
+  }
+
+  Widget _buildComingSoonWidget(Color themeColor) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.01),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: themeColor.withOpacity(0.2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: themeColor.withOpacity(0.03),
+            blurRadius: 30,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: themeColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.auto_awesome_outlined,
+              size: 52,
+              color: themeColor,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Coming Soon',
+            style: GoogleFonts.outfit(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'We are currently designing premium benefits and custom cosmetics for this Novel tier. Stay tuned!',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: Colors.white70,
+              height: 1.6,
+            ),
+          ),
+        ],
       ),
     );
   }

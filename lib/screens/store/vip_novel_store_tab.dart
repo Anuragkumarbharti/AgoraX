@@ -38,6 +38,16 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this, initialIndex: widget.initialIndex);
+    if (_vipCtrl.vipLevel.value > 2) {
+      _selectedVipLevel = 2;
+    } else {
+      _selectedVipLevel = _vipCtrl.vipLevel.value.clamp(1, 2);
+    }
+    if (_novelCtrl.novelLevel.value > 1) {
+      _selectedNovelLevel = 1;
+    } else {
+      _selectedNovelLevel = _novelCtrl.novelLevel.value.clamp(1, 1);
+    }
   }
 
   @override
@@ -151,7 +161,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
               fontWeight: FontWeight.w900,
               fontSize: 18,
               letterSpacing: 2,
-              color: Colors.white,
+              color: context.textPrimary,
             ),
           ),
         ],
@@ -244,14 +254,14 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
       children: [
         Text(
           'SELECT VIP TIER',
-          style: GoogleFonts.outfit(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+          style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
         SizedBox(height: 12),
         SizedBox(
           height: 60,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: 7,
+            itemCount: 2,
             itemBuilder: (context, index) {
               final lvl = index + 1;
               final isSel = _selectedVipLevel == lvl;
@@ -273,9 +283,9 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('VIP $lvl', style: GoogleFonts.poppins(color: isSel ? Colors.white : Colors.white60, fontSize: 13, fontWeight: FontWeight.bold)),
+                        Text('VIP $lvl', style: GoogleFonts.poppins(color: isSel ? Colors.white : context.textSecondary, fontSize: 13, fontWeight: FontWeight.bold)),
                         SizedBox(height: 2),
-                        Text(t['name'].toString().split(' ')[0], style: GoogleFonts.poppins(color: isSel ? color : Colors.white24, fontSize: 8.5)),
+                        Text(t['name'].toString().split(' ')[0], style: GoogleFonts.poppins(color: isSel ? color : context.caption, fontSize: 8.5)),
                       ],
                     ),
                   ),
@@ -294,14 +304,14 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
       children: [
         Text(
           'SELECT NOVELIST TIER',
-          style: GoogleFonts.outfit(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+          style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
         SizedBox(height: 12),
         SizedBox(
           height: 60,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: 7,
+            itemCount: 1,
             itemBuilder: (context, index) {
               final lvl = index + 1;
               final isSel = _selectedNovelLevel == lvl;
@@ -323,9 +333,9 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Level $lvl', style: GoogleFonts.poppins(color: isSel ? Colors.white : Colors.white60, fontSize: 13, fontWeight: FontWeight.bold)),
+                        Text('Level $lvl', style: GoogleFonts.poppins(color: isSel ? Colors.white : context.textSecondary, fontSize: 13, fontWeight: FontWeight.bold)),
                         SizedBox(height: 2),
-                        Text(t['name'].toString().split(' ')[0], style: GoogleFonts.poppins(color: isSel ? color : Colors.white24, fontSize: 8.5)),
+                        Text(t['name'].toString().split(' ')[0], style: GoogleFonts.poppins(color: isSel ? color : context.caption, fontSize: 8.5)),
                       ],
                     ),
                   ),
@@ -359,7 +369,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
             children: [
               Text(
                 title,
-                style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
               ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -382,27 +392,27 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                   children: [
                     Text(
                       'Avatar Frame',
-                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(height: 2),
                     Text(
                       isVip
                           ? 'Avatar Frame, Avatar Background, Entry Effect, Gift Effect, Chat Bubble, Badge, Tag Light, and Emoji Effects.'
                           : 'Avatar Frame, Avatar Background, Entry Effect, Gift Effect, Chat Bubble, Badge, Tag Light, and Emoji Effects.',
-                      style: GoogleFonts.poppins(color: Colors.white30, fontSize: 9.5),
+                      style: GoogleFonts.poppins(color: context.caption, fontSize: 9.5),
                     ),
                     SizedBox(height: 8),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), borderRadius: BorderRadius.circular(6)),
+                      decoration: BoxDecoration(color: context.secondaryBackgroundColor, borderRadius: BorderRadius.circular(6)),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.palette_outlined, color: Colors.white70, size: 12),
+                          Icon(Icons.palette_outlined, color: context.textSecondary, size: 12),
                           SizedBox(width: 4),
                           Text(
                             'Shimmer Profile Theme',
-                            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 9.5, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -438,7 +448,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
         children: [
           Text(
             'MEMBERSHIP BENEFITS',
-            style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+            style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
           SizedBox(height: 12),
           ...benefits.map((b) => Padding(
@@ -447,7 +457,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
               children: [
                 Icon(Icons.check_circle_outline_rounded, color: color, size: 14),
                 SizedBox(width: 8),
-                Expanded(child: Text(b, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11.5))),
+                Expanded(child: Text(b, style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11.5))),
               ],
             ),
           )).toList(),
@@ -477,7 +487,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
         children: [
           Text(
             'NOVEL SPECIFICATIONS',
-            style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+            style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
           SizedBox(height: 12),
           ...specs.map((s) => Padding(
@@ -486,7 +496,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
               children: [
                 Icon(Icons.check_circle_outline_rounded, color: color, size: 14),
                 SizedBox(width: 8),
-                Expanded(child: Text(s, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11.5))),
+                Expanded(child: Text(s, style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11.5))),
               ],
             ),
           )).toList(),
@@ -504,7 +514,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
       children: [
         Text(
           'CHOOSE MEMBERSHIP DURATION',
-          style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+          style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
         ),
         SizedBox(height: 12),
         Row(
@@ -525,16 +535,16 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                   margin: EdgeInsets.symmetric(horizontal: 4),
                   padding: EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: isSel ? Color(0xFF1E1B4B) : context.secondaryBackgroundColor,
+                    color: isSel ? context.primaryColor : context.secondaryBackgroundColor,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSel ? Color(0xFF8B5CF6) : context.borderColor,
+                      color: isSel ? context.primaryColor : context.borderColor,
                     ),
                   ),
                   child: Center(
                     child: Text(
                       opt,
-                      style: GoogleFonts.poppins(color: isSel ? Colors.white : Colors.white60, fontSize: 11.5, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(color: isSel ? Colors.white : context.textSecondary, fontSize: 11.5, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -569,9 +579,10 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
       return Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Color(0xFF151518),
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.1)),
+          border: Border.all(color: context.borderColor),
+          boxShadow: context.smallShadow,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -585,11 +596,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                       : isActive 
                           ? 'Expires in ${remaining['displayText']}' 
                           : 'Ready to unlock',
-                  style: GoogleFonts.poppins(color: Colors.white30, fontSize: 9.5),
+                  style: GoogleFonts.poppins(color: context.caption, fontSize: 9.5),
                 ),
                 Text(
                   '₹${finalPrice.toInt()}',
-                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+                  style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 20, fontWeight: FontWeight.w900),
                 ),
               ],
             ),

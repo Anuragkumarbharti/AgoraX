@@ -26,7 +26,23 @@ class CustomizationController extends GetxController {
   final RxString customAvatarPath = ''.obs;
   final RxString activeEmojiPack = 'Classic Emojis'.obs;
 
-  final RxList<String> activeBadges = <String>[].obs; // Max 5 badges
+  final RxList<String> activeBadges = <String>[].obs; // Max 4 showcase badges
+  final Map<String, Map<String, dynamic>> badgeMetadata = {
+    'Anniversary': {'icon': '🏆', 'rarity': 'Legendary', 'req': '1 Year Anniversary'},
+    'Founder Badge': {'icon': '⭐', 'rarity': 'Mythic', 'req': 'Founding Member of Creania'},
+    'Early User': {'icon': '💎', 'rarity': 'Rare', 'req': 'Joined during Beta'},
+    'Beta Tester': {'icon': '🎖️', 'rarity': 'Epic', 'req': 'Helped test Creania features'},
+    'Event Winner': {'icon': '🎉', 'rarity': 'Epic', 'req': 'Won an official Creania event'},
+    'Top Gifter': {'icon': '🏅', 'rarity': 'Legendary', 'req': 'Send 10k+ value in gifts'},
+    'Top Host': {'icon': '🎙️', 'rarity': 'Epic', 'req': 'Host voice arenas regularly'},
+    'Champion': {'icon': '👑', 'rarity': 'Mythic', 'req': 'Winner of tournament'},
+    'Diamond Club': {'icon': '💎', 'rarity': 'Legendary', 'req': 'Premium subscriber'},
+    'Community Badge': {'icon': '👥', 'rarity': 'Common', 'req': 'Active community member'},
+    'Festival Badge': {'icon': '🎃', 'rarity': 'Common', 'req': 'Participated in festival events'},
+    'Seasonal Badge': {'icon': '❄️', 'rarity': 'Common', 'req': 'Seasonal challenge award'},
+    'Limited Badge': {'icon': '🔥', 'rarity': 'Limited', 'req': 'Limited edition drop'},
+  };
+
   final RxList<String> activeTags = <String>[].obs; // Max 3 tags
   final RxList<String> activeGifts = <String>[].obs; // Max 3 gifts
   final RxList<String> favorites = <String>[].obs;
@@ -137,8 +153,22 @@ class CustomizationController extends GetxController {
       activeBackground.value = equipped.firstWhereOrNull((m) => m['type'] == 'Background')?['name'] ?? 'None';
       activeEmojiPack.value = equipped.firstWhereOrNull((m) => m['type'] == 'Emoji Pack')?['name'] ?? 'Classic Emojis';
 
-      activeBadges.assignAll(equipped.where((m) => m['type'] == 'Badge').map((m) => m['name'] as String).toList());
-      if (activeBadges.isEmpty) activeBadges.assignAll(['Legend', 'Explorer']);
+      final userObj = UserProfileCacheManager.currentUser;
+      if (userObj != null) {
+        activeBadges.assignAll(userObj.showcasedBadges);
+      } else {
+        final data = await Supabase.instance.client
+            .from('profiles')
+            .select('showcased_badges')
+            .eq('id', currentUserId)
+            .maybeSingle();
+        if (data != null && data['showcased_badges'] != null) {
+          activeBadges.assignAll(List<String>.from(data['showcased_badges']));
+        }
+      }
+      if (activeBadges.isEmpty) {
+        activeBadges.assignAll(['Anniversary', 'Founder Badge']);
+      }
 
       activeTags.assignAll(equipped.where((m) => m['type'] == 'Tag').map((m) => m['name'] as String).toList());
       if (activeTags.isEmpty) activeTags.assignAll(['Scholar']);
@@ -310,39 +340,66 @@ class CustomizationController extends GetxController {
   }
 
   Future<void> toggleBadge(String badgeName) async {
-    final category = 'Badge';
-    final isEquipped = activeBadges.contains(badgeName);
+    final currentId = currentUserId;
+    if (currentId.isEmpty) return;
+
+    final user = UserProfileCacheManager.currentUser;
+    if (user == null) return;
+
+    // Check if the badge is unlocked (i.e. in user's unlocked badges list)
+    if (!user.badges.contains(badgeName)) {
+      Get.snackbar(
+        '⚠️ Badge Locked',
+        'You need to unlock $badgeName first.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final showcasedList = List<String>.from(user.showcasedBadges);
+    final isShowcased = showcasedList.contains(badgeName);
 
     try {
-      if (isEquipped) {
-        await Supabase.instance.client
-            .from('user_customizations')
-            .update({'is_equipped': false})
-            .eq('user_id', currentUserId)
-            .eq('type', category)
-            .eq('name', badgeName);
+      if (isShowcased) {
+        showcasedList.remove(badgeName);
       } else {
-        if (activeBadges.length >= 5) {
+        if (showcasedList.length >= 4) { // Max 4 showcase badges
           Get.snackbar(
-            '⚠️ Maximum Badges Reached',
-            'You can equip a maximum of 5 badges simultaneously.',
+            '⚠️ Maximum Showcase Reached',
+            'You can showcase a maximum of 4 badges simultaneously.',
             snackPosition: SnackPosition.BOTTOM,
             backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
             colorText: Colors.white,
           );
           return;
         }
-        await Supabase.instance.client
-            .from('user_customizations')
-            .upsert({
-              'user_id': currentUserId,
-              'type': category,
-              'name': badgeName,
-              'is_equipped': true,
-            });
+        showcasedList.add(badgeName);
       }
-      await _loadState();
-    } catch (_) {}
+
+      // Update in Supabase
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'showcased_badges': showcasedList})
+          .eq('id', currentId);
+
+      // Force refresh user profile
+      await UserProfileCacheManager.fetchUserProfile(currentId, forceRefresh: true);
+      
+      activeBadges.assignAll(showcasedList);
+
+      Get.snackbar(
+        '✨ Showcase Updated',
+        isShowcased ? '$badgeName removed from showcase!' : '$badgeName added to showcase!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 1),
+      );
+    } catch (e) {
+      debugPrint('Error updating showcased badges: $e');
+    }
   }
 
   Future<void> toggleTag(String tagName) async {
@@ -447,12 +504,26 @@ class CustomizationController extends GetxController {
 
   void checkExpirations() {}
 
-  void reorderBadges(int oldIndex, int newIndex) {
+  Future<void> reorderBadges(int oldIndex, int newIndex) async {
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
     final item = activeBadges.removeAt(oldIndex);
     activeBadges.insert(newIndex, item);
+
+    try {
+      final currentId = currentUserId;
+      if (currentId.isEmpty) return;
+
+      // Update in Supabase
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'showcased_badges': activeBadges.toList()})
+          .eq('id', currentId);
+
+      // Force refresh user profile
+      await UserProfileCacheManager.fetchUserProfile(currentId, forceRefresh: true);
+    } catch (_) {}
   }
 
   void reorderTags(int oldIndex, int newIndex) {

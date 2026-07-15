@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:creania/core/theme.dart';
 import '../../models/user_model.dart';
-import 'user_profile_screen.dart';
+import 'profile_screen.dart';
 import '../../widgets/custom_avatar_frame.dart';
 import '../../services/user_profile_cache_manager.dart';
 
@@ -349,7 +349,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
         _followersList.any((item) => item.id == user.id);
 
     return InkWell(
-      onTap: () => Get.to(() => UserProfileScreen(user: user)),
+      onTap: () => Get.to(() => ProfileScreen(visitorUser: user)),
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),

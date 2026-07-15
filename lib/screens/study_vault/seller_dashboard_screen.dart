@@ -57,7 +57,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               Text(
                 'REQUEST WITHDRAWAL',
                 style: GoogleFonts.outfit(
-                  color: Colors.white,
+                  color: context.textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                   letterSpacing: 1.2,
@@ -77,11 +77,11 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               TextField(
                 controller: _withdrawAmountController,
                 keyboardType: TextInputType.number,
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: context.textPrimary, fontSize: 13),
                 decoration: InputDecoration(
                   labelText: 'Withdrawal Amount (₹)',
                   labelStyle: TextStyle(color: context.caption, fontSize: 12),
-                  fillColor: Colors.black.withOpacity(0.2),
+                  fillColor: context.secondaryBackgroundColor,
                   filled: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -89,11 +89,11 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               SizedBox(height: 12),
               TextField(
                 controller: _withdrawUpiController,
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: context.textPrimary, fontSize: 13),
                 decoration: InputDecoration(
                   labelText: 'UPI ID or Bank Details',
                   labelStyle: TextStyle(color: context.caption, fontSize: 12),
-                  fillColor: Colors.black.withOpacity(0.2),
+                  fillColor: context.secondaryBackgroundColor,
                   filled: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -144,12 +144,12 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
         ),
         backgroundColor: context.secondaryBackgroundColor,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: context.textPrimary),
           onPressed: () => Get.back(),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.help_outline_rounded, color: Colors.white),
+            icon: Icon(Icons.help_outline_rounded, color: context.textPrimary),
             onPressed: () {
               Get.snackbar(
                 'Seller Guide 📚',
@@ -188,10 +188,10 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   mainAxisSpacing: 12,
                   childAspectRatio: 1.6,
                   children: [
-                    _buildStatCard('Total Sales', '${wallet.totalSales}', Icons.shopping_bag_outlined, Color(0xFF6366F1)),
-                    _buildStatCard('Total Earnings', '₹${wallet.totalEarnings.toStringAsFixed(0)}', Icons.monetization_on_outlined, Color(0xFF10B981)),
-                    _buildStatCard('Profile Views', '8.4K', Icons.remove_red_eye_outlined, Color(0xFF06B6D4)),
-                    _buildStatCard('Resource Downloads', '1.9K', Icons.cloud_download_outlined, Color(0xFFEC4899)),
+                    _buildStatCard('Total Sales', '${wallet.totalSales}', Icons.shopping_bag_outlined, context.accentPurple),
+                    _buildStatCard('Total Earnings', '₹${wallet.totalEarnings.toStringAsFixed(0)}', Icons.monetization_on_outlined, context.successColor),
+                    _buildStatCard('Profile Views', '8.4K', Icons.remove_red_eye_outlined, context.accentBlue),
+                    _buildStatCard('Resource Downloads', '1.9K', Icons.cloud_download_outlined, context.accentPink),
                   ],
                 ),
               ),
@@ -213,7 +213,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                     Text(
                       'YOUR CATALOG',
                       style: GoogleFonts.outfit(
-                        color: Colors.white,
+                        color: context.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         letterSpacing: 1.1,
@@ -306,7 +306,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                       children: [
                         Text(
                           UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Seller',
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(width: 6),
                         Container(
@@ -336,7 +336,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               )
             ],
           ),
-          Divider(color: Colors.white10, height: 24),
+          Divider(color: context.dividerColor, height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -355,7 +355,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
       children: [
         Text(
           value,
-          style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 2),
         Text(
@@ -382,7 +382,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
           SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.poppins(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 2),
           Text(
@@ -401,20 +401,10 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
       margin: EdgeInsets.fromLTRB(20, 4, 20, 20),
       padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: context.orangeToGoldGradient,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Color(0xFFFFD700).withOpacity(0.3), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFFFFD700).withOpacity(0.03),
-            blurRadius: 10,
-            spreadRadius: 2,
-          )
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.0),
+        boxShadow: context.smallShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +414,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
             children: [
               Row(
                 children: [
-                  Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFFFD700), size: 20),
+                  Icon(Icons.account_balance_wallet_outlined, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Seller Wallet',
@@ -437,12 +427,12 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Color(0xFFFFD700),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     'Withdraw Funds',
-                    style: GoogleFonts.poppins(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                    style: GoogleFonts.poppins(color: context.accentOrange, fontWeight: FontWeight.bold, fontSize: 11),
                   ),
                 ),
               ),
@@ -455,38 +445,38 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('WITHDRAWABLE BALANCE', style: TextStyle(color: context.caption, fontSize: 9)),
+                    Text('WITHDRAWABLE BALANCE', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 9)),
                     SizedBox(height: 4),
                     Text(
                       '₹${wallet.withdrawableBalance.toStringAsFixed(2)}',
-                      style: GoogleFonts.poppins(color: context.accentOrange, fontSize: 20, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                     )
                   ],
                 ),
               ),
-              Container(width: 1, height: 40, color: Colors.white10),
+              Container(width: 1, height: 40, color: Colors.white.withOpacity(0.2)),
               SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('PENDING BALANCE', style: TextStyle(color: context.caption, fontSize: 9)),
+                    Text('PENDING BALANCE', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 9)),
                     SizedBox(height: 4),
                     Text(
                       '₹${wallet.pendingBalance.toStringAsFixed(2)}',
-                      style: GoogleFonts.poppins(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.9), fontSize: 16, fontWeight: FontWeight.bold),
                     )
                   ],
                 ),
               ),
             ],
           ),
-          Divider(color: Colors.white10, height: 24),
+          Divider(color: Colors.white.withOpacity(0.2), height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total Revenue Earned: ₹${wallet.totalEarnings.toStringAsFixed(2)}', style: TextStyle(color: context.textSecondary, fontSize: 11)),
-              Text('Refunds Processed: ₹${wallet.refunds.toStringAsFixed(2)}', style: TextStyle(color: context.errorColor, fontSize: 11)),
+              Text('Total Revenue Earned: ₹${wallet.totalEarnings.toStringAsFixed(2)}', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 11)),
+              Text('Refunds Processed: ₹${wallet.refunds.toStringAsFixed(2)}', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 11)),
             ],
           ),
         ],
@@ -503,7 +493,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
           Text(
             'TRANSACTION HISTORY',
             style: GoogleFonts.outfit(
-              color: Colors.white30,
+              color: context.caption,
               fontSize: 11,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
@@ -536,7 +526,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                       decoration: BoxDecoration(
                         color: context.surfaceColor,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: context.borderColor.withOpacity(0.3)),
+                        border: Border.all(color: context.borderColor),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -546,7 +536,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                             children: [
                               Text(
                                 tx.bookTitle,
-                                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                               SizedBox(height: 4),
                               Text(
@@ -570,13 +560,13 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                               Container(
                                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: (isPending ? Colors.amber : (tx.status == 'Completed' ? Colors.green : Colors.red)).withOpacity(0.12),
+                                  color: (isPending ? context.accentGold : (tx.status == 'Completed' ? context.successColor : context.errorColor)).withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   tx.status.toUpperCase(),
                                   style: TextStyle(
-                                    color: isPending ? Colors.amber : (tx.status == 'Completed' ? Colors.green : Colors.red),
+                                    color: isPending ? context.accentGold : (tx.status == 'Completed' ? context.successColor : context.errorColor),
                                     fontSize: 8,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -633,7 +623,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   children: [
                     Text(
                       item.title,
-                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -646,7 +636,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                     Text(
                       item.sellingPrice == 0.0 ? 'FREE' : 'Buyer Price: ₹${priceBreakdown['buyerPays']!.toStringAsFixed(0)}',
                       style: TextStyle(
-                        color: item.sellingPrice == 0.0 ? context.accentOrange : Color(0xFFFFD700),
+                        color: item.sellingPrice == 0.0 ? context.accentOrange : context.accentGold,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -661,7 +651,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   onPressed: () {
                     Get.defaultDialog(
                       title: 'Rejection Reason ❌',
-                      titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+                      titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.textPrimary),
                       backgroundColor: context.secondaryBackgroundColor,
                       content: Padding(
                         padding: EdgeInsets.all(12.0),
@@ -679,15 +669,15 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 children: [
                   Text(
                     '${item.purchasesCount} Sales',
-                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: (item.status == 'Approved'
-                              ? Colors.green
-                              : (item.status == 'Pending' ? Colors.amber : Colors.red))
+                              ? context.successColor
+                              : (item.status == 'Pending' ? context.accentGold : context.errorColor))
                           .withOpacity(0.12),
                       borderRadius: BorderRadius.circular(6),
                     ),
@@ -695,8 +685,8 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                       item.status.toUpperCase(),
                       style: TextStyle(
                         color: item.status == 'Approved'
-                            ? Colors.green
-                            : (item.status == 'Pending' ? Colors.amber : Colors.red),
+                            ? context.successColor
+                            : (item.status == 'Pending' ? context.accentGold : context.errorColor),
                         fontSize: 8,
                         fontWeight: FontWeight.bold,
                       ),

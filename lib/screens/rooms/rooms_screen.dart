@@ -238,7 +238,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
   // Filter Arenas based on Search, Category, and Filters
   List<VoiceRoom> _getFilteredArenas({String? categoryOverride}) {
-    List<VoiceRoom> baseList = _controller.rooms;
+    List<VoiceRoom> baseList = List<VoiceRoom>.from(_controller.rooms);
     
     // Apply search query
     if (_searchQuery.trim().isNotEmpty) {

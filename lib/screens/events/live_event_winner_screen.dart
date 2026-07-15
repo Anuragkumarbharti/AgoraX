@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
 import '../../models/event_model.dart';
 import '../../models/user_model.dart';
-import '../profile/user_profile_screen.dart';
+import '../profile/profile_screen.dart';
 
 class LiveEventWinnerScreen extends StatefulWidget {
   const LiveEventWinnerScreen({
@@ -127,7 +127,7 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
       reputation: 340,
       sid: '984024',
     );
-    Get.to(() => UserProfileScreen(user: targetUser));
+    Get.to(() => ProfileScreen(visitorUser: targetUser));
   }
 
   @override

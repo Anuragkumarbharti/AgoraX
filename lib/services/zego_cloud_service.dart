@@ -17,12 +17,14 @@ class ZegoCloudService {
   bool _isMicEnabled = false;
   bool _isCameraEnabled = false;
   String _currentRoomId = '';
+  bool _isInitialized = false;
   int _membersCount = 1;
 
   final RxList<ZegoUser> roomUsers = <ZegoUser>[].obs;
 
   /// Initialize ZEGOCLOUD Express Engine
   Future<void> init() async {
+    if (_isInitialized) return;
     try {
       ZegoEngineProfile profile = ZegoEngineProfile(
         ZegoConfig.appId,
@@ -30,6 +32,7 @@ class ZegoCloudService {
         appSign: '', // empty to use token authentication in production
       );
       await ZegoExpressEngine.createEngineWithProfile(profile);
+      _isInitialized = true;
       
       // Setup event callbacks
       ZegoExpressEngine.onRoomUserUpdate = (roomId, updateType, userList) {
@@ -73,6 +76,7 @@ class ZegoCloudService {
       ZegoRoomConfig config = ZegoRoomConfig.defaultConfig();
       config.token = token;
       config.isUserStatusNotify = true;
+      config.maxMemberCount = 100; // Limit member state tracking overhead for performance
 
       await ZegoExpressEngine.instance.loginRoom(roomId, _currentUser, config: config);
       _isInRoom = true;

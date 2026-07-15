@@ -175,11 +175,32 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
               // Basic details section
               _buildSectionTitle('Basic Details'),
               SizedBox(height: 12),
-              _buildTextField(_titleController, 'Title', 'e.g., Fluid Mechanics Handwritten Notes', validator: (v) => v!.isEmpty ? 'Title is required' : null),
+              _buildTextField(
+                _titleController, 
+                'Title', 
+                'e.g., Fluid Mechanics Handwritten Notes', 
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                validator: (v) => v!.isEmpty ? 'Title is required' : null,
+              ),
               SizedBox(height: 12),
-              _buildTextField(_subtitleController, 'Subtitle', 'e.g., Complete derivations & solved questions for semester exams'),
+              _buildTextField(
+                _subtitleController, 
+                'Subtitle', 
+                'e.g., Complete derivations & solved questions for semester exams',
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+              ),
               SizedBox(height: 12),
-              _buildTextField(_descController, 'Description', 'Write a detailed description explaining what is included, who it is for, and how it will help students study.', maxLines: 4, validator: (v) => v!.isEmpty ? 'Description is required' : null),
+              _buildTextField(
+                _descController, 
+                'Description', 
+                'Write a detailed description explaining what is included, who it is for, and how it will help students study.', 
+                maxLines: 4, 
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.newline,
+                validator: (v) => v!.isEmpty ? 'Description is required' : null,
+              ),
               
               SizedBox(height: 24),
               _buildSectionTitle('Categories & Categorization'),
@@ -283,7 +304,13 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                   ),
                   SizedBox(width: 12),
                   Expanded(
-                    child: _buildTextField(_tagsController, 'Tags', 'e.g., physics, formula, exam, hand-notes (comma separated)'),
+                    child: _buildTextField(
+                      _tagsController, 
+                      'Tags', 
+                      'e.g., physics, formula, exam, hand-notes (comma separated)',
+                      textCapitalization: TextCapitalization.none,
+                      textInputAction: TextInputAction.next,
+                    ),
                   ),
                 ],
               ),
@@ -293,23 +320,65 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
               SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(_authorController, 'Author Name', 'e.g., Dr. Amit Sen (or self)')),
+                  Expanded(
+                    child: _buildTextField(
+                      _authorController, 
+                      'Author Name', 
+                      'e.g., Dr. Amit Sen (or self)',
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ),
                   SizedBox(width: 12),
-                  Expanded(child: _buildTextField(_publisherController, 'Publisher', 'e.g., Wiley or Self-Written')),
+                  Expanded(
+                    child: _buildTextField(
+                      _publisherController, 
+                      'Publisher', 
+                      'e.g., Wiley or Self-Written',
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ),
                 ],
               ),
               SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(_editionController, 'Edition', 'e.g., 2026 Edition')),
+                  Expanded(
+                    child: _buildTextField(
+                      _editionController, 
+                      'Edition', 
+                      'e.g., 2026 Edition',
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ),
                   SizedBox(width: 12),
-                  Expanded(child: _buildTextField(_isbnController, 'ISBN (optional)', 'e.g., 978-X-...')),
+                  Expanded(
+                    child: _buildTextField(
+                      _isbnController, 
+                      'ISBN (optional)', 
+                      'e.g., 978-X-...',
+                      textCapitalization: TextCapitalization.none,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ),
                 ],
               ),
               SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(_pagesController, 'Total Pages', 'e.g., 148', keyboardType: TextInputType.number, validator: (v) => int.tryParse(v ?? '') == null ? 'Enter page count' : null)),
+                  Expanded(
+                    child: _buildTextField(
+                      _pagesController, 
+                      'Total Pages', 
+                      'e.g., 148', 
+                      keyboardType: TextInputType.number, 
+                      textCapitalization: TextCapitalization.none,
+                      textInputAction: TextInputAction.done,
+                      validator: (v) => int.tryParse(v ?? '') == null ? 'Enter page count' : null,
+                    ),
+                  ),
                   SizedBox(width: 12),
                   Expanded(child: _buildDropdownField('Preview Pages count', _selectedPreviewOption, _previewOptions, (val) {
                     setState(() {
@@ -610,6 +679,8 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
     int maxLines = 1,
     void Function(String)? onChanged,
     String? Function(String?)? validator,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    TextInputAction textInputAction = TextInputAction.next,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,6 +691,10 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
+          textCapitalization: textCapitalization,
+          textInputAction: textInputAction,
+          autocorrect: keyboardType == TextInputType.text,
+          enableSuggestions: keyboardType == TextInputType.text,
           style: TextStyle(color: Colors.white, fontSize: 13),
           onChanged: onChanged,
           validator: validator,

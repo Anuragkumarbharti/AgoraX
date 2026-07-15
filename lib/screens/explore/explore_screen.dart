@@ -8,7 +8,7 @@ import '../../models/user_model.dart';
 import '../../models/post_model.dart';
 import '../../models/question_model.dart';
 import '../../models/community_model.dart';
-import '../profile/user_profile_screen.dart';
+import '../profile/profile_screen.dart';
 import '../../widgets/post_attachments_widget.dart';
 import '../../services/study_vault_controller.dart';
 import '../study_vault/study_vault_home_screen.dart';
@@ -899,7 +899,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => UserProfileScreen(user: author),
+                        builder: (_) => ProfileScreen(visitorUser: author),
                       ),
                     );
                   },
@@ -927,7 +927,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => UserProfileScreen(user: author),
+                          builder: (_) => ProfileScreen(visitorUser: author),
                         ),
                       );
                     },
@@ -1433,7 +1433,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => UserProfileScreen(user: u)),
+        MaterialPageRoute(builder: (_) => ProfileScreen(visitorUser: u)),
       ),
       child: Container(
         decoration: BoxDecoration(

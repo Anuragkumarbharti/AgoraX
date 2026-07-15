@@ -8,6 +8,8 @@ import '../models/post_model.dart';
 import 'post_attachments_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'optimized_image.dart';
+import '../services/asset_cache_manager.dart';
 
 class PostCard extends StatefulWidget {
   const PostCard({
@@ -161,19 +163,17 @@ class _PostCardState extends State<PostCard> {
               // Header
               Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: widget.post.authorAvatarUrl != null && widget.post.authorAvatarUrl!.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: widget.post.authorAvatarUrl!,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(color: AppTheme.bgLight),
-                            errorWidget: (context, url, error) => _buildInitialsAvatar(),
-                          )
-                        : _buildInitialsAvatar(),
-                  ),
+                  widget.post.authorAvatarUrl != null && widget.post.authorAvatarUrl!.isNotEmpty
+                      ? OptimizedImage(
+                          imageUrl: widget.post.authorAvatarUrl!,
+                          quality: ImageQuality.thumbnail,
+                          borderRadius: BorderRadius.circular(20),
+                          width: 40,
+                          height: 40,
+                          placeholder: Container(color: AppTheme.bgLight),
+                          errorWidget: _buildInitialsAvatar(),
+                        )
+                      : _buildInitialsAvatar(),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(

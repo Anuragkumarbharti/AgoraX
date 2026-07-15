@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -421,7 +422,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           title: Text(
             '100% Profile Complete! 🎉',
             textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.textPrimary),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -475,7 +476,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         children: [
           Text(emoji, style: TextStyle(fontSize: 18)),
           SizedBox(width: 8),
-          Text(title, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          Text(title, style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
         ],
       ),
     );
@@ -512,11 +513,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   SizedBox(height: 24),
 
                   _sectionHeader('Basic Identity'),
-                  _buildInputField('Display Name', _displayNameCtrl, hint: 'John Doe'),
+                  _buildInputField(
+                    'Display Name', 
+                    _displayNameCtrl, 
+                    hint: 'John Doe',
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
                   _buildUsernameInput(),
                   SizedBox(height: 12),
-                  _buildInputField('Bio (Max 150 chars)', _bioCtrl, hint: 'Share something about yourself', maxLines: 3),
+                  _buildInputField(
+                    'Bio (Max 150 chars)', 
+                    _bioCtrl, 
+                    hint: 'Share something about yourself', 
+                    maxLines: 3,
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.newline,
+                  ),
                   SizedBox(height: 12),
                   _buildDobSelector(),
                   SizedBox(height: 12),
@@ -524,33 +539,109 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   SizedBox(height: 24),
 
                   _sectionHeader('Location'),
-                  _buildInputField('Country', _countryCtrl, hint: 'India'),
+                  _buildInputField(
+                    'Country', 
+                    _countryCtrl, 
+                    hint: 'India',
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
-                  _buildInputField('State', _stateCtrl, hint: 'Maharashtra'),
+                  _buildInputField(
+                    'State', 
+                    _stateCtrl, 
+                    hint: 'Maharashtra',
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
-                  _buildInputField('City', _cityCtrl, hint: 'Mumbai'),
+                  _buildInputField(
+                    'City', 
+                    _cityCtrl, 
+                    hint: 'Mumbai',
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
-                  _buildInputField('Languages', _languageCtrl, hint: 'English, Hindi'),
+                  _buildInputField(
+                    'Languages', 
+                    _languageCtrl, 
+                    hint: 'English, Hindi',
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 24),
 
                   _sectionHeader('Education & Career'),
-                  _buildInputField('Occupation', _occupationCtrl, hint: 'Software Engineer'),
+                  _buildInputField(
+                    'Occupation', 
+                    _occupationCtrl, 
+                    hint: 'Software Engineer',
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
-                  _buildInputField('School', _schoolCtrl, hint: 'High School Name'),
+                  _buildInputField(
+                    'School', 
+                    _schoolCtrl, 
+                    hint: 'High School Name',
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
-                  _buildInputField('College', _collegeCtrl, hint: 'IIT Bombay'),
+                  _buildInputField(
+                    'College', 
+                    _collegeCtrl, 
+                    hint: 'IIT Bombay',
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
-                  _buildInputField('Company', _companyCtrl, hint: 'Google'),
+                  _buildInputField(
+                    'Company', 
+                    _companyCtrl, 
+                    hint: 'Google',
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 24),
 
                   _sectionHeader('Social Links & Website'),
-                  _buildInputField('Website', _websiteCtrl, hint: 'https://johndoe.com'),
+                  _buildInputField(
+                    'Website', 
+                    _websiteCtrl, 
+                    hint: 'https://johndoe.com',
+                    keyboardType: TextInputType.url,
+                    textCapitalization: TextCapitalization.none,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
-                  _buildInputField('Instagram', _instagramCtrl, hint: 'instagram.com/johndoe'),
+                  _buildInputField(
+                    'Instagram', 
+                    _instagramCtrl, 
+                    hint: 'instagram.com/johndoe',
+                    keyboardType: TextInputType.url,
+                    textCapitalization: TextCapitalization.none,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
-                  _buildInputField('YouTube', _youtubeCtrl, hint: 'youtube.com/johndoe'),
+                  _buildInputField(
+                    'YouTube', 
+                    _youtubeCtrl, 
+                    hint: 'youtube.com/johndoe',
+                    keyboardType: TextInputType.url,
+                    textCapitalization: TextCapitalization.none,
+                    textInputAction: TextInputAction.next,
+                  ),
                   SizedBox(height: 12),
-                  _buildInputField('X (Twitter)', _twitterCtrl, hint: 'twitter.com/johndoe'),
+                  _buildInputField(
+                    'X (Twitter)', 
+                    _twitterCtrl, 
+                    hint: 'twitter.com/johndoe',
+                    keyboardType: TextInputType.url,
+                    textCapitalization: TextCapitalization.none,
+                    textInputAction: TextInputAction.done,
+                  ),
                   SizedBox(height: 24),
 
                   _sectionHeader('Interests'),
@@ -591,7 +682,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Profile Completion', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              Text('Profile Completion', style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
               Text('$percentage%', style: GoogleFonts.poppins(color: context.accentOrange, fontWeight: FontWeight.bold, fontSize: 16)),
             ],
           ),
@@ -625,7 +716,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             width: double.infinity,
             height: 120,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: context.borderColor),
               image: _coverFile != null
@@ -635,7 +726,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       : null,
             ),
             child: _coverFile == null && (_user.coverPhoto == null || _user.coverPhoto!.isEmpty)
-                ? Center(child: Icon(Icons.add_photo_alternate_rounded, color: Colors.white60, size: 28))
+                ? Center(child: Icon(Icons.add_photo_alternate_rounded, color: context.caption, size: 28))
                 : null,
           ),
         ),
@@ -657,7 +748,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ? NetworkImage(_user.avatar!) as ImageProvider<Object>
                           : null,
                   child: _avatarFile == null && (_user.avatar == null || _user.avatar!.isEmpty)
-                      ? Icon(Icons.person_rounded, size: 40, color: Colors.white54)
+                      ? Icon(Icons.person_rounded, size: 40, color: context.caption)
                       : null,
                 ),
               ),
@@ -690,7 +781,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller, {required String hint, int maxLines = 1}) {
+  Widget _buildInputField(
+    String label, 
+    TextEditingController controller, {
+    required String hint, 
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    TextInputAction textInputAction = TextInputAction.next,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -699,7 +798,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         TextField(
           controller: controller,
           maxLines: maxLines,
-          style: TextStyle(color: Colors.white, fontSize: 14),
+          keyboardType: keyboardType,
+          textCapitalization: textCapitalization,
+          textInputAction: textInputAction,
+          autocorrect: keyboardType == TextInputType.text || keyboardType == TextInputType.multiline,
+          enableSuggestions: keyboardType == TextInputType.text || keyboardType == TextInputType.multiline,
+          style: TextStyle(color: context.textPrimary, fontSize: 14),
           decoration: InputDecoration(hintText: hint),
         ),
       ],
@@ -714,7 +818,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         SizedBox(height: 6),
         TextField(
           controller: _usernameCtrl,
-          style: TextStyle(color: Colors.white, fontSize: 14),
+          keyboardType: TextInputType.text,
+          textCapitalization: TextCapitalization.none,
+          textInputAction: TextInputAction.next,
+          autocorrect: false,
+          enableSuggestions: false,
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(RegExp(r'\s')),
+          ],
+          style: TextStyle(color: context.textPrimary, fontSize: 14),
           decoration: InputDecoration(
             prefixText: '@ ',
             prefixStyle: TextStyle(color: context.accentOrange, fontWeight: FontWeight.bold),
@@ -802,10 +914,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               value: _selectedGender,
               hint: Text('Select Gender', style: TextStyle(color: context.caption)),
               dropdownColor: context.secondaryBackgroundColor,
-              style: TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: context.textPrimary, fontSize: 14),
               isExpanded: true,
               items: ['Male', 'Female', 'Non-Binary', 'Prefer not to say']
-                  .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                  .map((g) => DropdownMenuItem(value: g, child: Text(g, style: TextStyle(color: context.textPrimary))))
                   .toList(),
               onChanged: (val) => setState(() => _selectedGender = val),
             ),
@@ -834,9 +946,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             });
           },
           selectedColor: context.primaryColor.withOpacity(0.3),
-          checkmarkColor: Colors.white,
+          checkmarkColor: context.primaryColor,
           backgroundColor: context.secondaryBackgroundColor,
-          labelStyle: TextStyle(color: isSelected ? Colors.white : context.textSecondary),
+          labelStyle: TextStyle(color: isSelected ? context.primaryColor : context.textSecondary, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
         );
       }).toList(),
     );

@@ -14,11 +14,11 @@ class IsarStorageService extends GetxService {
 
     final dir = await getApplicationDocumentsDirectory();
     _isar = await Isar.open(
-      [IsarConversationSchema, IsarChatMessageSchema],
-      directory: dir.path,
-      name: 'creania_chat_db',
-    );
-    _initialized = true;
+       [IsarConversationSchema, IsarChatMessageSchema],
+       directory: dir.path,
+       name: 'creania_chat_db',
+     );
+     _initialized = true;
   }
 
   // ─── Conversations ───
@@ -129,5 +129,37 @@ class IsarStorageService extends GetxService {
         await _isar.isarConversations.put(conv);
       }
     });
+  }
+
+  // ─── Cache Entries ───
+
+  Future<void> saveCacheEntry(String key, String jsonPayload) async {
+    await _isar.writeTxn(() async {
+      final existing = await _isar.isarConversations.filter().uuidEqualTo(key).findFirst();
+      final conv = IsarConversation()
+        ..uuid = key
+        ..lastMessage = jsonPayload
+        ..otherUserId = ''
+        ..otherUserName = ''
+        ..otherUserAvatar = ''
+        ..otherUserOnline = false
+        ..isVerified = false
+        ..lastMessageTime = DateTime.now()
+        ..unreadCount = 0
+        ..isPinned = false
+        ..isMuted = true
+        ..levelTitle = ''
+        ..level = 0
+        ..lastMessageSenderId = '';
+      if (existing != null) {
+        conv.id = existing.id;
+      }
+      await _isar.isarConversations.put(conv);
+    });
+  }
+
+  Future<String?> getCacheEntryPayload(String key) async {
+    final entry = await _isar.isarConversations.filter().uuidEqualTo(key).findFirst();
+    return entry?.lastMessage;
   }
 }

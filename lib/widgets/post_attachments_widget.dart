@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../core/theme.dart';
 import '../models/post_model.dart';
 import 'video_player_dialog.dart';
+import 'optimized_image.dart';
+import '../services/asset_cache_manager.dart';
 
 class PostAttachmentsWidget extends StatelessWidget {
   final Post post;
@@ -52,7 +54,7 @@ class PostAttachmentsWidget extends StatelessWidget {
     if (images.length == 1) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: _renderImageItem(images[0], height: 200, width: double.infinity),
+        child: _renderImageItem(context, images[0], height: 200, width: double.infinity),
       );
     }
 
@@ -65,21 +67,21 @@ class PostAttachmentsWidget extends StatelessWidget {
         separatorBuilder: (_, __) => SizedBox(width: 8),
         itemBuilder: (context, idx) => ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: _renderImageItem(images[idx], height: 180, width: 140),
+          child: _renderImageItem(context, images[idx], height: 180, width: 140),
         ),
       ),
     );
   }
 
-  Widget _renderImageItem(String path, {required double height, required double width}) {
+  Widget _renderImageItem(BuildContext context, String path, {required double height, required double width}) {
     final isNetwork = path.startsWith('http') || path.startsWith('https');
     if (isNetwork) {
-      return CachedNetworkImage(
+      return OptimizedImage(
         imageUrl: path,
+        quality: ImageQuality.medium,
         height: height,
         width: width,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => Container(
+        placeholder: Container(
           height: height,
           width: width,
           color: context.borderColor.withOpacity(0.3),
@@ -91,7 +93,7 @@ class PostAttachmentsWidget extends StatelessWidget {
             ),
           ),
         ),
-        errorWidget: (context, url, error) => Container(
+        errorWidget: Container(
           height: height,
           width: width,
           color: context.borderColor.withOpacity(0.3),

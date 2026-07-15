@@ -77,7 +77,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
         }
       },
       child: Scaffold(
-        backgroundColor: Color(0xFF07070A),
+        backgroundColor: context.scaffoldBackgroundColor,
         body: Stack(
         children: [
           // Background Radial Ambient Glows
@@ -175,10 +175,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
   Widget _buildStoreHeader() {
     return SliverAppBar(
       pinned: true,
-      backgroundColor: Color(0xFF07070A).withOpacity(0.85),
+      backgroundColor: context.scaffoldBackgroundColor.withOpacity(0.85),
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+        icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.textPrimary, size: 18),
         onPressed: () {
           if (Navigator.of(context).canPop()) {
             Navigator.of(context).pop();
@@ -193,22 +193,22 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
           fontWeight: FontWeight.w900,
           fontSize: 18,
           letterSpacing: 2,
-          color: Colors.white,
+          color: context.textPrimary,
         ),
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.gif_box_outlined, color: Colors.white70),
+          icon: Icon(Icons.gif_box_outlined, color: context.textSecondary),
           tooltip: 'Gift Store',
           onPressed: () => Get.to(() => const GiftMembershipScreen()),
         ),
         IconButton(
-          icon: Icon(Icons.history_toggle_off_rounded, color: Colors.white70),
+          icon: Icon(Icons.history_toggle_off_rounded, color: context.textSecondary),
           tooltip: 'Purchase History',
           onPressed: () => Get.to(() => const StoreHistoryScreen()),
         ),
         IconButton(
-          icon: Icon(Icons.admin_panel_settings_outlined, color: Color(0xFFFFD700)),
+          icon: Icon(Icons.admin_panel_settings_outlined, color: context.accentGold),
           tooltip: 'Admin Panel',
           onPressed: () => Get.to(() => const AdminStorePanel()),
         ),
@@ -231,16 +231,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
           child: Container(
             padding: EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF1E1B4B).withOpacity(0.4),
-                  Color(0xFF09090B).withOpacity(0.8),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Color(0xFF312E81).withOpacity(0.5), width: 1.5),
+              border: Border.all(color: context.borderColor, width: 1.5),
+              boxShadow: context.smallShadow,
             ),
             child: Column(
               children: [
@@ -252,19 +246,19 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                       children: [
                         Text(
                           'YOUR WALLET',
-                          style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                          style: GoogleFonts.poppins(color: context.caption, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.5),
                         ),
                         SizedBox(height: 4),
                         Row(
                           children: [
                             Text(
                               '🪙 $coins',
-                              style: GoogleFonts.outfit(color: Color(0xFFFFD700), fontSize: 28, fontWeight: FontWeight.w900),
+                              style: GoogleFonts.outfit(color: context.accentGold, fontSize: 28, fontWeight: FontWeight.w900),
                             ),
                             SizedBox(width: 4),
                             Text(
                               'Coins',
-                              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -272,7 +266,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFFFD700),
+                        backgroundColor: context.accentGold,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
@@ -286,7 +280,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 14.0),
-                  child: Divider(color: Colors.white10, height: 1),
+                  child: Divider(color: context.borderColor, height: 1),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -294,7 +288,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                     _membershipStatusCol('VIP status', hasVip, '💎 VIP $vipLevel', 'Join VIP', () {
                       Get.to(() => const VipNovelStoreTab(initialIndex: 0));
                     }),
-                    Container(height: 30, width: 1, color: Colors.white10),
+                    Container(height: 30, width: 1, color: context.borderColor),
                     _membershipStatusCol('Novel status', hasNovel, '📖 Novel $novelLevel', 'Unlock Novel', () {
                       Get.to(() => const VipNovelStoreTab(initialIndex: 1));
                     }),
@@ -313,20 +307,20 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       onTap: onTap,
       child: Column(
         children: [
-          Text(label, style: GoogleFonts.poppins(color: Colors.white30, fontSize: 10)),
+          Text(label, style: GoogleFonts.poppins(color: context.caption, fontSize: 10)),
           SizedBox(height: 4),
           Row(
             children: [
               Text(
                 active ? activeText : joinText,
                 style: GoogleFonts.poppins(
-                  color: active ? Color(0xFFFFD700) : Color(0xFFD946EF),
+                  color: active ? context.accentGold : context.primaryColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
               ),
               SizedBox(width: 2),
-              Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 8),
+              Icon(Icons.arrow_forward_ios_rounded, color: context.caption, size: 8),
             ],
           ),
         ],
@@ -382,34 +376,20 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
           width: double.infinity,
           height: 125,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF3B0764),
-                Color(0xFF0F172A).withOpacity(0.9),
-                Color(0xFF701A75),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0xFFC084FC).withOpacity(0.12 * glowVal),
-                blurRadius: 15,
-                spreadRadius: 1,
-              )
-            ],
+            color: context.surfaceColor,
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: Color.lerp(Color(0xFF8B5CF6), Color(0xFFD946EF), glowVal)!.withOpacity(0.4),
               width: 1.2,
             ),
+            boxShadow: context.smallShadow,
           ),
           child: Stack(
             children: [
               Positioned(
                 bottom: -20,
                 right: -20,
-                child: Text('⚡', style: TextStyle(fontSize: 90, color: Colors.white.withOpacity(0.04))),
+                child: Text('⚡', style: TextStyle(fontSize: 90, color: context.textPrimary.withOpacity(0.04))),
               ),
               Padding(
                 padding: EdgeInsets.all(16.0),
@@ -423,28 +403,28 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Color(0xFFEC4899).withOpacity(0.2),
+                              color: context.primaryColor.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               'FESTIVAL BASH SALE',
-                              style: GoogleFonts.poppins(color: Color(0xFFF472B6), fontSize: 8.5, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.poppins(color: context.primaryColor, fontSize: 8.5, fontWeight: FontWeight.bold),
                             ),
                           ),
                           SizedBox(height: 6),
                           Text(
                             'Flat 50% Off Coupons!',
-                            style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+                            style: GoogleFonts.outfit(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.w900),
                           ),
                           SizedBox(height: 2),
                           Text(
                             'Use code FESTIVAL50 inside checkout screen.',
-                            style: GoogleFonts.poppins(color: Colors.white60, fontSize: 10),
+                            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 10),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 16),
+                    Icon(Icons.arrow_forward_ios_rounded, color: context.caption, size: 16),
                   ],
                 ),
               ),
@@ -483,14 +463,14 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
               margin: EdgeInsets.only(right: 10),
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: Color(0xFF1E1B4B).withOpacity(0.3),
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Color(0xFF312E81).withOpacity(0.3)),
+                border: Border.all(color: context.borderColor),
               ),
               child: Center(
                 child: Text(
                   categories[index],
-                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11.5, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -518,13 +498,9 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
         padding: EdgeInsets.all(18),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E1B4B).withOpacity(0.5),
-            ],
-          ),
-          border: Border.all(color: Color(0xFFD946EF).withOpacity(0.25)),
+          color: context.surfaceColor,
+          border: Border.all(color: context.borderColor),
+          boxShadow: context.smallShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,24 +510,24 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
               children: [
                 Row(
                   children: [
-                    Icon(Icons.flash_on_rounded, color: Color(0xFFD946EF), size: 18),
+                    Icon(Icons.flash_on_rounded, color: context.primaryColor, size: 18),
                     SizedBox(width: 4),
                     Text(
                       'DAILY FLASH DEAL',
-                      style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0),
+                      style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0),
                     ),
                   ],
                 ),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
+                    color: context.secondaryBackgroundColor,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white10),
+                    border: Border.all(color: context.borderColor),
                   ),
                   child: Text(
                     durationText,
-                    style: GoogleFonts.poppins(color: Color(0xFFD946EF), fontSize: 11, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -576,19 +552,19 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                     children: [
                       Text(
                         itemName,
-                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 4),
                       Row(
                         children: [
                           Text(
                             '₹${discPrice.toInt()}',
-                            style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 16, fontWeight: FontWeight.w900),
+                            style: GoogleFonts.poppins(color: context.accentGold, fontSize: 16, fontWeight: FontWeight.w900),
                           ),
                           SizedBox(width: 8),
                           Text(
                             '₹${originalPrice.toInt()}',
-                            style: TextStyle(color: Colors.white24, decoration: TextDecoration.lineThrough, fontSize: 12),
+                            style: TextStyle(color: context.caption, decoration: TextDecoration.lineThrough, fontSize: 12),
                           ),
                         ],
                       ),
@@ -597,7 +573,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFD946EF),
+                    backgroundColor: context.primaryColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   ),
@@ -623,12 +599,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
               children: [
                 Text(
                   'STOCK REMAINING: $remaining items left',
-                  style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9.5),
+                  style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 9.5),
                 ),
                 Container(
                   width: 140,
                   height: 5,
-                  decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4)),
+                  decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(4)),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: remaining / 15.0,
@@ -655,15 +631,16 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       child: Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Color(0xFF1E293B).withOpacity(0.2),
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Color(0xFFFFB800).withOpacity(0.3)),
+          border: Border.all(color: context.borderColor),
+          boxShadow: context.smallShadow,
         ),
         child: Row(
           children: [
             Container(
               padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Color(0xFFFFB800).withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: context.accentGold.withOpacity(0.12), shape: BoxShape.circle),
               child: Text('🎯', style: TextStyle(fontSize: 20)),
             ),
             SizedBox(width: 14),
@@ -673,17 +650,17 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 children: [
                   Text(
                     'LUCKY DRAW WHEEL IS LIVE!',
-                    style: GoogleFonts.outfit(color: Color(0xFFFFB800), fontSize: 11.5, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                    style: GoogleFonts.outfit(color: context.accentGold, fontSize: 11.5, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                   ),
                   SizedBox(height: 2),
                   Text(
                     'Spin for VIP rewards, frame drops, and bonus coins.',
-                    style: GoogleFonts.poppins(color: Colors.white60, fontSize: 10),
+                    style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 10),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFFFB800), size: 14),
+            Icon(Icons.arrow_forward_ios_rounded, color: context.accentGold, size: 14),
           ],
         ),
       ),
@@ -696,11 +673,11 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       children: [
         Row(
           children: [
-            Icon(Icons.star_rounded, color: Color(0xFFFFB800), size: 18),
+            Icon(Icons.star_rounded, color: context.accentGold, size: 18),
             SizedBox(width: 6),
             Text(
               'SPECIAL LIMITED PACKS',
-              style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.2),
+              style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.2),
             ),
           ],
         ),
@@ -711,14 +688,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             children: [
-              _buildLimitedCard(
-                'Immortal Sovereign Bundle',
-                'VIP 7 + 10,000 Coins + Crown Particle Effect',
-                '₹8,999',
-                '₹14,999',
-                'ONLY 4 LEFT',
-                Color(0xFFFFD700),
-              ),
               _buildLimitedCard(
                 'Cyber Neon Starter Kit',
                 'Basic VIP + 500 Coins + Neon Aura Glow',
@@ -740,9 +709,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       margin: EdgeInsets.only(right: 14),
       padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Color(0xFF151518),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: context.smallShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -754,7 +724,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
               Expanded(
                 child: Text(
                   name,
-                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -771,7 +741,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
           ),
           Text(
             desc,
-            style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9),
+            style: GoogleFonts.poppins(color: context.caption, fontSize: 9),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -782,12 +752,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 children: [
                   Text(
                     price,
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(width: 6),
                   Text(
                     original,
-                    style: TextStyle(color: Colors.white24, decoration: TextDecoration.lineThrough, fontSize: 10),
+                    style: TextStyle(color: context.caption, decoration: TextDecoration.lineThrough, fontSize: 10),
                   ),
                 ],
               ),
@@ -831,17 +801,17 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
           children: [
             Row(
               children: [
-                Icon(Icons.shopping_bag_rounded, color: Color(0xFFD946EF), size: 18),
+                Icon(Icons.shopping_bag_rounded, color: context.primaryColor, size: 18),
                 SizedBox(width: 6),
                 Text(
                   'POPULAR COSMETICS',
-                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.2),
+                  style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.2),
                 ),
               ],
             ),
             Text(
               'View All',
-              style: GoogleFonts.poppins(color: Color(0xFFD946EF), fontSize: 11, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -863,7 +833,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
               decoration: BoxDecoration(
                 color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
+                border: Border.all(color: context.borderColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -874,18 +844,18 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                     children: [
                       Container(
                         padding: EdgeInsets.all(6),
-                        decoration: BoxDecoration(color: Color(0xFF1E1B4B), borderRadius: BorderRadius.circular(10)),
+                        decoration: BoxDecoration(color: context.secondaryBackgroundColor, borderRadius: BorderRadius.circular(10)),
                         child: Text(item['icon'] as String, style: TextStyle(fontSize: 14)),
                       ),
                       Text(
                         '🪙 ${item['price']}',
-                        style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 12, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.poppins(color: context.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                   Text(
                     item['name'] as String,
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -921,14 +891,14 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                       width: double.infinity,
                       padding: EdgeInsets.symmetric(vertical: 4),
                       decoration: BoxDecoration(
-                        color: Color(0xFF8B5CF6).withOpacity(0.12),
+                        color: context.primaryColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.2)),
+                        border: Border.all(color: context.primaryColor.withOpacity(0.2)),
                       ),
                       child: Center(
                         child: Text(
                           'Unlock',
-                          style: GoogleFonts.poppins(color: Color(0xFFA78BFA), fontSize: 10, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.poppins(color: context.primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),

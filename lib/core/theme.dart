@@ -25,7 +25,7 @@ class AppTheme {
   static const Color lightDisabled = Color(0xFFCBD5E1);
 
   // Dividers, Borders, Shadows
-  static const Color lightBorder = Color(0xFFDCE3ED);
+  static const Color lightBorder = Color(0xFFE7ECF4);
   static const Color lightDivider = Color(0xFFE7ECF4);
   static const Color lightShadow = Color(0x0F0F172A); // rgba(15,23,42,0.06)
 
@@ -44,9 +44,9 @@ class AppTheme {
 
   // Statuses
   static const Color lightSuccess = Color(0xFF22C55E);
-  static const Color lightWarning = Color(0xFFFFB020);
+  static const Color lightWarning = Color(0xFFF59E0B);
   static const Color lightError = Color(0xFFEF4444);
-  static const Color lightInfo = Color(0xFF00C2FF); // Link / verified / info color
+  static const Color lightInfo = Color(0xFF0EA5E9); // Link / verified / info color
 
   // Gamification & Badges
   static const Color lightVipGold = Color(0xFFFFB020);
@@ -181,11 +181,11 @@ class AppTheme {
       fillColor: Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE7EBF2)),
+        borderSide: const BorderSide(color: Color(0xFFDCE3ED)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE7EBF2)),
+        borderSide: const BorderSide(color: Color(0xFFDCE3ED)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -214,7 +214,7 @@ class AppTheme {
     cardTheme: CardThemeData(
       color: lightSurface,
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: lightSurface,
@@ -406,6 +406,12 @@ extension ThemeExtension on BuildContext {
 
   LinearGradient get orangeToGoldGradient => const LinearGradient(
         colors: [Color(0xFFFF7A09), Color(0xFFFFB020)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
+  LinearGradient get premiumGradient => const LinearGradient(
+        colors: [Color(0xFFFF4D8D), Color(0xFF8B5CFF), Color(0xFF00C2FF)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );

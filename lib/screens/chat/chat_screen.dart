@@ -13,7 +13,7 @@ import '../../services/chat_socket_service.dart';
 import 'chat_settings_screen.dart';
 import '../../models/user_model.dart';
 import '../../services/user_profile_cache_manager.dart';
-import '../profile/user_profile_screen.dart';
+import '../profile/profile_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final Conversation conversation;
@@ -262,10 +262,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               onTap: () {
                 final cached = UserProfileCacheManager.getCachedUser(conv.otherUserId);
                 if (cached != null) {
-                  Get.to(() => UserProfileScreen(user: cached));
+                  Get.to(() => ProfileScreen(visitorUser: cached));
                 } else {
-                  Get.to(() => UserProfileScreen(
-                    user: User(
+                  Get.to(() => ProfileScreen(
+                    visitorUser: User(
                       id: conv.otherUserId,
                       username: conv.otherUserName.toLowerCase().replaceAll(' ', '_'),
                       email: '${conv.otherUserId}@example.com',

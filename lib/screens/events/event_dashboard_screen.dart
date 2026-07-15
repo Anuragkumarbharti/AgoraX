@@ -5,7 +5,7 @@ import '../../models/event_model.dart';
 import '../../models/user_model.dart';
 import 'organizer_question_management_screen.dart';
 import '../../services/event_controller.dart';
-import '../profile/user_profile_screen.dart';
+import '../profile/profile_screen.dart';
 
 class EventDashboardScreen extends StatefulWidget {
   const EventDashboardScreen({Key? key, required this.event}) : super(key: key);
@@ -976,7 +976,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
       xp: 180,
       totalXp: 1000,
     );
-    Get.to(() => UserProfileScreen(user: targetUser));
+    Get.to(() => ProfileScreen(visitorUser: targetUser));
   }
 
   int _selectedAnalyticsRound = 0;

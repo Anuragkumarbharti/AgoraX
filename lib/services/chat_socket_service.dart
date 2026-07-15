@@ -31,6 +31,11 @@ class ChatSocketService extends GetxService {
           .setTransports(['websocket'])
           .enableAutoConnect()
           .setQuery({'userId': currentUserId})
+          .setReconnectionDelay(1500)
+          .setReconnectionDelayMax(5000)
+          .setReconnectionAttempts(99999) // Resilient reconnection during network/VPN swaps
+          .setTimeout(4000) // Detect dead links immediately during transitions
+          .setExtraHeaders({'connection': 'keep-alive'})
           .build(),
     );
 

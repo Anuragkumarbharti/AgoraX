@@ -42,7 +42,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 SizedBox(width: 8),
                 Text(
                   'Pricing & Tax Breakdown',
-                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ],
             ),
@@ -50,17 +50,17 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             _breakdownRow('Base Selling Price', '₹${breakdown['basePrice']!.toStringAsFixed(2)}'),
             if (breakdown['discount']! > 0)
               _breakdownRow('VIP ${_vipCtrl.vipLevel.value} Discount', '- ₹${breakdown['discount']!.toStringAsFixed(2)}', highlightColor: context.accentOrange),
-            Divider(color: Colors.white10),
+            Divider(color: context.borderColor),
             _breakdownRow('GST (18%)', '+ ₹${breakdown['gst']!.toStringAsFixed(2)}'),
             _breakdownRow('Payment Gateway (2%)', '+ ₹${breakdown['paymentGateway']!.toStringAsFixed(2)}'),
             _breakdownRow('Platform Service Fee (17%)', '+ ₹${breakdown['platformFee']!.toStringAsFixed(2)}'),
-            Divider(color: Colors.white10),
+            Divider(color: context.borderColor),
             _breakdownRow('Total Buyer Pays (INR)', '₹${breakdown['buyerPays']!.toStringAsFixed(2)}', isHeader: true),
-            _breakdownRow('Total Buyer Pays (Gold Coins)', '🪙 $goldCoinsPrice Coins', isHeader: true, highlightColor: Color(0xFFFFD700)),
+            _breakdownRow('Total Buyer Pays (Gold Coins)', '🪙 $goldCoinsPrice Coins', isHeader: true, highlightColor: context.accentGold),
             SizedBox(height: 12),
             Container(
               padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.02), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: context.scaffoldBackgroundColor, borderRadius: BorderRadius.circular(10)),
               child: Row(
                 children: [
                   Icon(Icons.info_outline, color: context.caption, size: 14),
@@ -102,7 +102,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           Text(
             label,
             style: TextStyle(
-              color: isHeader ? Colors.white : context.caption,
+              color: isHeader ? context.textPrimary : context.caption,
               fontSize: isHeader ? 13 : 12,
               fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
             ),
@@ -110,7 +110,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           Text(
             value,
             style: TextStyle(
-              color: highlightColor ?? (isHeader ? Colors.white : context.textSecondary),
+              color: highlightColor ?? (isHeader ? context.textPrimary : context.textSecondary),
               fontSize: isHeader ? 13 : 12,
               fontWeight: (isHeader || highlightColor != null) ? FontWeight.bold : FontWeight.normal,
             ),
@@ -182,24 +182,48 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       expandedHeight: 280,
       pinned: true,
       backgroundColor: context.scaffoldBackgroundColor,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
-        onPressed: () => Get.back(),
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.32),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 18),
+          onPressed: () => Get.back(),
+        ),
       ),
       actions: [
-        IconButton(
-          icon: Icon(
-            inWishlist ? Icons.favorite : Icons.favorite_border_rounded,
-            color: inWishlist ? Colors.redAccent : Colors.white,
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.32),
+            shape: BoxShape.circle,
           ),
-          onPressed: () => _controller.toggleWishlist(book.id),
+          child: IconButton(
+            icon: Icon(
+              inWishlist ? Icons.favorite : Icons.favorite_border_rounded,
+              color: inWishlist ? context.accentPink : Colors.white,
+              size: 20,
+            ),
+            onPressed: () => _controller.toggleWishlist(book.id),
+          ),
         ),
-        IconButton(
-          icon: Icon(Icons.share_outlined, color: Colors.white),
-          onPressed: () {
-            Get.snackbar('Link Copied 🔗', 'Study Vault book link copied to clipboard.');
-          },
+        const SizedBox(width: 8),
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.32),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.share_outlined, color: Colors.white, size: 20),
+            onPressed: () {
+              Get.snackbar('Link Copied 🔗', 'Study Vault book link copied to clipboard.');
+            },
+          ),
         ),
+        const SizedBox(width: 12),
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
@@ -241,7 +265,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: book.isOfficial ? Color(0xFFFFD700) : context.primaryColor,
+                  color: book.isOfficial ? context.accentGold : context.primaryColor,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -249,25 +273,27 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   style: TextStyle(color: book.isOfficial ? Colors.black : Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                 ),
               ),
-              SizedBox(width: 8),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: context.borderColor),
+              if (book.requiredVipLevel > 0) ...[
+                SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: context.accentOrange.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: context.accentOrange.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    'VIP ${book.requiredVipLevel}+ REQUIRED',
+                    style: TextStyle(color: context.accentOrange, fontSize: 8, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                child: Text(
-                  book.fileType.toUpperCase(),
-                  style: TextStyle(color: context.textSecondary, fontSize: 8, fontWeight: FontWeight.bold),
-                ),
-              ),
+              ],
             ],
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 12),
           Text(
             book.title,
-            style: GoogleFonts.outfit(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            style: GoogleFonts.outfit(color: context.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 4),
           Text(
@@ -276,34 +302,42 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           ),
           SizedBox(height: 14),
           
-          // Pages, Ratings, Language Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _infoTile('Pages', '${book.pages} pgs', Icons.menu_book),
-              _infoTile('Rating', '${book.rating} (${book.reviewsCount} reviews)', Icons.star, iconColor: Color(0xFFFFD700)),
+              _infoTile('Rating', '${book.rating} (${book.reviewsCount} reviews)', Icons.star, iconColor: context.accentGold),
               _infoTile('Language', book.language, Icons.translate),
             ],
           ),
-          Divider(color: Colors.white10, height: 28),
+          Divider(color: context.borderColor, height: 28),
           
-          // Subject taxonomy
-          Text('TAXONOMY & INDEX', style: GoogleFonts.outfit(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-          SizedBox(height: 8),
-          _taxonomyRow('Category Collection', book.category),
-          _taxonomyRow('Academic Path', '${book.course}  ·  Sem ${book.semester}'),
-          _taxonomyRow('Branch / Subject', book.branch),
-          _taxonomyRow('University Bound', book.university),
-          _taxonomyRow('Publisher / License', '${book.publisher} (${book.edition})'),
-
-          Divider(color: Colors.white10, height: 28),
+          _buildMetaRow('Category Collection', book.category),
+          _buildMetaRow('Academic Path', '${book.course}  ·  Sem ${book.semester}'),
+          if (book.branch.isNotEmpty) _buildMetaRow('Branch / Subject', book.branch),
+          if (book.university.isNotEmpty) _buildMetaRow('University Bound', book.university),
+          _buildMetaRow('Publisher / License', '${book.publisher} (${book.edition})'),
+          Divider(color: context.borderColor, height: 28),
           Text('DESCRIPTION', style: GoogleFonts.outfit(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
           SizedBox(height: 8),
           Text(
             book.description,
             style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12.5, height: 1.5),
           ),
-          Divider(color: Colors.white10, height: 28),
+          Divider(color: context.borderColor, height: 28),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetaRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
+          Text(value, style: TextStyle(color: context.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -318,23 +352,10 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label, style: TextStyle(color: context.caption, fontSize: 9)),
-            Text(value, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(value, style: TextStyle(color: context.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
           ],
         )
       ],
-    );
-  }
-
-  Widget _taxonomyRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
-          Text(value, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-        ],
-      ),
     );
   }
 
@@ -359,7 +380,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Resource Unlocked', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('Resource Unlocked', style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
                   SizedBox(height: 2),
                   Text(
                     book.isOfficial 
@@ -381,19 +402,19 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         margin: EdgeInsets.symmetric(horizontal: 20),
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Color(0xFFFFD700).withOpacity(0.06),
+          color: context.accentGold.withOpacity(0.06),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Color(0xFFFFD700).withOpacity(0.3)),
+          border: Border.all(color: context.accentGold.withOpacity(0.3)),
         ),
         child: Row(
           children: [
-            Icon(Icons.lock_outline_rounded, color: Color(0xFFFFD700), size: 24),
+            Icon(Icons.lock_outline_rounded, color: context.accentGold, size: 24),
             SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('VIP Locked Official Resource', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('VIP Locked Official Resource', style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
                   SizedBox(height: 2),
                   Text(
                     'Unlocked exclusively for VIP ${book.requiredVipLevel} and above. Upgrade your membership in the Vip Club.',
@@ -429,11 +450,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     Text('Original Price: ₹${book.sellingPrice.toStringAsFixed(0)}', style: TextStyle(color: context.caption, fontSize: 10, decoration: TextDecoration.lineThrough)),
                   Text(
                     '₹${breakdown['buyerPays']!.toStringAsFixed(2)}',
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     '🪙 $goldCoins Gold Coins',
-                    style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 12, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(color: context.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
                   )
                 ],
               ),
@@ -451,7 +472,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 )
             ],
           ),
-          Divider(color: Colors.white10, height: 20),
+          Divider(color: context.borderColor, height: 20),
           GestureDetector(
             onTap: _showPriceBreakdownSheet,
             child: Row(
@@ -500,7 +521,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       decoration: BoxDecoration(
         color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.borderColor.withOpacity(0.5)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,7 +545,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(book.sellerName, style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                        Text(book.sellerName, style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
                         SizedBox(width: 4),
                         Icon(Icons.verified, color: context.accentOrange, size: 13),
                       ],
@@ -593,7 +614,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        Text(rev.userName, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                        Text(rev.userName, style: TextStyle(color: context.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
                                         SizedBox(width: 4),
                                         Container(
                                           padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -603,7 +624,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                                       ],
                                     ),
                                     Row(
-                                      children: List.generate(5, (starIdx) => Icon(Icons.star, color: starIdx < rev.rating ? Color(0xFFFFD700) : Colors.white10, size: 10)),
+                                      children: List.generate(5, (starIdx) => Icon(Icons.star, color: starIdx < rev.rating ? context.accentGold : context.borderColor, size: 10)),
                                     )
                                   ],
                                 ),

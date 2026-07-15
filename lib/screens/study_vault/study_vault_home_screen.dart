@@ -10,6 +10,7 @@ import 'book_details_screen.dart';
 import 'my_library_screen.dart';
 import 'seller_dashboard_screen.dart';
 import 'admin_vault_panel_screen.dart';
+import '../coming_soon_screen.dart';
 
 class StudyVaultHomeScreen extends StatefulWidget {
   const StudyVaultHomeScreen({Key? key}) : super(key: key);
@@ -219,54 +220,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Sticky Premium Bookshelf Header ──
-            _buildAppBarHeader(),
-
-            // ── Search & Filter Panel ──
-            _buildSearchAndFilters(),
-
-            // ── Category Shortcuts ──
-            _buildCategoryChips(),
-
-            // ── Main Bookshelf Rail Lists ──
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  _controller.onInit();
-                },
-                child: ListView(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    // Dynamic Filtered Results if searching
-                    if (_searchController.text.isNotEmpty || _selectedCategoryFilter != 'All') ...[
-                      _buildSearchResultsGrid(),
-                    ] else ...[
-                      // Standard Bookshelf Rails
-                      _buildFeaturedBanner(),
-                      _buildContinueReadingRail(),
-                      _buildFlashOffersBanner(),
-                      _buildBookshelfRail('🔥 Trending in Study Vault', _controller.items.where((b) => b.status == 'Approved' && !b.isOfficial).toList()),
-                      _buildBookshelfRail('👑 Official Collections (VIP unlocked)', _controller.items.where((b) => b.isOfficial).toList()),
-                      _buildBookshelfRail('💡 Handwritten Notes & Cheat Sheets', _controller.items.where((b) => b.fileType == 'Notes').toList()),
-                      _buildBookshelfRail('🎁 Free Educational Resources', _controller.items.where((b) => b.sellingPrice == 0.0 && b.status == 'Approved').toList()),
-                      _buildBookshelfRail('⚡ Best Sellers & Capstone Projects', _controller.items.where((b) => b.fileType == 'Projects' || b.rating >= 4.8).toList()),
-                      _buildBookshelfRail('📚 Recommended For You', _controller.items.where((b) => b.isFeatured && b.status == 'Approved').toList()),
-                    ],
-                    SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const ComingSoonScreen(title: 'Study Vault');
   }
 
   Widget _buildAppBarHeader() {

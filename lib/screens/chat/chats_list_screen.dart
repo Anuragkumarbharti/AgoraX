@@ -13,7 +13,7 @@ import '../../services/user_profile_cache_manager.dart';
 import '../../models/room_model.dart';
 import '../../models/user_model.dart';
 import '../rooms/voice_room_call_screen.dart';
-import '../profile/user_profile_screen.dart';
+import '../profile/profile_screen.dart';
 import 'chat_screen.dart';
 import 'new_chat_screen.dart';
 
@@ -618,8 +618,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
             children: [
               // Avatar with frame and online indicator
               GestureDetector(
-                onTap: () => Get.to(() => UserProfileScreen(
-                      user: UserProfileCacheManager.getCachedUser(conv.otherUserId) ?? User.fromJson({
+                onTap: () => Get.to(() => ProfileScreen(
+                      visitorUser: UserProfileCacheManager.getCachedUser(conv.otherUserId) ?? User.fromJson({
                         'id': conv.otherUserId,
                         'username': conv.otherUserName,
                         'displayName': conv.otherUserName,
@@ -688,8 +688,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                     Row(
                       children: [
                         GestureDetector(
-                          onTap: () => Get.to(() => UserProfileScreen(
-                                user: UserProfileCacheManager.getCachedUser(conv.otherUserId) ?? User.fromJson({
+                          onTap: () => Get.to(() => ProfileScreen(
+                                visitorUser: UserProfileCacheManager.getCachedUser(conv.otherUserId) ?? User.fromJson({
                                   'id': conv.otherUserId,
                                   'username': conv.otherUserName,
                                   'displayName': conv.otherUserName,

@@ -25,11 +25,6 @@ create policy "Users can update/delete their own application or room managers ca
   using (
     auth.uid() = applicant_id or
     exists (
-      select 1 from public.rooms
-      where rooms.id = room_seat_applications.room_id
-      and (rooms.host_id = auth.uid() or rooms.founder_id = auth.uid())
-    ) or
-    exists (
       select 1 from public.room_members
       where room_members.room_id = room_seat_applications.room_id
       and room_members.user_id = auth.uid()

@@ -5,7 +5,7 @@ import 'package:creania/core/theme.dart';
 import '../../models/event_model.dart';
 import '../../models/user_model.dart';
 import '../../services/event_controller.dart';
-import '../profile/user_profile_screen.dart';
+import '../profile/profile_screen.dart';
 import 'event_dashboard_screen.dart';
 import 'live_event_lobby_screen.dart';
 
@@ -1101,7 +1101,7 @@ class _EventDetailScreenState extends State<EventDetailScreen>
       xp: 220,
       totalXp: 1000,
     );
-    Get.to(() => UserProfileScreen(user: targetUser));
+    Get.to(() => ProfileScreen(visitorUser: targetUser));
   }
 
   // ─── EVENT TIMELINE ───────────────────────────────────────────────────────────

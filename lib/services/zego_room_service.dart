@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'zego_cloud_service.dart';
 import 'zego_token_service.dart';
+import 'room_controller.dart';
 
 class CustomZegoRoomService {
   static final CustomZegoRoomService _instance = CustomZegoRoomService._internal();
@@ -28,15 +30,16 @@ class CustomZegoRoomService {
       _currentRoomId = roomId;
       _currentUserId = userId;
 
-      // 1. Initialize Zego
-      await _zegoCloudService.init();
+      // 1. Concurrently initialize Zego engine and fetch token to reduce handshake latency
+      final futures = await Future.wait([
+        _zegoCloudService.init(),
+        _zegoTokenService.getToken(userId, forceRefresh: true),
+      ]);
+      final token = futures[1] as String;
+      _lastRenewedToken = token;
 
       // 2. Set user info
       _zegoCloudService.setUserInfo(userId, userName);
-
-      // 3. Fetch token from token service (force refresh on fresh join)
-      final token = await _zegoTokenService.getToken(userId, forceRefresh: true);
-      _lastRenewedToken = token;
 
       // 4. Join the room using low-level service
       await _zegoCloudService.joinRoom(
@@ -59,6 +62,12 @@ class CustomZegoRoomService {
     try {
       _stopTokenRefreshTimer();
       await _zegoCloudService.leaveRoom();
+      
+      // Clean up Supabase realtime channel subscriptions immediately on room exit
+      if (Get.isRegistered<RoomController>()) {
+        Get.find<RoomController>().unsubscribeRoomRealtime();
+      }
+      
       _currentRoomId = null;
       _currentUserId = null;
       _lastRenewedToken = null;

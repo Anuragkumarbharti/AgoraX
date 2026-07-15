@@ -4,6 +4,7 @@ import 'package:creania/core/theme.dart';
 import '../../services/community_controller.dart';
 import 'community_detail_screen.dart';
 import 'create_community_screen.dart';
+import '../coming_soon_screen.dart';
 
 class CommunitiesScreen extends StatefulWidget {
   const CommunitiesScreen({Key? key}) : super(key: key);
@@ -17,90 +18,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'Communities',
-          style: Theme.of(context).textTheme.headlineLarge,
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add_rounded, size: 28),
-            onPressed: () => Get.to(() => const CreateCommunityScreen()),
-          ),
-        ],
-      ),
-      body: Obx(() {
-        final myCommunities = _controller.communities.where((c) {
-          return c.members.contains(CommunityController.currentUserId);
-        }).toList();
-
-        final otherCommunities = _controller.communities.where((c) {
-          return !c.members.contains(CommunityController.currentUserId);
-        }).toList();
-
-        return ListView(
-          padding: EdgeInsets.all(16),
-          children: [
-            // User coins widget
-            Container(
-              margin: EdgeInsets.only(bottom: 20),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: context.secondaryBackgroundColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: context.borderColor.withOpacity(0.5)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.monetization_on_rounded, color: Colors.amber, size: 24),
-                      SizedBox(width: 8),
-                      Text(
-                        'Your Coins',
-                        style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    '${_controller.userCoins.value}',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-
-            if (myCommunities.isNotEmpty) ...[
-              Text(
-                'My Families',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 12),
-              ...myCommunities.map((comm) => Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: _buildCommunityTile(context, comm, true),
-                  )),
-              SizedBox(height: 16),
-            ],
-
-            if (otherCommunities.isNotEmpty) ...[
-              Text(
-                'Explore Families',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 12),
-              ...otherCommunities.map((comm) => Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: _buildCommunityTile(context, comm, false),
-                  )),
-            ],
-          ],
-        );
-      }),
-    );
+    return const ComingSoonScreen(title: 'Communities');
   }
 
   Widget _buildCommunityTile(BuildContext context, dynamic comm, bool isJoined) {

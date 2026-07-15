@@ -14,7 +14,6 @@ import 'services/customization_controller.dart';
 import 'services/premium_identity_controller.dart';
 import 'services/store_controller.dart';
 import 'services/razorpay_backend_service.dart';
-import 'services/livekit_service.dart';
 import 'services/theme_controller.dart';
 import 'services/user_profile_cache_manager.dart';
 import 'services/isar_storage_service.dart';
@@ -40,7 +39,9 @@ void main() async {
   socketService.init();
   Get.put(socketService);
 
+  await UserProfileCacheManager.initOfflineCache();
   UserProfileCacheManager.initializeRealtimeSubscription();
+  UserProfileCacheManager.syncDeltaProfiles(); // Trigger background delta sync
 
   Get.put(StoreController());
   Get.put(CareerProgressionController());
@@ -56,7 +57,6 @@ void main() async {
   Get.put(NovelController());
   Get.put(CustomizationController());
   Get.put(PremiumIdentityController());
-  Get.put(LivekitService());
   Get.put(RazorpayBackendService());
   Get.put(ThemeController());
   runApp(const MyApp());

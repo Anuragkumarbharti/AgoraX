@@ -26,7 +26,6 @@ export 'communities/communities_screen.dart';
 
 // Profile
 export 'profile/profile_screen.dart';
-export 'profile/user_profile_screen.dart';
 export 'profile/daily_task_screen.dart';
 export 'profile/category_selection_screen.dart';
 export 'profile/mcq_quiz_screen.dart';
