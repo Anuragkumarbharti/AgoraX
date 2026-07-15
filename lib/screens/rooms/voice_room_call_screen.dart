@@ -6331,19 +6331,26 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     );
   }
 
+  String getVTagLevel(User? user) {
+    if (user == null) return 'blue';
+    final name = user.displayName.toLowerCase();
+    if (name.contains('president') || name.contains('minister') || user.rTags.contains('Founder')) {
+      return 'diamond';
+    } else if (user.tagLights.contains('STAR') || user.tagLights.contains('TOP') || name.contains('anurag')) {
+      return 'gold';
+    } else if (user.tagLights.contains('Official') || user.rTags.contains('Official')) {
+      return 'purple';
+    }
+    return 'blue';
+  }
+
   List<Map<String, dynamic>> generateDynamicTagLights(User? user, int fallbackVip, int fallbackNovel, int fallbackLevel) {
     final List<Map<String, dynamic>> tags = [];
 
     final vip = user?.vipLevel ?? fallbackVip;
     final novel = user?.novelLevel ?? fallbackNovel;
     final level = user?.level ?? fallbackLevel;
-    final isVerified = user?.isVerified ?? false;
     final commCount = user?.communities.length ?? 0;
-
-    // 1. Verified tag (VTag)
-    if (isVerified) {
-      tags.add({'label': '✓', 'color': const Color(0xFF00C2FF)});
-    }
 
     // 2. VIP tag (V7)
     if (vip > 0) {
@@ -6363,9 +6370,9 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     // 5. Community Level tag (C20)
     tags.add({'label': 'C$commCount', 'color': const Color(0xFF22C55E)});
 
-    // 6. DB custom tags (e.g. TOP, DEV, MOD, EMP, BOT, STAR, 🔥)
+    // 5. DB custom tags (e.g. TOP, DEV, MOD, EMP, BOT, STAR, 🔥)
     final tagList = user?.tagLights ?? [];
-    final finalTagList = tagList.isEmpty ? ['Verified', 'V5', 'N3', 'L42', 'C12', '🔥'] : tagList;
+    final finalTagList = tagList.isEmpty ? ['V5', 'N3', 'L42', 'C12', '🔥'] : tagList;
     for (var t in finalTagList) {
       t = t.trim();
       if (t == 'Verified' || t == '✓') continue;
@@ -6376,9 +6383,9 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
 
       Color color = const Color(0xFFBEC2FF);
       if (t.toUpperCase() == 'DEV' || t.toUpperCase() == 'DEVELOPER') {
-        color = const Color(0xFFEF4444);
+        color = const Color(0xFF00C2FF);
       } else if (t.toUpperCase() == 'MOD' || t.toUpperCase() == 'MODERATOR') {
-        color = const Color(0xFF0EA5E9);
+        color = const Color(0xFFEF4444);
       } else if (t.toUpperCase() == 'EMP' || t.toUpperCase() == 'EMPLOYEE') {
         color = const Color(0xFFFF7A09);
       } else if (t.toUpperCase() == 'BOT') {
@@ -6410,20 +6417,77 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     }
 
     final List<Widget> widgets = displayTags.map((tag) {
-      return Container(
-        margin: const EdgeInsets.only(left: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-        decoration: BoxDecoration(
-          color: (tag['color'] as Color).withOpacity(0.12),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: (tag['color'] as Color).withOpacity(0.3), width: 0.8),
-        ),
-        child: Text(
-          tag['label'] as String,
-          style: GoogleFonts.poppins(
-            color: tag['color'] as Color,
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
+      final label = tag['label'] as String;
+      final color = tag['color'] as Color;
+
+      Gradient? gradient;
+      Color bg = color.withOpacity(0.12);
+      Color borderCol = color.withOpacity(0.4);
+      Color textCol = color;
+
+      if (label.startsWith('V') && RegExp(r'^\d+$').hasMatch(label.substring(1))) {
+        gradient = const LinearGradient(
+          colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        borderCol = const Color(0xFFFFA751);
+        textCol = Colors.white;
+      } else if (label.startsWith('N') && RegExp(r'^\d+$').hasMatch(label.substring(1))) {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF8A2387), Color(0xFFE94057)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        borderCol = const Color(0xFFE94057);
+        textCol = Colors.white;
+      } else if (label == 'TOP') {
+        bg = const Color(0xFFFF7A09).withOpacity(0.2);
+        borderCol = const Color(0xFFFF7A09);
+        textCol = const Color(0xFFFF9F43);
+      } else if (label == 'DEV') {
+        bg = const Color(0xFF00C2FF).withOpacity(0.2);
+        borderCol = const Color(0xFF00C2FF);
+        textCol = const Color(0xFF8CF3FF);
+      } else if (label == 'MOD') {
+        bg = const Color(0xFFEF4444).withOpacity(0.2);
+        borderCol = const Color(0xFFEF4444);
+        textCol = const Color(0xFFFF8E8E);
+      }
+
+      return Tooltip(
+        message: 'Tap to see details about $label',
+        child: GestureDetector(
+          onTap: () {
+            Get.snackbar('Tag Info', 'Details page for $label tag (coming soon).');
+          },
+          child: Container(
+            height: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              gradient: gradient,
+              color: gradient == null ? bg : null,
+              border: Border.all(color: borderCol, width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: borderCol.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                )
+              ],
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: GoogleFonts.poppins(
+                  color: textCol,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -6482,19 +6546,109 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     final role = getHighestRTag(rolesToUse);
     if (role == null) return const SizedBox.shrink();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF8B5CFF).withOpacity(0.15),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF8B5CFF).withOpacity(0.4)),
-      ),
-      child: Text(
-        role,
-        style: GoogleFonts.poppins(
-          color: const Color(0xFF8B5CFF),
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
+    Gradient gradient;
+    Color textColor = Colors.white;
+    Color borderColor;
+
+    switch (role.toLowerCase()) {
+      case 'founder':
+        gradient = const LinearGradient(
+          colors: [Color(0xFF1E1E24), Color(0xFF0F0F12)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        borderColor = const Color(0xFFFFB020);
+        textColor = const Color(0xFFFFB020);
+        break;
+      case 'developer':
+        gradient = const LinearGradient(
+          colors: [Color(0xFF00C2FF), Color(0xFF0EA5E9)],
+        );
+        borderColor = const Color(0xFF00C2FF).withOpacity(0.5);
+        break;
+      case 'official':
+        gradient = const LinearGradient(
+          colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+        );
+        borderColor = const Color(0xFF3B82F6).withOpacity(0.5);
+        break;
+      case 'employee':
+        gradient = const LinearGradient(
+          colors: [Color(0xFF8B5CFF), Color(0xFF6366F1)],
+        );
+        borderColor = const Color(0xFF8B5CFF).withOpacity(0.5);
+        break;
+      case 'admin':
+        gradient = const LinearGradient(
+          colors: [Color(0xFFFF7A09), Color(0xFFFFB020)],
+        );
+        borderColor = const Color(0xFFFFB020).withOpacity(0.5);
+        break;
+      case 'moderator':
+        gradient = const LinearGradient(
+          colors: [Color(0xFFEF4444), Color(0xFF991B1B)],
+        );
+        borderColor = const Color(0xFFEF4444).withOpacity(0.5);
+        break;
+      case 'support':
+        gradient = const LinearGradient(
+          colors: [Color(0xFF22C55E), Color(0xFF15803D)],
+        );
+        borderColor = const Color(0xFF22C55E).withOpacity(0.5);
+        break;
+      case 'partner':
+        gradient = const LinearGradient(
+          colors: [Color(0xFFFF4D8D), Color(0xFFBE185D)],
+        );
+        borderColor = const Color(0xFFFF4D8D).withOpacity(0.5);
+        break;
+      case 'tester':
+      default:
+        gradient = const LinearGradient(
+          colors: [Color(0xFF6B7280), Color(0xFF374151)],
+        );
+        borderColor = const Color(0xFF6B7280).withOpacity(0.5);
+        break;
+    }
+
+    return Tooltip(
+      message: 'Official Role: $role. Tap for role details.',
+      child: GestureDetector(
+        onTap: () {
+          Get.snackbar('Role Info', 'Details about the official $role role (coming soon).');
+        },
+        child: Container(
+          height: 30,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: gradient,
+            border: Border.all(color: borderColor, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              )
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.shield_rounded, color: Colors.white, size: 13),
+              const SizedBox(width: 6),
+              Text(
+                role,
+                style: GoogleFonts.poppins(
+                  color: textColor,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -6520,19 +6674,33 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
               final meta = custCtrl.badgeMetadata[bName] ?? {'icon': '🏅', 'rarity': 'Common'};
               final iconStr = meta['icon'] as String? ?? '🏅';
               
-              return Container(
-                width: 34,
-                height: 34,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white.withOpacity(0.08)),
-                ),
-                child: Center(
-                  child: Text(
-                    iconStr,
-                    style: const TextStyle(fontSize: 16),
+              return Tooltip(
+                message: '$bName badge. Long press for info.',
+                child: GestureDetector(
+                  onTap: () {
+                    Get.snackbar('Badge Info', '$bName details (coming soon).');
+                  },
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                        )
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        iconStr,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -6681,7 +6849,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                     ),
                     const SizedBox(height: 12),
 
-                    // First Row: Username and TagLights
+                    // First Row: Username, VTag (first), and TagLights
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -6691,10 +6859,19 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.4,
                           ),
                         ),
                         const SizedBox(width: 8),
+                        // VTag shown first with breathing animation
+                        BreathingVTag(
+                          level: getVTagLevel(u),
+                          onTap: () {
+                            Get.snackbar('Verification Info', 'This user is verified at the ${getVTagLevel(u).toUpperCase()} tier.');
+                          },
+                        ),
+                        const SizedBox(width: 6),
                         ...buildTagLightsWidget(generateDynamicTagLights(u, vipLevel, novelLevel, uLevel), context),
                       ],
                     ),
@@ -6713,7 +6890,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'ID: $numericId',
+                            'ID : $numericId',
                             style: GoogleFonts.poppins(
                               color: const Color(0xFF9CA3AF),
                               fontSize: 14,
@@ -9315,7 +9492,6 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                             ),
                           ),
                   ),
-                  const SizedBox(height: 12),
                   Center(
                     child: TextButton(
                       onPressed: () => Get.back(),
@@ -9324,6 +9500,114 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+class BreathingVTag extends StatefulWidget {
+  final String level;
+  final VoidCallback? onTap;
+
+  const BreathingVTag({
+    Key? key,
+    required this.level,
+    this.onTap,
+  }) : super(key: key);
+
+  @override
+  State<BreathingVTag> createState() => _BreathingVTagState();
+}
+
+class _BreathingVTagState extends State<BreathingVTag> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.15), weight: 50),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.15, end: 1.0), weight: 50),
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _startPeriodicTimer();
+  }
+
+  void _startPeriodicTimer() {
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 5));
+      if (!mounted) return false;
+      _controller.forward(from: 0.0);
+      return true;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Color badgeColor;
+    String checkIcon = '✓';
+
+    switch (widget.level.toLowerCase()) {
+      case 'diamond':
+        badgeColor = const Color(0xFFE2E8F0);
+        break;
+      case 'gold':
+        badgeColor = const Color(0xFFFFB020);
+        break;
+      case 'purple':
+        badgeColor = const Color(0xFF8B5CFF);
+        break;
+      case 'blue':
+      default:
+        badgeColor = const Color(0xFF00C2FF);
+        break;
+    }
+
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Tooltip(
+          message: 'Verified ${widget.level.toUpperCase()}',
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: badgeColor.withOpacity(0.2),
+              border: Border.all(color: badgeColor, width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: badgeColor.withOpacity(0.3),
+                  blurRadius: 4,
+                  spreadRadius: 0.5,
+                )
+              ],
+            ),
+            child: Center(
+              child: Text(
+                checkIcon,
+                style: TextStyle(
+                  color: widget.level.toLowerCase() == 'diamond' ? Colors.cyanAccent : badgeColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.black,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
