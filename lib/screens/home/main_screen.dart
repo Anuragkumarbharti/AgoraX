@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/chat_controller.dart';
 import '../../services/study_vault_controller.dart';
 import '../../services/user_progress_sync_service.dart';
@@ -77,19 +77,19 @@ class _MainScreenState extends State<MainScreen> {
                 isLabelVisible: unread > 0,
                 label: Text(
                   unread > 9 ? '9+' : '$unread',
-                  style: const TextStyle(fontSize: 10, color: Colors.white),
+                  style: TextStyle(fontSize: 10, color: Colors.white),
                 ),
-                backgroundColor: AppTheme.primaryColor,
-                child: const Icon(Icons.chat_bubble_outline_rounded),
+                backgroundColor: context.primaryColor,
+                child: Icon(Icons.chat_bubble_outline_rounded),
               ),
               activeIcon: Badge(
                 isLabelVisible: unread > 0,
                 label: Text(
                   unread > 9 ? '9+' : '$unread',
-                  style: const TextStyle(fontSize: 10, color: Colors.white),
+                  style: TextStyle(fontSize: 10, color: Colors.white),
                 ),
-                backgroundColor: AppTheme.primaryColor,
-                child: const Icon(Icons.chat_bubble_rounded),
+                backgroundColor: context.primaryColor,
+                child: Icon(Icons.chat_bubble_rounded),
               ),
               label: 'Messages',
             ),

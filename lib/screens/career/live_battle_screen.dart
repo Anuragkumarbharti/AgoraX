@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 
 class LiveBattleScreen extends StatefulWidget {
   const LiveBattleScreen({Key? key}) : super(key: key);
@@ -23,7 +23,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
       'name': 'Coding Battle',
       'emoji': '💻',
       'desc': 'Solve problems faster',
-      'color': const Color(0xFF6366F1),
+      'color': Color(0xFF6366F1),
       'players': '2.4K',
       'duration': '30 min',
     },
@@ -32,7 +32,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
       'name': 'Math Battle',
       'emoji': '📐',
       'desc': 'Speed arithmetic & logic',
-      'color': const Color(0xFF3B82F6),
+      'color': Color(0xFF3B82F6),
       'players': '1.8K',
       'duration': '15 min',
     },
@@ -41,7 +41,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
       'name': 'Reasoning Battle',
       'emoji': '🧩',
       'desc': 'IQ & logical puzzles',
-      'color': const Color(0xFF8B5CF6),
+      'color': Color(0xFF8B5CF6),
       'players': '1.2K',
       'duration': '20 min',
     },
@@ -50,7 +50,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
       'name': 'Quiz Battle',
       'emoji': '❓',
       'desc': 'GK & current affairs',
-      'color': const Color(0xFFF59E0B),
+      'color': Color(0xFFF59E0B),
       'players': '3.1K',
       'duration': '10 min',
     },
@@ -59,7 +59,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
       'name': 'Typing Battle',
       'emoji': '⌨️',
       'desc': 'WPM speed competition',
-      'color': const Color(0xFF10B981),
+      'color': Color(0xFF10B981),
       'players': '950',
       'duration': '5 min',
     },
@@ -68,7 +68,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
       'name': 'Design Battle',
       'emoji': '🎨',
       'desc': 'UI/logo challenge',
-      'color': const Color(0xFFEC4899),
+      'color': Color(0xFFEC4899),
       'players': '430',
       'duration': '45 min',
     },
@@ -77,7 +77,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
       'name': 'Debate Battle',
       'emoji': '🗣️',
       'desc': 'Timed argument sessions',
-      'color': const Color(0xFFF97316),
+      'color': Color(0xFFF97316),
       'players': '280',
       'duration': '20 min',
     },
@@ -86,7 +86,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
       'name': 'Chess Battle',
       'emoji': '♟️',
       'desc': 'Classic chess match',
-      'color': const Color(0xFF64748B),
+      'color': Color(0xFF64748B),
       'players': '670',
       'duration': '15 min',
     },
@@ -142,22 +142,22 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(
         children: [
           CustomScrollView(
             slivers: [
               _buildSliverHeader(),
               SliverPadding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     _buildBattleStats(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     _buildModeSection(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     _buildRecentBattles(),
-                    const SizedBox(height: 80),
+                    SizedBox(height: 80),
                   ]),
                 ),
               ),
@@ -173,14 +173,14 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
     return SliverAppBar(
       pinned: true,
       expandedHeight: 160,
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+        icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
         onPressed: () => Get.back(),
       ),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -194,12 +194,12 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(56, 10, 20, 20),
+              padding: EdgeInsets.fromLTRB(56, 10, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     '⚔️ Live Battle',
                     style: TextStyle(
                       color: Colors.white,
@@ -207,7 +207,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   AnimatedBuilder(
                     animation: _pulseController,
                     builder: (ctx, _) => Row(
@@ -216,13 +216,13 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(
+                            color: Color(0xFF10B981).withOpacity(
                                 0.6 + 0.4 * _pulseController.value),
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        const Text(
+                        SizedBox(width: 6),
+                        Text(
                           '11,240 players online • AI Judge Active',
                           style: TextStyle(
                             color: Colors.white70,
@@ -243,17 +243,17 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
 
   Widget _buildBattleStats() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFEF4444).withOpacity(0.12),
-            const Color(0xFFF97316).withOpacity(0.06),
+            Color(0xFFEF4444).withOpacity(0.12),
+            Color(0xFFF97316).withOpacity(0.06),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: const Color(0xFFEF4444).withOpacity(0.25)),
+            color: Color(0xFFEF4444).withOpacity(0.25)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -271,16 +271,16 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
   Widget _battleStat(String value, String label, String emoji) {
     return Column(
       children: [
-        Text(emoji, style: const TextStyle(fontSize: 16)),
-        const SizedBox(height: 4),
+        Text(emoji, style: TextStyle(fontSize: 16)),
+        SizedBox(height: 4),
         Text(value,
-            style: const TextStyle(
-                color: AppTheme.textPrimary,
+            style: TextStyle(
+                color: context.textPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.w800)),
         Text(label,
-            style: const TextStyle(
-                color: AppTheme.textTertiary, fontSize: 10)),
+            style: TextStyle(
+                color: context.caption, fontSize: 10)),
       ],
     );
   }
@@ -289,15 +289,15 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Choose Battle Mode',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -323,13 +323,13 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : AppTheme.cardBg,
+          color: isSelected ? color.withOpacity(0.15) : context.surfaceColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color:
-                isSelected ? color : AppTheme.borderColor.withOpacity(0.4),
+                isSelected ? color : context.borderColor.withOpacity(0.4),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -343,9 +343,9 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(mode['emoji'] as String,
-                    style: const TextStyle(fontSize: 22)),
+                    style: TextStyle(fontSize: 22)),
                 Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.15),
@@ -364,16 +364,16 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
             const Spacer(),
             Text(
               mode['name'] as String,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
+              style: TextStyle(
+                color: context.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
             ),
             Text(
               '⏱ ${mode['duration']}',
-              style: const TextStyle(
-                  color: AppTheme.textTertiary, fontSize: 10),
+              style: TextStyle(
+                  color: context.caption, fontSize: 10),
             ),
           ],
         ),
@@ -385,15 +385,15 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Recent Battles',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         ..._recentBattles.map((b) => _buildBattleRow(b)),
       ],
     );
@@ -402,15 +402,15 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
   Widget _buildBattleRow(Map<String, dynamic> battle) {
     final isWin = battle['result'] == 'Won';
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isWin
-              ? AppTheme.accentColor.withOpacity(0.25)
-              : AppTheme.borderColor.withOpacity(0.4),
+              ? context.accentOrange.withOpacity(0.25)
+              : context.borderColor.withOpacity(0.4),
         ),
       ),
       child: Row(
@@ -420,32 +420,32 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
             height: 42,
             decoration: BoxDecoration(
               color: isWin
-                  ? AppTheme.accentColor.withOpacity(0.12)
-                  : AppTheme.errorColor.withOpacity(0.1),
+                  ? context.accentOrange.withOpacity(0.12)
+                  : context.errorColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
               child: Text(isWin ? '🏆' : '💀',
-                  style: const TextStyle(fontSize: 20)),
+                  style: TextStyle(fontSize: 20)),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '${battle['mode']} vs ${battle['opponent']}',
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                  style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   'Score: ${battle['score']} • ${battle['time']}',
-                  style: const TextStyle(
-                      color: AppTheme.textTertiary, fontSize: 11),
+                  style: TextStyle(
+                      color: context.caption, fontSize: 11),
                 ),
               ],
             ),
@@ -454,29 +454,29 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                     horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: isWin
-                      ? AppTheme.accentColor.withOpacity(0.15)
-                      : AppTheme.errorColor.withOpacity(0.1),
+                      ? context.accentOrange.withOpacity(0.15)
+                      : context.errorColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   battle['result'] as String,
                   style: TextStyle(
                     color: isWin
-                        ? AppTheme.accentColor
-                        : AppTheme.errorColor,
+                        ? context.accentOrange
+                        : context.errorColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 battle['xp'] as String,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFFFBBF24),
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -520,21 +520,21 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 0),
+              SizedBox(height: 0),
               Container(
                 width: 90,
                 height: 90,
-                margin: const EdgeInsets.only(top: -95),
-                decoration: const BoxDecoration(
+                margin: EdgeInsets.only(top: -95),
+                decoration: BoxDecoration(
                   color: Color(0xFF0F172A),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text('⚔️', style: TextStyle(fontSize: 42)),
                 ),
               ),
-              const SizedBox(height: 30),
-              const Text(
+              SizedBox(height: 30),
+              Text(
                 'Finding Opponent...',
                 style: TextStyle(
                   color: Colors.white,
@@ -542,22 +542,22 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 'Matching you with a player of similar skill',
                 style: TextStyle(
                     color: Colors.white.withOpacity(0.6), fontSize: 13),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               SizedBox(
                 width: 200,
                 child: LinearProgressIndicator(
                   backgroundColor: Colors.white.withOpacity(0.1),
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFFEF4444)),
+                  valueColor: AlwaysStoppedAnimation(Color(0xFFEF4444)),
                   minHeight: 4,
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               TextButton(
                 onPressed: () {
                   _matchmakingController.stop();
@@ -566,7 +566,7 @@ class _LiveBattleScreenState extends State<LiveBattleScreen>
                     _selectedMode = null;
                   });
                 },
-                child: const Text(
+                child: Text(
                   'Cancel',
                   style: TextStyle(
                       color: Colors.white54, fontSize: 14),

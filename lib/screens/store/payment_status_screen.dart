@@ -1,3 +1,4 @@
+import 'package:creania/core/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -55,10 +56,10 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
         speed: rand.nextDouble() * 1.5 + 0.5,
         angle: rand.nextDouble() * 2 * pi,
         color: rand.nextBool()
-            ? const Color(0xFFFFD700)
+            ? Color(0xFFFFD700)
             : rand.nextBool()
-                ? const Color(0xFFD946EF)
-                : const Color(0xFF8B5CF6),
+                ? Color(0xFFD946EF)
+                : Color(0xFF8B5CF6),
       ));
     }
   }
@@ -72,20 +73,20 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
 
   @override
   Widget build(BuildContext context) {
-    final Color mainColor = widget.isSuccess ? const Color(0xFFFFD700) : const Color(0xFFEF4444);
+    final Color mainColor = widget.isSuccess ? Color(0xFFFFD700) : Color(0xFFEF4444);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF07070A),
+      backgroundColor: Color(0xFF07070A),
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            padding: EdgeInsets.symmetric(horizontal: 30.0),
             child: ScaleTransition(
               scale: CurvedAnimation(parent: _animCtrl, curve: Curves.elasticOut),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                padding: EdgeInsets.symmetric(vertical: 40, horizontal: 24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF111115),
+                  color: context.secondaryBackgroundColor,
                   borderRadius: BorderRadius.circular(32),
                   border: Border.all(color: mainColor.withOpacity(0.2), width: 1.5),
                   boxShadow: [
@@ -100,7 +101,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildAnimatedGraphic(mainColor),
-                    const SizedBox(height: 28),
+                    SizedBox(height: 28),
                     Text(
                       widget.isSuccess ? 'PURCHASE SUCCESSFUL! 🎉' : 'TRANSACTION FAILED ⚠️',
                       style: GoogleFonts.outfit(
@@ -111,7 +112,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Text(
                       widget.isSuccess
                           ? 'Thank you for upgrading! Your premium credentials are now active on your Creania profile.'
@@ -119,9 +120,9 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
                       style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24),
                     _buildReceiptPanel(mainColor),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32),
                     _buildActions(mainColor),
                   ],
                 ),
@@ -167,7 +168,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
 
   Widget _buildReceiptPanel(Color mainColor) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.4),
         borderRadius: BorderRadius.circular(20),
@@ -185,7 +186,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
 
   Widget _receiptRow(String label, String val, {Color? valueColor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -224,7 +225,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
           ),
         ),
         if (!widget.isSuccess) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           TextButton(
             onPressed: () {
               Get.snackbar('Support Ticket', 'A payment support ticket was opened.', snackPosition: SnackPosition.BOTTOM);

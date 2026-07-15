@@ -1,3 +1,4 @@
+import 'package:creania/core/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../core/theme.dart';
@@ -58,11 +59,11 @@ class _LevelUpDialogState extends State<LevelUpDialog> with SingleTickerProvider
         turns: _rotateAnim,
         child: Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppTheme.bgLight,
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(30),
               border: Border.all(color: tier.color.withOpacity(0.5), width: 2),
               boxShadow: [
@@ -92,18 +93,18 @@ class _LevelUpDialogState extends State<LevelUpDialog> with SingleTickerProvider
                     // Emojis/Icons
                     Text(
                       tier.icon,
-                      style: const TextStyle(fontSize: 48),
+                      style: TextStyle(fontSize: 48),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 
                 // Gradient Title
                 ShaderMask(
                   shaderCallback: (bounds) => LinearGradient(
                     colors: tier.gradientColors,
                   ).createShader(bounds),
-                  child: const Text(
+                  child: Text(
                     'LEVEL UP!',
                     style: TextStyle(
                       color: Colors.white,
@@ -113,11 +114,11 @@ class _LevelUpDialogState extends State<LevelUpDialog> with SingleTickerProvider
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 
                 // Explorer / Learner / Scholar Rank Title display
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                     color: tier.color.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -132,39 +133,39 @@ class _LevelUpDialogState extends State<LevelUpDialog> with SingleTickerProvider
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
 
                 // Level Change Badge
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _levelBadge(widget.oldLevel, Colors.white30),
-                    const SizedBox(width: 14),
-                    const Icon(Icons.arrow_forward_rounded, color: AppTheme.textTertiary, size: 24),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
+                    Icon(Icons.arrow_forward_rounded, color: context.caption, size: 24),
+                    SizedBox(width: 14),
                     _levelBadge(widget.newLevel, tier.color),
                   ],
                 ),
-                const SizedBox(height: 28),
+                SizedBox(height: 28),
 
                 // Rewards breakdown
-                const Text(
+                Text(
                   'YOUR REWARDS',
                   style: TextStyle(
-                    color: AppTheme.textTertiary,
+                    color: context.caption,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1,
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.bgDark,
+                    color: context.scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.borderColor),
+                    border: Border.all(color: context.borderColor),
                   ),
                   child: Column(
                     children: [
@@ -172,45 +173,45 @@ class _LevelUpDialogState extends State<LevelUpDialog> with SingleTickerProvider
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFBBF24).withOpacity(0.1),
+                              color: Color(0xFFFBBF24).withOpacity(0.1),
                               shape: BoxShape.circle,
                             ),
-                            child: const Text('🪙', style: TextStyle(fontSize: 16)),
+                            child: Text('🪙', style: TextStyle(fontSize: 16)),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Silver Coins', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                Text('Silver Coins', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                                 Text('Level milestone reward', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10)),
                               ],
                             ),
                           ),
                           Text(
                             '+${widget.coinsEarned}',
-                            style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: Color(0xFFFBBF24), fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                       
                       if (widget.unlockedItems.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        const Divider(color: AppTheme.borderColor),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 12),
+                        Divider(color: context.borderColor),
+                        SizedBox(height: 8),
                         
                         // Custom items unlocked
                         ...widget.unlockedItems.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
+                          padding: EdgeInsets.only(bottom: 6),
                           child: Row(
                             children: [
                               Icon(Icons.stars_rounded, color: tier.color, size: 16),
-                              const SizedBox(width: 10),
+                              SizedBox(width: 10),
                               Text(
                                 item,
-                                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -219,7 +220,7 @@ class _LevelUpDialogState extends State<LevelUpDialog> with SingleTickerProvider
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32),
 
                 // Action Dismiss Button
                 SizedBox(
@@ -235,7 +236,7 @@ class _LevelUpDialogState extends State<LevelUpDialog> with SingleTickerProvider
                       shadowColor: tier.color.withOpacity(0.3),
                     ),
                     onPressed: () => Get.back(),
-                    child: const Text(
+                    child: Text(
                       'Awesome!',
                       style: TextStyle(
                         color: Colors.white,
@@ -266,7 +267,7 @@ class _LevelUpDialogState extends State<LevelUpDialog> with SingleTickerProvider
       child: Text(
         'Lvl $level',
         style: TextStyle(
-          color: color == Colors.white30 ? AppTheme.textSecondary : color,
+          color: color == Colors.white30 ? context.textSecondary : color,
           fontSize: 14,
           fontWeight: FontWeight.w900,
         ),

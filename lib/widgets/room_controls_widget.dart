@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 
 class RoomControlsWidget extends StatelessWidget {
   final bool isMicOn;
@@ -27,18 +27,18 @@ class RoomControlsWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(20),
         ),
         border: Border(
           top: BorderSide(
-            color: AppTheme.borderColor,
+            color: context.borderColor,
             width: 0.5,
           ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -76,7 +76,7 @@ class RoomControlsWidget extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // Leave Room Button
           SizedBox(
@@ -84,9 +84,9 @@ class RoomControlsWidget extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onLeaveRoom,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.errorColor,
+                backgroundColor: context.errorColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -121,19 +121,19 @@ class RoomControlsWidget extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: isActive ? AppTheme.primaryColor : AppTheme.bgLight,
+              color: isActive ? context.primaryColor : context.secondaryBackgroundColor,
               shape: BoxShape.circle,
               border: Border.all(
-                color: isActive ? AppTheme.primaryColor : AppTheme.borderColor,
+                color: isActive ? context.primaryColor : context.borderColor,
               ),
             ),
             child: Icon(
               icon,
-              color: isActive ? Colors.white : AppTheme.textTertiary,
+              color: isActive ? Colors.white : context.caption,
               size: 24,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(

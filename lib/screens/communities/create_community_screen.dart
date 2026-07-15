@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/community_controller.dart';
 
 class CreateCommunityScreen extends StatefulWidget {
@@ -49,7 +49,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         'Validation Error',
         'Please enter a community name',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
       );
       return;
@@ -60,7 +60,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         'Validation Error',
         'Please enter a community username',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
       );
       return;
@@ -71,7 +71,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         'Validation Error',
         'Username must start with @',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
       );
       return;
@@ -83,7 +83,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         'Validation Error',
         'Username must be at least 3 characters after @',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
       );
       return;
@@ -95,7 +95,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         'Validation Error',
         'Only lowercase letters, numbers, and underscores allowed',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
       );
       return;
@@ -115,7 +115,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         'Creation Failed',
         error,
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
       );
     } else {
@@ -126,7 +126,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
             ? 'Community "$name" created successfully!'
             : 'Application submitted! Complete tasks to unlock the logo.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.primaryColor.withOpacity(0.9),
+        backgroundColor: context.primaryColor.withOpacity(0.9),
         colorText: Colors.white,
       );
     }
@@ -135,133 +135,133 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Create Community'),
+        title: Text('Create Community'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Get.back(),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Current Coins Balance
             Obx(() => Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
+                gradient: LinearGradient(
+                  colors: [context.primaryColor, AppTheme.secondaryColor],
                 ),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.monetization_on_rounded, color: Colors.yellow, size: 28),
-                  const SizedBox(width: 12),
+                  Icon(Icons.monetization_on_rounded, color: Colors.yellow, size: 28),
+                  SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Your Coins Balance',
                         style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
                       ),
                       Text(
                         '${_controller.userCoins.value} Coins',
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                 ],
               ),
             )),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // Form inputs
-            const Text(
+            Text(
               'Community Name',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+              style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextField(
               controller: _nameController,
-              style: const TextStyle(color: AppTheme.textPrimary),
+              style: TextStyle(color: context.textPrimary),
               decoration: InputDecoration(
                 hintText: 'e.g. Flutter Superstars',
-                hintStyle: const TextStyle(color: AppTheme.textTertiary),
+                hintStyle: TextStyle(color: context.caption),
                 filled: true,
-                fillColor: AppTheme.bgLight,
+                fillColor: context.secondaryBackgroundColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
 
-            const Text(
+            Text(
               'Community Username',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+              style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextField(
               controller: _usernameController,
-              style: const TextStyle(color: AppTheme.textPrimary),
+              style: TextStyle(color: context.textPrimary),
               decoration: InputDecoration(
                 hintText: 'e.g. @gate2027',
-                hintStyle: const TextStyle(color: AppTheme.textTertiary),
+                hintStyle: TextStyle(color: context.caption),
                 filled: true,
-                fillColor: AppTheme.bgLight,
+                fillColor: context.secondaryBackgroundColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
 
-            const Text(
+            Text(
               'Description',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+              style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextField(
               controller: _descController,
               maxLines: 3,
-              style: const TextStyle(color: AppTheme.textPrimary),
+              style: TextStyle(color: context.textPrimary),
               decoration: InputDecoration(
                 hintText: 'What is this community about?',
-                hintStyle: const TextStyle(color: AppTheme.textTertiary),
+                hintStyle: TextStyle(color: context.caption),
                 filled: true,
-                fillColor: AppTheme.bgLight,
+                fillColor: context.secondaryBackgroundColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
 
-            const Text(
+            Text(
               'Category',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+              style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: AppTheme.bgLight,
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedCategory,
-                  dropdownColor: AppTheme.bgLight,
-                  style: const TextStyle(color: AppTheme.textPrimary),
+                  dropdownColor: context.secondaryBackgroundColor,
+                  style: TextStyle(color: context.textPrimary),
                   isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary),
+                  icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.textSecondary),
                   items: _categories.map((cat) {
                     return DropdownMenuItem(
                       value: cat,
@@ -274,14 +274,14 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: 28),
 
             // Select Creation Type
-            const Text(
+            Text(
               'Choose Creation Method',
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             
             // Coin creation card
             _buildTypeCard(
@@ -291,7 +291,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               icon: Icons.flash_on_rounded,
               color: Colors.amber,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // Apply creation card
             _buildTypeCard(
@@ -301,7 +301,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               icon: Icons.assignment_turned_in_rounded,
               color: Colors.green,
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
 
             // Create button
             SizedBox(
@@ -310,14 +310,14 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               child: ElevatedButton(
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: context.primaryColor,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 4,
                 ),
                 child: Text(
                   _creationType == 'coins' ? 'Pay 10,000 Coins & Create' : 'Submit Free Application',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -339,12 +339,12 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       onTap: () => setState(() => _creationType = type),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.bgLight : AppTheme.bgLight.withOpacity(0.5),
+          color: isSelected ? context.secondaryBackgroundColor : context.secondaryBackgroundColor.withOpacity(0.5),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor,
+            color: isSelected ? context.primaryColor : context.borderColor,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -352,14 +352,14 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 22),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,16 +367,16 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textSecondary,
+                      color: isSelected ? Colors.white : context.textSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     description,
-                    style: const TextStyle(
-                      color: AppTheme.textTertiary,
+                    style: TextStyle(
+                      color: context.caption,
                       fontSize: 12,
                       height: 1.4,
                     ),

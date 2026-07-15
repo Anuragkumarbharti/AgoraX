@@ -7,7 +7,7 @@ import 'user_profile_cache_manager.dart';
 class ThemeController extends GetxController {
   static ThemeController get to => Get.find<ThemeController>();
 
-  final RxString currentThemePreference = 'system'.obs;
+  final RxString currentThemePreference = 'light'.obs;
 
   @override
   void onInit() {

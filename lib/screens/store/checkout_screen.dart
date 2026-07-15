@@ -7,7 +7,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/store_controller.dart';
 import '../../services/razorpay_backend_service.dart';
 import 'payment_status_screen.dart';
@@ -205,7 +205,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final scheduledDate = args?['scheduledDate'] ?? widget.scheduledDate;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF07070A),
+      backgroundColor: Color(0xFF07070A),
       body: Stack(
         children: [
           // Background Gradient Glow
@@ -219,7 +219,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.08),
+                    color: Color(0xFF8B5CF6).withOpacity(0.08),
                     blurRadius: 100,
                   )
                 ],
@@ -233,25 +233,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 _buildHeader(),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20.0),
+                    padding: EdgeInsets.all(20.0),
                     physics: const BouncingScrollPhysics(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildProductCard(name, category, duration, giftToFriend, friendUsername),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         _buildPurchaseMethodSelector(category),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         _buildCouponSection(),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         _buildPaymentMethodSection(),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         _buildAutoRenewToggle(category),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         _buildBillingBreakdown(basePrice),
-                        const SizedBox(height: 30),
+                        SizedBox(height: 30),
                         _buildBuyNowButton(name, category, basePrice, duration, giftToFriend, friendUsername, giftMessage, anonymous, scheduledDate),
-                        const SizedBox(height: 40),
+                        SizedBox(height: 40),
                       ],
                     ),
                   ),
@@ -268,12 +268,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const CircularProgressIndicator(color: Color(0xFFFFD700)),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24),
                     Text(
                       'Securing gateway channel...',
                       style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       'Verified by Razorpay & Fraud Prevention',
                       style: GoogleFonts.poppins(color: Colors.white30, fontSize: 12),
@@ -289,11 +289,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
             onPressed: () => Get.back(),
           ),
           Text(
@@ -311,12 +311,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildPurchaseMethodSelector(String category) {
-    if (category == 'Coins') return const SizedBox.shrink();
+    if (category == 'Coins') return SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -327,13 +327,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'SELECT PURCHASE METHOD',
             style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: _buildMethodTab('Gold Coins 🪙', 'Gold'),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: _buildMethodTab('Real Money (INR) 💵', 'INR'),
               ),
@@ -349,12 +349,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return GestureDetector(
       onTap: () => setState(() => _selectedPurchaseMethod = method),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSel ? const Color(0xFF1E1B4B).withOpacity(0.4) : Colors.black.withOpacity(0.2),
+          color: isSel ? Color(0xFF1E1B4B).withOpacity(0.4) : Colors.black.withOpacity(0.2),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSel ? const Color(0xFF8B5CF6) : Colors.white.withOpacity(0.04),
+            color: isSel ? Color(0xFF8B5CF6) : Colors.white.withOpacity(0.04),
             width: 1.5,
           ),
         ),
@@ -374,9 +374,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _buildProductCard(String name, String category, String duration, bool gift, String? friend) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -386,7 +386,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1B4B),
+              color: Color(0xFF1E1B4B),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -398,11 +398,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         : category == 'Novel'
                             ? '📖'
                             : '🖼️',
-                style: const TextStyle(fontSize: 22),
+                style: TextStyle(fontSize: 22),
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,10 +411,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   name,
                   style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   gift ? 'Gift to @$friend' : 'Duration: $duration',
-                  style: GoogleFonts.poppins(color: gift ? const Color(0xFFFFB800) : Colors.white38, fontSize: 11),
+                  style: GoogleFonts.poppins(color: gift ? Color(0xFFFFB800) : Colors.white38, fontSize: 11),
                 ),
               ],
             ),
@@ -431,11 +431,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final discountPct = _storeCtrl.activeCouponDiscount.value;
 
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF111115),
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: hasCoupon ? const Color(0xFF10B981).withOpacity(0.3) : Colors.white.withOpacity(0.04)),
+          border: Border.all(color: hasCoupon ? Color(0xFF10B981).withOpacity(0.3) : Colors.white.withOpacity(0.04)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,18 +444,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               'COUPON / PROMO CODES',
               style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             if (hasCoupon)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 16),
-                      const SizedBox(width: 6),
+                      Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 16),
+                      SizedBox(width: 6),
                       Text(
                         '$couponCode applied! (${(discountPct * 100).toInt()}% off)',
-                        style: GoogleFonts.poppins(color: const Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.poppins(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -473,27 +473,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       height: 44,
                       child: TextField(
                         controller: _couponCtrl,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        style: TextStyle(color: Colors.white, fontSize: 13),
                         decoration: InputDecoration(
                           hintText: 'Enter Coupon Code',
-                          hintStyle: const TextStyle(color: Colors.white24),
+                          hintStyle: TextStyle(color: Colors.white24),
                           filled: true,
                           fillColor: Colors.black.withOpacity(0.4),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF8B5CF6),
+                      backgroundColor: Color(0xFF8B5CF6),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                     onPressed: () {
                       final ok = _storeCtrl.applyCoupon(_couponCtrl.text);
@@ -501,7 +501,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         _couponCtrl.clear();
                         Get.snackbar('Applied! 🎉', 'Promo Coupon discount loaded.', backgroundColor: Colors.green.withOpacity(0.9), colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
                       } else {
-                        Get.snackbar('Invalid Coupon ⚠️', 'Check the coupon code and try again.', backgroundColor: const Color(0xFFEF4444).withOpacity(0.9), colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+                        Get.snackbar('Invalid Coupon ⚠️', 'Check the coupon code and try again.', backgroundColor: Color(0xFFEF4444).withOpacity(0.9), colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
                       }
                     },
                     child: Text('Apply', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 12)),
@@ -519,9 +519,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return Obx(() {
         final currentGold = _storeCtrl.coinsBalance.value;
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF111115),
+            color: context.secondaryBackgroundColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white.withOpacity(0.04)),
           ),
@@ -532,9 +532,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 'PAY WITH WALLET',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -548,7 +548,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     Text(
                       '$currentGold 🪙',
-                      style: GoogleFonts.poppins(color: const Color(0xFFFFD700), fontSize: 14, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -560,9 +560,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -573,7 +573,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'CHOOSE PAYMENT METHOD',
             style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -584,23 +584,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               return GestureDetector(
                 onTap: () => setState(() => _selectedPaymentMethod = pm),
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  margin: EdgeInsets.only(bottom: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSel ? const Color(0xFF1E1B4B).withOpacity(0.3) : Colors.transparent,
+                    color: isSel ? Color(0xFF1E1B4B).withOpacity(0.3) : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSel ? const Color(0xFF8B5CF6) : Colors.white.withOpacity(0.02),
+                      color: isSel ? Color(0xFF8B5CF6) : Colors.white.withOpacity(0.02),
                     ),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         isSel ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                        color: isSel ? const Color(0xFF8B5CF6) : Colors.white30,
+                        color: isSel ? Color(0xFF8B5CF6) : Colors.white30,
                         size: 16,
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Text(
                         pm,
                         style: GoogleFonts.poppins(color: isSel ? Colors.white : Colors.white60, fontSize: 12, fontWeight: FontWeight.bold),
@@ -617,12 +617,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildAutoRenewToggle(String category) {
-    if (category == 'Coins') return const SizedBox.shrink();
+    if (category == 'Coins') return SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -637,7 +637,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   'AUTO RENEWAL',
                   style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   'Renew automatically at the end of validity period.',
                   style: GoogleFonts.poppins(color: Colors.white30, fontSize: 9.5),
@@ -648,7 +648,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Switch(
             value: _autoRenew,
             onChanged: (val) => setState(() => _autoRenew = val),
-            activeColor: const Color(0xFF8B5CF6),
+            activeColor: Color(0xFF8B5CF6),
           ),
         ],
       ),
@@ -666,9 +666,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         int finalGoldAmount = goldPrice - goldDiscount;
 
         return Container(
-          padding: const EdgeInsets.all(18),
+          padding: EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF111115),
+            color: context.secondaryBackgroundColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white.withOpacity(0.04)),
           ),
@@ -676,8 +676,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               _billingRow('Product Base Price', '$goldPrice Gold Coins 🪙'),
               if (goldDiscount > 0)
-                _billingRow('Coupon Discount', '-$goldDiscount Gold Coins 🪙', valueColor: const Color(0xFF10B981)),
-              const Padding(
+                _billingRow('Coupon Discount', '-$goldDiscount Gold Coins 🪙', valueColor: Color(0xFF10B981)),
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
                 child: Divider(color: Colors.white10, height: 1),
               ),
@@ -687,9 +687,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       } else {
         return Container(
-          padding: const EdgeInsets.all(18),
+          padding: EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF111115),
+            color: context.secondaryBackgroundColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white.withOpacity(0.04)),
           ),
@@ -697,8 +697,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               _billingRow('Product Base Price', '₹${basePrice.toStringAsFixed(2)}'),
               if (discount > 0)
-                _billingRow('Coupon Discount', '-₹${discount.toStringAsFixed(2)}', valueColor: const Color(0xFF10B981)),
-              const Padding(
+                _billingRow('Coupon Discount', '-₹${discount.toStringAsFixed(2)}', valueColor: Color(0xFF10B981)),
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
                 child: Divider(color: Colors.white10, height: 1),
               ),
@@ -712,7 +712,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _billingRow(String label, String value, {Color? valueColor, bool isHeader = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -723,7 +723,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Text(
             value,
             style: GoogleFonts.poppins(
-              color: valueColor ?? (isHeader ? const Color(0xFFFFD700) : Colors.white),
+              color: valueColor ?? (isHeader ? Color(0xFFFFD700) : Colors.white),
               fontSize: isHeader ? 15 : 12,
               fontWeight: FontWeight.bold,
             ),
@@ -748,9 +748,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       width: double.infinity,
       height: 48,
       child: ElevatedButton.icon(
-        icon: const Icon(Icons.security_rounded, size: 18),
+        icon: Icon(Icons.security_rounded, size: 18),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF8B5CF6),
+          backgroundColor: Color(0xFF8B5CF6),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         onPressed: () async {
@@ -764,7 +764,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 'Insufficient Balance ⚠️',
                 'You do not have enough Gold Coins. Please recharge or pay with Real Money.',
                 snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: const Color(0xFFEF4444),
+                backgroundColor: Color(0xFFEF4444),
                 colorText: Colors.white,
               );
               return;
@@ -849,7 +849,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               'Payment Error',
               displayError,
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: Color(0xFFEF4444),
               colorText: Colors.white,
             );
             return;
@@ -915,7 +915,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               'Checkout Error',
               'Failed to open Razorpay payment interface: $e',
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: Color(0xFFEF4444),
               colorText: Colors.white,
             );
           }
@@ -1079,21 +1079,21 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF0F0F13),
+          color: Color(0xFF0F0F13),
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFF312E81).withOpacity(0.5), width: 1.5),
+          border: Border.all(color: Color(0xFF312E81).withOpacity(0.5), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF8B5CF6).withOpacity(0.1),
+              color: Color(0xFF8B5CF6).withOpacity(0.1),
               blurRadius: 30,
               spreadRadius: 5,
             )
           ],
         ),
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1103,8 +1103,8 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFFFFD700), size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.qr_code_scanner_rounded, color: Color(0xFFFFD700), size: 20),
+                    SizedBox(width: 8),
                     Text(
                       'UPI QR SCAN & PAY',
                       style: GoogleFonts.outfit(
@@ -1117,7 +1117,7 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 20),
+                  icon: Icon(Icons.close_rounded, color: Colors.white38, size: 20),
                   onPressed: () {
                     _timer?.cancel();
                     widget.onFailure('Payment cancelled by user');
@@ -1125,7 +1125,7 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
                 ),
               ],
             ),
-            const Divider(color: Colors.white10, height: 20),
+            Divider(color: Colors.white10, height: 20),
             
             // Subtitle
             Text(
@@ -1135,11 +1135,11 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // QR Code Box
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -1156,7 +1156,7 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
               ),
             ),
             
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // Timer & Amount
             Row(
@@ -1171,7 +1171,7 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
                     ),
                     Text(
                       '₹${widget.amount.toStringAsFixed(2)}',
-                      style: GoogleFonts.outfit(color: const Color(0xFFFFD700), fontSize: 20, fontWeight: FontWeight.w900),
+                      style: GoogleFonts.outfit(color: Color(0xFFFFD700), fontSize: 20, fontWeight: FontWeight.w900),
                     ),
                   ],
                 ),
@@ -1184,18 +1184,18 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
                     ),
                     Text(
                       _formatTime(_timeLeft),
-                      style: GoogleFonts.outfit(color: const Color(0xFFEF4444), fontSize: 20, fontWeight: FontWeight.w900),
+                      style: GoogleFonts.outfit(color: Color(0xFFEF4444), fontSize: 20, fontWeight: FontWeight.w900),
                     ),
                   ],
                 ),
               ],
             ),
             
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // UPI ID copy
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(12),
@@ -1217,24 +1217,24 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
                         'Copied! 📋',
                         'UPI ID copied to clipboard.',
                         snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
+                        backgroundColor: Color(0xFF8B5CF6).withOpacity(0.9),
                         colorText: Colors.white,
                       );
                     },
-                    child: const Icon(Icons.copy_rounded, color: Color(0xFF8B5CF6), size: 16),
+                    child: Icon(Icons.copy_rounded, color: Color(0xFF8B5CF6), size: 16),
                   ),
                 ],
               ),
             ),
             
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             
             // Simulation Dev Box
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1C1917),
+                color: Color(0xFF1C1917),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
               ),
@@ -1245,15 +1245,15 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
                     '⚙️ SIMULATION CONTROLS',
                     style: GoogleFonts.poppins(color: Colors.redAccent, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
+                            backgroundColor: Color(0xFF10B981),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            padding: EdgeInsets.symmetric(vertical: 10),
                           ),
                           onPressed: () {
                             _timer?.cancel();
@@ -1268,13 +1268,13 @@ class _UpiQrDialogWidgetState extends State<UpiQrDialogWidget> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFEF4444),
+                            backgroundColor: Color(0xFFEF4444),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            padding: EdgeInsets.symmetric(vertical: 10),
                           ),
                           onPressed: () {
                             _timer?.cancel();

@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/study_vault_controller.dart';
 import '../../models/study_vault_model.dart';
 import 'upload_book_screen.dart';
@@ -46,10 +46,10 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
 
     Get.dialog(
       Dialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,50 +63,50 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 'Funds will be transferred to your UPI ID or bank account within 24 hours.',
-                style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 11),
+                style: GoogleFonts.poppins(color: context.caption, fontSize: 11),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Text(
                 'Withdrawable Balance: ₹${wallet.withdrawableBalance.toStringAsFixed(2)}',
-                style: const TextStyle(color: AppTheme.accentColor, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(color: context.accentOrange, fontSize: 12, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: _withdrawAmountController,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: Colors.white, fontSize: 13),
                 decoration: InputDecoration(
                   labelText: 'Withdrawal Amount (₹)',
-                  labelStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                  labelStyle: TextStyle(color: context.caption, fontSize: 12),
                   fillColor: Colors.black.withOpacity(0.2),
                   filled: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: _withdrawUpiController,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: Colors.white, fontSize: 13),
                 decoration: InputDecoration(
                   labelText: 'UPI ID or Bank Details',
-                  labelStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                  labelStyle: TextStyle(color: context.caption, fontSize: 12),
                   fillColor: Colors.black.withOpacity(0.2),
                   filled: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Get.back(),
-                    child: Text('Cancel', style: GoogleFonts.poppins(color: AppTheme.textTertiary)),
+                    child: Text('Cancel', style: GoogleFonts.poppins(color: context.caption)),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
                       final double amt = double.tryParse(_withdrawAmountController.text) ?? 0.0;
@@ -121,7 +121,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                         Get.back();
                       }
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+                    style: ElevatedButton.styleFrom(backgroundColor: context.primaryColor),
                     child: Text('Withdraw', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
                   ),
                 ],
@@ -136,20 +136,20 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Seller Dashboard',
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline_rounded, color: Colors.white),
+            icon: Icon(Icons.help_outline_rounded, color: Colors.white),
             onPressed: () {
               Get.snackbar(
                 'Seller Guide 📚',
@@ -179,7 +179,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               
               // 2. Financial Metrics overview
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: 20),
                 child: GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
@@ -188,14 +188,14 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   mainAxisSpacing: 12,
                   childAspectRatio: 1.6,
                   children: [
-                    _buildStatCard('Total Sales', '${wallet.totalSales}', Icons.shopping_bag_outlined, const Color(0xFF6366F1)),
-                    _buildStatCard('Total Earnings', '₹${wallet.totalEarnings.toStringAsFixed(0)}', Icons.monetization_on_outlined, const Color(0xFF10B981)),
-                    _buildStatCard('Profile Views', '8.4K', Icons.remove_red_eye_outlined, const Color(0xFF06B6D4)),
-                    _buildStatCard('Resource Downloads', '1.9K', Icons.cloud_download_outlined, const Color(0xFFEC4899)),
+                    _buildStatCard('Total Sales', '${wallet.totalSales}', Icons.shopping_bag_outlined, Color(0xFF6366F1)),
+                    _buildStatCard('Total Earnings', '₹${wallet.totalEarnings.toStringAsFixed(0)}', Icons.monetization_on_outlined, Color(0xFF10B981)),
+                    _buildStatCard('Profile Views', '8.4K', Icons.remove_red_eye_outlined, Color(0xFF06B6D4)),
+                    _buildStatCard('Resource Downloads', '1.9K', Icons.cloud_download_outlined, Color(0xFFEC4899)),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // 3. Wallet details & withdrawal card
               _buildWalletDetailsCard(wallet),
@@ -203,10 +203,10 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               // 4. Transaction History
               _buildTransactionsList(),
 
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               // 5. Uploaded Content tab sections
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -221,22 +221,22 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                     ),
                     ElevatedButton.icon(
                       onPressed: () => Get.to(() => const UploadBookScreen()),
-                      icon: const Icon(Icons.add, size: 14),
-                      label: const Text('Upload Resource', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      icon: Icon(Icons.add, size: 14),
+                      label: Text('Upload Resource', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        backgroundColor: context.primaryColor,
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                     )
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
 
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
+                margin: EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
-                  color: AppTheme.bgLight,
+                  color: context.secondaryBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TabBar(
@@ -246,11 +246,11 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                     Tab(text: 'Pending (${pendingItems.length})'),
                     Tab(text: 'Rejected (${rejectedItems.length})'),
                   ],
-                  indicatorColor: AppTheme.primaryColor,
-                  labelColor: AppTheme.primaryColor,
-                  unselectedLabelColor: AppTheme.textTertiary,
+                  indicatorColor: context.primaryColor,
+                  labelColor: context.primaryColor,
+                  unselectedLabelColor: context.caption,
                   indicatorSize: TabBarIndicatorSize.tab,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
 
@@ -265,7 +265,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
             ],
           ),
         );
@@ -275,12 +275,12 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
 
   Widget _buildSellerProfileCard() {
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(18),
+      margin: EdgeInsets.all(20),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+        border: Border.all(color: context.borderColor.withOpacity(0.5)),
       ),
       child: Column(
         children: [
@@ -297,7 +297,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,37 +306,37 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                       children: [
                         Text(
                           UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Seller',
-                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppTheme.accentColor.withOpacity(0.12),
+                            color: context.accentOrange.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.verified, color: AppTheme.accentColor, size: 10),
+                              Icon(Icons.verified, color: context.accentOrange, size: 10),
                               SizedBox(width: 2),
-                              Text('VERIFIED SELLER', style: TextStyle(color: AppTheme.accentColor, fontSize: 8, fontWeight: FontWeight.bold)),
+                              Text('VERIFIED SELLER', style: TextStyle(color: context.accentOrange, fontSize: 8, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         )
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Joined: ${_controller.sellerJoinedDate.value}  |  Response Rate: ${_controller.responseRate.value}%',
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                      style: TextStyle(color: context.caption, fontSize: 11),
                     )
                   ],
                 ),
               )
             ],
           ),
-          const Divider(color: Colors.white10, height: 24),
+          Divider(color: Colors.white10, height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -357,10 +357,10 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
           value,
           style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(
           label,
-          style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 10),
+          style: GoogleFonts.poppins(color: context.caption, fontSize: 10),
         ),
       ],
     );
@@ -368,26 +368,26 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: color, size: 20),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             value,
             style: GoogleFonts.poppins(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(
             label,
-            style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 9.5),
+            style: GoogleFonts.poppins(color: context.caption, fontSize: 9.5),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -398,19 +398,19 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
 
   Widget _buildWalletDetailsCard(VaultWallet wallet) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-      padding: const EdgeInsets.all(18),
+      margin: EdgeInsets.fromLTRB(20, 4, 20, 20),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.3), width: 1.5),
+        border: Border.all(color: Color(0xFFFFD700).withOpacity(0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFFD700).withOpacity(0.03),
+            color: Color(0xFFFFD700).withOpacity(0.03),
             blurRadius: 10,
             spreadRadius: 2,
           )
@@ -424,8 +424,8 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
             children: [
               Row(
                 children: [
-                  const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFFFD700), size: 20),
-                  const SizedBox(width: 8),
+                  Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFFFD700), size: 20),
+                  SizedBox(width: 8),
                   Text(
                     'Seller Wallet',
                     style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
@@ -435,9 +435,9 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               GestureDetector(
                 onTap: _showWithdrawModal,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFD700),
+                    color: Color(0xFFFFD700),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -448,30 +448,30 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('WITHDRAWABLE BALANCE', style: TextStyle(color: AppTheme.textTertiary, fontSize: 9)),
-                    const SizedBox(height: 4),
+                    Text('WITHDRAWABLE BALANCE', style: TextStyle(color: context.caption, fontSize: 9)),
+                    SizedBox(height: 4),
                     Text(
                       '₹${wallet.withdrawableBalance.toStringAsFixed(2)}',
-                      style: GoogleFonts.poppins(color: AppTheme.accentColor, fontSize: 20, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(color: context.accentOrange, fontSize: 20, fontWeight: FontWeight.bold),
                     )
                   ],
                 ),
               ),
               Container(width: 1, height: 40, color: Colors.white10),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('PENDING BALANCE', style: TextStyle(color: AppTheme.textTertiary, fontSize: 9)),
-                    const SizedBox(height: 4),
+                    Text('PENDING BALANCE', style: TextStyle(color: context.caption, fontSize: 9)),
+                    SizedBox(height: 4),
                     Text(
                       '₹${wallet.pendingBalance.toStringAsFixed(2)}',
                       style: GoogleFonts.poppins(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
@@ -481,12 +481,12 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               ),
             ],
           ),
-          const Divider(color: Colors.white10, height: 24),
+          Divider(color: Colors.white10, height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total Revenue Earned: ₹${wallet.totalEarnings.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-              Text('Refunds Processed: ₹${wallet.refunds.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.errorColor, fontSize: 11)),
+              Text('Total Revenue Earned: ₹${wallet.totalEarnings.toStringAsFixed(2)}', style: TextStyle(color: context.textSecondary, fontSize: 11)),
+              Text('Refunds Processed: ₹${wallet.refunds.toStringAsFixed(2)}', style: TextStyle(color: context.errorColor, fontSize: 11)),
             ],
           ),
         ],
@@ -496,7 +496,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
 
   Widget _buildTransactionsList() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -509,34 +509,34 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               letterSpacing: 1.2,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _controller.sellerTransactions.isEmpty
               ? Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.cardBg,
+                    color: context.surfaceColor,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Center(
-                    child: Text('No transaction logs found.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 12)),
+                  child: Center(
+                    child: Text('No transaction logs found.', style: TextStyle(color: context.caption, fontSize: 12)),
                   ),
                 )
               : ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: min(3, _controller.sellerTransactions.length),
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  separatorBuilder: (_, __) => SizedBox(height: 8),
                   itemBuilder: (context, i) {
                     final tx = _controller.sellerTransactions[i];
                     final isWithdrawal = tx.type == 'Withdrawal';
                     final isPending = tx.status == 'Pending';
 
                     return Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppTheme.cardBg,
+                        color: context.surfaceColor,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppTheme.borderColor.withOpacity(0.3)),
+                        border: Border.all(color: context.borderColor.withOpacity(0.3)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -546,12 +546,12 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                             children: [
                               Text(
                                 tx.bookTitle,
-                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               Text(
                                 '${tx.type}  |  ${tx.dateTime.day}/${tx.dateTime.month} ${tx.dateTime.hour}:${tx.dateTime.minute}',
-                                style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                                style: TextStyle(color: context.caption, fontSize: 10),
                               ),
                             ],
                           ),
@@ -561,14 +561,14 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                               Text(
                                 '${isWithdrawal ? "-" : "+"} ₹${tx.amount.toStringAsFixed(2)}',
                                 style: TextStyle(
-                                  color: isWithdrawal ? AppTheme.errorColor : AppTheme.accentColor,
+                                  color: isWithdrawal ? context.errorColor : context.accentOrange,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: (isPending ? Colors.amber : (tx.status == 'Completed' ? Colors.green : Colors.red)).withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(4),
@@ -598,14 +598,14 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
     if (list.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(30),
-          child: Text(emptyMessage, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 13)),
+          padding: EdgeInsets.all(30),
+          child: Text(emptyMessage, style: TextStyle(color: context.caption, fontSize: 13)),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       physics: const BouncingScrollPhysics(),
       itemCount: list.length,
       itemBuilder: (context, index) {
@@ -613,12 +613,12 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
         final priceBreakdown = _controller.calculatePriceBreakdown(item.sellingPrice);
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
+          margin: EdgeInsets.only(bottom: 12),
+          padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+            border: Border.all(color: context.borderColor.withOpacity(0.5)),
           ),
           child: Row(
             children: [
@@ -626,27 +626,27 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 borderRadius: BorderRadius.circular(10),
                 child: Image.network(item.coverImage, width: 50, height: 70, fit: BoxFit.cover),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       item.title,
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       '${item.fileType}  |  ${item.pages} Pages',
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                      style: TextStyle(color: context.caption, fontSize: 10),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       item.sellingPrice == 0.0 ? 'FREE' : 'Buyer Price: ₹${priceBreakdown['buyerPays']!.toStringAsFixed(0)}',
                       style: TextStyle(
-                        color: item.sellingPrice == 0.0 ? AppTheme.accentColor : const Color(0xFFFFD700),
+                        color: item.sellingPrice == 0.0 ? context.accentOrange : Color(0xFFFFD700),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -654,23 +654,23 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               if (item.status == 'Rejected' && item.adminComment != null)
                 IconButton(
-                  icon: const Icon(Icons.comment_outlined, color: AppTheme.errorColor, size: 18),
+                  icon: Icon(Icons.comment_outlined, color: context.errorColor, size: 18),
                   onPressed: () {
                     Get.defaultDialog(
                       title: 'Rejection Reason ❌',
                       titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-                      backgroundColor: AppTheme.bgLight,
+                      backgroundColor: context.secondaryBackgroundColor,
                       content: Padding(
-                        padding: const EdgeInsets.all(12.0),
+                        padding: EdgeInsets.all(12.0),
                         child: Text(
                           item.adminComment!,
-                          style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 13),
+                          style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
                         ),
                       ),
-                      cancel: TextButton(onPressed: () => Get.back(), child: const Text('Close')),
+                      cancel: TextButton(onPressed: () => Get.back(), child: Text('Close')),
                     );
                   },
                 ),
@@ -679,11 +679,11 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 children: [
                   Text(
                     '${item.purchasesCount} Sales',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: (item.status == 'Approved'
                               ? Colors.green

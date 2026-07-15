@@ -1,3 +1,4 @@
+import 'package:creania/core/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../core/theme.dart';
@@ -52,7 +53,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.black,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         constraints: const BoxConstraints(maxHeight: 500),
@@ -70,8 +71,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: AppTheme.errorColor, size: 48),
-                  const SizedBox(height: 12),
+                  Icon(Icons.error_outline_rounded, color: context.errorColor, size: 48),
+                  SizedBox(height: 12),
                   Text(
                     'Failed to load video',
                     style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
@@ -79,7 +80,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 ],
               )
             else
-              const CircularProgressIndicator(color: AppTheme.primaryColor),
+              CircularProgressIndicator(color: context.primaryColor),
 
             // Close button
             Positioned(
@@ -89,7 +90,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 backgroundColor: Colors.black54,
                 radius: 18,
                 child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                  icon: Icon(Icons.close, color: Colors.white, size: 18),
                   padding: EdgeInsets.zero,
                   onPressed: () => Navigator.of(context).pop(),
                 ),
@@ -116,8 +117,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                       duration: const Duration(milliseconds: 200),
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: const BoxDecoration(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
@@ -142,8 +143,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 child: VideoProgressIndicator(
                   _controller,
                   allowScrubbing: true,
-                  colors: const VideoProgressColors(
-                    playedColor: AppTheme.primaryColor,
+                  colors: VideoProgressColors(
+                    playedColor: context.primaryColor,
                     bufferedColor: Colors.white30,
                     backgroundColor: Colors.white12,
                   ),

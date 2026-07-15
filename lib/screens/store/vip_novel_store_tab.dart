@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/store_controller.dart';
 import '../../services/vip_controller.dart';
 import '../../services/novel_controller.dart';
@@ -48,34 +48,34 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
 
   Map<String, dynamic> _getVipTheme(int lvl) {
     switch (lvl) {
-      case 1: return {'name': 'Royal Blue', 'color': const Color(0xFF2563EB), 'icon': '👑'};
-      case 2: return {'name': 'Amethyst Purple', 'color': const Color(0xFF8B5CF6), 'icon': '👑'};
-      case 3: return {'name': 'Gold Imperial', 'color': const Color(0xFFFFD700), 'icon': '👑'};
-      case 4: return {'name': 'Diamond Shimmer', 'color': const Color(0xFFF1F5F9), 'icon': '👑'};
-      case 5: return {'name': 'Crystal Cyan', 'color': const Color(0xFF06B6D4), 'icon': '👑'};
-      case 6: return {'name': 'Rainbow Animated', 'color': const Color(0xFFEC4899), 'icon': '👑'};
-      case 7: return {'name': 'Legendary Black Gold', 'color': const Color(0xFFFFD700), 'icon': '👑'};
-      default: return {'name': 'Royal Blue', 'color': const Color(0xFF2563EB), 'icon': '👑'};
+      case 1: return {'name': 'Royal Blue', 'color': Color(0xFF2563EB), 'icon': '👑'};
+      case 2: return {'name': 'Amethyst Purple', 'color': Color(0xFF8B5CF6), 'icon': '👑'};
+      case 3: return {'name': 'Gold Imperial', 'color': Color(0xFFFFD700), 'icon': '👑'};
+      case 4: return {'name': 'Diamond Shimmer', 'color': Color(0xFFF1F5F9), 'icon': '👑'};
+      case 5: return {'name': 'Crystal Cyan', 'color': Color(0xFF06B6D4), 'icon': '👑'};
+      case 6: return {'name': 'Rainbow Animated', 'color': Color(0xFFEC4899), 'icon': '👑'};
+      case 7: return {'name': 'Legendary Black Gold', 'color': Color(0xFFFFD700), 'icon': '👑'};
+      default: return {'name': 'Royal Blue', 'color': Color(0xFF2563EB), 'icon': '👑'};
     }
   }
 
   Map<String, dynamic> _getNovelTheme(int lvl) {
     switch (lvl) {
-      case 1: return {'name': 'Astral Blue', 'color': const Color(0xFF3B82F6), 'icon': '📖'};
-      case 2: return {'name': 'Dragon Purple', 'color': const Color(0xFF8B5CF6), 'icon': '📖'};
-      case 3: return {'name': 'Eternal Gold', 'color': const Color(0xFFFFD700), 'icon': '📖'};
-      case 4: return {'name': 'Crimson Fury', 'color': const Color(0xFFEF4444), 'icon': '📖'};
-      case 5: return {'name': 'Sol Flame', 'color': const Color(0xFFF97316), 'icon': '📖'};
-      case 6: return {'name': 'Void Spark', 'color': const Color(0xFF06B6D4), 'icon': '📖'};
-      case 7: return {'name': 'Celestial Monarch', 'color': const Color(0xFFFFD700), 'icon': '📖'};
-      default: return {'name': 'Astral Blue', 'color': const Color(0xFF3B82F6), 'icon': '📖'};
+      case 1: return {'name': 'Astral Blue', 'color': Color(0xFF3B82F6), 'icon': '📖'};
+      case 2: return {'name': 'Dragon Purple', 'color': Color(0xFF8B5CF6), 'icon': '📖'};
+      case 3: return {'name': 'Eternal Gold', 'color': Color(0xFFFFD700), 'icon': '📖'};
+      case 4: return {'name': 'Crimson Fury', 'color': Color(0xFFEF4444), 'icon': '📖'};
+      case 5: return {'name': 'Sol Flame', 'color': Color(0xFFF97316), 'icon': '📖'};
+      case 6: return {'name': 'Void Spark', 'color': Color(0xFF06B6D4), 'icon': '📖'};
+      case 7: return {'name': 'Celestial Monarch', 'color': Color(0xFFFFD700), 'icon': '📖'};
+      default: return {'name': 'Astral Blue', 'color': Color(0xFF3B82F6), 'icon': '📖'};
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07070A),
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Background Gradient Ambient Glows
@@ -89,7 +89,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.08),
+                    color: Color(0xFF8B5CF6).withOpacity(0.08),
                     blurRadius: 100,
                   )
                 ],
@@ -106,7 +106,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFD946EF).withOpacity(0.08),
+                    color: Color(0xFFD946EF).withOpacity(0.08),
                     blurRadius: 100,
                   )
                 ],
@@ -138,11 +138,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.textPrimary, size: 18),
             onPressed: () => Get.back(),
           ),
           Text(
@@ -161,23 +161,23 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
 
   Widget _buildTabBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       height: 48,
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor),
       ),
       child: TabBar(
         controller: _tabCtrl,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)],
+          gradient: LinearGradient(
+            colors: [Color(0xFF8B5CFF), Color(0xFFFF4D8D)],
           ),
         ),
         labelColor: Colors.white,
-        unselectedLabelColor: Colors.white38,
+        unselectedLabelColor: context.caption,
         labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
         unselectedLabelStyle: GoogleFonts.poppins(fontSize: 12),
         tabs: const [
@@ -193,21 +193,21 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
     final Color color = theme['color'] as Color;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
+      padding: EdgeInsets.all(20.0),
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildVipLevelSlider(color),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildLiveCosmeticsPreviewCard(color, isVip: true),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildVipBenefitsCard(color),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildDurationSelector(isVip: true),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildPurchaseButtonCard(color, isVip: true),
-          const SizedBox(height: 40),
+          SizedBox(height: 40),
         ],
       ),
     );
@@ -218,21 +218,21 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
     final Color color = theme['color'] as Color;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
+      padding: EdgeInsets.all(20.0),
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildNovelLevelSlider(color),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildLiveCosmeticsPreviewCard(color, isVip: false),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildNovelSpecsCard(color),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildDurationSelector(isVip: false),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildPurchaseButtonCard(color, isVip: false),
-          const SizedBox(height: 40),
+          SizedBox(height: 40),
         ],
       ),
     );
@@ -246,7 +246,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
           'SELECT VIP TIER',
           style: GoogleFonts.outfit(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         SizedBox(
           height: 60,
           child: ListView.builder(
@@ -260,12 +260,12 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                 onTap: () => setState(() => _selectedVipLevel = lvl),
                 child: Container(
                   width: 90,
-                  margin: const EdgeInsets.only(right: 10),
+                  margin: EdgeInsets.only(right: 10),
                   decoration: BoxDecoration(
-                    color: isSel ? color.withOpacity(0.12) : const Color(0xFF111115),
+                    color: isSel ? color.withOpacity(0.12) : context.secondaryBackgroundColor,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isSel ? color : Colors.white.withOpacity(0.04),
+                      color: isSel ? color : context.borderColor,
                       width: isSel ? 1.5 : 1.0,
                     ),
                   ),
@@ -274,7 +274,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text('VIP $lvl', style: GoogleFonts.poppins(color: isSel ? Colors.white : Colors.white60, fontSize: 13, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2),
                         Text(t['name'].toString().split(' ')[0], style: GoogleFonts.poppins(color: isSel ? color : Colors.white24, fontSize: 8.5)),
                       ],
                     ),
@@ -296,7 +296,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
           'SELECT NOVELIST TIER',
           style: GoogleFonts.outfit(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         SizedBox(
           height: 60,
           child: ListView.builder(
@@ -310,12 +310,12 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                 onTap: () => setState(() => _selectedNovelLevel = lvl),
                 child: Container(
                   width: 90,
-                  margin: const EdgeInsets.only(right: 10),
+                  margin: EdgeInsets.only(right: 10),
                   decoration: BoxDecoration(
-                    color: isSel ? color.withOpacity(0.12) : const Color(0xFF111115),
+                    color: isSel ? color.withOpacity(0.12) : context.secondaryBackgroundColor,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isSel ? color : Colors.white.withOpacity(0.04),
+                      color: isSel ? color : context.borderColor,
                       width: isSel ? 1.5 : 1.0,
                     ),
                   ),
@@ -324,7 +324,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text('Level $lvl', style: GoogleFonts.poppins(color: isSel ? Colors.white : Colors.white60, fontSize: 13, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2),
                         Text(t['name'].toString().split(' ')[0], style: GoogleFonts.poppins(color: isSel ? color : Colors.white24, fontSize: 8.5)),
                       ],
                     ),
@@ -345,9 +345,9 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
         : NovelAvatarDecorator(level: _selectedNovelLevel, size: 70, child: const CircleAvatar(backgroundColor: Colors.white10));
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
@@ -362,7 +362,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                 style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
                 child: Text(
                   'Animated 💫',
@@ -371,11 +371,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             children: [
               avatarDecorator,
-              const SizedBox(width: 18),
+              SizedBox(width: 18),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,22 +384,22 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                       'Avatar Frame',
                       style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       isVip
                           ? 'Avatar Frame, Avatar Background, Entry Effect, Gift Effect, Chat Bubble, Badge, Tag Light, and Emoji Effects.'
                           : 'Avatar Frame, Avatar Background, Entry Effect, Gift Effect, Chat Bubble, Badge, Tag Light, and Emoji Effects.',
                       style: GoogleFonts.poppins(color: Colors.white30, fontSize: 9.5),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), borderRadius: BorderRadius.circular(6)),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.palette_outlined, color: Colors.white70, size: 12),
-                          const SizedBox(width: 4),
+                          Icon(Icons.palette_outlined, color: Colors.white70, size: 12),
+                          SizedBox(width: 4),
                           Text(
                             'Shimmer Profile Theme',
                             style: GoogleFonts.poppins(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.bold),
@@ -427,11 +427,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
     ];
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,13 +440,13 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
             'MEMBERSHIP BENEFITS',
             style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ...benefits.map((b) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: EdgeInsets.only(bottom: 6),
             child: Row(
               children: [
                 Icon(Icons.check_circle_outline_rounded, color: color, size: 14),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(child: Text(b, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11.5))),
               ],
             ),
@@ -466,11 +466,11 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
     ];
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -479,13 +479,13 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
             'NOVEL SPECIFICATIONS',
             style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ...specs.map((s) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: EdgeInsets.only(bottom: 6),
             child: Row(
               children: [
                 Icon(Icons.check_circle_outline_rounded, color: color, size: 14),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(child: Text(s, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11.5))),
               ],
             ),
@@ -506,7 +506,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
           'CHOOSE MEMBERSHIP DURATION',
           style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Row(
           children: options.map((opt) {
             final isSel = currentDuration == opt;
@@ -522,13 +522,13 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                   });
                 },
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  margin: EdgeInsets.symmetric(horizontal: 4),
+                  padding: EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: isSel ? const Color(0xFF1E1B4B) : const Color(0xFF111115),
+                    color: isSel ? Color(0xFF1E1B4B) : context.secondaryBackgroundColor,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSel ? const Color(0xFF8B5CF6) : Colors.white.withOpacity(0.04),
+                      color: isSel ? Color(0xFF8B5CF6) : context.borderColor,
                     ),
                   ),
                   child: Center(
@@ -567,9 +567,9 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
           : _novelCtrl.getRemainingTime();
 
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF151518),
+          color: Color(0xFF151518),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: color.withOpacity(0.1)),
         ),
@@ -597,7 +597,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
               style: ElevatedButton.styleFrom(
                 backgroundColor: isLocked ? Colors.grey : color,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 22, vertical: 12),
               ),
               onPressed: isLocked ? null : () {
                 Get.to(() => CheckoutScreen(

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/store_controller.dart';
 import '../../services/vip_controller.dart';
 import '../../services/novel_controller.dart';
@@ -77,7 +77,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF07070A),
+        backgroundColor: Color(0xFF07070A),
         body: Stack(
         children: [
           // Background Radial Ambient Glows
@@ -91,7 +91,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                    color: Color(0xFF8B5CF6).withOpacity(0.15),
                     blurRadius: 100,
                   )
                 ],
@@ -108,7 +108,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFD946EF).withOpacity(0.08),
+                    color: Color(0xFFD946EF).withOpacity(0.08),
                     blurRadius: 120,
                   )
                 ],
@@ -125,7 +125,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFFB800).withOpacity(0.05),
+                    color: Color(0xFFFFB800).withOpacity(0.05),
                     blurRadius: 100,
                   )
                 ],
@@ -140,25 +140,25 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 _buildStoreHeader(),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildMembershipSummaryCard(),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         _buildExpiryWarningsList(),
                         _buildFestivalSaleCarousel(),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         _buildQuickCategorySelector(),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         _buildDailyDealCard(),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         _buildLuckyDrawShortcut(),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         _buildLimitedOffersSection(),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         _buildCosmeticsQuickGrid(),
-                        const SizedBox(height: 40),
+                        SizedBox(height: 40),
                       ],
                     ),
                   ),
@@ -175,10 +175,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
   Widget _buildStoreHeader() {
     return SliverAppBar(
       pinned: true,
-      backgroundColor: const Color(0xFF07070A).withOpacity(0.85),
+      backgroundColor: Color(0xFF07070A).withOpacity(0.85),
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+        icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
         onPressed: () {
           if (Navigator.of(context).canPop()) {
             Navigator.of(context).pop();
@@ -198,17 +198,17 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.gif_box_outlined, color: Colors.white70),
+          icon: Icon(Icons.gif_box_outlined, color: Colors.white70),
           tooltip: 'Gift Store',
           onPressed: () => Get.to(() => const GiftMembershipScreen()),
         ),
         IconButton(
-          icon: const Icon(Icons.history_toggle_off_rounded, color: Colors.white70),
+          icon: Icon(Icons.history_toggle_off_rounded, color: Colors.white70),
           tooltip: 'Purchase History',
           onPressed: () => Get.to(() => const StoreHistoryScreen()),
         ),
         IconButton(
-          icon: const Icon(Icons.admin_panel_settings_outlined, color: Color(0xFFFFD700)),
+          icon: Icon(Icons.admin_panel_settings_outlined, color: Color(0xFFFFD700)),
           tooltip: 'Admin Panel',
           onPressed: () => Get.to(() => const AdminStorePanel()),
         ),
@@ -229,18 +229,18 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF1E1B4B).withOpacity(0.4),
-                  const Color(0xFF09090B).withOpacity(0.8),
+                  Color(0xFF1E1B4B).withOpacity(0.4),
+                  Color(0xFF09090B).withOpacity(0.8),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFF312E81).withOpacity(0.5), width: 1.5),
+              border: Border.all(color: Color(0xFF312E81).withOpacity(0.5), width: 1.5),
             ),
             child: Column(
               children: [
@@ -254,14 +254,14 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                           'YOUR WALLET',
                           style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.5),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Row(
                           children: [
                             Text(
                               '🪙 $coins',
-                              style: GoogleFonts.outfit(color: const Color(0xFFFFD700), fontSize: 28, fontWeight: FontWeight.w900),
+                              style: GoogleFonts.outfit(color: Color(0xFFFFD700), fontSize: 28, fontWeight: FontWeight.w900),
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: 4),
                             Text(
                               'Coins',
                               style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
@@ -272,9 +272,9 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFD700),
+                        backgroundColor: Color(0xFFFFD700),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
                       onPressed: () => Get.to(() => const CoinStoreScreen()),
                       child: Text(
@@ -284,7 +284,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                     ),
                   ],
                 ),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 14.0),
                   child: Divider(color: Colors.white10, height: 1),
                 ),
@@ -314,19 +314,19 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       child: Column(
         children: [
           Text(label, style: GoogleFonts.poppins(color: Colors.white30, fontSize: 10)),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Row(
             children: [
               Text(
                 active ? activeText : joinText,
                 style: GoogleFonts.poppins(
-                  color: active ? const Color(0xFFFFD700) : const Color(0xFFD946EF),
+                  color: active ? Color(0xFFFFD700) : Color(0xFFD946EF),
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
               ),
-              const SizedBox(width: 2),
-              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 8),
+              SizedBox(width: 2),
+              Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 8),
             ],
           ),
         ],
@@ -337,28 +337,28 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
   Widget _buildExpiryWarningsList() {
     return Obx(() {
       final warnings = _custCtrl.getActiveReminders();
-      if (warnings.isEmpty) return const SizedBox.shrink();
+      if (warnings.isEmpty) return SizedBox.shrink();
 
       return Container(
-        margin: const EdgeInsets.only(bottom: 18),
+        margin: EdgeInsets.only(bottom: 18),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           child: Row(
             children: warnings.map((warn) {
               return Container(
-                margin: const EdgeInsets.only(right: 12),
-                padding: const EdgeInsets.all(12),
+                margin: EdgeInsets.only(right: 12),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF97316).withOpacity(0.12),
+                  color: Color(0xFFF97316).withOpacity(0.12),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFF97316).withOpacity(0.3)),
+                  border: Border.all(color: Color(0xFFF97316).withOpacity(0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 16),
-                    const SizedBox(width: 8),
+                    Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 16),
+                    SizedBox(width: 8),
                     Text(
                       warn,
                       style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10.5),
@@ -385,22 +385,22 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
             borderRadius: BorderRadius.circular(20),
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF3B0764),
-                const Color(0xFF0F172A).withOpacity(0.9),
-                const Color(0xFF701A75),
+                Color(0xFF3B0764),
+                Color(0xFF0F172A).withOpacity(0.9),
+                Color(0xFF701A75),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFC084FC).withOpacity(0.12 * glowVal),
+                color: Color(0xFFC084FC).withOpacity(0.12 * glowVal),
                 blurRadius: 15,
                 spreadRadius: 1,
               )
             ],
             border: Border.all(
-              color: Color.lerp(const Color(0xFF8B5CF6), const Color(0xFFD946EF), glowVal)!.withOpacity(0.4),
+              color: Color.lerp(Color(0xFF8B5CF6), Color(0xFFD946EF), glowVal)!.withOpacity(0.4),
               width: 1.2,
             ),
           ),
@@ -412,7 +412,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 child: Text('⚡', style: TextStyle(fontSize: 90, color: Colors.white.withOpacity(0.04))),
               ),
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(16.0),
                 child: Row(
                   children: [
                     Expanded(
@@ -421,22 +421,22 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEC4899).withOpacity(0.2),
+                              color: Color(0xFFEC4899).withOpacity(0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               'FESTIVAL BASH SALE',
-                              style: GoogleFonts.poppins(color: const Color(0xFFF472B6), fontSize: 8.5, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.poppins(color: Color(0xFFF472B6), fontSize: 8.5, fontWeight: FontWeight.bold),
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           Text(
                             'Flat 50% Off Coupons!',
                             style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2),
                           Text(
                             'Use code FESTIVAL50 inside checkout screen.',
                             style: GoogleFonts.poppins(color: Colors.white60, fontSize: 10),
@@ -444,7 +444,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                         ],
                       ),
                     ),
-                    const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 16),
+                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 16),
                   ],
                 ),
               ),
@@ -480,12 +480,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
               }
             },
             child: Container(
-              margin: const EdgeInsets.only(right: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              margin: EdgeInsets.only(right: 10),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E1B4B).withOpacity(0.3),
+                color: Color(0xFF1E1B4B).withOpacity(0.3),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF312E81).withOpacity(0.3)),
+                border: Border.all(color: Color(0xFF312E81).withOpacity(0.3)),
               ),
               child: Center(
                 child: Text(
@@ -515,16 +515,16 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       final durationText = '${hours.toString().padLeft(2, '0')}:${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
 
       return Container(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(18),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF0F172A),
-              const Color(0xFF1E1B4B).withOpacity(0.5),
+              Color(0xFF0F172A),
+              Color(0xFF1E1B4B).withOpacity(0.5),
             ],
           ),
-          border: Border.all(color: const Color(0xFFD946EF).withOpacity(0.25)),
+          border: Border.all(color: Color(0xFFD946EF).withOpacity(0.25)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,8 +534,8 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.flash_on_rounded, color: Color(0xFFD946EF), size: 18),
-                    const SizedBox(width: 4),
+                    Icon(Icons.flash_on_rounded, color: Color(0xFFD946EF), size: 18),
+                    SizedBox(width: 4),
                     Text(
                       'DAILY FLASH DEAL',
                       style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0),
@@ -543,7 +543,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.4),
                     borderRadius: BorderRadius.circular(8),
@@ -551,25 +551,25 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                   ),
                   child: Text(
                     durationText,
-                    style: GoogleFonts.poppins(color: const Color(0xFFD946EF), fontSize: 11, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(color: Color(0xFFD946EF), fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Row(
               children: [
                 Container(
                   width: 54,
                   height: 54,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                    color: Color(0xFF8B5CF6).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+                    border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.3)),
                   ),
-                  child: const Center(child: Text('🖼️', style: TextStyle(fontSize: 24))),
+                  child: Center(child: Text('🖼️', style: TextStyle(fontSize: 24))),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,17 +578,17 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                         itemName,
                         style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Row(
                         children: [
                           Text(
                             '₹${discPrice.toInt()}',
-                            style: GoogleFonts.poppins(color: const Color(0xFFFFD700), fontSize: 16, fontWeight: FontWeight.w900),
+                            style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 16, fontWeight: FontWeight.w900),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Text(
                             '₹${originalPrice.toInt()}',
-                            style: const TextStyle(color: Colors.white24, decoration: TextDecoration.lineThrough, fontSize: 12),
+                            style: TextStyle(color: Colors.white24, decoration: TextDecoration.lineThrough, fontSize: 12),
                           ),
                         ],
                       ),
@@ -597,9 +597,9 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD946EF),
+                    backgroundColor: Color(0xFFD946EF),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   ),
                   onPressed: () {
                     // Navigate to checkout
@@ -617,7 +617,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -653,29 +653,29 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       onTap: () => Get.to(() => const LuckyDrawScreen()),
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B).withOpacity(0.2),
+          color: Color(0xFF1E293B).withOpacity(0.2),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFFFB800).withOpacity(0.3)),
+          border: Border.all(color: Color(0xFFFFB800).withOpacity(0.3)),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: const Color(0xFFFFB800).withOpacity(0.1), shape: BoxShape.circle),
-              child: const Text('🎯', style: TextStyle(fontSize: 20)),
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Color(0xFFFFB800).withOpacity(0.1), shape: BoxShape.circle),
+              child: Text('🎯', style: TextStyle(fontSize: 20)),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'LUCKY DRAW WHEEL IS LIVE!',
-                    style: GoogleFonts.outfit(color: const Color(0xFFFFB800), fontSize: 11.5, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                    style: GoogleFonts.outfit(color: Color(0xFFFFB800), fontSize: 11.5, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     'Spin for VIP rewards, frame drops, and bonus coins.',
                     style: GoogleFonts.poppins(color: Colors.white60, fontSize: 10),
@@ -683,7 +683,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFFFB800), size: 14),
+            Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFFFB800), size: 14),
           ],
         ),
       ),
@@ -696,15 +696,15 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       children: [
         Row(
           children: [
-            const Icon(Icons.star_rounded, color: Color(0xFFFFB800), size: 18),
-            const SizedBox(width: 6),
+            Icon(Icons.star_rounded, color: Color(0xFFFFB800), size: 18),
+            SizedBox(width: 6),
             Text(
               'SPECIAL LIMITED PACKS',
               style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.2),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         SizedBox(
           height: 130,
           child: ListView(
@@ -717,7 +717,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 '₹8,999',
                 '₹14,999',
                 'ONLY 4 LEFT',
-                const Color(0xFFFFD700),
+                Color(0xFFFFD700),
               ),
               _buildLimitedCard(
                 'Cyber Neon Starter Kit',
@@ -725,7 +725,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 '₹499',
                 '₹899',
                 'LIMITED QUANTITY',
-                const Color(0xFF06B6D4),
+                Color(0xFF06B6D4),
               ),
             ],
           ),
@@ -737,10 +737,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
   Widget _buildLimitedCard(String name, String desc, String price, String original, String badge, Color color) {
     return Container(
       width: 250,
-      margin: const EdgeInsets.only(right: 14),
-      padding: const EdgeInsets.all(14),
+      margin: EdgeInsets.only(right: 14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF151518),
+        color: Color(0xFF151518),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withOpacity(0.25)),
       ),
@@ -760,7 +760,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
                 child: Text(
                   badge,
@@ -784,10 +784,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                     price,
                     style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Text(
                     original,
-                    style: const TextStyle(color: Colors.white24, decoration: TextDecoration.lineThrough, fontSize: 10),
+                    style: TextStyle(color: Colors.white24, decoration: TextDecoration.lineThrough, fontSize: 10),
                   ),
                 ],
               ),
@@ -801,7 +801,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: EdgeInsets.all(6),
                   decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
                   child: Icon(Icons.arrow_forward_rounded, color: color, size: 14),
                 ),
@@ -831,8 +831,8 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
           children: [
             Row(
               children: [
-                const Icon(Icons.shopping_bag_rounded, color: Color(0xFFD946EF), size: 18),
-                const SizedBox(width: 6),
+                Icon(Icons.shopping_bag_rounded, color: Color(0xFFD946EF), size: 18),
+                SizedBox(width: 6),
                 Text(
                   'POPULAR COSMETICS',
                   style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.2),
@@ -841,11 +841,11 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
             ),
             Text(
               'View All',
-              style: GoogleFonts.poppins(color: const Color(0xFFD946EF), fontSize: 11, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(color: Color(0xFFD946EF), fontSize: 11, fontWeight: FontWeight.bold),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -859,9 +859,9 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
           itemBuilder: (context, index) {
             final item = list[index];
             return Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF111115),
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withOpacity(0.04)),
               ),
@@ -873,13 +873,13 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(color: const Color(0xFF1E1B4B), borderRadius: BorderRadius.circular(10)),
-                        child: Text(item['icon'] as String, style: const TextStyle(fontSize: 14)),
+                        padding: EdgeInsets.all(6),
+                        decoration: BoxDecoration(color: Color(0xFF1E1B4B), borderRadius: BorderRadius.circular(10)),
+                        child: Text(item['icon'] as String, style: TextStyle(fontSize: 14)),
                       ),
                       Text(
                         '🪙 ${item['price']}',
-                        style: GoogleFonts.poppins(color: const Color(0xFFFFD700), fontSize: 12, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -904,11 +904,11 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                         Get.snackbar(
                           'Insufficient Balance 🪙',
                           'You need more coins to buy this item.',
-                          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+                          backgroundColor: Color(0xFFEF4444).withOpacity(0.9),
                           colorText: Colors.white,
                           snackPosition: SnackPosition.BOTTOM,
                           mainButton: TextButton(
-                            child: const Text('Top Up', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            child: Text('Top Up', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             onPressed: () {
                               Get.back();
                               Get.to(() => const CoinStoreScreen());
@@ -919,16 +919,16 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
                     },
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      padding: EdgeInsets.symmetric(vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                        color: Color(0xFF8B5CF6).withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.2)),
+                        border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.2)),
                       ),
                       child: Center(
                         child: Text(
                           'Unlock',
-                          style: GoogleFonts.poppins(color: const Color(0xFFA78BFA), fontSize: 10, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.poppins(color: Color(0xFFA78BFA), fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),

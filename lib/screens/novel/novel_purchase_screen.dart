@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/novel_controller.dart';
 import '../../widgets/novel_badge_widget.dart';
 import '../../widgets/novel_avatar_decorator.dart';

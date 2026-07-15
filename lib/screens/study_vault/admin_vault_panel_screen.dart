@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/study_vault_controller.dart';
 import '../../services/vip_controller.dart';
 import '../../services/novel_controller.dart';
@@ -56,10 +56,10 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
     _rejectCommentController.clear();
     Get.dialog(
       Dialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,28 +68,28 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                 'REJECT STUDY RESOURCE',
                 style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.1),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: _rejectCommentController,
                 maxLines: 3,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: Colors.white, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Enter reason for rejection (e.g. low resolution scan, copyright logo found)...',
-                  hintStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                  hintStyle: TextStyle(color: context.caption, fontSize: 12),
                   fillColor: Colors.black.withOpacity(0.2),
                   filled: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Get.back(),
-                    child: Text('Cancel', style: GoogleFonts.poppins(color: AppTheme.textTertiary)),
+                    child: Text('Cancel', style: GoogleFonts.poppins(color: context.caption)),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
                       final comment = _rejectCommentController.text.trim();
@@ -100,7 +100,7 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                       _controller.adminRejectBook(bookId, comment);
                       Get.back();
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
+                    style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
                     child: Text('Reject', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
                   ),
                 ],
@@ -136,15 +136,15 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Admin Panel (Study Vault)',
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
         bottom: TabBar(
@@ -155,10 +155,10 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
             Tab(icon: Icon(Icons.payments_outlined), text: 'Payouts'),
             Tab(icon: Icon(Icons.settings_outlined), text: 'Settings'),
           ],
-          indicatorColor: AppTheme.primaryColor,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: AppTheme.textTertiary,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+          indicatorColor: context.primaryColor,
+          labelColor: context.primaryColor,
+          unselectedLabelColor: context.caption,
+          labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
         ),
       ),
       body: Obx(() {
@@ -187,24 +187,24 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
 
   Widget _buildApprovalsTab(List<StudyVaultItem> list) {
     if (list.isEmpty) {
-      return const Center(
-        child: Text('No resources pending approval.', style: TextStyle(color: AppTheme.textTertiary)),
+      return Center(
+        child: Text('No resources pending approval.', style: TextStyle(color: context.caption)),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       itemCount: list.length,
       itemBuilder: (context, i) {
         final book = list[i];
         final priceBreakdown = _controller.calculatePriceBreakdown(book.sellingPrice);
 
         return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          color: AppTheme.cardBg,
+          margin: EdgeInsets.only(bottom: 16),
+          color: context.surfaceColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -215,27 +215,27 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(book.coverImage, width: 50, height: 75, fit: BoxFit.cover),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withOpacity(0.12),
+                              color: context.primaryColor.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text(book.fileType.toUpperCase(), style: const TextStyle(color: AppTheme.primaryColor, fontSize: 8, fontWeight: FontWeight.bold)),
+                            child: Text(book.fileType.toUpperCase(), style: TextStyle(color: context.primaryColor, fontSize: 8, fontWeight: FontWeight.bold)),
                           ),
-                          const SizedBox(height: 6),
-                          Text(book.title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                          Text('By ${book.authorName}  |  Seller: ${book.sellerName}', style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
+                          Text(book.title, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                          Text('By ${book.authorName}  |  Seller: ${book.sellerName}', style: TextStyle(color: context.caption, fontSize: 11)),
+                          SizedBox(height: 6),
                           Text(
                             book.sellingPrice == 0.0 ? 'FREE' : 'Price: ₹${priceBreakdown['buyerPays']!.toStringAsFixed(0)} (Seller gets: ₹${priceBreakdown['sellerReceives']!.toStringAsFixed(0)})',
                             style: TextStyle(
-                              color: book.sellingPrice == 0.0 ? AppTheme.accentColor : const Color(0xFFFFD700),
+                              color: book.sellingPrice == 0.0 ? context.accentOrange : Color(0xFFFFD700),
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
@@ -245,29 +245,29 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                     )
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   book.description,
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                  style: TextStyle(color: context.textSecondary, fontSize: 12),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const Divider(color: Colors.white10, height: 24),
+                Divider(color: Colors.white10, height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton.icon(
                       onPressed: () => _showRejectDialog(book.id),
-                      icon: const Icon(Icons.close, size: 14, color: AppTheme.errorColor),
-                      label: const Text('Reject', style: TextStyle(color: AppTheme.errorColor, fontSize: 12)),
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: AppTheme.errorColor)),
+                      icon: Icon(Icons.close, size: 14, color: context.errorColor),
+                      label: Text('Reject', style: TextStyle(color: context.errorColor, fontSize: 12)),
+                      style: OutlinedButton.styleFrom(side: BorderSide(color: context.errorColor)),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     ElevatedButton.icon(
                       onPressed: () => _controller.adminApproveBook(book.id),
-                      icon: const Icon(Icons.check, size: 14),
-                      label: const Text('Approve', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
+                      icon: Icon(Icons.check, size: 14),
+                      label: Text('Approve', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(backgroundColor: context.accentOrange),
                     ),
                   ],
                 )
@@ -281,7 +281,7 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
 
   Widget _buildOfficialTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,13 +290,13 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
             'UPLOAD OFFICIAL CREANIA STUDY RESOURCE',
             style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.1),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           _buildTextField(_titleController, 'Book Title', 'e.g. UPSC Prelims Civil Services Manual'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _buildTextField(_subController, 'Subtitle', 'e.g. Complete Syllabus, visual diagrams, and 5-year past solve keys'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _buildTextField(_descController, 'Description', 'Formal academic manual for members.', maxLines: 3),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -307,7 +307,7 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                   (val) => setState(() => _selectedVipLevel = val!),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: _buildDropdownFieldString(
                   'Category Collection',
@@ -318,39 +318,39 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               Expanded(child: _buildTextField(_pagesController, 'Total Pages', 'e.g. 350', keyboardType: TextInputType.number)),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Cover Image Option', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                    const SizedBox(height: 6),
+                    Text('Cover Image Option', style: TextStyle(color: context.caption, fontSize: 11)),
+                    SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 11),
                       decoration: BoxDecoration(
-                        color: AppTheme.cardBg,
+                        color: context.surfaceColor,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.borderColor),
+                        border: Border.all(color: context.borderColor),
                       ),
-                      child: const Text('Official Cover Locked', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                      child: Text('Official Cover Locked', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
                     )
                   ],
                 ),
               )
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
               onPressed: _uploadOfficial,
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
-              child: const Text('Upload Official Resource', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              style: ElevatedButton.styleFrom(backgroundColor: context.primaryColor),
+              child: Text('Upload Official Resource', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             ),
           ),
         ],
@@ -360,18 +360,18 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
 
   Widget _buildPayoutsTab(List<VaultTransaction> pendingWithdrawals) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       children: [
         Text(
           'PENDING WITHDRAWALS (${pendingWithdrawals.length})',
           style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.1),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         pendingWithdrawals.isEmpty
             ? Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(12)),
-                child: const Center(child: Text('No payouts pending approval.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 12))),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(12)),
+                child: Center(child: Text('No payouts pending approval.', style: TextStyle(color: context.caption, fontSize: 12))),
               )
             : ListView.builder(
                 shrinkWrap: true,
@@ -380,12 +380,12 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                 itemBuilder: (context, i) {
                   final tx = pendingWithdrawals[i];
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(14),
+                    margin: EdgeInsets.only(bottom: 10),
+                    padding: EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardBg,
+                      color: context.surfaceColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+                      border: Border.all(color: context.borderColor.withOpacity(0.5)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -393,32 +393,32 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(tx.bookTitle, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text('Awaiting UPI Settlement  |  ₹${tx.amount.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
+                            Text(tx.bookTitle, style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 4),
+                            Text('Awaiting UPI Settlement  |  ₹${tx.amount.toStringAsFixed(2)}', style: TextStyle(color: context.caption, fontSize: 11)),
                           ],
                         ),
                         ElevatedButton(
                           onPressed: () => _controller.adminApproveWithdrawal(tx.id),
-                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor, padding: const EdgeInsets.symmetric(horizontal: 14)),
-                          child: const Text('Approve Settlement', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(backgroundColor: context.accentOrange, padding: EdgeInsets.symmetric(horizontal: 14)),
+                          child: Text('Approve Settlement', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                         )
                       ],
                     ),
                   );
                 },
               ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         Text(
           'COPYRIGHT & PIRACY COMPLAINTS (${_controller.piracyReports.length})',
           style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.1),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         _controller.piracyReports.isEmpty
             ? Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(12)),
-                child: const Center(child: Text('No piracy complaints logged.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 12))),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(12)),
+                child: Center(child: Text('No piracy complaints logged.', style: TextStyle(color: context.caption, fontSize: 12))),
               )
             : ListView.builder(
                 shrinkWrap: true,
@@ -427,12 +427,12 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                 itemBuilder: (context, i) {
                   final rep = _controller.piracyReports[i];
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(14),
+                    margin: EdgeInsets.only(bottom: 10),
+                    padding: EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardBg,
+                      color: context.surfaceColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.errorColor.withOpacity(0.3), width: 1.2),
+                      border: Border.all(color: context.errorColor.withOpacity(0.3), width: 1.2),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,18 +440,18 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(rep['bookTitle'], style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text(rep['bookTitle'], style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: AppTheme.errorColor.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
-                              child: const Text('REPORTED', style: TextStyle(color: AppTheme.errorColor, fontSize: 8, fontWeight: FontWeight.bold)),
+                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: context.errorColor.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
+                              child: Text('REPORTED', style: TextStyle(color: context.errorColor, fontSize: 8, fontWeight: FontWeight.bold)),
                             )
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Text('Reporter: ${rep['reporter']}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-                        Text('Reason: ${rep['reason']}', style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                        const Divider(color: Colors.white10, height: 20),
+                        SizedBox(height: 6),
+                        Text('Reporter: ${rep['reporter']}', style: TextStyle(color: context.textSecondary, fontSize: 11)),
+                        Text('Reason: ${rep['reason']}', style: TextStyle(color: context.caption, fontSize: 11)),
+                        Divider(color: Colors.white10, height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -460,9 +460,9 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                                 _controller.piracyReports.removeAt(i);
                                 Get.snackbar('Dismissed ✅', 'Piracy complaint dismissed.');
                               },
-                              child: const Text('Dismiss', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
+                              child: Text('Dismiss', style: TextStyle(color: context.caption, fontSize: 11)),
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             ElevatedButton(
                               onPressed: () {
                                 final itemsList = _controller.items;
@@ -473,8 +473,8 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                                   Get.snackbar('Resource Suspended ❌', 'Pirated document removed from Creania servers.');
                                 }
                               },
-                              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor, padding: const EdgeInsets.symmetric(horizontal: 14)),
-                              child: const Text('Delete Resource', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(backgroundColor: context.errorColor, padding: EdgeInsets.symmetric(horizontal: 14)),
+                              child: Text('Delete Resource', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                             )
                           ],
                         )
@@ -493,28 +493,28 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
     final storeCtrl = Get.find<StoreController>();
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       children: [
         Text(
           'DEVELOPER & TESTING ACTIONS 🧪',
-          style: GoogleFonts.outfit(color: const Color(0xFFFFB800), fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.1),
+          style: GoogleFonts.outfit(color: Color(0xFFFFB800), fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.1),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E1E24),
+            color: Color(0xFF1E1E24),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFFFB800).withOpacity(0.2)),
+            border: Border.all(color: Color(0xFFFFB800).withOpacity(0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Simulate Account & Wallet states instantly to verify features.',
-                style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 11),
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -577,22 +577,22 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         Text(
           'GLOBAL DEVICE SETTINGS',
           style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.1),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(16)),
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(16)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Device Download Limit', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              const Text('Maximum authorization count to cache PDFs locally on separate devices.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-              const SizedBox(height: 12),
+              Text('Device Download Limit', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4),
+              Text('Maximum authorization count to cache PDFs locally on separate devices.', style: TextStyle(color: context.caption, fontSize: 11)),
+              SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -601,7 +601,7 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                       min: 1,
                       max: 10,
                       divisions: 9,
-                      activeColor: AppTheme.primaryColor,
+                      activeColor: context.primaryColor,
                       onChanged: (val) {
                         setState(() {
                           _controller.downloadLimitPerDevice.value = val.toInt();
@@ -610,34 +610,34 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(color: AppTheme.bgLight, borderRadius: BorderRadius.circular(8)),
-                    child: Text('${_controller.downloadLimitPerDevice.value} devices', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(color: context.secondaryBackgroundColor, borderRadius: BorderRadius.circular(8)),
+                    child: Text('${_controller.downloadLimitPerDevice.value} devices', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   )
                 ],
               )
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         Text(
           'MEMBERSHIP DISCOUNTS (USER UPLOADS)',
           style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.1),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(16)),
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(16)),
           child: Column(
             children: [
               _discountRow('VIP 1 Member Discount', '5%'),
-              const Divider(color: Colors.white10),
+              Divider(color: Colors.white10),
               _discountRow('VIP 2 Member Discount', '10%'),
-              const Divider(color: Colors.white10),
+              Divider(color: Colors.white10),
               _discountRow('VIP 3 Member Discount', '15%'),
-              const Divider(color: Colors.white10),
+              Divider(color: Colors.white10),
               _discountRow('VIP 4 Member Discount', '20%'),
-              const Divider(color: Colors.white10),
+              Divider(color: Colors.white10),
               _discountRow('VIP 5 Member Discount', '25%'),
             ],
           ),
@@ -648,12 +648,12 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
 
   Widget _discountRow(String tier, String discount) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(tier, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-          Text(discount, style: const TextStyle(color: AppTheme.accentColor, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(tier, style: TextStyle(color: context.textSecondary, fontSize: 12)),
+          Text(discount, style: TextStyle(color: context.accentOrange, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -669,17 +669,17 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
+        SizedBox(height: 6),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
+          style: TextStyle(color: Colors.white, fontSize: 13),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            hintStyle: TextStyle(color: context.caption, fontSize: 12),
+            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
         ),
       ],
@@ -690,21 +690,21 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
+        SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.borderColor),
+            border: Border.all(color: context.borderColor),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<int>(
               value: value,
-              dropdownColor: AppTheme.bgLight,
+              dropdownColor: context.secondaryBackgroundColor,
               isExpanded: true,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(color: Colors.white, fontSize: 13),
               items: items.map((t) {
                 return DropdownMenuItem<int>(
                   value: t,
@@ -723,21 +723,21 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
+        SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.borderColor),
+            border: Border.all(color: context.borderColor),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
-              dropdownColor: AppTheme.bgLight,
+              dropdownColor: context.secondaryBackgroundColor,
               isExpanded: true,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(color: Colors.white, fontSize: 13),
               items: items.map((t) {
                 return DropdownMenuItem<String>(
                   value: t,

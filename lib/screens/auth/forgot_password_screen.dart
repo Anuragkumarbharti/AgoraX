@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import 'otp_verification_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -36,7 +36,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         'Required',
         'Please enter your ${_isPhone ? 'phone number' : 'email address'}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor,
+        backgroundColor: context.errorColor,
         colorText: Colors.white,
       );
       return;
@@ -60,7 +60,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ? 'No account found with this phone number.'
               : 'No account found with this email.',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: AppTheme.errorColor,
+          backgroundColor: context.errorColor,
           colorText: Colors.white,
         );
         return;
@@ -71,7 +71,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       Get.snackbar(
         'OTP Sent ✉️',
         'Use code 0 to verify (Sandbox mode)',
-        backgroundColor: AppTheme.accentColor.withOpacity(0.9),
+        backgroundColor: context.accentOrange.withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -85,7 +85,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         'Error ⚠️',
         e.toString(),
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor,
+        backgroundColor: context.errorColor,
         colorText: Colors.white,
       );
     }
@@ -94,10 +94,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Get.back(),
         ),
       ),
@@ -105,7 +105,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -118,22 +118,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'Select method and enter credentials to recover password.',
                   style: GoogleFonts.poppins(
-                    color: AppTheme.textSecondary,
+                    color: context.textSecondary,
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 36),
+                SizedBox(height: 36),
 
                 // Selector Tabs
                 Row(
                   children: [
                     Expanded(
                       child: ChoiceChip(
-                        label: const Text('Email Address'),
+                        label: Text('Email Address'),
                         selected: !_isPhone,
                         onSelected: (val) {
                           setState(() {
@@ -141,17 +141,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             _inputController.clear();
                           });
                         },
-                        selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                        selectedColor: context.primaryColor.withOpacity(0.2),
                         labelStyle: TextStyle(
-                          color: !_isPhone ? Colors.white : AppTheme.textTertiary,
+                          color: !_isPhone ? Colors.white : context.caption,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: ChoiceChip(
-                        label: const Text('Phone Number'),
+                        label: Text('Phone Number'),
                         selected: _isPhone,
                         onSelected: (val) {
                           setState(() {
@@ -159,16 +159,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             _inputController.clear();
                           });
                         },
-                        selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                        selectedColor: context.primaryColor.withOpacity(0.2),
                         labelStyle: TextStyle(
-                          color: _isPhone ? Colors.white : AppTheme.textTertiary,
+                          color: _isPhone ? Colors.white : context.caption,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 36),
+                SizedBox(height: 36),
 
                 // Illustration
                 Center(
@@ -176,17 +176,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     width: 110,
                     height: 110,
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      color: context.primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Icon(
                       _isPhone ? Icons.phone_iphone_rounded : Icons.mail_outline_rounded,
                       size: 52,
-                      color: AppTheme.primaryColor,
+                      color: context.primaryColor,
                     ),
                   ),
                 ),
-                const SizedBox(height: 48),
+                SizedBox(height: 48),
 
                 // Input Field
                 Text(
@@ -194,24 +194,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
+                    color: context.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextField(
                   controller: _inputController,
                   keyboardType: _isPhone ? TextInputType.phone : TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: TextStyle(color: context.textPrimary, fontSize: 14),
                   decoration: InputDecoration(
                     hintText: _isPhone ? '+91 98765 43210' : 'name@example.com',
                     prefixIcon: Icon(
                       _isPhone ? Icons.phone_android_rounded : Icons.alternate_email_rounded,
-                      color: AppTheme.textTertiary,
+                      color: context.caption,
                       size: 20,
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: 40),
 
                 // Send OTP Button
                 SizedBox(
@@ -225,7 +225,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 22,
                             width: 22,
                             child: CircularProgressIndicator(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/career_progression_controller.dart';
 
 class ProgressionRewardsScreen extends StatefulWidget {
@@ -48,12 +48,12 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
         title: Text(
@@ -63,7 +63,7 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFF8B5CF6),
+          indicatorColor: Color(0xFF8B5CF6),
           indicatorWeight: 3,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
           unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13),
@@ -88,7 +88,7 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
       final currentLevel = isCareer ? _progCtrl.careerLevel.value : _progCtrl.idLevel.value;
 
       return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         physics: const BouncingScrollPhysics(),
         itemCount: milestones.length,
         itemBuilder: (context, index) {
@@ -103,23 +103,23 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
 
           Color statusColor;
           if (isClaimed) {
-            statusColor = const Color(0xFF10B981);
+            statusColor = Color(0xFF10B981);
           } else if (isUnlocked) {
-            statusColor = const Color(0xFFF59E0B);
+            statusColor = Color(0xFFF59E0B);
           } else {
             statusColor = Colors.white24;
           }
 
           return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
+            margin: EdgeInsets.only(bottom: 12),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isUnlocked ? Colors.white.withOpacity(0.04) : Colors.white.withOpacity(0.01),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isUnlocked
                     ? statusColor.withOpacity(0.3)
-                    : AppTheme.borderColor.withOpacity(0.2),
+                    : context.borderColor.withOpacity(0.2),
                 width: isUnlocked ? 1.5 : 1,
               ),
               boxShadow: isUnlocked && !isClaimed
@@ -159,7 +159,7 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 // Texts Details
                 Expanded(
                   child: Column(
@@ -168,7 +168,7 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: isUnlocked ? statusColor.withOpacity(0.15) : Colors.white10,
                               borderRadius: BorderRadius.circular(6),
@@ -184,7 +184,7 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         name,
                         style: GoogleFonts.poppins(
@@ -193,7 +193,7 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         desc,
                         style: GoogleFonts.poppins(
@@ -204,13 +204,13 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 // Action Buttons
                 if (isClaimed)
                   Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF10B981)),
-                    child: const Icon(Icons.check, size: 14, color: Colors.black),
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: Color(0xFF10B981)),
+                    child: Icon(Icons.check, size: 14, color: Colors.black),
                   )
                 else if (isUnlocked)
                   ElevatedButton(
@@ -218,7 +218,7 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
                       _progCtrl.claimMilestone(milestoneLevel, isCareer);
                       Get.dialog(
                         AlertDialog(
-                          backgroundColor: AppTheme.bgLight,
+                          backgroundColor: context.secondaryBackgroundColor,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           title: Center(
                             child: Text('🎉 Reward Claimed!', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
@@ -226,28 +226,28 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text('🏆', style: TextStyle(fontSize: 48)),
-                              const SizedBox(height: 12),
+                              Text('🏆', style: TextStyle(fontSize: 48)),
+                              SizedBox(height: 12),
                               Text(
                                 'You successfully claimed the $name!\nIt is now active on your profile.',
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.textSecondary),
+                                style: GoogleFonts.poppins(fontSize: 12, color: context.textSecondary),
                               ),
                             ],
                           ),
                           actions: [
                             TextButton(
                               onPressed: () => Get.back(),
-                              child: Text('Confirm', style: GoogleFonts.poppins(color: const Color(0xFF8B5CF6))),
+                              child: Text('Confirm', style: GoogleFonts.poppins(color: Color(0xFF8B5CF6))),
                             )
                           ],
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF59E0B),
+                      backgroundColor: Color(0xFFF59E0B),
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       elevation: 4,
                     ),
@@ -257,7 +257,7 @@ class _ProgressionRewardsScreenState extends State<ProgressionRewardsScreen> wit
                     ),
                   )
                 else
-                  const Icon(Icons.lock_outline_rounded, color: Colors.white24, size: 20),
+                  Icon(Icons.lock_outline_rounded, color: Colors.white24, size: 20),
               ],
             ),
           );

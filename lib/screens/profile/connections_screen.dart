@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/user_model.dart';
 import 'user_profile_screen.dart';
 import '../../widgets/custom_avatar_frame.dart';
@@ -82,7 +82,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       context: context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: AppTheme.bgLight,
+          backgroundColor: context.secondaryBackgroundColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Unfollow ${user.displayName}?',
@@ -90,16 +90,16 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
           ),
           content: Text(
             'Are you sure you want to stop following this user?',
-            style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 13),
+            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: GoogleFonts.poppins(color: AppTheme.textTertiary)),
+              child: Text('Cancel', style: GoogleFonts.poppins(color: context.caption)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.errorColor,
+                backgroundColor: context.errorColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () {
@@ -109,7 +109,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                   'Unfollowed 💔',
                   'You unfollowed ${user.displayName}',
                   snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: AppTheme.bgDark.withOpacity(0.9),
+                  backgroundColor: context.scaffoldBackgroundColor.withOpacity(0.9),
                   colorText: Colors.white,
                 );
               },
@@ -126,7 +126,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       context: context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: AppTheme.bgLight,
+          backgroundColor: context.secondaryBackgroundColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Remove Follower?',
@@ -134,16 +134,16 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
           ),
           content: Text(
             'Creania will not tell ${user.displayName} they were removed from your followers.',
-            style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 13),
+            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: GoogleFonts.poppins(color: AppTheme.textTertiary)),
+              child: Text('Cancel', style: GoogleFonts.poppins(color: context.caption)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.errorColor,
+                backgroundColor: context.errorColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () {
@@ -153,7 +153,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                   'Follower Removed 👤',
                   'Removed ${user.displayName} from followers.',
                   snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: AppTheme.bgDark.withOpacity(0.9),
+                  backgroundColor: context.scaffoldBackgroundColor.withOpacity(0.9),
                   colorText: Colors.white,
                 );
               },
@@ -168,7 +168,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -182,9 +182,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppTheme.primaryColor,
+          indicatorColor: context.primaryColor,
           labelColor: Colors.white,
-          unselectedLabelColor: AppTheme.textTertiary,
+          unselectedLabelColor: context.caption,
           labelStyle: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold),
           unselectedLabelStyle: GoogleFonts.poppins(fontSize: 14),
           tabs: [
@@ -197,7 +197,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
         children: [
           // Search Box
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: TextField(
               controller: _searchController,
               onChanged: (val) {
@@ -205,14 +205,14 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                   _searchQuery = val.trim().toLowerCase();
                 });
               },
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Search by name or SID...',
-                hintStyle: const TextStyle(color: AppTheme.textTertiary),
-                prefixIcon: const Icon(Icons.search, color: AppTheme.textTertiary, size: 20),
+                hintStyle: TextStyle(color: context.caption),
+                prefixIcon: Icon(Icons.search, color: context.caption, size: 20),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white54, size: 18),
+                        icon: Icon(Icons.clear, color: Colors.white54, size: 18),
                         onPressed: () {
                           _searchController.clear();
                           setState(() {
@@ -222,8 +222,8 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                       )
                     : null,
                 filled: true,
-                fillColor: AppTheme.bgLight.withOpacity(0.5),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                fillColor: context.secondaryBackgroundColor.withOpacity(0.5),
+                contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -259,19 +259,19 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       }
 
       return ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: filtered.length,
-        separatorBuilder: (c, idx) => const Divider(color: Colors.white10, height: 16),
+        separatorBuilder: (c, idx) => Divider(color: Colors.white10, height: 16),
         itemBuilder: (c, idx) {
           final u = filtered[idx];
           return _buildUserTile(
             user: u,
             actionButton: OutlinedButton(
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppTheme.borderColor),
+                side: BorderSide(color: context.borderColor),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 minimumSize: const Size(80, 32),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: EdgeInsets.symmetric(horizontal: 10),
               ),
               onPressed: () => _unfollowUser(u),
               child: Text(
@@ -297,9 +297,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       }
 
       return ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: filtered.length,
-        separatorBuilder: (c, idx) => const Divider(color: Colors.white10, height: 16),
+        separatorBuilder: (c, idx) => Divider(color: Colors.white10, height: 16),
         itemBuilder: (c, idx) {
           final u = filtered[idx];
           final isFollowingBack = _followingList.any((item) => item.id == u.id);
@@ -312,10 +312,10 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                 if (!isFollowingBack)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
+                      backgroundColor: context.primaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       minimumSize: const Size(80, 32),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      padding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                     onPressed: () {
                       _followingList.add(u);
@@ -330,9 +330,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                       style: GoogleFonts.poppins(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                   ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textTertiary),
+                  icon: Icon(Icons.more_vert_rounded, color: context.caption),
                   onPressed: () => _removeFollower(u),
                 ),
               ],
@@ -352,7 +352,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       onTap: () => Get.to(() => UserProfileScreen(user: user)),
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
         child: Row(
           children: [
             // Avatar
@@ -371,18 +371,18 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                           fit: BoxFit.cover,
                         )
                       : Container(
-                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          color: context.primaryColor.withOpacity(0.1),
                           child: Center(
                             child: Text(
                               user.displayName.isNotEmpty ? user.displayName[0] : 'U',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
 
             // User Info
             Expanded(
@@ -400,33 +400,33 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                         ),
                       ),
                       if (user.isVerified) ...[
-                        const SizedBox(width: 4),
-                        const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
+                        SizedBox(width: 4),
+                        Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Row(
                     children: [
                       Text(
                         'ID: ${user.sid}',
                         style: GoogleFonts.poppins(
-                          color: AppTheme.textTertiary,
+                          color: context.caption,
                           fontSize: 11,
                         ),
                       ),
                       if (isMutual) ...[
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.12),
+                            color: Color(0xFF10B981).withOpacity(0.12),
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3), width: 0.5),
+                            border: Border.all(color: Color(0xFF10B981).withOpacity(0.3), width: 0.5),
                           ),
                           child: Text(
                             'Mutual',
-                            style: GoogleFonts.poppins(color: const Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.poppins(color: Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -449,11 +449,11 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.group_off_rounded, color: AppTheme.textTertiary, size: 48),
-          const SizedBox(height: 12),
+          Icon(Icons.group_off_rounded, color: context.caption, size: 48),
+          SizedBox(height: 12),
           Text(
             message,
-            style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 14),
+            style: GoogleFonts.poppins(color: context.caption, fontSize: 14),
           ),
         ],
       ),

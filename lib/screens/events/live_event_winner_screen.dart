@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/event_model.dart';
 import '../../models/user_model.dart';
 import '../profile/user_profile_screen.dart';
@@ -137,29 +137,29 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
     final double userPrize = (userRank > 0 && userRank <= _allRankings.length) ? _allRankings[userRank - 1]['prize'].toDouble() : 0.0;
 
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text(
+        title: Text(
           '🏁 Event Completed',
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
           // ── Disqualification Banner ─────────────────────────────────────────
           if (widget.wasDisqualified) ...[
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.red.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.red.withOpacity(0.4)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(Icons.gavel_rounded, color: Colors.red, size: 24),
                   SizedBox(width: 12),
@@ -169,29 +169,29 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
                       children: [
                         Text('DISQUALIFIED', style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold)),
                         SizedBox(height: 2),
-                        Text('Due to AI secure mode screen violations, you are ineligible for rewards.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                        Text('Due to AI secure mode screen violations, you are ineligible for rewards.', style: TextStyle(color: context.textSecondary, fontSize: 11)),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
 
           // ── My Performance Metrics ──────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.cardBg,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+              border: Border.all(color: context.borderColor.withOpacity(0.4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('📊 Your Event Scorecard', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 14),
+                Text('📊 Your Event Scorecard', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                SizedBox(height: 14),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -204,16 +204,16 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // ── Wallet Held Prize Details ───────────────────────────────────────
           if (userPrize > 0 && !widget.wasDisqualified) ...[
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF16213E),
+                color: Color(0xFF16213E),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.4)),
+                border: Border.all(color: Color(0xFFFBBF24).withOpacity(0.4)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,41 +221,41 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('💰 Winning Prize held in Wallet', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                      Text('₹${userPrize.toInt()}', style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 18, fontWeight: FontWeight.w900)),
+                      Text('💰 Winning Prize held in Wallet', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                      Text('₹${userPrize.toInt()}', style: TextStyle(color: Color(0xFFFBBF24), fontSize: 18, fontWeight: FontWeight.w900)),
                     ],
                   ),
-                  const Divider(color: AppTheme.borderColor, height: 24),
+                  Divider(color: context.borderColor, height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Verification Status', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                      Text('Verification Status', style: TextStyle(color: context.textSecondary, fontSize: 11)),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: Colors.orange.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: Colors.orange.withOpacity(0.4)),
                         ),
-                        child: Text(_verificationStatus, style: const TextStyle(color: Colors.orange, fontSize: 9, fontWeight: FontWeight.bold)),
+                        child: Text(_verificationStatus, style: TextStyle(color: Colors.orange, fontSize: 9, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Prize Hold policy period', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-                      Text('$_daysRemaining days remaining', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Text('Prize Hold policy period', style: TextStyle(color: context.textSecondary, fontSize: 11)),
+                      Text('$_daysRemaining days remaining', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _isReleased ? AppTheme.primaryColor : Colors.grey.withOpacity(0.1),
+                            backgroundColor: _isReleased ? context.primaryColor : Colors.grey.withOpacity(0.1),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: _isReleased
@@ -269,22 +269,22 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
 
           // ── Anti-Cheat Audit Logs ───────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppTheme.cardBg,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+              border: Border.all(color: context.borderColor.withOpacity(0.4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('🛡️ AI Anti-Cheat Verification Check', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
+                Text('🛡️ AI Anti-Cheat Verification Check', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
                 _auditRow('VPN Usage Check', 'No VPN detected', true),
                 _auditRow('Device Emulator Detections', 'Physical Mobile Device Verified', true),
                 _auditRow('Screen Switching violations check', widget.wasDisqualified ? 'Failed (exceeded limit)' : 'Passed (0 tab switches)', !widget.wasDisqualified),
@@ -292,33 +292,33 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // ── Podium Leaderboard ──────────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.cardBg,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+              border: Border.all(color: context.borderColor.withOpacity(0.4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('🏆 Official Event Leaderboard', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
+                Text('🏆 Official Event Leaderboard', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                SizedBox(height: 16),
                 ..._allRankings.map((r) {
                   final isMe = r['name'].toString().contains('You');
                   final medal = r['rank'] == 1 ? '🥇' : r['rank'] == 2 ? '🥈' : r['rank'] == 3 ? '🥉' : '';
 
                   return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    padding: EdgeInsets.symmetric(vertical: 6.0),
                     child: InkWell(
                       onTap: () => _navigateToUserProfile(r['name'] as String),
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: isMe ? AppTheme.primaryColor.withOpacity(0.12) : Colors.transparent,
+                          color: isMe ? context.primaryColor.withOpacity(0.12) : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
@@ -327,22 +327,22 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
                               width: 24,
                               child: Text(
                                 medal.isNotEmpty ? medal : '${r['rank']}',
-                                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                             ),
                             CircleAvatar(radius: 14, backgroundImage: NetworkImage(r['avatar'] as String)),
-                            const SizedBox(width: 10),
+                            SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     r['name'] as String,
-                                    style: TextStyle(color: isMe ? AppTheme.primaryColor : Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: isMe ? context.primaryColor : Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                                   ),
                                   Text(
                                     r['community'] as String,
-                                    style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9),
+                                    style: TextStyle(color: context.caption, fontSize: 9),
                                   ),
                                 ],
                               ),
@@ -350,9 +350,9 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text('${r['score']} pts', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                Text('${r['score']} pts', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                                 if ((r['prize'] as int) > 0)
-                                  Text('₹${r['prize']}', style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 10, fontWeight: FontWeight.bold)),
+                                  Text('₹${r['prize']}', style: TextStyle(color: Color(0xFFFBBF24), fontSize: 10, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ],
@@ -364,21 +364,21 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // Exit Button
           SizedBox(
             height: 50,
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppTheme.borderColor),
+                side: BorderSide(color: context.borderColor),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () => Get.back(),
-              child: const Text('Back to Event detail', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+              child: Text('Back to Event detail', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
             ),
           ),
-          const SizedBox(height: 50),
+          SizedBox(height: 50),
         ],
       ),
     );
@@ -389,20 +389,20 @@ class _LiveEventWinnerScreenState extends State<LiveEventWinnerScreen> {
     return Column(
       children: [
         Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10)),
+        SizedBox(height: 4),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 10)),
       ],
     );
   }
 
   Widget _auditRow(String label, String value, bool isSuccess) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
           Icon(isSuccess ? Icons.check_circle_rounded : Icons.cancel_rounded, color: isSuccess ? Colors.green : Colors.red, size: 14),
-          const SizedBox(width: 8),
-          Expanded(child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11))),
+          SizedBox(width: 8),
+          Expanded(child: Text(label, style: TextStyle(color: context.textSecondary, fontSize: 11))),
           Text(value, style: TextStyle(color: isSuccess ? Colors.white70 : Colors.red, fontSize: 10)),
         ],
       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/event_model.dart';
 import '../../models/user_model.dart';
 import 'organizer_question_management_screen.dart';
@@ -44,34 +44,34 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     if (hasStarted || hasParticipants) {
       Get.dialog(
         AlertDialog(
-          backgroundColor: AppTheme.bgLight,
+          backgroundColor: context.secondaryBackgroundColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
               SizedBox(width: 10),
               Text(
                 'Constraint Blocked',
                 style: TextStyle(
-                  color: AppTheme.textPrimary,
+                  color: context.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          content: const Text(
+          content: Text(
             'This event cannot be deleted because participants have already joined. You may cancel or archive it instead.',
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            style: TextStyle(color: context.textSecondary, fontSize: 13),
           ),
           actions: [
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Cancel Event', style: TextStyle(color: AppTheme.errorColor)),
+              child: Text('Cancel Event', style: TextStyle(color: context.errorColor)),
             ),
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Close', style: TextStyle(color: AppTheme.textTertiary)),
+              child: Text('Close', style: TextStyle(color: context.caption)),
             ),
           ],
         ),
@@ -81,7 +81,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
         '🗑️ Event Deleted',
         'Successfully deleted event',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
       );
     }
@@ -119,7 +119,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
       final double adminEarnEach = adminCount > 0 ? (adminPoolEarnings / adminCount) : 0.0;
 
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
           // 1. Dashboard Metrics Grid
           Row(
@@ -129,21 +129,21 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   'Total Collection',
                   '₹${totalCollection.toInt()}',
                   Icons.payments_rounded,
-                  const Color(0xFF10B981),
+                  Color(0xFF10B981),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: _buildMetricCard(
                   'Net Revenue',
                   '₹${netRevenue.toInt()}',
                   Icons.monetization_on_rounded,
-                  const Color(0xFF6366F1),
+                  Color(0xFF6366F1),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -151,21 +151,21 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   'Platform Fee (17%)',
                   '₹${platformFee.toInt()}',
                   Icons.receipt_long_outlined,
-                  const Color(0xFFEF4444),
+                  Color(0xFFEF4444),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: _buildMetricCard(
                   'Prize Pool (58%)',
                   '₹${prizePool.toInt()}',
                   Icons.emoji_events_outlined,
-                  const Color(0xFFFBBF24),
+                  Color(0xFFFBBF24),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -173,29 +173,29 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   'Creator Reward (10%)',
                   '₹${creatorEarnings.toInt()}',
                   Icons.person_rounded,
-                  const Color(0xFFEC4899),
+                  Color(0xFFEC4899),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: _buildMetricCard(
                   'Co-Owner Earn (5%)',
                   '₹${coOwnerEarnings.toInt()}',
                   Icons.handshake_rounded,
-                  const Color(0xFF8B5CF6),
+                  Color(0xFF8B5CF6),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // 2. Admin Reward Splits Dashboard Section
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.cardBg,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+              border: Border.all(color: context.borderColor.withOpacity(0.4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,44 +203,44 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       '🛡️ Admin Reward Pool splits',
                       style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.15),
+                        color: context.primaryColor.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Total Pool: 10%',
-                        style: TextStyle(color: AppTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: context.primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Active Admins: $adminCount / 5', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                    Text('Active Admins: $adminCount / 5', style: TextStyle(color: context.textSecondary, fontSize: 12)),
                     Text(
                       adminCount > 0 ? 'Each Admin: $adminPctEach%' : 'Each Admin: 0%',
-                      style: const TextStyle(color: AppTheme.accentColor, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: context.accentOrange, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
                 if (adminCount > 0) ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     'Payout per Admin: ₹${adminEarnEach.toInt()} (from ₹${adminPoolEarnings.toInt()} pool)',
-                    style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                    style: TextStyle(color: context.caption, fontSize: 11),
                   ),
                 ],
-                const SizedBox(height: 14),
-                const Divider(color: AppTheme.borderColor),
-                const SizedBox(height: 10),
+                SizedBox(height: 14),
+                Divider(color: context.borderColor),
+                SizedBox(height: 10),
                 
                 // Live Mock Control Buttons
                 Row(
@@ -248,13 +248,13 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.primaryColor,
-                          side: const BorderSide(color: AppTheme.primaryColor),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          foregroundColor: context.primaryColor,
+                          side: BorderSide(color: context.primaryColor),
+                          padding: EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        icon: const Icon(Icons.add, size: 14),
-                        label: const Text('Add Mock Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        icon: Icon(Icons.add, size: 14),
+                        label: Text('Add Mock Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: adminCount < 5
                             ? () {
                                 final nextId = 'admin_${adminCount + 1}';
@@ -263,17 +263,17 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                             : null,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.redAccent,
-                          side: const BorderSide(color: Colors.redAccent),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          side: BorderSide(color: Colors.redAccent),
+                          padding: EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        icon: const Icon(Icons.remove, size: 14),
-                        label: const Text('Remove Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        icon: Icon(Icons.remove, size: 14),
+                        label: Text('Remove Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: adminCount > 0
                             ? () {
                                 final lastId = liveEvent.adminIds.last;
@@ -287,49 +287,49 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // 3. Winnings Payout States
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppTheme.cardBg,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+              border: Border.all(color: context.borderColor.withOpacity(0.4)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildPayoutCol('Pending Prize Payout', '₹${prizePool.toInt()}', Colors.amber),
-                Container(width: 1, height: 32, color: AppTheme.borderColor),
+                Container(width: 1, height: 32, color: context.borderColor),
                 _buildPayoutCol('Paid Prize Money', '₹0', Colors.white30),
-                Container(width: 1, height: 32, color: AppTheme.borderColor),
+                Container(width: 1, height: 32, color: context.borderColor),
                 _buildPayoutCol('Refunded Payouts', '₹0', Colors.white30),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // 4. AI Anti-Cheat proctoring reports
-          const Text(
+          Text(
             '🚨 AI Anti-Cheat proctoring reports',
             style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: context.textPrimary,
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           ..._cheatReports.map((c) => _buildCheatReportRow(c)),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           
           // 5. Members: Registration Summary
           _buildRegistrationSummary(liveEvent),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // 6. Member Moderation Panel
           _buildMemberModerationPanel(liveEvent),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Live Tournament Controls
           _buildMultiRoundDashboard(liveEvent),
@@ -337,78 +337,78 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
           // Secure Question Bank Card (restricted to Owner and Co-Owner)
           if (isOwner || isCoOwner) ...[
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppTheme.primaryColor.withOpacity(0.12), AppTheme.accentColor.withOpacity(0.12)],
+                  colors: [context.primaryColor.withOpacity(0.12), context.accentOrange.withOpacity(0.12)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                border: Border.all(color: context.primaryColor.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.2),
+                      color: context.primaryColor.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.enhanced_encryption_rounded, color: AppTheme.primaryColor, size: 22),
+                    child: Icon(Icons.enhanced_encryption_rounded, color: context.primaryColor, size: 22),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Secure Question Bank 🔒',
                           style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2),
                         Text(
                           liveEvent.registrationDeadline.isBefore(DateTime.now())
                               ? 'LOCKED (registration ended)'
                               : 'Configure password & upload questions.',
-                          style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                          style: TextStyle(color: context.caption, fontSize: 10),
                         ),
                       ],
                     ),
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
+                      backgroundColor: context.primaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: () => Get.to(() => OrganizerQuestionManagementScreen(event: liveEvent)),
-                    child: const Text('Manage', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                    child: Text('Manage', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           
           // 7. Action buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _actionButton('Invite Member', Icons.person_add_alt_1_outlined, AppTheme.accentColor, _showInviteDialog),
+              _actionButton('Invite Member', Icons.person_add_alt_1_outlined, context.accentOrange, _showInviteDialog),
               _actionButton('Archive Event', Icons.archive_outlined, Colors.white60, () {
                 Get.snackbar(
                   '🗳️ Archived',
                   'Event archived successfully',
                   snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: AppTheme.bgLight,
-                  colorText: AppTheme.textPrimary,
+                  backgroundColor: context.secondaryBackgroundColor,
+                  colorText: context.textPrimary,
                 );
               }),
-              _actionButton('Delete Event', Icons.delete_outline_rounded, AppTheme.errorColor, _deleteEvent),
+              _actionButton('Delete Event', Icons.delete_outline_rounded, context.errorColor, _deleteEvent),
             ],
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: 40),
         ],
       );
     });
@@ -426,18 +426,18 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     final double adminPool = collection * 0.10;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('📋 Registration Summary',
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 14),
+          Text('📋 Registration Summary',
+              style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+          SizedBox(height: 14),
           Row(
             children: [
               Expanded(child: _regMetric('Total Registered', '$total', Colors.white)),
@@ -445,25 +445,25 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               Expanded(child: _regMetric('Max Allowed', '${e.maxParticipants}', Colors.white)),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Row(
             children: [
               Expanded(child: _regMetric('Confirmed', '$confirmed', Colors.green)),
               Expanded(child: _regMetric('Pending', '$pending', Colors.orange)),
-              Expanded(child: _regMetric('Seats Left', '$remaining', const Color(0xFF6366F1))),
+              Expanded(child: _regMetric('Seats Left', '$remaining', Color(0xFF6366F1))),
             ],
           ),
-          const Divider(color: AppTheme.borderColor, height: 20),
-          const Text('💰 Earnings Breakdown',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          Divider(color: context.borderColor, height: 20),
+          Text('💰 Earnings Breakdown',
+              style: TextStyle(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
           Row(
             children: [
               Expanded(child: _regMetric('Platform (17%)', '₹${platform.toInt()}', Colors.red)),
               Expanded(child: _regMetric('Creator (10%)', '₹${creator.toInt()}', Colors.pink)),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Row(
             children: [
               Expanded(child: _regMetric('Co-Owner (5%)', '₹${coOwner.toInt()}', Colors.purple)),
@@ -479,8 +479,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     return Column(
       children: [
         Text(value, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9), textAlign: TextAlign.center),
+        SizedBox(height: 2),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 9), textAlign: TextAlign.center),
       ],
     );
   }
@@ -500,37 +500,37 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     }).toList();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('👤 Members Moderation',
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
+          Text('👤 Members Moderation',
+              style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+          SizedBox(height: 10),
           // Search bar
           TextField(
             onChanged: (v) => setState(() => _memberSearch = v),
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+            style: TextStyle(color: context.textPrimary, fontSize: 13),
             decoration: InputDecoration(
               hintText: 'Search by name or user ID…',
-              hintStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
-              prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textTertiary, size: 18),
+              hintStyle: TextStyle(color: context.caption, fontSize: 12),
+              prefixIcon: Icon(Icons.search_rounded, color: context.caption, size: 18),
               filled: true,
-              fillColor: AppTheme.bgDark,
+              fillColor: context.scaffoldBackgroundColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               isDense: true,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           // Filter chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -538,23 +538,23 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               children: ['All', 'Online', 'Banned', 'Muted', 'Pending'].map((f) {
                 final isSel = _memberFilter == f;
                 return Padding(
-                  padding: const EdgeInsets.only(right: 6),
+                  padding: EdgeInsets.only(right: 6),
                   child: ChoiceChip(
-                    label: Text(f, style: TextStyle(color: isSel ? Colors.white : AppTheme.textSecondary, fontSize: 10)),
+                    label: Text(f, style: TextStyle(color: isSel ? Colors.white : context.textSecondary, fontSize: 10)),
                     selected: isSel,
-                    selectedColor: AppTheme.primaryColor,
-                    backgroundColor: AppTheme.bgDark,
+                    selectedColor: context.primaryColor,
+                    backgroundColor: context.scaffoldBackgroundColor,
                     onSelected: (v) { if (v) setState(() => _memberFilter = f); },
                   ),
                 );
               }).toList(),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (filtered.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(20),
-              child: Center(child: Text('No members found.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 12))),
+              child: Center(child: Text('No members found.', style: TextStyle(color: context.caption, fontSize: 12))),
             )
           else
             ...filtered.map((p) => _buildMemberRow(e, p)),
@@ -570,15 +570,15 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     final isBanned = status == 'Banned';
     final isMuted = status == 'Muted';
 
-    Color borderColor = AppTheme.borderColor.withOpacity(0.3);
+    Color borderColor = context.borderColor.withOpacity(0.3);
     if (isBanned) borderColor = Colors.red.withOpacity(0.4);
     if (isMuted) borderColor = Colors.orange.withOpacity(0.4);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.bgDark,
+        color: context.scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: borderColor),
       ),
@@ -601,14 +601,14 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isOnline ? Colors.green : Colors.grey,
-                      border: Border.all(color: AppTheme.bgDark, width: 1.5),
+                      border: Border.all(color: context.scaffoldBackgroundColor, width: 1.5),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,18 +620,18 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                         onTap: () => _navigateToUserProfile(p['userId'] as String, p['name'] as String, p['avatar'] as String),
                         child: Text(
                           p['name'] as String,
-                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
-                    if (isBanned) const Text('🚫 Banned', style: TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
-                    if (isMuted) const Text('🔇 Muted', style: TextStyle(color: Colors.orange, fontSize: 9, fontWeight: FontWeight.bold)),
+                    if (isBanned) Text('🚫 Banned', style: TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
+                    if (isMuted) Text('🔇 Muted', style: TextStyle(color: Colors.orange, fontSize: 9, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 Text(
                   '${p['role']} • ${p['userId']}',
-                  style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9),
+                  style: TextStyle(color: context.caption, fontSize: 9),
                 ),
                 Text(
                   'Payment: $payStatus • Joined: ${p['joinTime']}',
@@ -658,8 +658,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               if (act == 'promote_coowner') _controller.promoteToCoOwner(eid, uid);
               if (act == 'demote') _controller.demoteAdmin(eid, uid);
             },
-            icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textTertiary, size: 18),
-            color: AppTheme.bgLight,
+            icon: Icon(Icons.more_vert_rounded, color: context.caption, size: 18),
+            color: context.secondaryBackgroundColor,
             itemBuilder: (ctx) {
               final currentUserId = EventController.currentUserId;
               final isOwner = e.creatorId == currentUserId;
@@ -720,8 +720,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9)),
-        const SizedBox(height: 4),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 9)),
+        SizedBox(height: 4),
         Text(value, style: TextStyle(color: valColor, fontSize: 12, fontWeight: FontWeight.w900)),
       ],
     );
@@ -736,16 +736,16 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
       StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            backgroundColor: AppTheme.bgLight,
+            backgroundColor: context.secondaryBackgroundColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.person_add_rounded, color: AppTheme.primaryColor, size: 24),
+                Icon(Icons.person_add_rounded, color: context.primaryColor, size: 24),
                 SizedBox(width: 10),
                 Text(
                   'Invite Member (Free)',
                   style: TextStyle(
-                    color: AppTheme.textPrimary,
+                    color: context.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -756,32 +756,32 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Invited managers or participants do not pay any coins or entry fees to join this event.',
-                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                  style: TextStyle(color: context.caption, fontSize: 11),
                 ),
-                const SizedBox(height: 14),
-                const Text('Nickname or User ID', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-                const SizedBox(height: 6),
+                SizedBox(height: 14),
+                Text('Nickname or User ID', style: TextStyle(color: context.textSecondary, fontSize: 11)),
+                SizedBox(height: 6),
                 TextField(
                   controller: inviteNameCtrl,
-                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+                  style: TextStyle(color: context.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: 'e.g. amit_99',
-                    hintStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                    hintStyle: TextStyle(color: context.caption, fontSize: 12),
                     filled: true,
-                    fillColor: AppTheme.bgDark,
+                    fillColor: context.scaffoldBackgroundColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
                 ),
-                const SizedBox(height: 14),
-                const Text('Assign Role', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-                const SizedBox(height: 6),
+                SizedBox(height: 14),
+                Text('Assign Role', style: TextStyle(color: context.textSecondary, fontSize: 11)),
+                SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: AppTheme.bgDark,
+                    color: context.scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -790,12 +790,12 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       items: roles
                           .map((e) => DropdownMenuItem(
                               value: e,
-                              child: Text(e, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13))))
+                              child: Text(e, style: TextStyle(color: context.textPrimary, fontSize: 13))))
                           .toList(),
                       onChanged: (val) {
                         setDialogState(() => selectedRole = val!);
                       },
-                      dropdownColor: AppTheme.bgDark,
+                      dropdownColor: context.scaffoldBackgroundColor,
                       isExpanded: true,
                     ),
                   ),
@@ -805,11 +805,11 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             actions: [
               TextButton(
                 onPressed: () => Get.back(),
-                child: const Text('Cancel', style: TextStyle(color: AppTheme.textTertiary)),
+                child: Text('Cancel', style: TextStyle(color: context.caption)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: context.primaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () {
@@ -832,12 +832,12 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       '🎉 Invite Sent!',
                       'Successfully invited $name as $selectedRole (Free admission)',
                       snackPosition: SnackPosition.BOTTOM,
-                      backgroundColor: AppTheme.accentColor.withOpacity(0.9),
+                      backgroundColor: context.accentOrange.withOpacity(0.9),
                       colorText: Colors.white,
                     );
                   }
                 },
-                child: const Text('Send Invite', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text('Send Invite', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ],
           );
@@ -848,7 +848,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
 
   Widget _buildMetricCard(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
@@ -871,10 +871,10 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
             label,
-            style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+            style: TextStyle(color: context.caption, fontSize: 10),
           ),
         ],
       ),
@@ -883,47 +883,47 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
 
   Widget _buildCheatReportRow(Map<String, dynamic> report) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.errorColor.withOpacity(0.2)),
+        border: Border.all(color: context.errorColor.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.gavel_rounded, color: AppTheme.errorColor, size: 18),
-          const SizedBox(width: 12),
+          Icon(Icons.gavel_rounded, color: context.errorColor, size: 18),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   report['username'] as String,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                  style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   '${report['reason']} • ${report['confidence']}',
-                  style: const TextStyle(
-                      color: AppTheme.textTertiary, fontSize: 11),
+                  style: TextStyle(
+                      color: context.caption, fontSize: 11),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.errorColor.withOpacity(0.12),
+              color: context.errorColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               report['action'] as String,
-              style: const TextStyle(
-                color: AppTheme.errorColor,
+              style: TextStyle(
+                color: context.errorColor,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
@@ -942,7 +942,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: color.withOpacity(0.3))),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       ),
       onPressed: onTap,
       icon: Icon(icon, color: color, size: 18),
@@ -987,19 +987,19 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
 
   Widget _buildMultiRoundDashboard(Event liveEvent) {
     if (!liveEvent.isMultiRound || liveEvent.rounds.isEmpty) {
-      return const SizedBox.shrink();
+      return SizedBox.shrink();
     }
 
     final rounds = liveEvent.rounds;
     final activeRound = rounds[_selectedAnalyticsRound];
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 20),
+      padding: EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1007,15 +1007,15 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 '🏁 Live Tournament Controls',
                 style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
               ),
               DropdownButton<int>(
                 value: _selectedAnalyticsRound,
-                dropdownColor: AppTheme.bgLight,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-                underline: const SizedBox.shrink(),
+                dropdownColor: context.secondaryBackgroundColor,
+                style: TextStyle(color: Colors.white, fontSize: 12),
+                underline: SizedBox.shrink(),
                 items: List.generate(rounds.length, (i) {
                   return DropdownMenuItem(value: i, child: Text('Round ${i + 1}: ${rounds[i].name}'));
                 }),
@@ -1027,7 +1027,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           // Round Statistics
           Row(
             children: [
@@ -1037,15 +1037,15 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               Expanded(child: _roundMetricCol('Avg Score', '74 pts', Colors.amber)),
             ],
           ),
-          const Divider(color: AppTheme.borderColor, height: 24),
+          Divider(color: context.borderColor, height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 '⏱️ Question Timer: ${_overrideQuestionTimer.toInt()}s',
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
               ),
-              const Icon(Icons.timer_outlined, color: AppTheme.primaryColor, size: 14),
+              Icon(Icons.timer_outlined, color: context.primaryColor, size: 14),
             ],
           ),
           Slider(
@@ -1053,7 +1053,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             min: 5.0,
             max: 60.0,
             divisions: 11,
-            activeColor: AppTheme.primaryColor,
+            activeColor: context.primaryColor,
             inactiveColor: Colors.white10,
             onChanged: (val) {
               setState(() {
@@ -1061,15 +1061,15 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               });
             },
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 '📅 Shift Next Round: ${_nextRoundTimeShift.toInt()} mins',
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
               ),
-              const Icon(Icons.schedule_rounded, color: AppTheme.accentColor, size: 14),
+              Icon(Icons.schedule_rounded, color: context.accentOrange, size: 14),
             ],
           ),
           Slider(
@@ -1077,7 +1077,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             min: -15.0,
             max: 45.0,
             divisions: 12,
-            activeColor: AppTheme.accentColor,
+            activeColor: context.accentOrange,
             inactiveColor: Colors.white10,
             onChanged: (val) {
               setState(() {
@@ -1085,12 +1085,12 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               });
             },
           ),
-          const Divider(color: AppTheme.borderColor, height: 24),
-          const Text(
+          Divider(color: context.borderColor, height: 24),
+          Text(
             'Admin Actions',
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+            style: TextStyle(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -1113,11 +1113,11 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   label: Text(_isRoundPaused ? 'Resume Round' : 'Pause Round', style: TextStyle(color: _isRoundPaused ? Colors.green : Colors.orange, fontSize: 10)),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppTheme.primaryColor),
+                    side: BorderSide(color: context.primaryColor),
                   ),
                   onPressed: () {
                     setState(() {
@@ -1129,42 +1129,42 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       snackPosition: SnackPosition.BOTTOM,
                     );
                   },
-                  icon: const Icon(Icons.alarm_add_rounded, color: AppTheme.primaryColor, size: 14),
-                  label: Text('Delay 10m ($_roundDelayMinutes)', style: const TextStyle(color: AppTheme.primaryColor, fontSize: 10)),
+                  icon: Icon(Icons.alarm_add_rounded, color: context.primaryColor, size: 14),
+                  label: Text('Delay 10m ($_roundDelayMinutes)', style: TextStyle(color: context.primaryColor, fontSize: 10)),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppTheme.errorColor),
+                    side: BorderSide(color: context.errorColor),
                   ),
                   onPressed: () {
                     Get.dialog(
                       AlertDialog(
-                        backgroundColor: AppTheme.bgLight,
-                        title: const Text('Emergency Stop Event 🚨', style: TextStyle(color: Colors.white, fontSize: 15)),
-                        content: const Text('This will immediately terminate all active rounds and lock the event results. This action cannot be undone.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                        backgroundColor: context.secondaryBackgroundColor,
+                        title: Text('Emergency Stop Event 🚨', style: TextStyle(color: Colors.white, fontSize: 15)),
+                        content: Text('This will immediately terminate all active rounds and lock the event results. This action cannot be undone.', style: TextStyle(color: context.textSecondary, fontSize: 12)),
                         actions: [
-                          TextButton(onPressed: () => Get.back(), child: const Text('Cancel', style: TextStyle(color: AppTheme.textTertiary))),
+                          TextButton(onPressed: () => Get.back(), child: Text('Cancel', style: TextStyle(color: context.caption))),
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
+                            style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
                             onPressed: () {
                               Get.back();
                               Get.snackbar('🚨 Emergency Stop Executed', 'Event terminated and locked.');
                             },
-                            child: const Text('Terminate'),
+                            child: Text('Terminate'),
                           ),
                         ],
                       ),
                     );
                   },
-                  icon: const Icon(Icons.stop_circle_rounded, color: AppTheme.errorColor, size: 14),
-                  label: const Text('Emergency Stop', style: TextStyle(color: AppTheme.errorColor, fontSize: 10)),
+                  icon: Icon(Icons.stop_circle_rounded, color: context.errorColor, size: 14),
+                  label: Text('Emergency Stop', style: TextStyle(color: context.errorColor, fontSize: 10)),
                 ),
               ),
             ],
@@ -1178,8 +1178,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     return Column(
       children: [
         Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9)),
+        SizedBox(height: 2),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 9)),
       ],
     );
   }

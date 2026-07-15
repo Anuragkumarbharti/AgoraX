@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/career_dna_model.dart';
 
 class CareerDnaScreen extends StatefulWidget {
@@ -47,7 +47,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(),
@@ -60,7 +60,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
                 _buildCareerMatchSection(),
                 _buildStrengthWeaknessSection(),
                 _buildUpdateDnaButton(),
-                const SizedBox(height: 80),
+                SizedBox(height: 80),
               ],
             ),
           ),
@@ -72,32 +72,32 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       pinned: true,
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+        icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
         onPressed: () => Get.back(),
       ),
-      title: const Text(
+      title: Text(
         'Career DNA',
         style: TextStyle(
-          color: AppTheme.textPrimary,
+          color: context.textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w700,
         ),
       ),
       actions: [
         Container(
-          margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          margin: EdgeInsets.only(right: 16, top: 8, bottom: 8),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
             ),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
             '🧬 AI Score: ${_dna.aiConfidenceScore}%',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -110,20 +110,20 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _buildDnaHeader() {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
+      margin: EdgeInsets.all(16),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF6366F1).withOpacity(0.2),
-            const Color(0xFF8B5CF6).withOpacity(0.1),
-            AppTheme.bgLight.withOpacity(0.5),
+            Color(0xFF6366F1).withOpacity(0.2),
+            Color(0xFF8B5CF6).withOpacity(0.1),
+            context.secondaryBackgroundColor.withOpacity(0.5),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
+        border: Border.all(color: Color(0xFF6366F1).withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,34 +137,34 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
                   height: 52,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF6366F1)
+                    color: Color(0xFF6366F1)
                         .withOpacity(0.15 + 0.08 * _pulseController.value),
                     border: Border.all(
-                      color: const Color(0xFF6366F1).withOpacity(0.5),
+                      color: Color(0xFF6366F1).withOpacity(0.5),
                       width: 2,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF6366F1)
+                        color: Color(0xFF6366F1)
                             .withOpacity(0.2 * _pulseController.value),
                         blurRadius: 12,
                       ),
                     ],
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text('🧬', style: TextStyle(fontSize: 24)),
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Your Career DNA',
                       style: TextStyle(
-                        color: AppTheme.textPrimary,
+                        color: context.textPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                       ),
@@ -172,7 +172,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
                     Text(
                       'AI-powered career identity • Updated 6h ago',
                       style: TextStyle(
-                        color: AppTheme.textTertiary,
+                        color: context.caption,
                         fontSize: 11,
                       ),
                     ),
@@ -181,17 +181,17 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             children: [
               _dnaInfoChip('💰 ${_dna.salaryPotential}',
-                  const Color(0xFF10B981)),
-              const SizedBox(width: 8),
+                  Color(0xFF10B981)),
+              SizedBox(width: 8),
               _dnaInfoChip('⚡ ${_dna.learningSpeed} Learner',
-                  const Color(0xFF6366F1)),
-              const SizedBox(width: 8),
+                  Color(0xFF6366F1)),
+              SizedBox(width: 8),
               _dnaInfoChip('🎯 ${_dna.aiConfidenceScore}% AI Conf.',
-                  const Color(0xFFF59E0B)),
+                  Color(0xFFF59E0B)),
             ],
           ),
         ],
@@ -201,7 +201,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _dnaInfoChip(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(10),
@@ -222,24 +222,24 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _buildRadarSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             '🔷 Ability Radar',
             style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: context.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           AnimatedBuilder(
             animation: _radarAnimation,
             builder: (ctx, _) => SizedBox(
@@ -253,7 +253,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Wrap(
             spacing: 10,
             runSpacing: 8,
@@ -270,11 +270,11 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
                       shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   Text(
                     '${d.icon} ${d.name} ${(d.score * 100).toInt()}%',
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
+                    style: TextStyle(
+                      color: context.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -291,19 +291,19 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _buildReadinessSection() {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '🎯 Readiness Scores',
             style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: context.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
@@ -331,7 +331,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
         duration: const Duration(seconds: 4),
       ),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: r.color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(16),
@@ -343,7 +343,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(r.emoji, style: const TextStyle(fontSize: 22)),
+                Text(r.emoji, style: TextStyle(fontSize: 22)),
                 Text(
                   '${r.score}%',
                   style: TextStyle(
@@ -357,13 +357,13 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
             const Spacer(),
             Text(
               r.label,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
+              style: TextStyle(
+                color: context.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(
@@ -383,19 +383,19 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _buildCareerMatchSection() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '💼 Best Career Matches',
             style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: context.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ..._dna.careerMatches.asMap().entries.map(
                 (e) => _buildCareerMatchCard(e.value, e.key == 0),
               ),
@@ -406,15 +406,15 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _buildCareerMatchCard(CareerMatch match, bool isTop) {
     final color = isTop
-        ? const Color(0xFFFBBF24)
-        : const Color(0xFF6366F1);
+        ? Color(0xFFFBBF24)
+        : Color(0xFF6366F1);
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isTop
-            ? const Color(0xFFFBBF24).withOpacity(0.06)
-            : AppTheme.cardBg,
+            ? Color(0xFFFBBF24).withOpacity(0.06)
+            : context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: color.withOpacity(isTop ? 0.4 : 0.2),
@@ -432,10 +432,10 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
             ),
             child: Center(
               child: Text(match.emoji,
-                  style: const TextStyle(fontSize: 26)),
+                  style: TextStyle(fontSize: 26)),
             ),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,14 +444,14 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
                   children: [
                     if (isTop)
                       Container(
-                        margin: const EdgeInsets.only(right: 6),
-                        padding: const EdgeInsets.symmetric(
+                        margin: EdgeInsets.only(right: 6),
+                        padding: EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFBBF24).withOpacity(0.2),
+                          color: Color(0xFFFBBF24).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text(
+                        child: Text(
                           '🏆 Best Match',
                           style: TextStyle(
                             color: Color(0xFFFBBF24),
@@ -462,31 +462,31 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
                       ),
                     Text(
                       match.title,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
+                      style: TextStyle(
+                        color: context.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 Text(
                   match.description,
-                  style: const TextStyle(
-                    color: AppTheme.textTertiary,
+                  style: TextStyle(
+                    color: context.caption,
                     fontSize: 11,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Wrap(
                   spacing: 4,
                   children: match.topSkills
                       .map(
                         (s) => Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: color.withOpacity(0.1),
@@ -504,7 +504,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Column(
             children: [
               Text(
@@ -517,8 +517,8 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
               ),
               Text(
                 match.salaryRange,
-                style: const TextStyle(
-                  color: AppTheme.textTertiary,
+                style: TextStyle(
+                  color: context.caption,
                   fontSize: 10,
                 ),
               ),
@@ -533,12 +533,12 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _buildStrengthWeaknessSection() {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: _buildStrengthCard()),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(child: _buildWeaknessCard()),
         ],
       ),
@@ -547,17 +547,17 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _buildStrengthCard() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF10B981).withOpacity(0.08),
+        color: Color(0xFF10B981).withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: const Color(0xFF10B981).withOpacity(0.25)),
+            color: Color(0xFF10B981).withOpacity(0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '💪 Strengths',
             style: TextStyle(
               color: Color(0xFF10B981),
@@ -565,20 +565,20 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           ..._dna.naturalStrengths.map(
             (s) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: EdgeInsets.only(bottom: 6),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_outline_rounded,
+                  Icon(Icons.check_circle_outline_rounded,
                       size: 12, color: Color(0xFF10B981)),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       s,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
+                      style: TextStyle(
+                        color: context.textSecondary,
                         fontSize: 11,
                       ),
                     ),
@@ -594,17 +594,17 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _buildWeaknessCard() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFEF4444).withOpacity(0.06),
+        color: Color(0xFFEF4444).withOpacity(0.06),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: const Color(0xFFEF4444).withOpacity(0.2)),
+            color: Color(0xFFEF4444).withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '⚠️ Improve',
             style: TextStyle(
               color: Color(0xFFEF4444),
@@ -612,20 +612,20 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           ..._dna.weaknesses.map(
             (w) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: EdgeInsets.only(bottom: 6),
               child: Row(
                 children: [
-                  const Icon(Icons.arrow_upward_rounded,
+                  Icon(Icons.arrow_upward_rounded,
                       size: 12, color: Color(0xFFEF4444)),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       w,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
+                      style: TextStyle(
+                        color: context.textSecondary,
                         fontSize: 11,
                       ),
                     ),
@@ -641,7 +641,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
 
   Widget _buildUpdateDnaButton() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
         width: double.infinity,
         height: 56,
@@ -668,7 +668,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
                       'Your Career DNA has been recalculated by AI',
                       snackPosition: SnackPosition.BOTTOM,
                       backgroundColor:
-                          const Color(0xFF6366F1).withOpacity(0.9),
+                          Color(0xFF6366F1).withOpacity(0.9),
                       colorText: Colors.white,
                     );
                   }
@@ -677,17 +677,17 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: _isRunningAssessment
-                    ? [AppTheme.borderColor, AppTheme.borderColor]
+                    ? [context.borderColor, context.borderColor]
                     : [
-                        const Color(0xFF6366F1),
-                        const Color(0xFF8B5CF6),
+                        Color(0xFF6366F1),
+                        Color(0xFF8B5CF6),
                       ],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(
               child: _isRunningAssessment
-                  ? const Row(
+                  ? Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         SizedBox(
@@ -709,7 +709,7 @@ class _CareerDnaScreenState extends State<CareerDnaScreen>
                         ),
                       ],
                     )
-                  : const Text(
+                  : Text(
                       '🧬 Update My Career DNA',
                       style: TextStyle(
                         color: Colors.white,
@@ -800,13 +800,13 @@ class _RadarChartPainter extends CustomPainter {
     canvas.drawPath(
       filledPath,
       Paint()
-        ..color = const Color(0xFF6366F1).withOpacity(0.25)
+        ..color = Color(0xFF6366F1).withOpacity(0.25)
         ..style = PaintingStyle.fill,
     );
     canvas.drawPath(
       filledPath,
       Paint()
-        ..color = const Color(0xFF6366F1).withOpacity(0.7)
+        ..color = Color(0xFF6366F1).withOpacity(0.7)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );

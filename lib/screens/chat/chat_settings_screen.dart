@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 
 class ChatSettingsScreen extends StatefulWidget {
   final String userName;
@@ -26,19 +26,19 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         elevation: 0,
         title: Text(
           'Chat Settings',
           style: GoogleFonts.outfit(
             fontWeight: FontWeight.bold,
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: context.textPrimary),
           onPressed: () => Get.back(),
         ),
       ),
@@ -65,7 +65,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
               onTap: () => _showSearchDialog(),
             ),
 
-            const Divider(color: AppTheme.borderColor, height: 32, thickness: 0.5),
+            Divider(color: context.borderColor, height: 32, thickness: 0.5),
 
             _buildSectionHeader('Chat Customization'),
             _buildSettingsTile(
@@ -81,7 +81,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
               onTap: () => _showThemeSelector(),
             ),
 
-            const Divider(color: AppTheme.borderColor, height: 32, thickness: 0.5),
+            Divider(color: context.borderColor, height: 32, thickness: 0.5),
 
             _buildSectionHeader('Preferences & Security'),
             _buildToggleSetting(
@@ -105,7 +105,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
               onTap: () => _showEncryptionInfo(),
             ),
 
-            const Divider(color: AppTheme.borderColor, height: 32, thickness: 0.5),
+            Divider(color: context.borderColor, height: 32, thickness: 0.5),
 
             _buildSectionHeader('Actions'),
             _buildSettingsTile(
@@ -118,8 +118,8 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
               'Clear Chat',
               'Delete all messages, keep conversation in list',
               icon: Icons.cleaning_services_outlined,
-              iconColor: AppTheme.warningColor,
-              textColor: AppTheme.warningColor,
+              iconColor: context.warningColor,
+              textColor: context.warningColor,
               onTap: () => _showConfirmDialog(
                 title: 'Clear Chat?',
                 message: 'This will permanently delete all messages in this conversation. This action cannot be undone.',
@@ -131,8 +131,8 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
               'Delete Chat',
               'Delete all messages and remove conversation',
               icon: Icons.delete_outline_rounded,
-              iconColor: AppTheme.errorColor,
-              textColor: AppTheme.errorColor,
+              iconColor: context.errorColor,
+              textColor: context.errorColor,
               onTap: () => _showConfirmDialog(
                 title: 'Delete Chat?',
                 message: 'This will delete the conversation and all of its messages. This action is permanent.',
@@ -147,8 +147,8 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
               'Block User',
               'Prevent this user from messaging or calling you',
               icon: Icons.block_rounded,
-              iconColor: AppTheme.errorColor,
-              textColor: AppTheme.errorColor,
+              iconColor: context.errorColor,
+              textColor: context.errorColor,
               onTap: () => _showConfirmDialog(
                 title: 'Block ${widget.userName}?',
                 message: 'Blocked users will not be able to message you, call you, or see your online status.',
@@ -160,8 +160,8 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
               'Report User',
               'Flag this user for spam, abuse, or inappropriate behavior',
               icon: Icons.report_problem_outlined,
-              iconColor: AppTheme.errorColor,
-              textColor: AppTheme.errorColor,
+              iconColor: context.errorColor,
+              textColor: context.errorColor,
               onTap: () => _showReportDialog(),
             ),
             const SizedBox(height: 40),
@@ -180,10 +180,10 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
             height: 90,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.5), width: 3),
+              border: Border.all(color: context.primaryColor.withOpacity(0.5), width: 3),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryColor.withOpacity(0.2),
+                  color: context.primaryColor.withOpacity(0.2),
                   blurRadius: 15,
                   spreadRadius: 2,
                 )
@@ -191,7 +191,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
             ),
             child: CircleAvatar(
               radius: 42,
-              backgroundColor: AppTheme.bgLight,
+              backgroundColor: context.secondaryBackgroundColor,
               backgroundImage: widget.userAvatar != null && widget.userAvatar!.isNotEmpty
                   ? NetworkImage(widget.userAvatar!)
                   : null,
@@ -201,7 +201,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                       style: GoogleFonts.outfit(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
+                        color: context.primaryColor,
                       ),
                     )
                   : null,
@@ -213,7 +213,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
             style: GoogleFonts.outfit(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
+              color: context.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -223,8 +223,8 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
-                  color: AppTheme.successColor,
+                decoration: BoxDecoration(
+                  color: context.successColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -233,7 +233,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                 'Online',
                 style: GoogleFonts.outfit(
                   fontSize: 13,
-                  color: AppTheme.successColor,
+                  color: context.successColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -250,7 +250,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
       child: Text(
         label,
         style: GoogleFonts.outfit(
-          color: AppTheme.primaryColor,
+          color: context.primaryColor,
           fontSize: 12,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.0,
@@ -264,13 +264,15 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
     String subtitle, {
     required IconData icon,
     required VoidCallback onTap,
-    Color iconColor = AppTheme.primaryColor,
-    Color textColor = AppTheme.textPrimary,
+    Color? iconColor,
+    Color? textColor,
   }) {
+    final Color resolvedIconColor = iconColor ?? context.primaryColor;
+    final Color resolvedTextColor = textColor ?? context.textPrimary;
     return InkWell(
       onTap: onTap,
-      splashColor: AppTheme.primaryColor.withOpacity(0.05),
-      highlightColor: AppTheme.primaryColor.withOpacity(0.02),
+      splashColor: context.primaryColor.withOpacity(0.05),
+      highlightColor: context.primaryColor.withOpacity(0.02),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -278,10 +280,10 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
+                color: resolvedIconColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: iconColor, size: 20),
+              child: Icon(icon, color: resolvedIconColor, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -291,7 +293,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                   Text(
                     title,
                     style: GoogleFonts.outfit(
-                      color: textColor,
+                      color: resolvedTextColor,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -300,14 +302,14 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                   Text(
                     subtitle,
                     style: GoogleFonts.outfit(
-                      color: AppTheme.textTertiary,
+                      color: context.caption,
                       fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.textTertiary.withOpacity(0.5), size: 14),
+            Icon(Icons.arrow_forward_ios_rounded, color: context.caption.withOpacity(0.5), size: 14),
           ],
         ),
       ),
@@ -328,10 +330,10 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: context.primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: AppTheme.primaryColor, size: 20),
+            child: Icon(icon, color: context.primaryColor, size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -341,7 +343,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                 Text(
                   title,
                   style: GoogleFonts.outfit(
-                    color: AppTheme.textPrimary,
+                    color: context.textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
@@ -350,7 +352,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                 Text(
                   subtitle,
                   style: GoogleFonts.outfit(
-                    color: AppTheme.textTertiary,
+                    color: context.caption,
                     fontSize: 12,
                   ),
                 ),
@@ -359,7 +361,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
           ),
           Switch.adaptive(
             value: value,
-            activeColor: AppTheme.primaryColor,
+            activeColor: context.primaryColor,
             onChanged: onChanged,
           ),
         ],
@@ -372,7 +374,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
       'Success',
       message,
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: AppTheme.primaryColor.withOpacity(0.9),
+      backgroundColor: context.primaryColor.withOpacity(0.9),
       colorText: Colors.white,
       margin: const EdgeInsets.all(16),
       borderRadius: 12,
@@ -388,18 +390,18 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
   }) {
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: GoogleFonts.outfit(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-        content: Text(message, style: GoogleFonts.outfit(color: AppTheme.textSecondary)),
+        title: Text(title, style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold)),
+        content: Text(message, style: GoogleFonts.outfit(color: context.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text('Cancel', style: GoogleFonts.outfit(color: AppTheme.textTertiary)),
+            child: Text('Cancel', style: GoogleFonts.outfit(color: context.caption)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorColor,
+              backgroundColor: context.errorColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
@@ -417,8 +419,8 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
     Get.bottomSheet(
       Container(
         height: 400,
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -427,9 +429,9 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
         child: Column(
           children: [
             const SizedBox(height: 12),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.borderColor, borderRadius: BorderRadius.circular(2))),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 16),
-            Text('Media, Files & Links', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+            Text('Media, Files & Links', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: context.textPrimary)),
             const SizedBox(height: 20),
             Expanded(
               child: DefaultTabController(
@@ -437,9 +439,9 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                 child: Column(
                   children: [
                     TabBar(
-                      indicatorColor: AppTheme.primaryColor,
-                      labelColor: AppTheme.primaryColor,
-                      unselectedLabelColor: AppTheme.textTertiary,
+                      indicatorColor: context.primaryColor,
+                      labelColor: context.primaryColor,
+                      unselectedLabelColor: context.caption,
                       labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
                       tabs: const [
                         Tab(text: 'Media (12)'),
@@ -461,7 +463,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                             itemCount: 9,
                             itemBuilder: (context, idx) => Container(
                               decoration: BoxDecoration(
-                                color: AppTheme.bgDark,
+                                color: context.scaffoldBackgroundColor,
                                 borderRadius: BorderRadius.circular(8),
                                 image: const DecorationImage(
                                   image: NetworkImage('https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=120'),
@@ -475,9 +477,9 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                             padding: const EdgeInsets.all(16),
                             itemCount: 4,
                             itemBuilder: (context, idx) => ListTile(
-                              leading: const Icon(Icons.description_outlined, color: AppTheme.primaryColor),
-                              title: Text('study_material_unit_${idx+1}.pdf', style: GoogleFonts.outfit(color: AppTheme.textPrimary)),
-                              subtitle: Text('1.8 MB • PDF', style: GoogleFonts.outfit(color: AppTheme.textTertiary, fontSize: 12)),
+                              leading: Icon(Icons.description_outlined, color: context.primaryColor),
+                              title: Text('study_material_unit_${idx+1}.pdf', style: GoogleFonts.outfit(color: context.textPrimary)),
+                              subtitle: Text('1.8 MB • PDF', style: GoogleFonts.outfit(color: context.caption, fontSize: 12)),
                             ),
                           ),
                           // Links list
@@ -485,9 +487,9 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                             padding: const EdgeInsets.all(16),
                             itemCount: 2,
                             itemBuilder: (context, idx) => ListTile(
-                              leading: const Icon(Icons.link_rounded, color: AppTheme.primaryColor),
-                              title: Text(idx == 0 ? 'github.com/creania/app' : 'meet.google.com/abc-xyz', style: GoogleFonts.outfit(color: AppTheme.textPrimary)),
-                              subtitle: Text('Added 2 days ago', style: GoogleFonts.outfit(color: AppTheme.textTertiary, fontSize: 12)),
+                              leading: Icon(Icons.link_rounded, color: context.primaryColor),
+                              title: Text(idx == 0 ? 'github.com/creania/app' : 'meet.google.com/abc-xyz', style: GoogleFonts.outfit(color: context.textPrimary)),
+                              subtitle: Text('Added 2 days ago', style: GoogleFonts.outfit(color: context.caption, fontSize: 12)),
                             ),
                           ),
                         ],
@@ -507,27 +509,27 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
     final searchCtrl = TextEditingController();
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Search in Chat', style: GoogleFonts.outfit(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+        title: Text('Search in Chat', style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: searchCtrl,
           autofocus: true,
-          style: const TextStyle(color: AppTheme.textPrimary),
+          style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: 'Enter keyword...',
-            hintStyle: TextStyle(color: AppTheme.textTertiary),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.borderColor)),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.primaryColor)),
+            hintStyle: TextStyle(color: context.caption),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: context.borderColor)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: context.primaryColor)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text('Cancel', style: GoogleFonts.outfit(color: AppTheme.textTertiary)),
+            child: Text('Cancel', style: GoogleFonts.outfit(color: context.caption)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+            style: ElevatedButton.styleFrom(backgroundColor: context.primaryColor),
             onPressed: () {
               Get.back();
               _showSuccessToast('Found 3 matches for "${searchCtrl.text}"');
@@ -543,8 +545,8 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
     final wallpapers = ['Default Dark', 'Premium Purple', 'Space Blue', 'Solid Pitch Black', 'Light Lavender'];
     Get.dialog(
       SimpleDialog(
-        backgroundColor: AppTheme.bgLight,
-        title: Text('Select Wallpaper', style: GoogleFonts.outfit(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+        backgroundColor: context.secondaryBackgroundColor,
+        title: Text('Select Wallpaper', style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold)),
         children: wallpapers.map((w) {
           return SimpleDialogOption(
             onPressed: () {
@@ -554,7 +556,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(w, style: GoogleFonts.outfit(color: AppTheme.textSecondary, fontSize: 16)),
+              child: Text(w, style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 16)),
             ),
           );
         }).toList(),
@@ -566,8 +568,8 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
     final themes = ['Premium Purple Dark', 'Stealth Black', 'Amoled Neon Purple', 'Deep Space'];
     Get.dialog(
       SimpleDialog(
-        backgroundColor: AppTheme.bgLight,
-        title: Text('Select Accent Theme', style: GoogleFonts.outfit(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+        backgroundColor: context.secondaryBackgroundColor,
+        title: Text('Select Accent Theme', style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold)),
         children: themes.map((t) {
           return SimpleDialogOption(
             onPressed: () {
@@ -577,7 +579,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(t, style: GoogleFonts.outfit(color: AppTheme.textSecondary, fontSize: 16)),
+              child: Text(t, style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 16)),
             ),
           );
         }).toList(),
@@ -588,13 +590,13 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
   void _showEncryptionInfo() {
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.security_rounded, color: AppTheme.successColor),
+            Icon(Icons.security_rounded, color: context.successColor),
             const SizedBox(width: 8),
-            Text('E2E Encrypted', style: GoogleFonts.outfit(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+            Text('E2E Encrypted', style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
@@ -603,18 +605,18 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
           children: [
             Text(
               'Messages sent to this chat are protected with client-side end-to-end encryption.',
-              style: GoogleFonts.outfit(color: AppTheme.textSecondary),
+              style: GoogleFonts.outfit(color: context.textSecondary),
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.bgDark,
+                color: context.scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 'SHA-256 Fingerprint:\n5F:8B:D2:C1:2E:7A:F4:3B:11:C2:5E:A9:77:BD:41:FF',
-                style: GoogleFonts.sourceCodePro(color: AppTheme.textTertiary, fontSize: 11),
+                style: GoogleFonts.sourceCodePro(color: context.caption, fontSize: 11),
               ),
             ),
           ],
@@ -622,7 +624,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text('Close', style: GoogleFonts.outfit(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+            child: Text('Close', style: GoogleFonts.outfit(color: context.primaryColor, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -633,8 +635,8 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
     final reasons = ['Spam & Solicitations', 'Harassment & Abuse', 'Inappropriate profile media', 'Inappropriate messages', 'Other'];
     Get.dialog(
       SimpleDialog(
-        backgroundColor: AppTheme.bgLight,
-        title: Text('Report User', style: GoogleFonts.outfit(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+        backgroundColor: context.secondaryBackgroundColor,
+        title: Text('Report User', style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold)),
         children: reasons.map((r) {
           return SimpleDialogOption(
             onPressed: () {
@@ -643,7 +645,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(r, style: GoogleFonts.outfit(color: AppTheme.errorColor.withOpacity(0.8), fontSize: 15)),
+              child: Text(r, style: GoogleFonts.outfit(color: context.errorColor.withOpacity(0.8), fontSize: 15)),
             ),
           );
         }).toList(),

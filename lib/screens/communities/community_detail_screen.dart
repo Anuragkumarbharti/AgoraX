@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/community_model.dart';
 import '../../services/community_controller.dart';
 
@@ -45,7 +45,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         color = Colors.blue;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(6),
@@ -84,8 +84,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
       if (comm.id.isEmpty) {
         return Scaffold(
-          backgroundColor: AppTheme.bgDark,
-          body: const Center(child: Text('Community not found', style: TextStyle(color: Colors.white))),
+          backgroundColor: context.scaffoldBackgroundColor,
+          body: Center(child: Text('Community not found', style: TextStyle(color: Colors.white))),
         );
       }
 
@@ -93,7 +93,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       final isMember = role != 'Guest';
 
       return Scaffold(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             _buildSliverAppBar(comm),
@@ -103,10 +103,10 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               delegate: _StickyTabBarDelegate(
                 TabBar(
                   controller: _tabController,
-                  indicatorColor: AppTheme.primaryColor,
+                  indicatorColor: context.primaryColor,
                   indicatorWeight: 3,
-                  labelColor: AppTheme.primaryColor,
-                  unselectedLabelColor: AppTheme.textTertiary,
+                  labelColor: context.primaryColor,
+                  unselectedLabelColor: context.caption,
                   tabs: const [
                     Tab(text: 'Home'),
                     Tab(text: 'Members'),
@@ -133,14 +133,14 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     return SliverAppBar(
       expandedHeight: 180,
       pinned: true,
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+        icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
         onPressed: () => Get.back(),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.share_rounded, color: Colors.white),
+          icon: Icon(Icons.share_rounded, color: Colors.white),
           onPressed: () {
             Get.snackbar('Link Shared', 'Link copied to clipboard');
           },
@@ -153,8 +153,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                AppTheme.primaryColor.withOpacity(0.8),
-                const Color(0xFF0F172A),
+                context.primaryColor.withOpacity(0.8),
+                Color(0xFF0F172A),
               ],
             ),
           ),
@@ -171,7 +171,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
   Widget _buildHeader(Community comm, String role, bool isMember) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -182,13 +182,13 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
+                  gradient: LinearGradient(
+                    colors: [context.primaryColor, AppTheme.secondaryColor],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.3),
+                      color: context.primaryColor.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -197,11 +197,11 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                 child: Center(
                   child: Text(
                     comm.image ?? comm.name.substring(0, 1),
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,35 +210,35 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                       children: [
                         Text(
                           comm.name,
-                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         if (comm.isVerified) ...[
-                          const SizedBox(width: 6),
-                          const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 18),
+                          SizedBox(width: 6),
+                          Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 18),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       'Family ID: ${comm.id.hashCode.abs() % 900000 + 100000}',
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: context.caption, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.12),
+                            color: context.primaryColor.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                            border: Border.all(color: context.primaryColor.withOpacity(0.3)),
                           ),
                           child: Text(
                             'Family Lv.${comm.level}',
-                            style: const TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         _buildRoleLabel(role),
                       ],
                     ),
@@ -247,7 +247,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Join/Leave/Actions row
           Row(
@@ -263,31 +263,31 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                           }
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppTheme.errorColor),
-                          foregroundColor: AppTheme.errorColor,
+                          side: BorderSide(color: context.errorColor),
+                          foregroundColor: context.errorColor,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('Leave Family'),
+                        child: Text('Leave Family'),
                       )
                     : ElevatedButton(
                         onPressed: () => _controller.joinCommunity(comm.id),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
+                          backgroundColor: context.primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('Join Family'),
+                        child: Text('Join Family'),
                       ),
               ),
               if (isMember) ...[
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Get.snackbar('Entering Room...', 'Joining community voice room');
                     },
-                    icon: const Icon(Icons.mic_rounded, size: 16),
-                    label: const Text('Family Stage'),
+                    icon: Icon(Icons.mic_rounded, size: 16),
+                    label: Text('Family Stage'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.secondaryColor,
                       foregroundColor: Colors.white,
@@ -305,32 +305,32 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
   Widget _buildHomeTab(Community comm) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       children: [
         // Bio Section
-        const Text('Bio / Description', style: TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text(comm.description, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.5)),
-        const SizedBox(height: 24),
+        Text('Bio / Description', style: TextStyle(color: context.textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
+        SizedBox(height: 8),
+        Text(comm.description, style: TextStyle(color: context.textSecondary, fontSize: 13, height: 1.5)),
+        SizedBox(height: 24),
 
         // Rules Section
-        const Text('Family Rules', style: TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
+        Text('Family Rules', style: TextStyle(color: context.textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
+        SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.bgLight,
+            color: context.secondaryBackgroundColor,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(comm.rules, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.5)),
+          child: Text(comm.rules, style: TextStyle(color: context.textSecondary, fontSize: 13, height: 1.5)),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
         // Stats Card
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.bgLight,
+            color: context.secondaryBackgroundColor,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
@@ -351,15 +351,15 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   Widget _infoStatItem(String value, String label) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
+        Text(value, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        SizedBox(height: 4),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
       ],
     );
   }
 
   Widget _infoStatDivider() {
-    return Container(width: 1, height: 24, color: AppTheme.borderColor);
+    return Container(width: 1, height: 24, color: context.borderColor);
   }
 
   Widget _buildMembersTab(Community comm) {
@@ -371,33 +371,33 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     final members = comm.members.where((id) => id != ownerId && !coOwners.contains(id) && !admins.contains(id)).toList();
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       children: [
         // Owner
         _memberSectionTitle('Owner'),
         _memberTile(comm, ownerId, 'Owner'),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         // Co-Owners
         if (coOwners.isNotEmpty) ...[
           _memberSectionTitle('Co-Owners'),
           ...coOwners.map((id) => _memberTile(comm, id, 'Co-Owner')),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
         ],
 
         // Admins
         if (admins.isNotEmpty) ...[
           _memberSectionTitle('Admins'),
           ...admins.map((id) => _memberTile(comm, id, 'Admin')),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
         ],
 
         // Members
         _memberSectionTitle('Members (${members.length})'),
         if (members.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('No other members', style: TextStyle(color: AppTheme.textTertiary, fontSize: 13)),
+            child: Text('No other members', style: TextStyle(color: context.caption, fontSize: 13)),
           )
         else
           ...members.map((id) => _memberTile(comm, id, 'Member')),
@@ -407,8 +407,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
   Widget _memberSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(title, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.bold)),
+      padding: EdgeInsets.only(bottom: 8),
+      child: Text(title, style: TextStyle(color: context.textSecondary, fontSize: 13, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -424,24 +424,24 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     return GestureDetector(
       onTap: () => _showMemberMiniProfile(context, comm, userId, name, roleLabel),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        margin: EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: AppTheme.bgLight,
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.borderColor.withOpacity(0.3), width: 0.5),
+          border: Border.all(color: context.borderColor.withOpacity(0.3), width: 0.5),
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
+              backgroundColor: context.primaryColor.withOpacity(0.2),
               child: Text(name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+                  style: TextStyle(color: context.primaryColor, fontWeight: FontWeight.bold)),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
-              child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              child: Text(name, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
             ),
             _buildRoleLabel(roleLabel),
           ],
@@ -471,20 +471,20 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 36,
               height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
+              margin: EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: AppTheme.borderColor,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -493,24 +493,24 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
+                  backgroundColor: context.primaryColor.withOpacity(0.2),
                   child: Text(
                     name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(color: AppTheme.primaryColor, fontSize: 22, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.primaryColor, fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
+                      Text(name, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 4),
                       Row(
                         children: [
                           _buildRoleLabel(currentRole),
-                          const SizedBox(width: 8),
-                          Text('ID: ${userId.hashCode.abs() % 900000 + 100000}', style: const TextStyle(color: AppTheme.textTertiary, fontSize: 12)),
+                          SizedBox(width: 8),
+                          Text('ID: ${userId.hashCode.abs() % 900000 + 100000}', style: TextStyle(color: context.caption, fontSize: 12)),
                         ],
                       ),
                     ],
@@ -518,7 +518,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
 
             // Mini Profile Stats
             Row(
@@ -529,18 +529,18 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                 _miniProfileStat('Active', 'Activity'),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
 
-            const Divider(color: AppTheme.borderColor, height: 1),
-            const SizedBox(height: 16),
+            Divider(color: context.borderColor, height: 1),
+            SizedBox(height: 16),
 
             // Management actions (if allowed)
             if (canManageOrKick) ...[
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
-                child: Text('MANAGE MEMBER ROLE', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11, fontWeight: FontWeight.bold)),
+                child: Text('MANAGE MEMBER ROLE', style: TextStyle(color: context.caption, fontSize: 11, fontWeight: FontWeight.bold)),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               
               // Promote/Demote to Co-owner (Only Owner can assign Co-owner)
               if (canManage && myRole == 'Owner') ...[
@@ -590,7 +590,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               if (canKick)
                 _actionTile(
                   icon: Icons.gavel_rounded,
-                  color: AppTheme.errorColor,
+                  color: context.errorColor,
                   label: 'Remove from Family',
                   onTap: () {
                     Get.back();
@@ -599,9 +599,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   },
                 ),
             ] else ...[
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('No management actions available for this member.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 13)),
+                child: Text('No management actions available for this member.', style: TextStyle(color: context.caption, fontSize: 13)),
               ),
             ],
           ],
@@ -613,9 +613,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   Widget _miniProfileStat(String value, String label) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
+        Text(value, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+        SizedBox(height: 2),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
       ],
     );
   }
@@ -634,14 +634,14 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         ),
         child: Icon(icon, color: color, size: 18),
       ),
-      title: Text(label, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-      trailing: const Icon(Icons.chevron_right_rounded, color: AppTheme.textTertiary, size: 16),
+      title: Text(label, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+      trailing: Icon(Icons.chevron_right_rounded, color: context.caption, size: 16),
     );
   }
 
   Widget _buildTasksTab(Community comm) {
     if (comm.creationType == 'coins') {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Column(
@@ -657,7 +657,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               Text(
                 'This community was created using Coins. Logo and Profile Badge are permanently unlocked.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textTertiary, fontSize: 13),
+                style: TextStyle(color: context.caption, fontSize: 13),
               ),
             ],
           ),
@@ -668,11 +668,11 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     final allDone = comm.isLogoUnlocked;
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       children: [
         // Badge unlock banner
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: allDone ? Colors.green.withOpacity(0.12) : Colors.blue.withOpacity(0.12),
             borderRadius: BorderRadius.circular(16),
@@ -685,21 +685,21 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                 color: allDone ? Colors.green : Colors.blue,
                 size: 32,
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       allDone ? 'Logo Badge Unlocked! 🎉' : 'Profile Badge Locked',
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       allDone
                           ? 'Your community logo is now visible on all members\' profiles.'
                           : 'Complete all milestones below to display this community badge on your profile.',
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.3),
+                      style: TextStyle(color: context.textSecondary, fontSize: 12, height: 1.3),
                     ),
                   ],
                 ),
@@ -707,21 +707,21 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
-        const Text(
+        Text(
           'Tasks to Complete',
           style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
 
         ...comm.tasks.map((task) {
           final pct = task.target > 0 ? (task.current / task.target).clamp(0.0, 1.0) : 0.0;
           return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
+            margin: EdgeInsets.only(bottom: 12),
+            padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppTheme.bgLight,
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Column(
@@ -731,28 +731,28 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text(task.title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                      child: Text(task.title, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                     ),
                     Text(
                       '${task.current}/${task.target}',
                       style: TextStyle(
-                        color: task.isCompleted ? Colors.green : AppTheme.primaryColor,
+                        color: task.isCompleted ? Colors.green : context.primaryColor,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(task.description, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                const SizedBox(height: 12),
+                SizedBox(height: 4),
+                Text(task.description, style: TextStyle(color: context.caption, fontSize: 11)),
+                SizedBox(height: 12),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
                   child: LinearProgressIndicator(
                     value: pct,
                     minHeight: 6,
-                    backgroundColor: AppTheme.bgDark,
-                    valueColor: AlwaysStoppedAnimation(task.isCompleted ? Colors.green : AppTheme.primaryColor),
+                    backgroundColor: context.scaffoldBackgroundColor,
+                    valueColor: AlwaysStoppedAnimation(task.isCompleted ? Colors.green : context.primaryColor),
                   ),
                 ),
               ],
@@ -761,7 +761,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         }).toList(),
 
         if (comm.owner == 'me' && !allDone) ...[
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ElevatedButton(
             onPressed: () {
               // Dev shortcut to complete tasks
@@ -771,10 +771,10 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               Get.snackbar('Milestones Achieved!', 'All tasks completed. Community logo unlocked!');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.bgLight,
+              backgroundColor: context.secondaryBackgroundColor,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Admin Dev: Auto-Complete Tasks'),
+            child: Text('Admin Dev: Auto-Complete Tasks'),
           ),
         ],
       ],
@@ -794,7 +794,7 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: AppTheme.bgDark,
+      color: context.scaffoldBackgroundColor,
       child: tabBar,
     );
   }

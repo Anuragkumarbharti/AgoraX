@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/community_controller.dart';
 import 'community_detail_screen.dart';
 import 'create_community_screen.dart';
@@ -18,7 +18,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Communities',
@@ -26,7 +26,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_rounded, size: 28),
+            icon: Icon(Icons.add_rounded, size: 28),
             onPressed: () => Get.to(() => const CreateCommunityScreen()),
           ),
         ],
@@ -41,33 +41,33 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
         }).toList();
 
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           children: [
             // User coins widget
             Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              margin: EdgeInsets.only(bottom: 20),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppTheme.bgLight,
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+                border: Border.all(color: context.borderColor.withOpacity(0.5)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Icon(Icons.monetization_on_rounded, color: Colors.amber, size: 24),
                       SizedBox(width: 8),
                       Text(
                         'Your Coins',
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w500),
+                        style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                   Text(
                     '${_controller.userCoins.value}',
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -78,12 +78,12 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                 'My Families',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               ...myCommunities.map((comm) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.only(bottom: 12),
                     child: _buildCommunityTile(context, comm, true),
                   )),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
             ],
 
             if (otherCommunities.isNotEmpty) ...[
@@ -91,9 +91,9 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                 'Explore Families',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               ...otherCommunities.map((comm) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.only(bottom: 12),
                     child: _buildCommunityTile(context, comm, false),
                   )),
             ],
@@ -111,11 +111,11 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       onTap: () => Get.to(() => CommunityDetailScreen(communityId: comm.id)),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderColor, width: 0.5),
+          border: Border.all(color: context.borderColor, width: 0.5),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Row(
           children: [
             // Logo
@@ -125,19 +125,19 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: isJoined
-                      ? [AppTheme.primaryColor, AppTheme.secondaryColor]
-                      : [AppTheme.bgLight, AppTheme.borderColor],
+                      ? [context.primaryColor, AppTheme.secondaryColor]
+                      : [context.secondaryBackgroundColor, context.borderColor],
                 ),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
                 child: Text(
                   comm.image ?? comm.name.substring(0, 1),
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
 
             // Content
             Expanded(
@@ -158,28 +158,28 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                         ),
                       ),
                       if (comm.isVerified) ...[
-                        const SizedBox(width: 4),
-                        const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
+                        SizedBox(width: 4),
+                        Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Row(
                     children: [
                       Text(
                         '${comm.memberCount} members',
-                        style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                        style: TextStyle(color: context.caption, fontSize: 11),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Container(
                         width: 4,
                         height: 4,
-                        decoration: const BoxDecoration(color: AppTheme.textTertiary, shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: context.caption, shape: BoxShape.circle),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text(
                         'Lv.${comm.level}',
-                        style: const TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -190,29 +190,29 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
             // Badge / Actions
             if (isJoined) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: role == 'Owner'
                       ? Colors.amber.withOpacity(0.15)
-                      : AppTheme.primaryColor.withOpacity(0.12),
+                      : context.primaryColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: role == 'Owner' ? Colors.amber.withOpacity(0.3) : AppTheme.primaryColor.withOpacity(0.3),
+                    color: role == 'Owner' ? Colors.amber.withOpacity(0.3) : context.primaryColor.withOpacity(0.3),
                   ),
                 ),
                 child: Text(
                   role,
                   style: TextStyle(
-                    color: role == 'Owner' ? Colors.amber : AppTheme.primaryColor,
+                    color: role == 'Owner' ? Colors.amber : context.primaryColor,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
             ],
 
-            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.textTertiary),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: context.caption),
           ],
         ),
       ),

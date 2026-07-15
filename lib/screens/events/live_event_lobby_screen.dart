@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/event_model.dart';
 import 'live_event_play_screen.dart';
 
@@ -86,21 +86,21 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
     final maxPrize = ev.isPaid ? (ev.maxParticipants * ev.entryFeeAmount * 0.58).toInt() : 0;
 
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'Event Waiting Lobby',
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
           // Banner
           Container(
@@ -123,7 +123,7 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // Event Name & Category Title
           Row(
@@ -135,79 +135,79 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
                   children: [
                     Text(
                       ev.title,
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Category: ${ev.category} • Format: ${ev.format.name.toUpperCase()}',
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                      style: TextStyle(color: context.caption, fontSize: 11),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.15),
+                  color: context.primaryColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                  border: Border.all(color: context.primaryColor.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.people_alt_rounded, color: AppTheme.primaryColor, size: 14),
-                    const SizedBox(width: 4),
-                    Text('$_participantsJoined Joined', style: const TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Icon(Icons.people_alt_rounded, color: context.primaryColor, size: 14),
+                    SizedBox(width: 4),
+                    Text('$_participantsJoined Joined', style: TextStyle(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // ── Countdown Timer Banner ──────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppTheme.primaryColor.withOpacity(0.12), AppTheme.secondaryColor.withOpacity(0.12)],
+                colors: [context.primaryColor.withOpacity(0.12), AppTheme.secondaryColor.withOpacity(0.12)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+              border: Border.all(color: context.primaryColor.withOpacity(0.3)),
             ),
             child: Column(
               children: [
-                const Text(
+                Text(
                   'EVENT STARTING IN',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                  style: TextStyle(color: context.textSecondary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _timeBox('00', 'MIN'),
-                    const Text(' : ', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                    Text(' : ', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
                     _timeBox(_countdownSeconds.toString().padLeft(2, '0'), 'SEC'),
                   ],
                 ),
-                const SizedBox(height: 10),
-                const Text(
+                SizedBox(height: 10),
+                Text(
                   'Event will start automatically. Do not close this screen.',
-                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                  style: TextStyle(color: context.caption, fontSize: 10),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // ── Diagnostics Monitor ─────────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.cardBg,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.borderColor.withOpacity(0.3)),
+              border: Border.all(color: context.borderColor.withOpacity(0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -219,16 +219,16 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // ── Prize Pool Card ─────────────────────────────────────────────────
           if (ev.isPaid) ...[
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF16213E),
+                color: Color(0xFF16213E),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.3)),
+                border: Border.all(color: Color(0xFFFBBF24).withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,28 +236,28 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('🏆 Total Prize Pool', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                      Text('₹$minPrize - ₹$maxPrize', style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 16, fontWeight: FontWeight.w900)),
+                      Text('🏆 Total Prize Pool', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                      Text('₹$minPrize - ₹$maxPrize', style: TextStyle(color: Color(0xFFFBBF24), fontSize: 16, fontWeight: FontWeight.w900)),
                     ],
                   ),
-                  const Divider(color: AppTheme.borderColor, height: 20),
-                  _prizeDetail('🥇 1st Place (50%)', '₹${(minPrize * 0.5).toInt()} - ₹${(maxPrize * 0.5).toInt()}', const Color(0xFFFFD700)),
-                  _prizeDetail('🥈 2nd Place (30%)', '₹${(minPrize * 0.3).toInt()} - ₹${(maxPrize * 0.3).toInt()}', const Color(0xFFC0C0C0)),
-                  _prizeDetail('🥉 3rd Place (20%)', '₹${(minPrize * 0.2).toInt()} - ₹${(maxPrize * 0.2).toInt()}', const Color(0xFFCD7F32)),
+                  Divider(color: context.borderColor, height: 20),
+                  _prizeDetail('🥇 1st Place (50%)', '₹${(minPrize * 0.5).toInt()} - ₹${(maxPrize * 0.5).toInt()}', Color(0xFFFFD700)),
+                  _prizeDetail('🥈 2nd Place (30%)', '₹${(minPrize * 0.3).toInt()} - ₹${(maxPrize * 0.3).toInt()}', Color(0xFFC0C0C0)),
+                  _prizeDetail('🥉 3rd Place (20%)', '₹${(minPrize * 0.2).toInt()} - ₹${(maxPrize * 0.2).toInt()}', Color(0xFFCD7F32)),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
 
           // ── Voice Room Widget ───────────────────────────────────────────────
           if (ev.voiceRoomEnabled) ...[
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.cardBg,
+                color: context.surfaceColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+                border: Border.all(color: context.borderColor.withOpacity(0.4)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,16 +265,16 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('🎙️ Lobby Voice Channel', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                          Text('Owner is presenting live', style: TextStyle(color: AppTheme.textTertiary, fontSize: 10)),
+                          Text('Owner is presenting live', style: TextStyle(color: context.caption, fontSize: 10)),
                         ],
                       ),
                       Switch(
                         value: _voiceConnected,
-                        activeColor: AppTheme.accentColor,
+                        activeColor: context.accentOrange,
                         onChanged: (v) {
                           setState(() {
                             _voiceConnected = v;
@@ -284,8 +284,8 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
                     ],
                   ),
                   if (_voiceConnected) ...[
-                    const Divider(color: AppTheme.borderColor),
-                    const SizedBox(height: 8),
+                    Divider(color: context.borderColor),
+                    SizedBox(height: 8),
                     Row(
                       children: [
                         ElevatedButton.icon(
@@ -298,15 +298,15 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
                           icon: Icon(_isMuted ? Icons.mic_off_rounded : Icons.mic_rounded, color: _isMuted ? Colors.red : Colors.green, size: 14),
                           label: Text(_isMuted ? 'Muted' : 'Unmuted', style: TextStyle(color: _isMuted ? Colors.red : Colors.green, fontSize: 11)),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: _handRaised ? AppTheme.primaryColor : AppTheme.textTertiary),
+                            side: BorderSide(color: _handRaised ? context.primaryColor : context.caption),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () => setState(() => _handRaised = !_handRaised),
-                          icon: Icon(Icons.pan_tool_rounded, color: _handRaised ? AppTheme.primaryColor : AppTheme.textTertiary, size: 14),
-                          label: Text(_handRaised ? 'Hand Raised' : 'Raise Hand', style: TextStyle(color: _handRaised ? AppTheme.primaryColor : AppTheme.textTertiary, fontSize: 11)),
+                          icon: Icon(Icons.pan_tool_rounded, color: _handRaised ? context.primaryColor : context.caption, size: 14),
+                          label: Text(_handRaised ? 'Hand Raised' : 'Raise Hand', style: TextStyle(color: _handRaised ? context.primaryColor : context.caption, fontSize: 11)),
                         ),
                       ],
                     ),
@@ -314,36 +314,36 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
 
           // ── Rules Box ───────────────────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.cardBg,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+              border: Border.all(color: context.borderColor.withOpacity(0.4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('📝 Event Rules', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
+                Text('📝 Event Rules', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
                 ...ev.rules.map((rule) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      padding: EdgeInsets.symmetric(vertical: 3),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('• ', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
-                          Expanded(child: Text(rule.trim(), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11))),
+                          Text('• ', style: TextStyle(color: context.primaryColor, fontWeight: FontWeight.bold)),
+                          Expanded(child: Text(rule.trim(), style: TextStyle(color: context.textSecondary, fontSize: 11))),
                         ],
                       ),
                     )),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // ── Ready Button ────────────────────────────────────────────────────
           Row(
@@ -353,7 +353,7 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
                   height: 52,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isReady ? Colors.green : AppTheme.primaryColor,
+                      backgroundColor: _isReady ? Colors.green : context.primaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     onPressed: () {
@@ -365,14 +365,14 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
                     icon: Icon(_isReady ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: Colors.white, size: 20),
                     label: Text(
                       _isReady ? 'READY TO START' : 'MARK AS READY',
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: 40),
         ],
       ),
     );
@@ -384,7 +384,7 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.06),
             borderRadius: BorderRadius.circular(10),
@@ -392,11 +392,11 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
           ),
           child: Text(
             val,
-            style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
+            style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9, fontWeight: FontWeight.bold)),
+        SizedBox(height: 4),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 9, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -405,21 +405,21 @@ class _LiveEventLobbyScreenState extends State<LiveEventLobbyScreen> {
     return Column(
       children: [
         Icon(icon, color: color, size: 20),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9)),
+        SizedBox(height: 4),
+        Text(value, style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 9)),
       ],
     );
   }
 
   Widget _prizeDetail(String title, String value, Color goldColor) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: TextStyle(color: goldColor, fontSize: 11, fontWeight: FontWeight.w700)),
-          Text(value, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          Text(value, style: TextStyle(color: Colors.white70, fontSize: 11)),
         ],
       ),
     );

@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/study_vault_controller.dart';
 import '../../services/vip_controller.dart';
 import '../../models/study_vault_model.dart';
@@ -44,9 +44,9 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
   void _showFilterSheet() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: StatefulBuilder(
@@ -71,11 +71,11 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                         });
                         setState(() {});
                       },
-                      child: const Text('Reset', style: TextStyle(color: AppTheme.primaryColor)),
+                      child: Text('Reset', style: TextStyle(color: context.primaryColor)),
                     )
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 
                 // Sort By
                 _filterHeader('Sort By'),
@@ -86,8 +86,8 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                     return ChoiceChip(
                       label: Text(sort, style: TextStyle(color: isSel ? Colors.black : Colors.white, fontSize: 11)),
                       selected: isSel,
-                      selectedColor: const Color(0xFFFFD700),
-                      backgroundColor: AppTheme.bgDark,
+                      selectedColor: Color(0xFFFFD700),
+                      backgroundColor: context.scaffoldBackgroundColor,
                       onSelected: (selected) {
                         setModalState(() => _filterSortBy = sort);
                         setState(() {});
@@ -95,7 +95,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
 
                 // Price Type
                 _filterHeader('Pricing'),
@@ -106,8 +106,8 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                     return ChoiceChip(
                       label: Text(pt, style: TextStyle(color: isSel ? Colors.black : Colors.white, fontSize: 11)),
                       selected: isSel,
-                      selectedColor: const Color(0xFFFFD700),
-                      backgroundColor: AppTheme.bgDark,
+                      selectedColor: Color(0xFFFFD700),
+                      backgroundColor: context.scaffoldBackgroundColor,
                       onSelected: (selected) {
                         setModalState(() => _filterPriceType = pt);
                         setState(() {});
@@ -115,7 +115,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
 
                 // Source Type
                 _filterHeader('Creator Source'),
@@ -126,8 +126,8 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                     return ChoiceChip(
                       label: Text(src, style: TextStyle(color: isSel ? Colors.black : Colors.white, fontSize: 11)),
                       selected: isSel,
-                      selectedColor: const Color(0xFFFFD700),
-                      backgroundColor: AppTheme.bgDark,
+                      selectedColor: Color(0xFFFFD700),
+                      backgroundColor: context.scaffoldBackgroundColor,
                       onSelected: (selected) {
                         setModalState(() => _filterSourceType = src);
                         setState(() {});
@@ -135,7 +135,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
 
                 // Document Type
                 _filterHeader('File Type'),
@@ -146,8 +146,8 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                     return ChoiceChip(
                       label: Text(doc, style: TextStyle(color: isSel ? Colors.black : Colors.white, fontSize: 11)),
                       selected: isSel,
-                      selectedColor: const Color(0xFFFFD700),
-                      backgroundColor: AppTheme.bgDark,
+                      selectedColor: Color(0xFFFFD700),
+                      backgroundColor: context.scaffoldBackgroundColor,
                       onSelected: (selected) {
                         setModalState(() => _filterDocType = doc);
                         setState(() {});
@@ -155,14 +155,14 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 SizedBox(
                   height: 48,
                   child: ElevatedButton(
                     onPressed: () => Get.back(),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
-                    child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(backgroundColor: context.primaryColor),
+                    child: Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -175,8 +175,8 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
 
   Widget _filterHeader(String label) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 12, fontWeight: FontWeight.bold)),
+      padding: EdgeInsets.symmetric(vertical: 6.0),
+      child: Text(label, style: TextStyle(color: context.caption, fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -220,7 +220,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -240,7 +240,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                   _controller.onInit();
                 },
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: EdgeInsets.symmetric(vertical: 12),
                   physics: const BouncingScrollPhysics(),
                   children: [
                     // Dynamic Filtered Results if searching
@@ -258,7 +258,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                       _buildBookshelfRail('⚡ Best Sellers & Capstone Projects', _controller.items.where((b) => b.fileType == 'Projects' || b.rating >= 4.8).toList()),
                       _buildBookshelfRail('📚 Recommended For You', _controller.items.where((b) => b.isFeatured && b.status == 'Approved').toList()),
                     ],
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -271,16 +271,16 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
 
   Widget _buildAppBarHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(8, 16, 18, 8),
-      color: AppTheme.bgDark,
+      padding: EdgeInsets.fromLTRB(8, 16, 18, 8),
+      color: context.scaffoldBackgroundColor,
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 20),
+            icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 20),
             onPressed: () => Get.back(),
           ),
-          const Icon(Icons.auto_stories, color: AppTheme.primaryColor, size: 24),
-          const SizedBox(width: 10),
+          Icon(Icons.auto_stories, color: context.primaryColor, size: 24),
+          SizedBox(width: 10),
           Text(
             'Study Vault',
             style: GoogleFonts.outfit(
@@ -292,15 +292,15 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
           const Spacer(),
           // Profile shortcuts to Library & dashboards
           IconButton(
-            icon: const Icon(Icons.bookmark_outline, color: Colors.white, size: 20),
+            icon: Icon(Icons.bookmark_outline, color: Colors.white, size: 20),
             onPressed: () => Get.to(() => const MyLibraryScreen()),
           ),
           IconButton(
-            icon: const Icon(Icons.dashboard_customize_outlined, color: Colors.white, size: 20),
+            icon: Icon(Icons.dashboard_customize_outlined, color: Colors.white, size: 20),
             onPressed: () => Get.to(() => const SellerDashboardScreen()),
           ),
           IconButton(
-            icon: const Icon(Icons.admin_panel_settings_outlined, color: Colors.white, size: 20),
+            icon: Icon(Icons.admin_panel_settings_outlined, color: Colors.white, size: 20),
             onPressed: () => Get.to(() => const AdminVaultPanelScreen()),
           ),
         ],
@@ -310,27 +310,27 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
 
   Widget _buildSearchAndFilters() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.borderColor, width: 0.8),
+          border: Border.all(color: context.borderColor, width: 0.8),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           children: [
-            const Icon(Icons.search, color: AppTheme.textTertiary, size: 20),
-            const SizedBox(width: 10),
+            Icon(Icons.search, color: context.caption, size: 20),
+            SizedBox(width: 10),
             Expanded(
               child: TextField(
                 controller: _searchController,
                 onChanged: (val) => setState(() {}),
-                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-                decoration: const InputDecoration(
+                style: TextStyle(color: context.textPrimary, fontSize: 13),
+                decoration: InputDecoration(
                   border: InputBorder.none,
                   hintText: 'Search Books, Subjects, Authors, Sellers...',
-                  hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 13),
+                  hintStyle: TextStyle(color: context.caption, fontSize: 13),
                   filled: false,
                 ),
               ),
@@ -338,12 +338,12 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
             GestureDetector(
               onTap: _showFilterSheet,
               child: Container(
-                padding: const EdgeInsets.all(6),
+                padding: EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.15),
+                  color: context.primaryColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.tune_rounded, color: AppTheme.primaryColor, size: 18),
+                child: Icon(Icons.tune_rounded, color: context.primaryColor, size: 18),
               ),
             ),
           ],
@@ -357,21 +357,21 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
       height: 38,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 18),
+        padding: EdgeInsets.symmetric(horizontal: 18),
         physics: const BouncingScrollPhysics(),
         itemCount: _shortcutCategories.length,
         itemBuilder: (context, i) {
           final cat = _shortcutCategories[i];
           final isSel = _selectedCategoryFilter == cat;
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: EdgeInsets.only(right: 8),
             child: ChoiceChip(
               label: Text(cat),
               selected: isSel,
-              selectedColor: AppTheme.primaryColor,
-              backgroundColor: AppTheme.cardBg,
+              selectedColor: context.primaryColor,
+              backgroundColor: context.surfaceColor,
               labelStyle: TextStyle(
-                color: isSel ? Colors.white : AppTheme.textSecondary,
+                color: isSel ? Colors.white : context.textSecondary,
                 fontSize: 12,
                 fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
               ),
@@ -389,7 +389,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
 
   Widget _buildFeaturedBanner() {
     return Container(
-      margin: const EdgeInsets.all(18),
+      margin: EdgeInsets.all(18),
       height: 140,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -407,25 +407,25 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
             end: Alignment.centerRight,
           ),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFD700),
+                color: Color(0xFFFFD700),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('ACADEMIC SALE', style: TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.bold)),
+              child: Text('ACADEMIC SALE', style: TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.bold)),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: 6),
+            Text(
               'Unlock 500+ Official Books',
               style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 2),
+            SizedBox(height: 2),
             Text(
               'Subscribe to VIP and access GATE, UPSC, CSE & Coding Vaults.',
               style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11),
@@ -439,13 +439,13 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
   Widget _buildContinueReadingRail() {
     return Obx(() {
       final activeList = _controller.readingProgress.entries.toList();
-      if (activeList.isEmpty) return const SizedBox();
+      if (activeList.isEmpty) return SizedBox();
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+            padding: EdgeInsets.fromLTRB(18, 12, 18, 8),
             child: Text(
               'CONTINUE READING',
               style: GoogleFonts.outfit(color: Colors.white30, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1),
@@ -455,24 +455,24 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
             height: 120,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              padding: EdgeInsets.symmetric(horizontal: 18),
               physics: const BouncingScrollPhysics(),
               itemCount: activeList.length,
               itemBuilder: (context, i) {
                 final entry = activeList[i];
                 final book = _controller.items.firstWhereOrNull((item) => item.id == entry.key);
-                if (book == null) return const SizedBox();
+                if (book == null) return SizedBox();
 
                 return GestureDetector(
                   onTap: () => Get.to(() => BookDetailsScreen(book: book)),
                   child: Container(
                     width: 250,
-                    margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.all(10),
+                    margin: EdgeInsets.only(right: 12),
+                    padding: EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardBg,
+                      color: context.surfaceColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+                      border: Border.all(color: context.borderColor.withOpacity(0.5)),
                     ),
                     child: Row(
                       children: [
@@ -480,22 +480,22 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(book.coverImage, width: 45, height: 60, fit: BoxFit.cover),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(book.title, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              Text('Page ${entry.value.lastPageRead} of ${book.pages}', style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10)),
-                              const SizedBox(height: 8),
+                              Text(book.title, style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text('Page ${entry.value.lastPageRead} of ${book.pages}', style: TextStyle(color: context.caption, fontSize: 10)),
+                              SizedBox(height: 8),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(4),
                                 child: LinearProgressIndicator(
                                   value: entry.value.readingProgress,
                                   minHeight: 4,
                                   backgroundColor: Colors.white10,
-                                  valueColor: const AlwaysStoppedAnimation(AppTheme.accentColor),
+                                  valueColor: AlwaysStoppedAnimation(context.accentOrange),
                                 ),
                               )
                             ],
@@ -515,13 +515,13 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
 
   Widget _buildFlashOffersBanner() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFC084FC)]),
+        gradient: LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFC084FC)]),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Row(
+      child: Row(
         children: [
           Icon(Icons.bolt, color: Color(0xFFFFD700), size: 24),
           SizedBox(width: 10),
@@ -540,13 +540,13 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
   }
 
   Widget _buildBookshelfRail(String sectionTitle, List<StudyVaultItem> list) {
-    if (list.isEmpty) return const SizedBox();
+    if (list.isEmpty) return SizedBox();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 20, 18, 10),
+          padding: EdgeInsets.fromLTRB(18, 20, 18, 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -558,7 +558,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                   fontSize: 15,
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.textTertiary, size: 12),
+              Icon(Icons.arrow_forward_ios_rounded, color: context.caption, size: 12),
             ],
           ),
         ),
@@ -566,7 +566,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
           height: 190,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: EdgeInsets.symmetric(horizontal: 18),
             physics: const BouncingScrollPhysics(),
             itemCount: list.length,
             itemBuilder: (context, index) {
@@ -586,7 +586,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
       onTap: () => Get.to(() => BookDetailsScreen(book: book)),
       child: Container(
         width: 105,
-        margin: const EdgeInsets.only(right: 14),
+        margin: EdgeInsets.only(right: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -618,7 +618,7 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                         color: Colors.black.withOpacity(0.4),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(Icons.lock_outline_rounded, color: Colors.white70, size: 24),
                       ),
                     ),
@@ -631,16 +631,16 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               book.title,
-              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             Text(
               book.authorName,
-              style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9),
+              style: TextStyle(color: context.caption, fontSize: 9),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -654,28 +654,28 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
     if (book.isOfficial) {
       if (book.requiredVipLevel == 0) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          decoration: BoxDecoration(color: AppTheme.accentColor, borderRadius: BorderRadius.circular(4)),
-          child: const Text('FREE', style: TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
+          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          decoration: BoxDecoration(color: context.accentOrange, borderRadius: BorderRadius.circular(4)),
+          child: Text('FREE', style: TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
         );
       }
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(color: const Color(0xFFFFD700), borderRadius: BorderRadius.circular(4)),
-        child: Text('VIP ${book.requiredVipLevel}', style: const TextStyle(color: Colors.black, fontSize: 7, fontWeight: FontWeight.bold)),
+        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: BoxDecoration(color: Color(0xFFFFD700), borderRadius: BorderRadius.circular(4)),
+        child: Text('VIP ${book.requiredVipLevel}', style: TextStyle(color: Colors.black, fontSize: 7, fontWeight: FontWeight.bold)),
       );
     } else {
       if (book.sellingPrice == 0.0) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          decoration: BoxDecoration(color: AppTheme.primaryColor, borderRadius: BorderRadius.circular(4)),
-          child: const Text('FREE', style: TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
+          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          decoration: BoxDecoration(color: context.primaryColor, borderRadius: BorderRadius.circular(4)),
+          child: Text('FREE', style: TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
         );
       }
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(color: const Color(0xFF6366F1), borderRadius: BorderRadius.circular(4)),
-        child: Text('₹${book.sellingPrice.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
+        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: BoxDecoration(color: Color(0xFF6366F1), borderRadius: BorderRadius.circular(4)),
+        child: Text('₹${book.sellingPrice.toStringAsFixed(0)}', style: TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
       );
     }
   }
@@ -685,20 +685,20 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
 
     if (list.isEmpty) {
       return Container(
-        padding: const EdgeInsets.symmetric(vertical: 80),
-        child: const Center(
-          child: Text('No matching study resources found.', style: TextStyle(color: AppTheme.textTertiary)),
+        padding: EdgeInsets.symmetric(vertical: 80),
+        child: Center(
+          child: Text('No matching study resources found.', style: TextStyle(color: context.caption)),
         ),
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      padding: EdgeInsets.symmetric(horizontal: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12.0),
+            padding: EdgeInsets.symmetric(vertical: 12.0),
             child: Text(
               'SEARCH RESULTS (${list.length})',
               style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),

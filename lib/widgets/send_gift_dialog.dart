@@ -1,3 +1,4 @@
+import 'package:creania/core/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../core/theme.dart';
@@ -127,12 +128,12 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.bgDark.withOpacity(0.95),
+          color: context.scaffoldBackgroundColor.withOpacity(0.95),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppTheme.borderColor, width: 1.5),
+          border: Border.all(color: context.borderColor, width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.5),
@@ -146,7 +147,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           children: [
             // Top Bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -161,10 +162,10 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                             ),
                       ),
                       if (widget.targetUserName != null) ...[
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2),
                         Text(
                           _giftAll ? 'To: All Seats' : 'To: ${widget.targetUserName}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.amber,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -179,24 +180,24 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                     children: [
                       // Gold Coins
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.bgLight,
+                          color: context.secondaryBackgroundColor,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.borderColor),
+                          border: Border.all(color: context.borderColor),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.monetization_on,
                               color: Colors.amber,
                               size: 14,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: 4),
                             Obx(() => Text(
                                   '${_storeCtrl.coinsBalance.value}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
@@ -205,27 +206,27 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       // Silver Coins
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.bgLight,
+                          color: context.secondaryBackgroundColor,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.borderColor),
+                          border: Border.all(color: context.borderColor),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.monetization_on,
                               color: Colors.grey,
                               size: 14,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: 4),
                             Obx(() => Text(
                                   '${_storeCtrl.silverCoinsBalance.value}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
@@ -239,13 +240,13 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 ],
               ),
             ),
-            const Divider(color: AppTheme.borderColor, height: 1),
+            Divider(color: context.borderColor, height: 1),
 
             // Grid of Gifts
             Flexible(
               child: GridView.builder(
                 shrinkWrap: true,
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 4,
                   crossAxisSpacing: 12,
@@ -266,16 +267,16 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppTheme.primaryColor.withOpacity(0.15) : AppTheme.cardBg,
+                        color: isSelected ? context.primaryColor.withOpacity(0.15) : context.surfaceColor,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor,
+                          color: isSelected ? context.primaryColor : context.borderColor,
                           width: isSelected ? 2 : 1,
                         ),
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: AppTheme.primaryColor.withOpacity(0.2),
+                                  color: context.primaryColor.withOpacity(0.2),
                                   blurRadius: 8,
                                   spreadRadius: 1,
                                 )
@@ -288,19 +289,19 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           // Gift Icon
                           Text(
                             gift.icon,
-                            style: const TextStyle(fontSize: 32),
+                            style: TextStyle(fontSize: 32),
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           // Gift Name
                           Text(
                             gift.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           // Cost
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -310,12 +311,12 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                                 color: gift.currency == 'gold' ? Colors.amber : Colors.grey,
                                 size: 12,
                               ),
-                              const SizedBox(width: 2),
+                              SizedBox(width: 2),
                               Text(
                                 '${gift.cost}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: AppTheme.textSecondary,
+                                  color: context.textSecondary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -332,12 +333,12 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             // "Gift All Seats" Toggle
             if (widget.occupiedSeatsCount > 1)
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppTheme.bgLight,
+                  color: context.secondaryBackgroundColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderColor),
+                  border: Border.all(color: context.borderColor),
                 ),
                 child: Row(
                   children: [
@@ -346,7 +347,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
+                          Text(
                             'Gift All Seats 🎙️',
                             style: TextStyle(
                               color: Colors.white,
@@ -354,13 +355,13 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2),
                           Text(
                             _selectedGift != null
                                 ? '${_selectedGift!.cost} Coins × ${widget.occupiedSeatsCount} occupied seats = $finalCost Coins'
                                 : 'Send to all occupied seats',
-                            style: const TextStyle(
-                              color: AppTheme.textTertiary,
+                            style: TextStyle(
+                              color: context.caption,
                               fontSize: 11,
                             ),
                           ),
@@ -376,7 +377,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                       },
                       activeColor: Colors.amber,
                       activeTrackColor: Colors.amber.withOpacity(0.3),
-                      inactiveThumbColor: AppTheme.textTertiary,
+                      inactiveThumbColor: context.caption,
                       inactiveTrackColor: Colors.white10,
                     ),
                   ],
@@ -385,38 +386,38 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
             // Bottom Action
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Get.back(),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text('Cancel'),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: _sendGift,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: context.primaryColor,
+                        padding: EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
+                          Text(
                             'Send Gift',
                             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                           if (_selectedGift != null) ...[
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             Text(
                               '($finalCost)',
-                              style: const TextStyle(fontSize: 12, color: Colors.white70),
+                              style: TextStyle(fontSize: 12, color: Colors.white70),
                             ),
                           ]
                         ],

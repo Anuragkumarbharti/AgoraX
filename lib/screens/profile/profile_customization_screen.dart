@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/vip_controller.dart';
 import '../../services/novel_controller.dart';
 import '../../services/customization_controller.dart';
@@ -61,9 +61,9 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
       case 'Common': return Colors.white60;
       case 'Rare': return Colors.greenAccent;
       case 'Epic': return Colors.blueAccent;
-      case 'Legendary': return const Color(0xFFC084FC); // Purple
-      case 'Mythic': return const Color(0xFFFBBF24); // Amber
-      case 'Limited': return const Color(0xFFEF4444); // Red
+      case 'Legendary': return Color(0xFFC084FC); // Purple
+      case 'Mythic': return Color(0xFFFBBF24); // Amber
+      case 'Limited': return Color(0xFFEF4444); // Red
       default: return Colors.white;
     }
   }
@@ -71,9 +71,9 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment(0.0, -0.4),
             radius: 1.4,
@@ -103,11 +103,11 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
 
   Widget _buildTopBar() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(16.0),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 20),
+            icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 20),
             onPressed: () {
               if (_selectedCategory != null) {
                 setState(() {
@@ -120,7 +120,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               }
             },
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -151,7 +151,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
   // --- MAIN SCREEN: CATEGORY SELECTOR GRID ---
   Widget _buildCategoryGrid() {
     return GridView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 12,
@@ -174,7 +174,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
             }
           },
           child: Container(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.02),
               borderRadius: BorderRadius.circular(20),
@@ -189,12 +189,12 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                   children: [
                     Text(
                       cat['icon'] as String,
-                      style: const TextStyle(fontSize: 22),
+                      style: TextStyle(fontSize: 22),
                     ),
-                    const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
                   ],
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Text(
                   cat['name'] as String,
                   style: GoogleFonts.outfit(
@@ -226,10 +226,10 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
 
     if (catName == 'VIP Membership') {
       Get.to(() => const VipPurchaseScreen());
-      return const SizedBox.shrink();
+      return SizedBox.shrink();
     } else if (catName == 'Novel Membership') {
       Get.to(() => const NovelPurchaseScreen());
-      return const SizedBox.shrink();
+      return SizedBox.shrink();
     }
     
     // special layouts
@@ -310,7 +310,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                 )
               else
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   sliver: SliverGrid(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
@@ -423,7 +423,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                const Color(0xFF8B5CF6).withOpacity(0.25),
+                Color(0xFF8B5CF6).withOpacity(0.25),
                 Colors.white.withOpacity(0.03),
               ],
             ),
@@ -447,13 +447,13 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               Text(
                 'Live Preview',
                 style: GoogleFonts.outfit(
-                  color: const Color(0xFFC084FC),
+                  color: Color(0xFFC084FC),
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.1,
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 previewName,
                 maxLines: 1,
@@ -464,12 +464,12 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 'Preview updates instantly when you equip or change an item.',
                 style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10.5),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -486,7 +486,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
           onTap: previewIsEmpty ? null : () => _triggerPreviewAction(resolvedCategory, previewName, false),
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(previewIsEmpty ? 0.04 : 0.08),
               borderRadius: BorderRadius.circular(14),
@@ -495,8 +495,8 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.visibility_rounded, color: Colors.white70, size: 18),
-                const SizedBox(height: 4),
+                Icon(Icons.visibility_rounded, color: Colors.white70, size: 18),
+                SizedBox(height: 4),
                 Text(
                   'Preview',
                   style: GoogleFonts.poppins(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold),
@@ -507,23 +507,23 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         );
 
         return Container(
-          margin: const EdgeInsets.fromLTRB(20, 6, 20, 14),
-          padding: const EdgeInsets.all(16),
+          margin: EdgeInsets.fromLTRB(20, 6, 20, 14),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF151525).withOpacity(0.95),
-                const Color(0xFF0F0F16).withOpacity(0.95),
-                const Color(0xFF1A1A2A).withOpacity(0.95),
+                Color(0xFF151525).withOpacity(0.95),
+                Color(0xFF0F0F16).withOpacity(0.95),
+                Color(0xFF1A1A2A).withOpacity(0.95),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.25)),
+            border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.25)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8B5CF6).withOpacity(0.10),
+                color: Color(0xFF8B5CF6).withOpacity(0.10),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
@@ -533,17 +533,17 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: [previewBlock, const SizedBox(width: 14), Expanded(child: previewText)]),
-                    const SizedBox(height: 12),
+                    Row(children: [previewBlock, SizedBox(width: 14), Expanded(child: previewText)]),
+                    SizedBox(height: 12),
                     Align(alignment: Alignment.centerRight, child: previewButton),
                   ],
                 )
               : Row(
                   children: [
                     previewBlock,
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     previewText,
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     previewButton,
                   ],
                 ),
@@ -554,7 +554,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
 
   Widget _buildPreviewPill(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.04),
         borderRadius: BorderRadius.circular(999),
@@ -572,27 +572,27 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: TextField(
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            style: TextStyle(color: Colors.white, fontSize: 13),
             onChanged: (val) => setState(() => _searchQuery = val),
             decoration: InputDecoration(
               hintText: 'Search items...',
-              hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
-              prefixIcon: const Icon(Icons.search_rounded, color: Colors.white30, size: 18),
+              hintStyle: TextStyle(color: Colors.white30, fontSize: 13),
+              prefixIcon: Icon(Icons.search_rounded, color: Colors.white30, size: 18),
               filled: true,
               fillColor: Colors.white.withOpacity(0.02),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              contentPadding: EdgeInsets.symmetric(vertical: 8),
             ),
           ),
         ),
         Container(
           height: 38,
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: EdgeInsets.only(bottom: 12),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16),
             itemCount: filters.length,
             itemBuilder: (context, index) {
               final f = filters[index];
@@ -600,13 +600,13 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               return GestureDetector(
                 onTap: () => setState(() => _activeFilter = f),
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  margin: EdgeInsets.symmetric(horizontal: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSel ? const Color(0xFF8B5CF6).withOpacity(0.15) : Colors.white.withOpacity(0.02),
+                    color: isSel ? Color(0xFF8B5CF6).withOpacity(0.15) : Colors.white.withOpacity(0.02),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isSel ? const Color(0xFF8B5CF6) : Colors.white.withOpacity(0.05),
+                      color: isSel ? Color(0xFF8B5CF6) : Colors.white.withOpacity(0.05),
                     ),
                   ),
                   child: Text(
@@ -656,23 +656,23 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         }
       });
 
-      if (warnings.isEmpty) return const SizedBox.shrink();
+      if (warnings.isEmpty) return SizedBox.shrink();
 
       return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        padding: const EdgeInsets.all(12),
+        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF97316).withOpacity(0.12),
+          color: Color(0xFFF97316).withOpacity(0.12),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFF97316).withOpacity(0.3)),
+          border: Border.all(color: Color(0xFFF97316).withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 16),
-                const SizedBox(width: 8),
+                Icon(Icons.warning_amber_rounded, color: Color(0xFFF97316), size: 16),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Subscription Renewal Warning',
@@ -693,14 +693,14 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Ignore All'),
+                  child: Text('Ignore All'),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             ...warnings.map((warning) {
               return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: EdgeInsets.only(bottom: 6),
                 child: Row(
                   children: [
                     Expanded(
@@ -712,14 +712,14 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                     TextButton(
                       onPressed: () => _openPurchaseFlow(warning['premium'] ?? 'None', warning['name'] ?? ''),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFFC084FC),
+                        foregroundColor: Color(0xFFC084FC),
                         padding: EdgeInsets.zero,
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Text('Renew'),
+                      child: Text('Renew'),
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     TextButton(
                       onPressed: () {
                         setState(() {
@@ -732,7 +732,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Text('Ignore'),
+                      child: Text('Ignore'),
                     ),
                   ],
                 ),
@@ -785,7 +785,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
           color: Colors.white.withOpacity(0.01),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isEquipped ? const Color(0xFF10B981) : Colors.white.withOpacity(0.04),
+            color: isEquipped ? Color(0xFF10B981) : Colors.white.withOpacity(0.04),
             width: isEquipped ? 2.0 : 1.0,
           ),
         ),
@@ -802,18 +802,18 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                       width: double.infinity,
                       alignment: Alignment.center,
                       child: Padding(
-                        padding: const EdgeInsets.all(12.0),
+                        padding: EdgeInsets.all(12.0),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
                             isVirtual 
-                                ? const Icon(Icons.block_rounded, size: 36, color: Colors.white30)
+                                ? Icon(Icons.block_rounded, size: 36, color: Colors.white30)
                                 : _buildItemPreview(cat, name),
                             // Quick "👁 Preview" overlay badge
                             Positioned(
                               bottom: 0,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: Colors.black54,
                                   borderRadius: BorderRadius.circular(8),
@@ -821,8 +821,8 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.visibility_rounded, size: 10, color: Colors.white70),
-                                    const SizedBox(width: 4),
+                                    Icon(Icons.visibility_rounded, size: 10, color: Colors.white70),
+                                    SizedBox(width: 4),
                                     Text('Preview', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 8)),
                                   ],
                                 ),
@@ -837,7 +837,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
 
                 // 2. Info area
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: EdgeInsets.symmetric(horizontal: 10),
                   child: Column(
                     children: [
                       Text(
@@ -850,9 +850,9 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 3),
+                      SizedBox(height: 3),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                         decoration: BoxDecoration(
                           color: rColor.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(4),
@@ -865,11 +865,11 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
 
                 // 3. Action Buttons (✅ Equip / ❌ Unequip / Buy / Renew)
                 Padding(
-                  padding: const EdgeInsets.only(left: 10, right: 10, bottom: 10),
+                  padding: EdgeInsets.only(left: 10, right: 10, bottom: 10),
                   child: SizedBox(
                     width: double.infinity,
                     height: 32,
@@ -879,7 +879,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                           Expanded(
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isEquipped ? const Color(0xFFEF4444) : const Color(0xFF1E293B),
+                                backgroundColor: isEquipped ? Color(0xFFEF4444) : Color(0xFF1E293B),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 padding: EdgeInsets.zero,
                               ),
@@ -900,12 +900,12 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                               ),
                             ),
                           ),
-                        if (showEquipUnequip && showRenewal) const SizedBox(width: 6),
+                        if (showEquipUnequip && showRenewal) SizedBox(width: 6),
                         if (showRenewal)
                           Expanded(
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF8B5CF6),
+                                backgroundColor: Color(0xFF8B5CF6),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 padding: EdgeInsets.zero,
                               ),
@@ -919,7 +919,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         if (!isVirtual && !isOwned && !showRenewal)
                           Expanded(
                             child: ElevatedButton.icon(
-                              icon: const Icon(Icons.lock_rounded, size: 10, color: Colors.white24),
+                              icon: Icon(Icons.lock_rounded, size: 10, color: Colors.white24),
                               label: Text(
                                 'Locked',
                                 style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white24),
@@ -945,9 +945,9 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                 top: 8,
                 left: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
-                    color: premiumType == 'Novel' ? const Color(0xFFF97316) : const Color(0xFF8B5CF6),
+                    color: premiumType == 'Novel' ? Color(0xFFF97316) : Color(0xFF8B5CF6),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -966,17 +966,17 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                 children: [
                   if (!isVirtual)
                     IconButton(
-                      icon: const Icon(Icons.info_outline_rounded, color: Colors.white30, size: 16),
+                      icon: Icon(Icons.info_outline_rounded, color: Colors.white30, size: 16),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () => _triggerDetailsAction(name, req, premiumType, isVirtual),
                     ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   if (!isVirtual)
                     IconButton(
                       icon: Icon(
                         isFav ? Icons.star_rounded : Icons.star_outline_rounded,
-                        color: isFav ? const Color(0xFFFFD700) : Colors.white30,
+                        color: isFav ? Color(0xFFFFD700) : Colors.white30,
                         size: 16,
                       ),
                       padding: EdgeInsets.zero,
@@ -1057,7 +1057,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         'Unlocked',
         '$itemName is now available.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+        backgroundColor: Color(0xFF10B981).withOpacity(0.9),
         colorText: Colors.white,
       ));
     }
@@ -1066,7 +1066,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
   void _triggerPreviewAction(String category, String name, bool isVirtual) {
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF151518),
+        backgroundColor: Color(0xFF151518),
         title: Text(isVirtual ? '⭕ None (Default Preview)' : '👁️ Preview: $name', style: GoogleFonts.outfit(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1081,10 +1081,10 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               ),
               alignment: Alignment.center,
               child: isVirtual 
-                  ? const Icon(Icons.block_rounded, size: 60, color: Colors.white24)
+                  ? Icon(Icons.block_rounded, size: 60, color: Colors.white24)
                   : Transform.scale(scale: 1.5, child: _buildItemPreview(category, name)),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               isVirtual 
                   ? 'Reverts the profile layout back to the standard look.'
@@ -1096,7 +1096,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         ),
         actions: [
           TextButton(
-            child: const Text('Close'),
+            child: Text('Close'),
             onPressed: () => Get.back(),
           ),
         ],
@@ -1107,11 +1107,11 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
   void _triggerDetailsAction(String name, String req, String premiumType, bool isVirtual) {
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF1F1F23),
+        backgroundColor: Color(0xFF1F1F23),
         title: Row(
           children: [
-            const Icon(Icons.info_outline_rounded, color: Color(0xFF8B5CF6)),
-            const SizedBox(width: 8),
+            Icon(Icons.info_outline_rounded, color: Color(0xFF8B5CF6)),
+            SizedBox(width: 8),
             Text('ℹ️ Cosmetic Details', style: GoogleFonts.outfit(color: Colors.white)),
           ],
         ),
@@ -1121,17 +1121,17 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
           children: [
             Text('Name:', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
             Text(name, style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text('Requirements:', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
             Text(isVirtual ? 'Available for all users by default.' : req, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text('Tier / Source:', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
             Text(premiumType == 'None' ? 'Free / Event' : '$premiumType Exclusive Customization', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
           ],
         ),
         actions: [
           TextButton(
-            child: const Text('Unlock Target'),
+            child: Text('Unlock Target'),
             onPressed: () {
               Get.back();
               if (!isVirtual) {
@@ -1147,7 +1147,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
             },
           ),
           TextButton(
-            child: const Text('OK'),
+            child: Text('OK'),
             onPressed: () => Get.back(),
           ),
         ],
@@ -1175,7 +1175,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         );
 
       case 'Avatar Frame':
-        final childWidget = const Icon(Icons.person, color: Colors.white30, size: 24);
+        final childWidget = Icon(Icons.person, color: Colors.white30, size: 24);
         if (name == 'Royal Frame') {
           return VipAvatarDecorator(level: 1, size: 50, child: childWidget);
         } else if (name.contains('Neon Frame')) {
@@ -1203,7 +1203,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         } else if (name.contains('Cosmic Emperor') || name.contains('Immortal Frame')) {
           return NovelAvatarDecorator(level: 7, size: 50, child: childWidget);
         }
-        return const Icon(Icons.portrait_rounded, size: 48, color: Colors.white30);
+        return Icon(Icons.portrait_rounded, size: 48, color: Colors.white30);
 
       case 'Chat Bubble':
         return Container(
@@ -1211,41 +1211,41 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
           height: 30,
           decoration: BoxDecoration(
             color: name.contains('VIP')
-                ? const Color(0xFFFFD700).withOpacity(0.2)
+                ? Color(0xFFFFD700).withOpacity(0.2)
                 : name.contains('Neon')
-                    ? const Color(0xFF06B6D4).withOpacity(0.2)
+                    ? Color(0xFF06B6D4).withOpacity(0.2)
                     : name.contains('Love')
-                        ? const Color(0xFFEC4899).withOpacity(0.2)
+                        ? Color(0xFFEC4899).withOpacity(0.2)
                         : Colors.white10,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.white24),
           ),
           alignment: Alignment.center,
-          child: const Text('Msg', style: TextStyle(color: Colors.white38, fontSize: 9)),
+          child: Text('Msg', style: TextStyle(color: Colors.white38, fontSize: 9)),
         );
 
       case 'Entry Effect':
-        return const Text('⚡', style: TextStyle(fontSize: 28));
+        return Text('⚡', style: TextStyle(fontSize: 28));
       case 'Entry Animation':
-        return const Text('🎬', style: TextStyle(fontSize: 28));
+        return Text('🎬', style: TextStyle(fontSize: 28));
       case 'Avatar Effect':
-        return const Text('✨', style: TextStyle(fontSize: 28));
+        return Text('✨', style: TextStyle(fontSize: 28));
       case 'Name Effect':
-        return const Text('🎨', style: TextStyle(fontSize: 28));
+        return Text('🎨', style: TextStyle(fontSize: 28));
       case 'Profile Theme':
-        return const Text('🌈', style: TextStyle(fontSize: 28));
+        return Text('🌈', style: TextStyle(fontSize: 28));
       case 'Background':
-        return const Text('🖼️', style: TextStyle(fontSize: 28));
+        return Text('🖼️', style: TextStyle(fontSize: 28));
       case 'Badges':
-        return const Text('🏅', style: TextStyle(fontSize: 28));
+        return Text('🏅', style: TextStyle(fontSize: 28));
       case 'Tags':
-        return const Text('🏷️', style: TextStyle(fontSize: 28));
+        return Text('🏷️', style: TextStyle(fontSize: 28));
       case 'Emoji Pack':
-        return const Text('😊', style: TextStyle(fontSize: 28));
+        return Text('😊', style: TextStyle(fontSize: 28));
       case 'Gift Showcase':
-        return const Text('🎁', style: TextStyle(fontSize: 28));
+        return Text('🎁', style: TextStyle(fontSize: 28));
       default:
-        return const Icon(Icons.dashboard_customize_outlined, size: 36, color: Colors.white24);
+        return Icon(Icons.dashboard_customize_outlined, size: 36, color: Colors.white24);
     }
   }
 
@@ -1259,7 +1259,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
       return SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1268,10 +1268,10 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                 'ACTIVE BADGE ORDER (DRAG TO SORT - MAX 5)',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
                 height: 220,
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.02),
                   borderRadius: BorderRadius.circular(20),
@@ -1292,7 +1292,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                           final rColor = _getRarityColor(dbBadge['rarity']);
                           return ListTile(
                             key: ValueKey('active_badge_$bName'),
-                            leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
+                            leading: Icon(Icons.drag_handle_rounded, color: Colors.white30),
                             title: Row(
                               children: [
                                 Text(dbBadge['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
@@ -1304,7 +1304,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                               ],
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
+                              icon: Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
                               onPressed: () => _custCtrl.toggleBadge(bName),
                             ),
                           );
@@ -1314,14 +1314,14 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         },
                       ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // Available Unlocked Badges list
               Text(
                 'AVAILABLE BADGES',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -1334,19 +1334,19 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                   final rColor = _getRarityColor(b['rarity']);
 
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    margin: EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.01),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isEquipped ? const Color(0xFF10B981) : Colors.white.withOpacity(0.04),
+                        color: isEquipped ? Color(0xFF10B981) : Colors.white.withOpacity(0.04),
                       ),
                     ),
                     child: Row(
                       children: [
-                        const Text('🏅', style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 12),
+                        Text('🏅', style: TextStyle(fontSize: 16)),
+                        SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1361,7 +1361,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         if (isUnlocked)
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isEquipped ? const Color(0xFF10B981) : const Color(0xFF1E293B),
+                              backgroundColor: isEquipped ? Color(0xFF10B981) : Color(0xFF1E293B),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
                             onPressed: () => _custCtrl.toggleBadge(name),
@@ -1371,7 +1371,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                             ),
                           )
                         else ElevatedButton.icon(
-                            icon: const Icon(Icons.lock_rounded, size: 10, color: Colors.white24),
+                            icon: Icon(Icons.lock_rounded, size: 10, color: Colors.white24),
                             label: Text('Locked', style: GoogleFonts.outfit(fontSize: 11, color: Colors.white24)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white.withOpacity(0.01),
@@ -1402,7 +1402,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
       return SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1411,10 +1411,10 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                 'ACTIVE TAG LIGHT ORDER (DRAG TO SORT - MAX 5)',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
                 height: 180,
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.02),
                   borderRadius: BorderRadius.circular(20),
@@ -1435,7 +1435,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                           final rColor = _getRarityColor(dbTag['rarity']);
                           return ListTile(
                             key: ValueKey('active_tag_$tagName'),
-                            leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
+                            leading: Icon(Icons.drag_handle_rounded, color: Colors.white30),
                             title: Row(
                               children: [
                                 Text(dbTag['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
@@ -1447,7 +1447,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                               ],
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
+                              icon: Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
                               onPressed: () => _custCtrl.toggleTag(tagName),
                             ),
                           );
@@ -1457,14 +1457,14 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         },
                       ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // Available Unlocked Tags list
               Text(
                 'AVAILABLE TAG LIGHTS',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -1477,19 +1477,19 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                   final rColor = _getRarityColor(t['rarity']);
 
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    margin: EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.01),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isEquipped ? const Color(0xFF10B981) : Colors.white.withOpacity(0.04),
+                        color: isEquipped ? Color(0xFF10B981) : Colors.white.withOpacity(0.04),
                       ),
                     ),
                     child: Row(
                       children: [
-                        const Text('🏷️', style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 12),
+                        Text('🏷️', style: TextStyle(fontSize: 16)),
+                        SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1504,7 +1504,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         if (isUnlocked)
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isEquipped ? const Color(0xFFEF4444) : const Color(0xFF1E293B),
+                              backgroundColor: isEquipped ? Color(0xFFEF4444) : Color(0xFF1E293B),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
                             onPressed: () => _custCtrl.toggleTag(name),
@@ -1514,7 +1514,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                             ),
                           )
                         else ElevatedButton.icon(
-                            icon: const Icon(Icons.lock_rounded, size: 10, color: Colors.white24),
+                            icon: Icon(Icons.lock_rounded, size: 10, color: Colors.white24),
                             label: Text('Locked', style: GoogleFonts.outfit(fontSize: 11, color: Colors.white24)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white.withOpacity(0.01),
@@ -1545,7 +1545,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
       return SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1554,10 +1554,10 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                 'ACTIVE GIFT EFFECT ORDER (DRAG TO SORT - MAX 3)',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
                 height: 180,
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.02),
                   borderRadius: BorderRadius.circular(20),
@@ -1578,7 +1578,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                           final rColor = _getRarityColor(dbGift['rarity']);
                           return ListTile(
                             key: ValueKey('active_gift_$giftName'),
-                            leading: const Icon(Icons.drag_handle_rounded, color: Colors.white30),
+                            leading: Icon(Icons.drag_handle_rounded, color: Colors.white30),
                             title: Row(
                               children: [
                                 Text(dbGift['name'] as String, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
@@ -1590,7 +1590,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                               ],
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
+                              icon: Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 18),
                               onPressed: () => _custCtrl.toggleGift(giftName),
                             ),
                           );
@@ -1600,14 +1600,14 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         },
                       ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // Available Unlocked Gifts list
               Text(
                 'AVAILABLE GIFT EFFECTS',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -1620,19 +1620,19 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                   final rColor = _getRarityColor(g['rarity']);
 
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    margin: EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.01),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isEquipped ? const Color(0xFF10B981) : Colors.white.withOpacity(0.04),
+                        color: isEquipped ? Color(0xFF10B981) : Colors.white.withOpacity(0.04),
                       ),
                     ),
                     child: Row(
                       children: [
-                        const Text('🎁', style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 12),
+                        Text('🎁', style: TextStyle(fontSize: 16)),
+                        SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1647,7 +1647,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                         if (isUnlocked)
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isEquipped ? const Color(0xFFEF4444) : const Color(0xFF1E293B),
+                              backgroundColor: isEquipped ? Color(0xFFEF4444) : Color(0xFF1E293B),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
                             onPressed: () => _custCtrl.toggleGift(name),
@@ -1657,7 +1657,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                             ),
                           )
                         else ElevatedButton.icon(
-                            icon: const Icon(Icons.lock_rounded, size: 10, color: Colors.white24),
+                            icon: Icon(Icons.lock_rounded, size: 10, color: Colors.white24),
                             label: Text('Locked', style: GoogleFonts.outfit(fontSize: 11, color: Colors.white24)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white.withOpacity(0.01),

@@ -71,10 +71,10 @@ class RoomUpgradeDialog extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Description
-            const Text(
+            Text(
               'To purchase or request official room role slots (Co-owners, Admins, or Star Members), room hosts must register through our official agency web portal.',
               style: TextStyle(
-                color: AppTheme.textSecondary,
+                color: context.textSecondary,
                 fontSize: 14,
                 height: 1.5,
               ),

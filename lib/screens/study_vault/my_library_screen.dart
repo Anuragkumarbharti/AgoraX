@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/study_vault_controller.dart';
 import '../../services/vip_controller.dart';
 import '../../models/study_vault_model.dart';
@@ -36,15 +36,15 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'My Library',
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
         bottom: TabBar(
@@ -57,10 +57,10 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
             Tab(text: 'Progress'),
             Tab(text: 'Downloaded'),
           ],
-          indicatorColor: AppTheme.primaryColor,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: AppTheme.textTertiary,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          indicatorColor: context.primaryColor,
+          labelColor: context.primaryColor,
+          unselectedLabelColor: context.caption,
+          labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
         ),
       ),
       body: Obx(() {
@@ -115,35 +115,35 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
   Widget _buildVipMembershipBanner(bool isVipActive) {
     final vipLevel = _vipCtrl.vipLevel.value;
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(14),
+      margin: EdgeInsets.all(16),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isVipActive ? const Color(0xFFFFD700).withOpacity(0.08) : Colors.white.withOpacity(0.02),
+        color: isVipActive ? Color(0xFFFFD700).withOpacity(0.08) : Colors.white.withOpacity(0.02),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isVipActive ? const Color(0xFFFFD700).withOpacity(0.3) : AppTheme.borderColor),
+        border: Border.all(color: isVipActive ? Color(0xFFFFD700).withOpacity(0.3) : context.borderColor),
       ),
       child: Row(
         children: [
           Icon(
             isVipActive ? Icons.workspace_premium_rounded : Icons.info_outline_rounded,
-            color: isVipActive ? const Color(0xFFFFD700) : AppTheme.textTertiary,
+            color: isVipActive ? Color(0xFFFFD700) : context.caption,
             size: 24,
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   isVipActive ? 'VIP $vipLevel Membership Active' : 'Membership Expired',
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   isVipActive
                       ? 'Official Creania books unlocked matching Level $vipLevel. Expired memberships automatically lock content.'
                       : 'Subscribe to VIP to unlock official Creania study collections.',
-                  style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10, height: 1.4),
+                  style: TextStyle(color: context.caption, fontSize: 10, height: 1.4),
                 ),
               ],
             ),
@@ -157,14 +157,14 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
     if (list.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Text(emptyMsg, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textTertiary)),
+          padding: EdgeInsets.all(32.0),
+          child: Text(emptyMsg, textAlign: TextAlign.center, style: TextStyle(color: context.caption)),
         ),
       );
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         crossAxisSpacing: 12,
@@ -189,16 +189,16 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                   image: DecorationImage(image: NetworkImage(book.coverImage), fit: BoxFit.cover),
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 book.title,
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
                 book.authorName,
-                style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9),
+                style: TextStyle(color: context.caption, fontSize: 9),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -211,11 +211,11 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
 
   Widget _buildOfficialLibrary(List<StudyVaultItem> list, bool isVipActive) {
     if (list.isEmpty) {
-      return const Center(child: Text('No official resources found.', style: TextStyle(color: AppTheme.textTertiary)));
+      return Center(child: Text('No official resources found.', style: TextStyle(color: context.caption)));
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       physics: const BouncingScrollPhysics(),
       itemCount: list.length,
       itemBuilder: (context, index) {
@@ -224,15 +224,15 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
         final isUnlocked = isVipActive && userVipLevel >= book.requiredVipLevel;
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
+          margin: EdgeInsets.only(bottom: 12),
+          padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isUnlocked 
-                  ? AppTheme.accentColor.withOpacity(0.3) 
-                  : AppTheme.borderColor.withOpacity(0.4),
+                  ? context.accentOrange.withOpacity(0.3) 
+                  : context.borderColor.withOpacity(0.4),
             ),
           ),
           child: Row(
@@ -241,7 +241,7 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(book.coverImage, width: 44, height: 60, fit: BoxFit.cover),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,22 +257,22 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       'Official Creania Board  |  ${book.pages} Pages',
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                      style: TextStyle(color: context.caption, fontSize: 10),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isUnlocked ? AppTheme.accentColor.withOpacity(0.12) : AppTheme.errorColor.withOpacity(0.12),
+                        color: isUnlocked ? context.accentOrange.withOpacity(0.12) : context.errorColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         isUnlocked ? 'UNLOCKED' : 'LOCKED (REQUIRES VIP ${book.requiredVipLevel})',
                         style: TextStyle(
-                          color: isUnlocked ? AppTheme.accentColor : AppTheme.errorColor,
+                          color: isUnlocked ? context.accentOrange : context.errorColor,
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
                         ),
@@ -281,14 +281,14 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () => Get.to(() => BookDetailsScreen(book: book)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isUnlocked ? AppTheme.primaryColor : Colors.white10,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  backgroundColor: isUnlocked ? context.primaryColor : Colors.white10,
+                  padding: EdgeInsets.symmetric(horizontal: 14),
                 ),
-                child: Text(isUnlocked ? 'Read' : 'View', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                child: Text(isUnlocked ? 'Read' : 'View', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
               )
             ],
           ),
@@ -299,26 +299,26 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
 
   Widget _buildProgressList(List<MapEntry<String, ReadingHistory>> entries) {
     if (entries.isEmpty) {
-      return const Center(child: Text('No reading progress logged. Start reading!', style: TextStyle(color: AppTheme.textTertiary)));
+      return Center(child: Text('No reading progress logged. Start reading!', style: TextStyle(color: context.caption)));
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       itemCount: entries.length,
       itemBuilder: (context, i) {
         final entry = entries[i];
         final book = _controller.items.firstWhereOrNull((item) => item.id == entry.key);
-        if (book == null) return const SizedBox();
+        if (book == null) return SizedBox();
 
         final history = entry.value;
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
+          margin: EdgeInsets.only(bottom: 12),
+          padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderColor),
+            border: Border.all(color: context.borderColor),
           ),
           child: Row(
             children: [
@@ -326,38 +326,38 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(book.coverImage, width: 44, height: 60, fit: BoxFit.cover),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       book.title,
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       'Page ${history.lastPageRead} of ${book.pages}  |  ${(history.totalReadingDurationSeconds ~/ 60)} mins read',
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                      style: TextStyle(color: context.caption, fontSize: 10),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: history.readingProgress,
                         minHeight: 4,
                         backgroundColor: Colors.white24,
-                        valueColor: const AlwaysStoppedAnimation(AppTheme.primaryColor),
+                        valueColor: AlwaysStoppedAnimation(context.primaryColor),
                       ),
                     )
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               IconButton(
-                icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.textTertiary, size: 16),
+                icon: Icon(Icons.arrow_forward_ios_rounded, color: context.caption, size: 16),
                 onPressed: () => Get.to(() => BookDetailsScreen(book: book)),
               )
             ],
@@ -369,33 +369,33 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
 
   Widget _buildDownloadedList(List<StudyVaultItem> list) {
     if (list.isEmpty) {
-      return const Center(child: Text('No offline books downloaded.', style: TextStyle(color: AppTheme.textTertiary)));
+      return Center(child: Text('No offline books downloaded.', style: TextStyle(color: context.caption)));
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       itemCount: list.length,
       itemBuilder: (context, i) {
         final book = list[i];
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
+          margin: EdgeInsets.only(bottom: 12),
+          padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+            border: Border.all(color: context.borderColor.withOpacity(0.5)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.download_done_rounded, color: AppTheme.accentColor, size: 20),
-              const SizedBox(width: 12),
+              Icon(Icons.download_done_rounded, color: context.accentOrange, size: 20),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(book.title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 2),
-                    Text('Authorized offline device cache  |  Size: 4.8 MB', style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10)),
+                    Text(book.title, style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    SizedBox(height: 2),
+                    Text('Authorized offline device cache  |  Size: 4.8 MB', style: TextStyle(color: context.caption, fontSize: 10)),
                   ],
                 ),
               ),
@@ -406,10 +406,10 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                   }
                 },
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  side: const BorderSide(color: AppTheme.accentColor),
+                  padding: EdgeInsets.symmetric(horizontal: 14),
+                  side: BorderSide(color: context.accentOrange),
                 ),
-                child: const Text('Read Offline', style: TextStyle(color: AppTheme.accentColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                child: Text('Read Offline', style: TextStyle(color: context.accentOrange, fontSize: 10, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

@@ -11,6 +11,9 @@ import '../../models/chat_model.dart';
 import '../../services/chat_controller.dart';
 import '../../services/chat_socket_service.dart';
 import 'chat_settings_screen.dart';
+import '../../models/user_model.dart';
+import '../../services/user_profile_cache_manager.dart';
+import '../profile/user_profile_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final Conversation conversation;
@@ -253,84 +256,118 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.textPrimary, size: 20),
             onPressed: () => Get.back(),
           ),
-          Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(1.5),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: conv.level > 0 ? AppTheme.accentColor : Colors.transparent,
-                    width: 1.5,
-                  ),
-                ),
-                child: CircleAvatar(
-                  radius: 20,
-                  backgroundImage: NetworkImage(conv.otherUserAvatar),
-                ),
-              ),
-              Obx(() {
-                final isOnline = _ctrl.conversations.firstWhereOrNull((c) => c.id == conv.id)?.otherUserOnline ?? conv.otherUserOnline;
-                if (isOnline) {
-                  return Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: AppTheme.successColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.bgDark, width: 1.5),
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              }),
-            ],
-          ),
-          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  conv.otherUserName,
-                  style: GoogleFonts.outfit(
-                    color: AppTheme.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Obx(() {
-                  final isTyping = _ctrl.typingState[conv.id] ?? false;
-                  final isOnline = _ctrl.conversations.firstWhereOrNull((c) => c.id == conv.id)?.otherUserOnline ?? conv.otherUserOnline;
-                  final lastSeenStr = _ctrl.userLastSeen[conv.otherUserId];
-                  
-                  String statusText = 'Offline';
-                  Color statusColor = AppTheme.textTertiary;
-                  
-                  if (isTyping) {
-                    statusText = 'Typing...';
-                    statusColor = AppTheme.primaryColor;
-                  } else if (isOnline) {
-                    statusText = 'Online';
-                    statusColor = AppTheme.successColor;
-                  } else if (lastSeenStr != null) {
-                    statusText = lastSeenStr;
-                  }
-
-                  return Text(
-                    statusText,
-                    style: GoogleFonts.outfit(
-                      color: statusColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                final cached = UserProfileCacheManager.getCachedUser(conv.otherUserId);
+                if (cached != null) {
+                  Get.to(() => UserProfileScreen(user: cached));
+                } else {
+                  Get.to(() => UserProfileScreen(
+                    user: User(
+                      id: conv.otherUserId,
+                      username: conv.otherUserName.toLowerCase().replaceAll(' ', '_'),
+                      email: '${conv.otherUserId}@example.com',
+                      displayName: conv.otherUserName,
+                      avatar: conv.otherUserAvatar,
+                      followers: 1240,
+                      following: 380,
+                      level: conv.level,
+                      interests: const [],
+                      communities: const [],
+                      isVerified: conv.isVerified,
+                      isPremium: conv.level > 0,
+                      reputation: 100,
+                      sid: conv.otherUserId.hashCode.abs().toString(),
                     ),
-                  );
-                }),
-              ],
+                  ));
+                }
+              },
+              child: Row(
+                children: [
+                  Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(1.5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: (UserProfileCacheManager.getCachedUser(conv.otherUserId)?.vipLevel != null && UserProfileCacheManager.getCachedUser(conv.otherUserId)!.vipLevel > 0) ? AppTheme.accentColor : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundImage: NetworkImage(conv.otherUserAvatar),
+                        ),
+                      ),
+                      Obx(() {
+                        final isOnline = _ctrl.conversations.firstWhereOrNull((c) => c.id == conv.id)?.otherUserOnline ?? conv.otherUserOnline;
+                        if (isOnline) {
+                          return Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: AppTheme.successColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppTheme.bgDark, width: 1.5),
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }),
+                    ],
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          conv.otherUserName,
+                          style: GoogleFonts.outfit(
+                            color: AppTheme.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Obx(() {
+                          final isTyping = _ctrl.typingState[conv.id] ?? false;
+                          final isOnline = _ctrl.conversations.firstWhereOrNull((c) => c.id == conv.id)?.otherUserOnline ?? conv.otherUserOnline;
+                          final lastSeenStr = _ctrl.userLastSeen[conv.otherUserId];
+                          
+                          String statusText = 'Offline';
+                          Color statusColor = AppTheme.textTertiary;
+                          
+                          if (isTyping) {
+                            statusText = 'Typing...';
+                            statusColor = AppTheme.primaryColor;
+                          } else if (isOnline) {
+                            statusText = 'Online';
+                            statusColor = AppTheme.successColor;
+                          } else if (lastSeenStr != null) {
+                            statusText = lastSeenStr;
+                          }
+        
+                          return Text(
+                            statusText,
+                            style: GoogleFonts.outfit(
+                              color: statusColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           IconButton(

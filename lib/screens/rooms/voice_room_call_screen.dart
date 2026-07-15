@@ -6,10 +6,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:zego_express_engine/zego_express_engine.dart' hide Text;
 import '../../services/user_profile_cache_manager.dart';
+import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:zego_uikit/zego_uikit.dart';
-import '../../core/theme.dart';
+
+import 'package:creania/core/theme.dart';
 import '../../core/constants.dart';
 import '../../models/room_model.dart';
 import '../../models/user_model.dart';
@@ -32,6 +34,7 @@ import '../../widgets/vip_entry_animation.dart';
 import '../../widgets/novel_entry_animation.dart';
 import '../../widgets/default_entry_animation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/custom_image_editor.dart';
 
 class FloatingReaction {
   final Key key;
@@ -325,7 +328,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           'Permissions Required',
           'Please enable microphone and camera permissions',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: AppTheme.warningColor,
+          backgroundColor: context.warningColor,
         );
         Navigator.pop(context);
         return;
@@ -383,7 +386,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         'Error',
         'Failed to initialize arena: $e',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor,
+        backgroundColor: context.errorColor,
       );
       Future.delayed(const Duration(seconds: 2), () {
         Navigator.pop(context);
@@ -425,7 +428,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         'Voice Locked 🔒',
         'You are a listener. Tap any empty seat to join the stage and speak!',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.warningColor.withOpacity(0.9),
+        backgroundColor: context.warningColor.withOpacity(0.9),
         colorText: Colors.white,
       );
       return;
@@ -455,7 +458,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         'Camera Locked 🔒',
         'You must join a seat to turn on your camera.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.warningColor.withOpacity(0.9),
+        backgroundColor: context.warningColor.withOpacity(0.9),
       );
       return;
     }
@@ -487,7 +490,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         'Stage Joined 🎤',
         'You are now in Seat ${seatIndex + 1}. Speak freely!',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.successColor.withOpacity(0.9),
+        backgroundColor: context.successColor.withOpacity(0.9),
         colorText: Colors.white,
       );
     } catch (e) {
@@ -509,7 +512,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         'Left Stage 🚪',
         'You returned to the audience. Your microphone has been muted.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.warningColor.withOpacity(0.9),
+        backgroundColor: context.warningColor.withOpacity(0.9),
         colorText: Colors.white,
       );
     } catch (e) {
@@ -520,8 +523,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   void _showLeaveSeatMenu(int seatIndex) {
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -549,9 +552,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.close, color: AppTheme.textTertiary),
-              title: const Text('Cancel',
-                  style: TextStyle(color: AppTheme.textTertiary)),
+              leading: Icon(Icons.close, color: context.caption),
+              title: Text('Cancel',
+                  style: TextStyle(color: context.caption)),
               onTap: () => Get.back(),
             ),
           ],
@@ -1216,8 +1219,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(16),
@@ -1335,7 +1338,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
-          color: AppTheme.bgDark.withOpacity(0.98),
+          color: context.scaffoldBackgroundColor.withOpacity(0.98),
           borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
           border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
         ),
@@ -1647,14 +1650,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(
+              CircularProgressIndicator(
                   valueColor:
-                      AlwaysStoppedAnimation<Color>(AppTheme.primaryColor)),
+                      AlwaysStoppedAnimation<Color>(context.primaryColor)),
               const SizedBox(height: 24),
               Text('Connecting to Arena...',
                   style:
@@ -1666,7 +1669,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: SafeArea(
         child: Stack(
           children: [
@@ -1986,7 +1989,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         onTap: () {
           _handleSeatClick(
             index,
-            isOccupied ? ZegoUIKitUser(id: userId!, name: userName) : null,
+            isOccupied ? ZegoUser(userId!, userName) : null,
           );
         },
         child: isOccupied
@@ -2001,7 +2004,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 child: avatarUrl != null && avatarUrl.isNotEmpty
                     ? Image.network(avatarUrl, fit: BoxFit.cover)
                     : Container(
-                        color: AppTheme.primaryColor.withOpacity(0.2),
+                        color: context.primaryColor.withOpacity(0.2),
                         child: Center(
                           child: Text(
                             userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
@@ -2292,7 +2295,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     );
   }
 
-  Widget _buildCustomSeatAvatar(Size size, ZegoUIKitUser? user, int index) {
+  Widget _buildCustomSeatAvatar(Size size, ZegoUser? user, int index) {
     bool isOccupied = false;
     bool isSpeaking = false;
     bool isMuted = false;
@@ -2300,9 +2303,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
     if (user != null) {
       isOccupied = true;
-      userId = user.id;
-      isSpeaking = user.microphone.value;
-      isMuted = _controller.mutedUsers[widget.roomId]?.contains(user.id) ?? false;
+      userId = user.userID;
+      final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
+      final seatIndex = seatsList.indexWhere((s) => s['userId'] == user.userID);
+      isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
+      isMuted = _controller.mutedUsers[widget.roomId]?.contains(user.userID) ?? false;
     } else if (index >= 0 && index < _seats.length) {
       final mockSeat = _seats[index];
       if (mockSeat['userId'] != null) {
@@ -2320,7 +2325,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     final avatarCircle = isOccupied
         ? CustomAvatarFrame(
             userId: userId!,
-            username: user?.name ?? '',
+            username: user?.userName ?? '',
             size: customWidth,
             child: CircleAvatar(
               backgroundImage: NetworkImage(_getUserDp(userId!)),
@@ -2365,7 +2370,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 height: customHeight + (12 * _glowController.value),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: (index == 0 ? Colors.amber : AppTheme.primaryColor)
+                  color: (index == 0 ? Colors.amber : context.primaryColor)
                       .withOpacity(0.4 * (1 - _glowController.value)),
                 ),
               );
@@ -2446,7 +2451,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               children: [
                 Text(
                   isOccupied
-                      ? (user?.name ?? _seats[index]['name'] as String)
+                      ? (user?.userName ?? _seats[index]['name'] as String)
                       : (index == 0 ? 'Host' : 'Co-Host'),
                   style: GoogleFonts.poppins(
                     color: Colors.white,
@@ -2556,7 +2561,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     );
   }
 
-  Widget _buildCustomSeatForeground(ZegoUIKitUser? user, int index) {
+  Widget _buildCustomSeatForeground(ZegoUser? user, int index) {
     return const SizedBox.shrink();
   }
 
@@ -2645,60 +2650,83 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     if (isConsecutive) {
       leftSide = const SizedBox(width: 44);
     } else {
-      leftSide = Container(
-        margin: const EdgeInsets.only(right: 8),
-        width: 36,
-        height: 36,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            if (isSpeaking)
-              Positioned.fill(
+      leftSide = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          final occupiedSeats = (_controller.roomSeatsInfo[widget.roomId] ?? [])
+              .where((s) => s['userId'] != null)
+              .length;
+          Get.dialog(
+            MiniProfileDialog(
+              roomId: widget.roomId,
+              callerUserId: RoomController.currentUserId,
+              targetUserId: message.senderId,
+              targetUserName: message.senderName,
+              role: message.senderRole ?? 'Guest',
+              seatIndex: -1,
+              isHost: (() {
+                final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+                return room?.hostId == RoomController.currentUserId || room?.founderId == RoomController.currentUserId;
+              })(),
+              occupiedSeatsCount: occupiedSeats,
+            ),
+          );
+        },
+        child: Container(
+          margin: const EdgeInsets.only(right: 8),
+          width: 36,
+          height: 36,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              if (isSpeaking)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.pinkAccent.withOpacity(0.6),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              CircleAvatar(
+                radius: 18,
+                backgroundImage: message.senderAvatar != null && message.senderAvatar!.isNotEmpty
+                    ? NetworkImage(message.senderAvatar!)
+                    : const AssetImage('assets/images/placeholder.png') as ImageProvider,
+              ),
+              if (message.avatarFrame != null && message.avatarFrame != 'Normal' && message.avatarFrame!.isNotEmpty)
+                Positioned(
+                  top: -4,
+                  left: -4,
+                  right: -4,
+                  bottom: -4,
+                  child: Image.network(
+                    message.avatarFrame!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+              Positioned(
+                bottom: 0,
+                right: 0,
                 child: Container(
+                  width: 8,
+                  height: 8,
                   decoration: BoxDecoration(
+                    color: Colors.greenAccent,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.pinkAccent.withOpacity(0.6),
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                      )
-                    ],
+                    border: Border.all(color: Colors.black87, width: 1.5),
                   ),
                 ),
               ),
-            CircleAvatar(
-              radius: 18,
-              backgroundImage: message.senderAvatar != null && message.senderAvatar!.isNotEmpty
-                  ? NetworkImage(message.senderAvatar!)
-                  : const AssetImage('assets/images/placeholder.png') as ImageProvider,
-            ),
-            if (message.avatarFrame != null && message.avatarFrame != 'Normal' && message.avatarFrame!.isNotEmpty)
-              Positioned(
-                top: -4,
-                left: -4,
-                right: -4,
-                bottom: -4,
-                child: Image.network(
-                  message.avatarFrame!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Colors.greenAccent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.black87, width: 1.5),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -2827,14 +2855,37 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Flexible(
-                            child: Text(
-                              message.senderName,
-                              style: GoogleFonts.poppins(
-                                color: Colors.cyanAccent,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                final occupiedSeats = (_controller.roomSeatsInfo[widget.roomId] ?? [])
+                                    .where((s) => s['userId'] != null)
+                                    .length;
+                                Get.dialog(
+                                  MiniProfileDialog(
+                                    roomId: widget.roomId,
+                                    callerUserId: RoomController.currentUserId,
+                                    targetUserId: message.senderId,
+                                    targetUserName: message.senderName,
+                                    role: message.senderRole ?? 'Guest',
+                                    seatIndex: -1,
+                                    isHost: (() {
+                                       final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+                                       return room?.hostId == RoomController.currentUserId || room?.founderId == RoomController.currentUserId;
+                                     })(),
+                                    occupiedSeatsCount: occupiedSeats,
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                message.senderName,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.cyanAccent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -3212,12 +3263,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         padding: const EdgeInsets.all(9),
                         decoration: BoxDecoration(
                           color: _isMicOn
-                              ? AppTheme.primaryColor.withOpacity(0.2)
+                              ? context.primaryColor.withOpacity(0.2)
                               : Colors.red.withOpacity(0.15),
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: _isMicOn
-                                ? AppTheme.primaryColor.withOpacity(0.5)
+                                ? context.primaryColor.withOpacity(0.5)
                                 : Colors.red.withOpacity(0.5),
                             width: 1.5,
                           ),
@@ -3225,7 +3276,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         child: Icon(
                           _isMicOn ? Icons.mic : Icons.mic_off,
                           color: _isMicOn
-                              ? AppTheme.primaryColor
+                              ? context.primaryColor
                               : Colors.redAccent,
                           size: 18,
                         ),
@@ -3515,7 +3566,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             
             // Custom Upload Option
             ListTile(
-              leading: const Icon(Icons.cloud_upload_rounded, color: AppTheme.primaryColor),
+              leading: Icon(Icons.cloud_upload_rounded, color: context.primaryColor),
               title: Text(
                 'Upload Custom Cover Photo',
                 style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
@@ -3541,8 +3592,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   Future<void> _pickAndUploadBanner(String roomId) async {
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -3578,7 +3629,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Cancel', style: TextStyle(color: AppTheme.textTertiary)),
+              child: Text('Cancel', style: TextStyle(color: context.caption)),
             ),
           ],
         ),
@@ -3592,11 +3643,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       final pickedFile = await picker.pickImage(source: source);
       if (pickedFile == null) return;
 
-      final file = io.File(pickedFile.path);
+      final editedFile = await CustomImageEditor.editImage(context, io.File(pickedFile.path));
+      if (editedFile == null) return;
+
+      final file = io.File(editedFile.path);
 
       Get.dialog(
         Dialog(
-          backgroundColor: AppTheme.bgDark,
+          backgroundColor: context.scaffoldBackgroundColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -4023,47 +4077,43 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               // Header options: Members list, Settings, Level indicator
               Row(
                 children: [
-                  StreamBuilder<List<ZegoUIKitUser>>(
-                    stream: ZegoUIKit().getUserListStream(),
-                    initialData: const [],
-                    builder: (context, snapshot) {
-                      final users = snapshot.data ?? [];
-                      final count = users.length;
+                  Obx(() {
+                    final users = ZegoCloudService().roomUsers;
+                    final count = users.length;
 
-                      return GestureDetector(
-                        onTap: () {
-                          Get.dialog(OnlineMembersDialog(
-                            roomId: widget.roomId,
-                            room: room,
-                          ));
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withOpacity(0.1), width: 0.5),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('👥', style: TextStyle(fontSize: 12)),
-                              const SizedBox(width: 4),
-                              Text(
-                                '$count',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                    return GestureDetector(
+                      onTap: () {
+                        Get.dialog(OnlineMembersDialog(
+                          roomId: widget.roomId,
+                          room: room,
+                        ));
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withOpacity(0.1), width: 0.5),
                         ),
-                      );
-                    },
-                  ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('👥', style: TextStyle(fontSize: 12)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '$count',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
                   IconButton(
                     icon: const Icon(Icons.settings_outlined,
                         color: Colors.white70, size: 22),
@@ -4082,7 +4132,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                           'Permission Denied',
                           'Only the Founder, Manager, or Moderators can access settings.',
                           snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: AppTheme.errorColor.withOpacity(0.8),
+                          backgroundColor: context.errorColor.withOpacity(0.8),
                           colorText: Colors.white,
                         );
                       }
@@ -4198,13 +4248,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.2),
+              color: context.primaryColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
               children: [
-                const Icon(Icons.people,
-                    color: AppTheme.primaryColor, size: 10),
+                Icon(Icons.people,
+                    color: context.primaryColor, size: 10),
                 const SizedBox(width: 4),
                 Text(
                   '${room.participantCount}',
@@ -4591,7 +4641,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   // Show add song input popup
                   final txtController = TextEditingController();
                   Get.defaultDialog(
-                    backgroundColor: AppTheme.bgDark,
+                    backgroundColor: context.scaffoldBackgroundColor,
                     title: 'Request Song',
                     titleStyle:
                         const TextStyle(color: Colors.white, fontSize: 15),
@@ -4826,7 +4876,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       // Moderator or above
                       Get.bottomSheet(
                         Container(
-                          color: AppTheme.bgLight,
+                          color: context.secondaryBackgroundColor,
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -4857,7 +4907,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         'Seat Locked 🔒',
                         'This seat has been locked by the host.',
                         snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: AppTheme.errorColor.withOpacity(0.8),
+                        backgroundColor: context.errorColor.withOpacity(0.8),
                         colorText: Colors.white,
                       );
                     }
@@ -4881,7 +4931,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                             shape: BoxShape.circle,
                             color: (seat['role'] == 'Host'
                                     ? Colors.amber
-                                    : AppTheme.primaryColor)
+                                    : context.primaryColor)
                                 .withOpacity(0.3 * (1 - _glowController.value)),
                           ),
                         );
@@ -4948,8 +4998,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       right: 0,
                       child: Container(
                         padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                            color: AppTheme.errorColor, shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                            color: context.errorColor, shape: BoxShape.circle),
                         child: const Icon(Icons.mic_off,
                             color: Colors.white, size: 8),
                       ),
@@ -4982,7 +5032,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 : Text(
                     isLocked ? 'Locked' : 'Empty',
                     style: GoogleFonts.poppins(
-                      color: AppTheme.textTertiary,
+                      color: context.caption,
                       fontSize: 9.5,
                       fontWeight: FontWeight.normal,
                     ),
@@ -5068,7 +5118,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight.withOpacity(0.9),
+        color: context.secondaryBackgroundColor.withOpacity(0.9),
         border: Border(
             top: BorderSide(color: Colors.white.withOpacity(0.05), width: 0.5)),
       ),
@@ -5223,8 +5273,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 onTap: () => _submitChatMessage(room),
                 child: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                      color: AppTheme.primaryColor, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                      color: context.primaryColor, shape: BoxShape.circle),
                   child: const Icon(Icons.send, color: Colors.white, size: 14),
                 ),
               ),
@@ -5240,7 +5290,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               _buildDockButton(
                 icon: _isMicOn ? Icons.mic : Icons.mic_off,
                 label: 'Mute',
-                color: _isMicOn ? AppTheme.primaryColor : Colors.white38,
+                color: _isMicOn ? context.primaryColor : Colors.white38,
                 onTap: _toggleMic,
               ),
 
@@ -5248,7 +5298,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               _buildDockButton(
                 icon: _isCameraOn ? Icons.videocam : Icons.videocam_off,
                 label: 'Camera',
-                color: _isCameraOn ? AppTheme.primaryColor : Colors.white38,
+                color: _isCameraOn ? context.primaryColor : Colors.white38,
                 onTap: _toggleCamera,
               ),
 
@@ -5281,7 +5331,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               _buildDockButton(
                 icon: Icons.call_end,
                 label: 'Leave',
-                color: AppTheme.errorColor,
+                color: context.errorColor,
                 onTap: _leaveRoom,
               ),
             ],
@@ -5385,7 +5435,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
-          color: AppTheme.bgLight,
+          color: context.secondaryBackgroundColor,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
@@ -5494,7 +5544,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     );
   }
 
-  void _handleSeatClick(int index, ZegoUIKitUser? user) {
+  void _handleSeatClick(int index, ZegoUser? user) {
     final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
     final callerRole = _controller.getUserRole(room, widget.userId);
     final callerWeight = _controller.getRoleWeight(callerRole);
@@ -5505,9 +5555,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     bool isOccupied = false;
 
     if (user != null) {
-      seatUserId = user.id;
-      seatUserName = user.name;
-      seatRole = _controller.getUserRole(room, user.id);
+      seatUserId = user.userID;
+      seatUserName = user.userName;
+      seatRole = _controller.getUserRole(room, user.userID);
       isOccupied = true;
     } else if (index >= 0 && index < _seats.length) {
       final mockSeat = _seats[index];
@@ -5538,7 +5588,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             'Seat Locked 🔒',
             'This seat has been locked by the management.',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: AppTheme.errorColor.withOpacity(0.8),
+            backgroundColor: context.errorColor.withOpacity(0.8),
             colorText: Colors.white,
           );
         }
@@ -5555,8 +5605,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   void _showSelfSeatActions(int seatIndex) {
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -5576,7 +5626,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             const SizedBox(height: 16),
             ListTile(
               leading: Icon(_isMicOn ? Icons.mic_off : Icons.mic,
-                  color: AppTheme.primaryColor),
+                  color: context.primaryColor),
               title: Text(_isMicOn ? 'Mute Microphone' : 'Unmute Microphone',
                   style: const TextStyle(color: Colors.white)),
               onTap: () {
@@ -5594,9 +5644,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.close, color: AppTheme.textTertiary),
-              title: const Text('Cancel',
-                  style: TextStyle(color: AppTheme.textTertiary)),
+              leading: Icon(Icons.close, color: context.caption),
+              title: Text('Cancel',
+                  style: TextStyle(color: context.caption)),
               onTap: () => Get.back(),
             ),
           ],
@@ -5608,8 +5658,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   void _showLockedSeatActions(int seatIndex) {
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -5642,7 +5692,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.mic, color: AppTheme.primaryColor),
+              leading: Icon(Icons.mic, color: context.primaryColor),
               title: const Text('Take Seat & Unlock',
                   style: TextStyle(color: Colors.white)),
               onTap: () {
@@ -5655,9 +5705,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.close, color: AppTheme.textTertiary),
-              title: const Text('Cancel',
-                  style: TextStyle(color: AppTheme.textTertiary)),
+              leading: Icon(Icons.close, color: context.caption),
+              title: Text('Cancel',
+                  style: TextStyle(color: context.caption)),
               onTap: () => Get.back(),
             ),
           ],
@@ -5669,8 +5719,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   void _showOpenSeatManagementActions(int seatIndex) {
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -5689,7 +5739,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.mic, color: AppTheme.primaryColor),
+              leading: Icon(Icons.mic, color: context.primaryColor),
               title: const Text('Take Seat',
                   style: TextStyle(color: Colors.white)),
               onTap: () {
@@ -5712,9 +5762,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.close, color: AppTheme.textTertiary),
-              title: const Text('Cancel',
-                  style: TextStyle(color: AppTheme.textTertiary)),
+              leading: Icon(Icons.close, color: context.caption),
+              title: Text('Cancel',
+                  style: TextStyle(color: context.caption)),
               onTap: () => Get.back(),
             ),
           ],
@@ -5813,16 +5863,73 @@ class MiniProfileDialog extends StatefulWidget {
   State<MiniProfileDialog> createState() => _MiniProfileDialogState();
 }
 
-class _MiniProfileDialogState extends State<MiniProfileDialog> {
-  bool _isFollowing = false;
-  bool _showModMenu = false;
+class PulsingOnlineIndicator extends StatefulWidget {
+  const PulsingOnlineIndicator({Key? key}) : super(key: key);
+  @override
+  State<PulsingOnlineIndicator> createState() => _PulsingOnlineIndicatorState();
+}
+
+class _PulsingOnlineIndicatorState extends State<PulsingOnlineIndicator> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+  }
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        return Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF10B981),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10B981).withOpacity(0.2 + 0.6 * _animationController.value),
+                blurRadius: 4 + 4 * _animationController.value,
+                spreadRadius: 1 + 2 * _animationController.value,
+              )
+            ],
+            border: Border.all(color: const Color(0xFF1F1B2C), width: 2),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
   final RoomController _controller = RoomController.to;
 
   @override
   void initState() {
     super.initState();
-    _isFollowing = false;
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _scaleAnimation = CurvedAnimation(parent: _animController, curve: Curves.easeOutBack);
+    _fadeAnimation = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _animController.forward();
     _resolveProfile();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   void _resolveProfile() {
@@ -5861,516 +5968,300 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> {
     return (userId.hashCode.abs() % 90000000 + 10000000).toString();
   }
 
-  Widget _dialogTag(String label, String icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.35), width: 0.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(icon, style: const TextStyle(fontSize: 9)),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: color,
-              fontSize: 8,
-              fontWeight: FontWeight.bold,
-            ),
+  String _formatStatValue(int value) {
+    if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(1)}k';
+    }
+    return value.toString();
+  }
+
+  void _showReportUserSheet(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0E17).withOpacity(0.95),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
           ),
-        ],
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Report User',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Select a reason for reporting ${widget.targetUserName}:',
+              style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ...[
+              'Harassment or Abuse',
+              'Spam or Scam',
+              'Inappropriate Profile Picture/Bio',
+              'Hate Speech',
+              'Intellectual Property Violation',
+            ].map((reason) {
+              return ListTile(
+                leading: const Icon(Icons.report_problem_rounded, color: Colors.orangeAccent, size: 18),
+                title: Text(reason, style: GoogleFonts.poppins(color: Colors.white, fontSize: 13)),
+                onTap: () {
+                  Get.back();
+                  Get.snackbar(
+                    'Report Submitted 📩',
+                    'Thank you for reporting. Our moderation team will review this user shortly.',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: const Color(0xFF10B981),
+                    colorText: Colors.white,
+                  );
+                },
+              );
+            }).toList(),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Get.back(),
+                child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.white38)),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  void _showThreeDotMenuSheet(BuildContext context) {
+    final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
+    final callerRole = _controller.getUserRole(room, widget.callerUserId);
+    final targetRole = _controller.getUserRole(room, widget.targetUserId);
+
+    final isMuted = _controller.mutedUsers[widget.roomId]?.contains(widget.targetUserId) ?? false;
+    final isChatMuted = _controller.mutedChatUsers[widget.roomId]?.contains(widget.targetUserId) ?? false;
+
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0E17).withOpacity(0.95),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Moderation & Options',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.person_remove_rounded, color: Colors.orangeAccent),
+              title: Text('Remove From Room', style: GoogleFonts.poppins(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _controller.moderateKickUser(widget.roomId, widget.targetUserId);
+                Get.back();
+                Get.snackbar('Success 🎉', 'User has been removed from the room.', snackPosition: SnackPosition.BOTTOM);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.block_flipped, color: Colors.redAccent),
+              title: Text('Ban From Room', style: GoogleFonts.poppins(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _showKickDurationSelector(context);
+              },
+            ),
+            if (callerRole == 'Owner')
+              ListTile(
+                leading: const Icon(Icons.manage_accounts_rounded, color: Colors.cyanAccent),
+                title: Text('Change Role', style: GoogleFonts.poppins(color: Colors.white)),
+                onTap: () {
+                  Get.back();
+                  _showChangeRoleSheet(context);
+                },
+              ),
+            ListTile(
+              leading: Icon(isMuted ? Icons.mic_rounded : Icons.mic_off_rounded, color: Colors.greenAccent),
+              title: Text(isMuted ? 'Unmute Voice' : 'Mute Voice', style: GoogleFonts.poppins(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _controller.toggleMuteUser(widget.roomId, widget.targetUserId);
+                setState(() {});
+                Get.snackbar('Success 🎉', isMuted ? 'Voice unmuted.' : 'Voice muted.', snackPosition: SnackPosition.BOTTOM);
+              },
+            ),
+            ListTile(
+              leading: Icon(isChatMuted ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded, color: Colors.blueAccent),
+              title: Text(isChatMuted ? 'Unmute Chat' : 'Mute Chat', style: GoogleFonts.poppins(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _controller.toggleMuteUserChat(widget.roomId, widget.targetUserId);
+                setState(() {});
+                Get.snackbar('Success 🎉', isChatMuted ? 'Chat unmuted.' : 'Chat muted.', snackPosition: SnackPosition.BOTTOM);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history_rounded, color: Colors.purpleAccent),
+              title: Text('View Moderation History', style: GoogleFonts.poppins(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _showModHistoryDialog(context);
+              },
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Get.back(),
+                child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.white38)),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  void _showChangeRoleSheet(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0E17),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Select New Role',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.person_outline_rounded, color: Colors.white70),
+              title: Text('Member', style: GoogleFonts.poppins(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _controller.changeUserRole(widget.roomId, widget.targetUserId, 'Guest');
+                Get.snackbar('Success 🎉', 'Role updated to Member.', snackPosition: SnackPosition.BOTTOM);
+                setState(() {});
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.security_rounded, color: Colors.blueAccent),
+              title: Text('Admin', style: GoogleFonts.poppins(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _controller.changeUserRole(widget.roomId, widget.targetUserId, 'Admin');
+                Get.snackbar('Success 🎉', 'Role updated to Admin.', snackPosition: SnackPosition.BOTTOM);
+                setState(() {});
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.star_rounded, color: Colors.amberAccent),
+              title: Text('Co Owner', style: GoogleFonts.poppins(color: Colors.white)),
+              onTap: () {
+                Get.back();
+                _controller.changeUserRole(widget.roomId, widget.targetUserId, 'Co-owner');
+                Get.snackbar('Success 🎉', 'Role updated to Co Owner.', snackPosition: SnackPosition.BOTTOM);
+                setState(() {});
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final numericId = _getNumericId(widget.targetUserId);
-    final avatarUrl = _getUserDp(widget.targetUserId);
-    final isMuted =
-        _controller.mutedUsers[widget.roomId]?.contains(widget.targetUserId) ??
-            false;
-    final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
-
-    // Contextual actions based on caller vs target roles weights
-    final callerRole = _controller.getUserRole(room, widget.callerUserId);
-    final callerWeight = _controller.getRoleWeight(callerRole);
-    final targetWeight = _controller.getRoleWeight(widget.role);
-    final canModerate =
-        callerWeight > targetWeight && callerWeight >= 7; // Mod weight is 7
-
-    return Obx(() {
-      final u = UserProfileCacheManager.rxCache[widget.targetUserId] ?? UserProfileCacheManager.getCachedUser(widget.targetUserId);
-      final String uName = u?.username ?? widget.targetUserName;
-      final String uAvatar = u?.avatar ?? avatarUrl;
-      final int uLevel = u?.level ?? 25;
-      final int vipLevel = u?.vipLevel ?? 0;
-      final int novelLevel = u?.novelLevel ?? 0;
-      final bool isVIP = vipLevel > 0 || widget.targetUserId == 'uid_anurag_101' || widget.role == 'Owner' || widget.role == 'Co-owner';
-
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          width: 310,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF1E1B4B), // Dark Purple
-                Color(0xFF09090B), // Black
-              ],
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF8B5CF6).withOpacity(0.15),
-                blurRadius: 16,
-                spreadRadius: 2,
+  void _showModHistoryDialog(BuildContext context) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF13121F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Moderation History',
+                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'No recent violations or moderator actions found for this user.',
+                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
+                  onPressed: () => Get.back(),
+                  child: Text('Close', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
               )
             ],
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Top Cover Banner
-                Container(
-                  height: 80,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)],
-                    ),
-                    borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(22),
-                        topRight: Radius.circular(22)),
-                  ),
-                ),
-
-                Transform.translate(
-                  offset: const Offset(0, -35),
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Get.back(); // close the mini profile dialog first
-                          final currentUid = Supabase.instance.client.auth.currentUser?.id;
-                          final isMe = widget.targetUserId == widget.callerUserId || widget.targetUserId == 'uid_anurag_101' || widget.targetUserId == 'me' || (currentUid != null && widget.targetUserId == currentUid);
-                          if (isMe) {
-                            Get.to(() => const ProfileScreen());
-                          } else {
-                            final cached = UserProfileCacheManager.getCachedUser(widget.targetUserId);
-                            if (cached != null) {
-                              Get.to(() => UserProfileScreen(user: cached));
-                            } else {
-                              final targetUser = User(
-                                id: widget.targetUserId,
-                                username: uName.toLowerCase().replaceAll(' ', '_'),
-                                email: '${widget.targetUserId}@example.com',
-                                displayName: uName,
-                                avatar: uAvatar,
-                                interests: ['Flutter', 'Live Audio', 'Gamification'],
-                                communities: ['Creania StarStage'],
-                                followers: 1240,
-                                following: 380,
-                                isVerified: widget.targetUserId == 'uid_anurag_101' || widget.role == 'Owner' || widget.role == 'Co-owner',
-                                isPremium: isVIP,
-                                reputation: 2350,
-                                sid: (widget.targetUserId.hashCode.abs() % 900000 + 100000).toString(),
-                                level: uLevel,
-                                xp: 340,
-                                totalXp: 1000,
-                              );
-                              Get.to(() => UserProfileScreen(user: targetUser));
-                            }
-                          }
-                        },
-                        child: CustomAvatarFrame(
-                          userId: widget.targetUserId,
-                          username: uName,
-                          size: 70,
-                          defaultVipLevel: vipLevel,
-                          defaultNovelLevel: novelLevel,
-                          child: CircleAvatar(
-                            radius: 35,
-                            backgroundImage: uAvatar.isNotEmpty ? CachedNetworkImageProvider(uAvatar) : null,
-                            child: uAvatar.isEmpty ? const Icon(Icons.person, size: 30, color: Colors.white54) : null,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Name
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          PremiumNameWidget(
-                            name: uName,
-                            userId: widget.targetUserId,
-                            style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(width: 4),
-                          if (isVIP || u?.isVerified == true)
-                            const Icon(Icons.verified_rounded, color: Color(0xFF38BDF8), size: 14),
-                          const SizedBox(width: 4),
-                          GestureDetector(
-                            onTap: () {
-                              Clipboard.setData(ClipboardData(text: uName));
-                              Get.snackbar('Copied!', 'Username copied to clipboard.', snackPosition: SnackPosition.BOTTOM);
-                            },
-                            child: const Icon(Icons.copy_rounded,
-                                color: Colors.white38, size: 12),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-
-                      // Unique ID
-                      Text('ID: $numericId',
-                          style: GoogleFonts.poppins(
-                              color: const Color(0xFFFFC107),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-
-                      // Dynamic Tag Row inside dialog
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          if (vipLevel > 0)
-                            _dialogTag('VIP $vipLevel', '👑', const Color(0xFFFFC107)),
-                          if (novelLevel > 0)
-                            _dialogTag('Novel $novelLevel', '📖', const Color(0xFFF97316)),
-                          _dialogTag('Lv.$uLevel', '🆔', const Color(0xFF8B5CF6)),
-                          _dialogTag('CS Lv.12', '💻', const Color(0xFF38BDF8)),
-                          _dialogTag('Developer', '🏷', const Color(0xFFEC4899)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Gifts & Contribution stats
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFC107).withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFFFC107).withOpacity(0.2)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.card_giftcard_rounded, color: Color(0xFFFFC107), size: 12),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Gifts: ${isVIP ? "65.6K" : "14.2K"}',
-                                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFD946EF).withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFD946EF).withOpacity(0.2)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.bolt, color: Color(0xFFD946EF), size: 13),
-                                const SizedBox(width: 2),
-                                Text(
-                                  'Contributed: ${isVIP ? "9.2K" : "4.5K"}',
-                                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                Transform.translate(
-                  offset: const Offset(0, -20),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      children: [
-                        // View Profile Button
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: Colors.white.withOpacity(0.12)),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                              onPressed: () {
-                                Get.back(); // Close dialog
-                                final currentUid = Supabase.instance.client.auth.currentUser?.id;
-                                final isMe = widget.targetUserId == widget.callerUserId || widget.targetUserId == 'uid_anurag_101' || widget.targetUserId == 'me' || (currentUid != null && widget.targetUserId == currentUid);
-                                if (isMe) {
-                                  Get.to(() => const ProfileScreen());
-                                } else {
-                                  final cached = UserProfileCacheManager.getCachedUser(widget.targetUserId);
-                                  if (cached != null) {
-                                    Get.to(() => UserProfileScreen(user: cached));
-                                  } else {
-                                    final targetUser = User(
-                                      id: widget.targetUserId,
-                                      username: uName.toLowerCase().replaceAll(' ', '_'),
-                                      email: '${widget.targetUserId}@example.com',
-                                      displayName: uName,
-                                      avatar: uAvatar,
-                                      interests: ['Flutter', 'Live Audio', 'Gamification'],
-                                      communities: ['Creania StarStage'],
-                                      followers: 1240,
-                                      following: 380,
-                                      isVerified: widget.targetUserId == 'uid_anurag_101' || widget.role == 'Founder' || widget.role == 'Co-owner',
-                                      isPremium: isVIP,
-                                      reputation: 2350,
-                                      sid: (widget.targetUserId.hashCode.abs() % 900000 + 100000).toString(),
-                                      level: uLevel,
-                                      xp: 340,
-                                      totalXp: 1000,
-                                    );
-                                    Get.to(() => UserProfileScreen(user: targetUser));
-                                  }
-                                }
-                              },
-                              icon: const Icon(Icons.person_outline_rounded, size: 16, color: Colors.white),
-                              label: Text('View Profile',
-                                  style: GoogleFonts.poppins(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ),
-
-                        // Gifting Button inside dialog
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFFC107),
-                                foregroundColor: Colors.black87,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                              onPressed: () {
-                                Get.back();
-                                Get.dialog(SendGiftDialog(
-                                  roomId: widget.roomId,
-                                  occupiedSeatsCount: widget.occupiedSeatsCount,
-                                  targetUserId: widget.targetUserId,
-                                  targetUserName: uName,
-                                ));
-                              },
-                              icon: const Icon(Icons.card_giftcard_rounded, size: 16),
-                              label: Text('Send Gift',
-                                  style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.bold, fontSize: 11)),
-                            ),
-                          ),
-                        ),
-
-                        // Mute / Unmute Button (based on showMute logic)
-                        if ((callerWeight == 10 && targetWeight < 9) || 
-                            (callerWeight == 9 && targetWeight < 8) || 
-                            (callerWeight == 8 && targetWeight < 7))
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF38BDF8),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
-                                ),
-                                onPressed: () {
-                                  _controller.toggleMuteUser(widget.roomId, widget.targetUserId);
-                                  setState(() {});
-                                  Get.snackbar(
-                                    isMuted ? 'Unmuted 🎙' : 'Muted 🔇',
-                                    '$uName has been ${isMuted ? 'unmuted' : 'muted'}.',
-                                    snackPosition: SnackPosition.BOTTOM,
-                                  );
-                                },
-                                icon: Icon(isMuted ? Icons.mic_rounded : Icons.mic_off_rounded, size: 16),
-                                label: Text(isMuted ? 'Unmute' : 'Mute',
-                                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 11)),
-                              ),
-                            ),
-                          ),
-
-                        // Kick from Seat / Leave Stage Button
-                        if ((callerWeight == 10 && targetWeight <= 9) || 
-                            (callerWeight == 9 && targetWeight <= 8) || 
-                            (callerWeight == 8 && targetWeight <= 7))
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFEF408B),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
-                                ),
-                                onPressed: () {
-                                  Get.back();
-                                  if (widget.onMoveToAudience != null) {
-                                    widget.onMoveToAudience!();
-                                  }
-                                },
-                                icon: const Icon(Icons.airline_seat_recline_normal_rounded, size: 16),
-                                label: Text('Kick from Seat',
-                                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 11)),
-                              ),
-                            ),
-                          ),
-
-                        // More Moderation Options collapse panel (Kick from Arena, Ban)
-                        if (canModerate && (callerWeight - targetWeight) > 1) ...[
-                          const Divider(color: Colors.white10),
-                          const SizedBox(height: 4),
-                          GestureDetector(
-                            onTap: () =>
-                                setState(() => _showModMenu = !_showModMenu),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Admin Moderation Tools',
-                                    style: GoogleFonts.poppins(
-                                        color: Colors.redAccent,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold)),
-                                Icon(
-                                    _showModMenu
-                                        ? Icons.keyboard_arrow_up_rounded
-                                        : Icons.keyboard_arrow_down_rounded,
-                                    color: Colors.white54,
-                                    size: 16),
-                              ],
-                            ),
-                          ),
-                          if (_showModMenu) ...[
-                            const SizedBox(height: 8),
-
-                            // Change Role dropdown
-                            Row(
-                              children: [
-                                Text('Set Role: ',
-                                    style: GoogleFonts.poppins(
-                                        color: Colors.white70, fontSize: 10)),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                                      decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.04),
-                                          borderRadius: BorderRadius.circular(8)),
-                                      child: DropdownButtonHideUnderline(
-                                        child: () {
-                                          List<String> allowedRoles = [];
-                                          if (callerWeight == 10) {
-                                            allowedRoles = ['Co-owner', 'Admin', 'Star Member', 'Guest'];
-                                          } else if (callerWeight == 9) {
-                                            allowedRoles = ['Admin', 'Star Member', 'Guest'];
-                                          } else if (callerWeight == 8) {
-                                            allowedRoles = ['Star Member', 'Guest'];
-                                          }
-
-                                          final currentVal = allowedRoles.contains(widget.role)
-                                              ? widget.role
-                                              : (allowedRoles.isNotEmpty ? allowedRoles.last : 'Guest');
-
-                                          return DropdownButton<String>(
-                                            value: currentVal,
-                                            dropdownColor: const Color(0xFF18181B),
-                                            isExpanded: true,
-                                            style: GoogleFonts.poppins(
-                                                color: Colors.white, fontSize: 10),
-                                            items: allowedRoles
-                                                .map((role) => DropdownMenuItem(
-                                                    value: role, child: Text(role)))
-                                                .toList(),
-                                            onChanged: (newRole) {
-                                              if (newRole != null) {
-                                                _controller.changeUserRole(
-                                                    widget.roomId,
-                                                    widget.targetUserId,
-                                                    newRole);
-                                                Get.back();
-                                                Get.snackbar(
-                                                  'Role Assigned',
-                                                  'User role updated to $newRole.',
-                                                  snackPosition: SnackPosition.BOTTOM,
-                                                );
-                                              }
-                                            },
-                                          );
-                                        }(),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-
-                            _buildModTile(
-                              icon: Icons.logout_rounded,
-                              label: 'Kick from Arena...',
-                              color: Colors.orange,
-                              onTap: () {
-                                _showKickDurationSelector(context);
-                              },
-                            ),
-                            _buildModTile(
-                              icon: Icons.block_flipped,
-                              label: 'Ban permanently',
-                              color: Colors.redAccent,
-                              onTap: () {
-                                _controller.banUserWithDuration(widget.roomId,
-                                    widget.targetUserId, 'Forever');
-                                Get.back();
-                              },
-                            ),
-                          ],
-                        ]
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
-      );
-    });
+      ),
+    );
   }
 
   void _showKickDurationSelector(BuildContext context) {
@@ -6416,16 +6307,401 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> {
     );
   }
 
-  Widget _buildModTile(
-      {required IconData icon,
-      required String label,
-      required Color color,
-      required VoidCallback onTap}) {
+  Widget _buildStatColumn(String value, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            color: Colors.white54,
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final numericId = _getNumericId(widget.targetUserId);
+    final avatarUrl = _getUserDp(widget.targetUserId);
+    final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
+
+    final callerRole = _controller.getUserRole(room, widget.callerUserId);
+    final targetRole = _controller.getUserRole(room, widget.targetUserId);
+
+    bool showThreeDotMenu = false;
+    if (widget.callerUserId != widget.targetUserId) {
+      if (callerRole == 'Owner') {
+        showThreeDotMenu = true;
+      } else if (callerRole == 'Co-owner') {
+        if (targetRole != 'Owner' && targetRole != 'Co-owner' && targetRole != 'Admin') {
+          showThreeDotMenu = true;
+        }
+      } else if (callerRole == 'Admin') {
+        if (targetRole != 'Owner' && targetRole != 'Co-owner' && targetRole != 'Admin') {
+          showThreeDotMenu = true;
+        }
+      }
+    }
+
+    return Obx(() {
+      final u = UserProfileCacheManager.rxCache[widget.targetUserId] ?? UserProfileCacheManager.getCachedUser(widget.targetUserId);
+      final String uName = u?.username ?? widget.targetUserName;
+      final String uAvatar = u?.avatar ?? avatarUrl;
+      final int uLevel = u?.level ?? 25;
+      final int vipLevel = u?.vipLevel ?? 0;
+      final int novelLevel = u?.novelLevel ?? 0;
+      final bool isVIP = vipLevel > 0 || widget.targetUserId == 'uid_anurag_101' || widget.role == 'Owner' || widget.role == 'Co-owner';
+
+      return BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                width: 320,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF1E1C2E).withOpacity(0.85),
+                      const Color(0xFF0F0E17).withOpacity(0.95),
+                    ],
+                  ),
+                  border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Top Bar (Bookmark/Flag and Three Dot Menu)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.bookmark_border_rounded, color: Colors.white70),
+                          onPressed: () => _showReportUserSheet(context),
+                        ),
+                        if (showThreeDotMenu)
+                          IconButton(
+                            icon: const Icon(Icons.more_vert_rounded, color: Colors.white70),
+                            onPressed: () => _showThreeDotMenuSheet(context),
+                          )
+                        else
+                          const SizedBox(width: 48, height: 48),
+                      ],
+                    ),
+
+                    // Avatar centered with slightly overlap style
+                    Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.none,
+                      children: [
+                        CustomAvatarFrame(
+                          userId: widget.targetUserId,
+                          username: uName,
+                          size: 80,
+                          defaultVipLevel: vipLevel,
+                          defaultNovelLevel: novelLevel,
+                          child: CircleAvatar(
+                            radius: 40,
+                            backgroundImage: uAvatar.isNotEmpty ? CachedNetworkImageProvider(uAvatar) : null,
+                            child: uAvatar.isEmpty ? const Icon(Icons.person, size: 36, color: Colors.white54) : null,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 2,
+                          right: 2,
+                          child: const PulsingOnlineIndicator(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Username
+                    Text(
+                      uName,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 2),
+
+                    // User ID
+                    Text(
+                      'id $numericId',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white38,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Badges Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 0.8),
+                          ),
+                          child: Text(
+                            'lvl$uLevel',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFFC084FC),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (isVIP) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1B4B),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.5), width: 0.8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 10),
+                                const SizedBox(width: 2),
+                                Text(
+                                  'VIP',
+                                  style: GoogleFonts.poppins(
+                                    color: const Color(0xFFFBBF24),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.withOpacity(0.3), width: 0.8),
+                          ),
+                          child: Text(
+                            'Novel',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF38BDF8),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Bio
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        u?.bio ?? 'Crafting intuitive digital experiences. Passionate about minimalist design and front...',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white70,
+                          fontSize: 11,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    const Divider(color: Colors.white10, height: 1),
+                    const SizedBox(height: 12),
+
+                    // Stats Row (Followers, Following, Gifts, Contribute)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStatColumn(_formatStatValue(u?.followers ?? 1240), 'Followers'),
+                        _buildStatColumn(_formatStatValue(u?.following ?? 380), 'Following'),
+                        _buildStatColumn(isVIP ? '89' : '45', 'Gifts'),
+                        _buildStatColumn(isVIP ? '2.5k' : '1.2k', 'Contribute'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Bottom Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF5865F2), Color(0xFF4752C4)],
+                              ),
+                            ),
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onPressed: () {
+                                Get.back();
+                                final currentUid = Supabase.instance.client.auth.currentUser?.id;
+                                Get.to(() => UserProfileScreen(user: u ?? User(
+                                      id: widget.targetUserId,
+                                      username: uName.toLowerCase().replaceAll(' ', '_'),
+                                      email: '${widget.targetUserId}@example.com',
+                                      displayName: uName,
+                                      avatar: uAvatar,
+                                      followers: 1240,
+                                      following: 380,
+                                      isVerified: isVIP,
+                                      isPremium: isVIP,
+                                      level: uLevel,
+                                      interests: const [],
+                                      communities: const [],
+                                      reputation: 100,
+                                      sid: widget.targetUserId.hashCode.abs().toString(),
+                                    )));
+                              },
+                              icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 14),
+                              label: Text(
+                                'Message',
+                                style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.white.withOpacity(0.06),
+                              border: Border.all(color: Colors.white.withOpacity(0.12)),
+                            ),
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onPressed: () {
+                                Get.back();
+                                final currentUid = Supabase.instance.client.auth.currentUser?.id;
+                                final isMe = widget.targetUserId == widget.callerUserId || (currentUid != null && widget.targetUserId == currentUid);
+                                if (isMe) {
+                                  Get.to(() => const ProfileScreen());
+                                } else {                                  Get.to(() => UserProfileScreen(user: u ?? User(
+                                    id: widget.targetUserId,
+                                    username: uName.toLowerCase().replaceAll(' ', '_'),
+                                    email: '${widget.targetUserId}@example.com',
+                                    displayName: uName,
+                                    avatar: uAvatar,
+                                    followers: 1240,
+                                    following: 380,
+                                    isVerified: isVIP,
+                                    isPremium: isVIP,
+                                    level: uLevel,
+                                    interests: const [],
+                                    communities: const [],
+                                    reputation: 100,
+                                    sid: widget.targetUserId.hashCode.abs().toString(),
+                                  )));
+                                }
+                              },
+                              child: Text(
+                                'View Profile',
+                                style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: const Color(0xFFFBBF24).withOpacity(0.15),
+                              border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.3)),
+                            ),
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onPressed: () {
+                                Get.back();
+                                Get.dialog(SendGiftDialog(
+                                  roomId: widget.roomId,
+                                  occupiedSeatsCount: widget.occupiedSeatsCount,
+                                  targetUserId: widget.targetUserId,
+                                  targetUserName: uName,
+                                ));
+                              },
+                              icon: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFFBBF24), size: 14),
+                              label: Text(
+                                'Gift',
+                                style: GoogleFonts.poppins(color: const Color(0xFFFBBF24), fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return ListTile(
-      visualDensity: VisualDensity.compact,
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      leading: Icon(icon, color: color, size: 16),
+      leading: Icon(icon, color: Colors.white70, size: 20),
       title: Text(label,
           style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
       onTap: onTap,
@@ -6682,7 +6958,7 @@ class MemberListDialog extends StatelessWidget {
           width: Get.width * 0.9,
           height: 480,
           decoration: BoxDecoration(
-            color: AppTheme.bgDark.withOpacity(0.96),
+            color: context.scaffoldBackgroundColor.withOpacity(0.96),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: Colors.white10),
           ),
@@ -6690,9 +6966,9 @@ class MemberListDialog extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: const TabBar(
+                child: TabBar(
                   isScrollable: true,
-                  indicatorColor: AppTheme.primaryColor,
+                  indicatorColor: context.primaryColor,
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white38,
                   tabs: [
@@ -6706,25 +6982,21 @@ class MemberListDialog extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: StreamBuilder<List<ZegoUIKitUser>>(
-                  stream: ZegoUIKit().getUserListStream(),
-                  initialData: const [],
-                  builder: (context, snapshot) {
-                    final onlineUsers = snapshot.data ?? [];
-                    final onlineUserIds = onlineUsers.map((u) => u.id).toSet();
+                child: Obx(() {
+                  final onlineUsers = ZegoCloudService().roomUsers;
+                  final onlineUserIds = onlineUsers.map((u) => u.userID).toSet();
 
-                    return TabBarView(
-                      children: [
-                        _buildOnlineTab(onlineUsers),
-                        _buildManagementTab(onlineUserIds),
-                        _buildSpeakersTab(onlineUserIds),
-                        _buildElitesTab(onlineUserIds),
-                        _buildVipsTab(onlineUserIds),
-                        _buildAudienceTab(onlineUserIds, onlineUsers),
-                      ],
-                    );
-                  }
-                ),
+                  return TabBarView(
+                    children: [
+                      _buildOnlineTab(onlineUsers),
+                      _buildManagementTab(onlineUserIds),
+                      _buildSpeakersTab(onlineUserIds),
+                      _buildElitesTab(onlineUserIds),
+                      _buildVipsTab(onlineUserIds),
+                      _buildAudienceTab(onlineUserIds, onlineUsers),
+                    ],
+                  );
+                }),
               ),
               TextButton(
                 onPressed: () => Get.back(),
@@ -6737,7 +7009,7 @@ class MemberListDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildOnlineTab(List<ZegoUIKitUser> onlineUsers) {
+  Widget _buildOnlineTab(List<ZegoUser> onlineUsers) {
     if (onlineUsers.isEmpty) {
       return const Center(child: Text('No users online', style: TextStyle(color: Colors.white30)));
     }
@@ -6746,21 +7018,22 @@ class MemberListDialog extends StatelessWidget {
       itemCount: onlineUsers.length,
       itemBuilder: (context, index) {
         final u = onlineUsers[index];
-        final member = RoomController.to.activeMembers.firstWhereOrNull((m) => m.userId == u.id);
+        final member = RoomController.to.activeMembers.firstWhereOrNull((m) => m.userId == u.userID);
         final role = member?.role ?? 'Audience';
         final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
-        final seatIndex = seatsList.indexWhere((s) => s['userId'] == u.id);
+        final seatIndex = seatsList.indexWhere((s) => s['userId'] == u.userID);
         final seatText = seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
+        final isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
 
         return _buildMemberTile(
-          userId: u.id,
-          fallbackName: u.name,
+          userId: u.userID,
+          fallbackName: u.userName,
           role: role,
           isOnline: true,
-          isSpeaking: u.microphone.value,
+          isSpeaking: isSpeaking,
           seatText: seatText,
-          onViewProfile: () => _handleViewProfile(u.id, u.name, role),
-          onChatPressed: () => _handleChatPressed(u.id, u.name),
+          onViewProfile: () => _handleViewProfile(u.userID, u.userName, role),
+          onChatPressed: () => _handleChatPressed(u.userID, u.userName),
         );
       },
     );
@@ -6899,12 +7172,12 @@ class MemberListDialog extends StatelessWidget {
     });
   }
 
-  Widget _buildAudienceTab(Set<String> onlineUserIds, List<ZegoUIKitUser> onlineUsers) {
+  Widget _buildAudienceTab(Set<String> onlineUserIds, List<ZegoUser> onlineUsers) {
     return Obx(() {
       final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
       final speakerUserIds = seatsList.map((s) => s['userId']).where((id) => id != null).toSet();
 
-      final audience = onlineUsers.where((u) => !speakerUserIds.contains(u.id)).toList();
+      final audience = onlineUsers.where((u) => !speakerUserIds.contains(u.userID)).toList();
 
       if (audience.isEmpty) {
         return const Center(child: Text('No audience connected', style: TextStyle(color: Colors.white30)));
@@ -6915,18 +7188,18 @@ class MemberListDialog extends StatelessWidget {
         itemCount: audience.length,
         itemBuilder: (context, index) {
           final u = audience[index];
-          final member = RoomController.to.activeMembers.firstWhereOrNull((m) => m.userId == u.id);
+          final member = RoomController.to.activeMembers.firstWhereOrNull((m) => m.userId == u.userID);
           final role = member?.role ?? 'Audience';
 
           return _buildMemberTile(
-            userId: u.id,
-            fallbackName: u.name,
+            userId: u.userID,
+            fallbackName: u.userName,
             role: role,
             isOnline: true,
-            isSpeaking: u.microphone.value,
+            isSpeaking: false,
             seatText: 'Audience',
-            onViewProfile: () => _handleViewProfile(u.id, u.name, role),
-            onChatPressed: () => _handleChatPressed(u.id, u.name),
+            onViewProfile: () => _handleViewProfile(u.userID, u.userName, role),
+            onChatPressed: () => _handleChatPressed(u.userID, u.userName),
           );
         },
       );
@@ -6999,7 +7272,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppTheme.bgLight,
+            color: context.secondaryBackgroundColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white10),
           ),
@@ -7038,7 +7311,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor),
+                        backgroundColor: context.primaryColor),
                     onPressed: () {
                       if (textController.text.trim().isNotEmpty) {
                         _saveField(field, textController.text.trim());
@@ -7063,7 +7336,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppTheme.bgDark.withOpacity(0.95),
+          color: context.scaffoldBackgroundColor.withOpacity(0.95),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -7095,9 +7368,11 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     maxHeight: 1024,
                   );
                   if (image != null) {
+                    final editedFile = await CustomImageEditor.editImage(context, io.File(image.path));
+                    if (editedFile == null) return;
                     final uploadedUrl = await _controller.uploadRoomCoverPhoto(
                       widget.roomId,
-                      io.File(image.path),
+                      io.File(editedFile.path),
                     );
                     if (uploadedUrl != null) {
                       setState(() => _avatar = uploadedUrl);
@@ -7122,9 +7397,11 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     maxHeight: 1024,
                   );
                   if (image != null) {
+                    final editedFile = await CustomImageEditor.editImage(context, io.File(image.path));
+                    if (editedFile == null) return;
                     final uploadedUrl = await _controller.uploadRoomCoverPhoto(
                       widget.roomId,
-                      io.File(image.path),
+                      io.File(editedFile.path),
                     );
                     if (uploadedUrl != null) {
                       setState(() => _avatar = uploadedUrl);
@@ -7165,8 +7442,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       String title, String field, List<String> options, String currentValue) {
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.only(
               topLeft: Radius.circular(24), topRight: Radius.circular(24)),
         ),
@@ -7189,14 +7466,14 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       title: Text(opt,
                           style: TextStyle(
                               color: opt == currentValue
-                                  ? AppTheme.primaryColor
+                                  ? context.primaryColor
                                   : Colors.white70,
                               fontWeight: opt == currentValue
                                   ? FontWeight.bold
                                   : FontWeight.normal)),
                       trailing: opt == currentValue
-                          ? const Icon(Icons.check,
-                              color: AppTheme.primaryColor)
+                          ? Icon(Icons.check,
+                              color: context.primaryColor)
                           : null,
                       onTap: () {
                         setState(() {
@@ -7223,7 +7500,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -7438,7 +7715,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                             coHostCanEditCover: val,
                           );
                         },
-                        activeColor: AppTheme.primaryColor,
+                        activeColor: context.primaryColor,
                       ),
                       onTap: () {},
                     ),
@@ -7454,7 +7731,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                             adminCanEditCover: val,
                           );
                         },
-                        activeColor: AppTheme.primaryColor,
+                        activeColor: context.primaryColor,
                       ),
                       onTap: () {},
                     ),
@@ -7519,7 +7796,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   void _showBlockListManager(BuildContext context, VoiceRoom liveRoom) {
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         title: const Text('Block List Manager',
             style: TextStyle(
                 color: Colors.white,
@@ -7534,11 +7811,11 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                 liveRoom;
 
             if (liveR.blockList.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text('No blocked users in this arena.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.textTertiary)),
+                    style: TextStyle(color: context.caption)),
               );
             }
 
@@ -7567,8 +7844,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                           fontWeight: FontWeight.w500)),
                   subtitle: Text(
                       'ID: ${blockedId.hashCode.abs() % 900000 + 100000}$durationInfo',
-                      style: const TextStyle(
-                          color: AppTheme.textTertiary, fontSize: 11)),
+                      style: TextStyle(
+                          color: context.caption, fontSize: 11)),
                   trailing: TextButton(
                     onPressed: () {
                       _controller.unbanUser(widget.roomId, blockedId);
@@ -7587,8 +7864,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Close',
-                style: TextStyle(color: AppTheme.textTertiary)),
+            child: Text('Close',
+                style: TextStyle(color: context.caption)),
           ),
         ],
       ),
@@ -7688,8 +7965,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   }) {
     Get.bottomSheet(
       Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -7812,7 +8089,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
-          color: AppTheme.bgLight,
+          color: context.secondaryBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
@@ -7825,7 +8102,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: AppTheme.borderColor,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -7867,8 +8144,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                           ),
                           const SizedBox(width: 8),
                           Text('ID: ${userId.hashCode.abs() % 900000 + 100000}',
-                              style: const TextStyle(
-                                  color: AppTheme.textTertiary, fontSize: 12)),
+                              style: TextStyle(
+                                  color: context.caption, fontSize: 12)),
                         ],
                       ),
                     ],
@@ -7889,16 +8166,16 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             ),
             const SizedBox(height: 20),
 
-            const Divider(color: AppTheme.borderColor, height: 1),
+            Divider(color: context.borderColor, height: 1),
             const SizedBox(height: 16),
 
             // Management actions (if Owner and not self)
             if (isOwner && !isSelf) ...[
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text('MANAGE ARENA ROLE',
                     style: TextStyle(
-                        color: AppTheme.textTertiary,
+                        color: context.caption,
                         fontSize: 11,
                         fontWeight: FontWeight.bold)),
               ),
@@ -7917,7 +8194,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       currentRole == 'Co-owner' ? 'Speaker' : 'Co-owner');
                   Get.snackbar('Role Updated',
                       '$name is now ${currentRole == 'Co-owner' ? 'a Speaker' : 'a Co-owner'}.',
-                      backgroundColor: AppTheme.primaryColor.withOpacity(0.9),
+                      backgroundColor: context.primaryColor.withOpacity(0.9),
                       colorText: Colors.white);
                 },
               ),
@@ -7934,7 +8211,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       currentRole == 'Admin' ? 'Speaker' : 'Admin');
                   Get.snackbar('Role Updated',
                       '$name is now ${currentRole == 'Admin' ? 'a Speaker' : 'an Admin'}.',
-                      backgroundColor: AppTheme.primaryColor.withOpacity(0.9),
+                      backgroundColor: context.primaryColor.withOpacity(0.9),
                       colorText: Colors.white);
                 },
               ),
@@ -7942,22 +8219,22 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
               // Kick from room
               _actionTile(
                 icon: Icons.gavel_rounded,
-                color: AppTheme.errorColor,
+                color: context.errorColor,
                 label: 'Kick from Arena',
                 onTap: () {
                   Get.back();
                   Get.snackbar(
                       'Kicked User', '$name has been kicked from the arena.',
-                      backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+                      backgroundColor: context.errorColor.withOpacity(0.9),
                       colorText: Colors.white);
                 },
               ),
             ] else ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text('No management actions available for this user.',
                     style:
-                        TextStyle(color: AppTheme.textTertiary, fontSize: 13)),
+                        TextStyle(color: context.caption, fontSize: 13)),
               ),
             ],
           ],
@@ -7976,7 +8253,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                 fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
         Text(label,
-            style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
+            style: TextStyle(color: context.caption, fontSize: 11)),
       ],
     );
   }
@@ -8002,8 +8279,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       title: Text(label,
           style: const TextStyle(
               color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-      trailing: const Icon(Icons.chevron_right_rounded,
-          color: AppTheme.textTertiary, size: 16),
+      trailing: Icon(Icons.chevron_right_rounded,
+          color: context.caption, size: 16),
     );
   }
 }
@@ -8038,8 +8315,17 @@ class SeatVoiceEffect extends StatelessWidget {
       );
     }
 
+    final soundStream = Stream.periodic(const Duration(milliseconds: 150), (count) {
+      final roomId = RoomController.to.activeRoomId;
+      final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
+      final seatIndex = seatsList.indexWhere((s) => s['userId'] == userId);
+      final isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
+      if (!isSpeaking) return 0.0;
+      return 15.0 + Random().nextDouble() * 65.0;
+    }).asBroadcastStream();
+
     return StreamBuilder<double>(
-      stream: ZegoUIKit().getSoundLevelStream(userId),
+      stream: soundStream,
       initialData: 0.0,
       builder: (context, snapshot) {
         final volume = snapshot.data ?? 0.0;
@@ -8112,8 +8398,17 @@ class VoiceWaveformWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isMuted) return const SizedBox.shrink();
 
+    final soundStream = Stream.periodic(const Duration(milliseconds: 150), (count) {
+      final roomId = RoomController.to.activeRoomId;
+      final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
+      final seatIndex = seatsList.indexWhere((s) => s['userId'] == userId);
+      final isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
+      if (!isSpeaking) return 0.0;
+      return 15.0 + Random().nextDouble() * 65.0;
+    }).asBroadcastStream();
+
     return StreamBuilder<double>(
-      stream: ZegoUIKit().getSoundLevelStream(userId),
+      stream: soundStream,
       initialData: 0.0,
       builder: (context, snapshot) {
         final volume = snapshot.data ?? 0.0;
@@ -8186,7 +8481,7 @@ class OnlineMembersDialog extends StatelessWidget {
         width: Get.width * 0.9,
         height: 480,
         decoration: BoxDecoration(
-          color: AppTheme.bgDark.withOpacity(0.96),
+          color: context.scaffoldBackgroundColor.withOpacity(0.96),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.white10),
         ),
@@ -8204,46 +8499,44 @@ class OnlineMembersDialog extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: StreamBuilder<List<ZegoUIKitUser>>(
-                stream: ZegoUIKit().getUserListStream(),
-                initialData: const [],
-                builder: (context, snapshot) {
-                  final users = snapshot.data ?? [];
-                  if (users.isEmpty) {
-                    return Center(
-                      child: Text('No users online',
-                          style: GoogleFonts.poppins(
-                              color: Colors.white30, fontSize: 13)),
-                    );
-                  }
+              child: Obx(() {
+                final users = ZegoCloudService().roomUsers;
+                if (users.isEmpty) {
+                  return Center(
+                    child: Text('No users online',
+                        style: GoogleFonts.poppins(
+                            color: Colors.white30, fontSize: 13)),
+                  );
+                }
 
-                  return ListView.builder(
-                    itemCount: users.length,
-                    itemBuilder: (context, index) {
-                      final u = users[index];
-                      final member = RoomController.to.activeMembers
-                          .firstWhereOrNull((m) => m.userId == u.id);
-                      final role = member?.role ?? 'Audience';
-                      final String mappedRole;
-                      if (role == 'Host' || role == 'Founder') {
-                        mappedRole = 'Owner';
-                      } else if (role == 'Co-Host') {
-                        mappedRole = 'Co-host';
-                      } else {
-                        mappedRole = 'Member';
-                      }
+                return ListView.builder(
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final u = users[index];
+                    final member = RoomController.to.activeMembers
+                        .firstWhereOrNull((m) => m.userId == u.userID);
+                    final role = member?.role ?? 'Audience';
+                    final String mappedRole;
+                    if (role == 'Host' || role == 'Founder') {
+                      mappedRole = 'Owner';
+                    } else if (role == 'Co-Host') {
+                      mappedRole = 'Co-host';
+                    } else {
+                      mappedRole = 'Member';
+                    }
 
-                      final seatsList =
-                          RoomController.to.roomSeatsInfo[roomId] ?? [];
-                      final seatIndex =
-                          seatsList.indexWhere((s) => s['userId'] == u.id);
-                      final seatText =
-                          seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
+                    final seatsList =
+                        RoomController.to.roomSeatsInfo[roomId] ?? [];
+                    final seatIndex =
+                        seatsList.indexWhere((s) => s['userId'] == u.userID);
+                    final seatText =
+                        seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
+                    final isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
 
                       return Obx(() {
-                        final profile = UserProfileCacheManager.rxCache[u.id] ??
-                            UserProfileCacheManager.getCachedUser(u.id);
-                        final name = profile?.username ?? u.name;
+                        final profile = UserProfileCacheManager.rxCache[u.userID] ??
+                            UserProfileCacheManager.getCachedUser(u.userID);
+                        final name = profile?.username ?? u.userName;
                         final avatarUrl = profile?.avatar ?? '';
                         final level = profile?.level ?? 1;
                         final nobleLevel = profile?.novelLevel ?? 0;
@@ -8261,7 +8554,7 @@ class OnlineMembersDialog extends StatelessWidget {
                           child: Row(
                             children: [
                               CustomAvatarFrame(
-                                userId: u.id,
+                                userId: u.userID,
                                 username: name,
                                 size: 36,
                                 child: CircleAvatar(
@@ -8293,7 +8586,7 @@ class OnlineMembersDialog extends StatelessWidget {
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                        if (u.microphone.value) ...[
+                                        if (isSpeaking) ...[
                                           const SizedBox(width: 4),
                                           const Icon(Icons.mic,
                                               color: Color(0xFF00FF66),
@@ -8407,11 +8700,11 @@ class OnlineMembersDialog extends StatelessWidget {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (u.id != RoomController.currentUserId)
+                                  if (u.userID != RoomController.currentUserId)
                                     IconButton(
-                                      icon: const Icon(
+                                      icon: Icon(
                                           Icons.person_add_alt_1_rounded,
-                                          color: AppTheme.primaryColor,
+                                          color: context.primaryColor,
                                           size: 16),
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
@@ -8426,7 +8719,7 @@ class OnlineMembersDialog extends StatelessWidget {
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                     onPressed: () =>
-                                        _handleViewProfile(u.id, name, role),
+                                        _handleViewProfile(u.userID, name, role),
                                   ),
                                 ],
                               ),
@@ -8584,13 +8877,13 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
         width: Get.width * 0.9,
         height: 400,
         decoration: BoxDecoration(
-          color: AppTheme.bgDark.withOpacity(0.96),
+          color: context.scaffoldBackgroundColor.withOpacity(0.96),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.white10),
         ),
         padding: const EdgeInsets.all(20),
         child: _isChecking
-            ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppTheme.primaryColor)))
+            ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(context.primaryColor)))
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -8666,7 +8959,7 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                                 const SizedBox(height: 16),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: _hasApplied ? Colors.grey : AppTheme.primaryColor,
+                                    backgroundColor: _hasApplied ? Colors.grey : context.primaryColor,
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                   ),

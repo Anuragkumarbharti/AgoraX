@@ -346,9 +346,9 @@ class RoomProfileScreen extends StatelessWidget {
   Widget _buildQuickStatsCard(BuildContext context, VoiceRoom room) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor, width: 0.5),
+        border: Border.all(color: context.borderColor, width: 0.5),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -357,21 +357,21 @@ class RoomProfileScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem('Members', '${room.totalMembers}'),
-              Container(width: 1, height: 30, color: AppTheme.borderColor),
-              _buildStatItem('Followers', '${room.totalFollowers}'),
-              Container(width: 1, height: 30, color: AppTheme.borderColor),
-              _buildStatItem('Gifts Received', '${room.totalGiftsReceived}'),
+              _buildStatItem(context, 'Members', '${room.totalMembers}'),
+              Container(width: 1, height: 30, color: context.borderColor),
+              _buildStatItem(context, 'Followers', '${room.totalFollowers}'),
+              Container(width: 1, height: 30, color: context.borderColor),
+              _buildStatItem(context, 'Gifts Received', '${room.totalGiftsReceived}'),
             ],
           ),
           const SizedBox(height: 16),
-          const Divider(color: AppTheme.borderColor, height: 1),
+          Divider(color: context.borderColor, height: 1),
           const SizedBox(height: 16),
           // Info List
-          _buildInfoRow('Owner', room.ownerName),
-          _buildInfoRow('Category', room.category),
-          _buildInfoRow('Language', room.language),
-          _buildInfoRow('Country', room.country),
+          _buildInfoRow(context, 'Owner', room.ownerName),
+          _buildInfoRow(context, 'Category', room.category),
+          _buildInfoRow(context, 'Language', room.language),
+          _buildInfoRow(context, 'Country', room.country),
           const SizedBox(height: 8),
           // Tags wrap
           Wrap(
@@ -380,13 +380,13 @@ class RoomProfileScreen extends StatelessWidget {
             children: room.tags.map((tag) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.bgLight,
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.borderColor),
+                border: Border.all(color: context.borderColor),
               ),
               child: Text(
                 '#$tag',
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                style: TextStyle(color: context.textSecondary, fontSize: 11),
               ),
             )).toList(),
           ),
@@ -395,7 +395,7 @@ class RoomProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
+  Widget _buildStatItem(BuildContext context, String label, String value) {
     return Column(
       children: [
         Text(
@@ -409,8 +409,8 @@ class RoomProfileScreen extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            color: AppTheme.textTertiary,
+          style: TextStyle(
+            color: context.caption,
             fontSize: 12,
           ),
         ),
@@ -418,13 +418,13 @@ class RoomProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 13)),
+          Text(label, style: TextStyle(color: context.caption, fontSize: 13)),
           Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
         ],
       ),
@@ -501,37 +501,37 @@ class RoomProfileScreen extends StatelessWidget {
       childrenPadding: const EdgeInsets.all(16),
       children: [
         // Owner
-        _buildRoleGroupHeader('Arena Owner', '1/1', Colors.amber),
-        _buildUserTile('Current Owner (Anurag Kumar Bharti)', 'Owner', Colors.amber),
+        _buildRoleGroupHeader(context, 'Arena Owner', '1/1', Colors.amber),
+        _buildUserTile(context, 'Current Owner (Anurag Kumar Bharti)', 'Owner', Colors.amber),
         const SizedBox(height: 12),
 
         // Co-owners
-        _buildRoleGroupHeader('Co-owners', '${coOwners.length}/$coLimit', Colors.purpleAccent),
+        _buildRoleGroupHeader(context, 'Co-owners', '${coOwners.length}/$coLimit', Colors.purpleAccent),
         if (coOwners.isEmpty)
-          _buildEmptyRoleTile('No Co-owners assigned')
+          _buildEmptyRoleTile(context, 'No Co-owners assigned')
         else
-          ...coOwners.map((id) => _buildUserTile('Co-owner ($id)', 'Co-owner', Colors.purpleAccent)),
+          ...coOwners.map((id) => _buildUserTile(context, 'Co-owner ($id)', 'Co-owner', Colors.purpleAccent)),
         const SizedBox(height: 12),
 
         // Admins
-        _buildRoleGroupHeader('Admins', '${admins.length}/$adminLimit', Colors.blueAccent),
+        _buildRoleGroupHeader(context, 'Admins', '${admins.length}/$adminLimit', Colors.blueAccent),
         if (admins.isEmpty)
-          _buildEmptyRoleTile('No Admins assigned')
+          _buildEmptyRoleTile(context, 'No Admins assigned')
         else
-          ...admins.map((id) => _buildUserTile('Admin ($id)', 'Admin', Colors.blueAccent)),
+          ...admins.map((id) => _buildUserTile(context, 'Admin ($id)', 'Admin', Colors.blueAccent)),
         const SizedBox(height: 12),
 
         // Star Members
-        _buildRoleGroupHeader('Star Members', '${stars.length}/$starLimit', Colors.tealAccent),
+        _buildRoleGroupHeader(context, 'Star Members', '${stars.length}/$starLimit', Colors.tealAccent),
         if (stars.isEmpty)
-          _buildEmptyRoleTile('No Star Members assigned')
+          _buildEmptyRoleTile(context, 'No Star Members assigned')
         else
-          ...stars.map((id) => _buildUserTile('Star ($id)', 'Star Member', Colors.tealAccent)),
+          ...stars.map((id) => _buildUserTile(context, 'Star ($id)', 'Star Member', Colors.tealAccent)),
       ],
     );
   }
 
-  Widget _buildRoleGroupHeader(String name, String ratio, Color color) {
+  Widget _buildRoleGroupHeader(BuildContext context, String name, String ratio, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6.0, top: 4.0),
       child: Row(
@@ -543,20 +543,20 @@ class RoomProfileScreen extends StatelessWidget {
           ),
           Text(
             ratio,
-            style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11, fontWeight: FontWeight.bold),
+            style: TextStyle(color: context.caption, fontSize: 11, fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildUserTile(String name, String role, Color color) {
+  Widget _buildUserTile(BuildContext context, String name, String role, Color color) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+        border: Border.all(color: context.borderColor.withOpacity(0.5)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Row(
@@ -585,20 +585,20 @@ class RoomProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyRoleTile(String text) {
+  Widget _buildEmptyRoleTile(BuildContext context, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.bgDark.withOpacity(0.4),
+          color: context.scaffoldBackgroundColor.withOpacity(0.4),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppTheme.borderColor.withOpacity(0.3)),
+          border: Border.all(color: context.borderColor.withOpacity(0.3)),
         ),
         child: Text(
           text,
-          style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11, fontStyle: FontStyle.italic),
+          style: TextStyle(color: context.caption, fontSize: 11, fontStyle: FontStyle.italic),
         ),
       ),
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/store_controller.dart';
 import 'checkout_screen.dart';
 
@@ -41,10 +41,10 @@ class _GiftMembershipScreenState extends State<GiftMembershipScreen> {
       lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (context, child) => Theme(
         data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: Color(0xFF8B5CF6),
+          colorScheme: ColorScheme.dark(
+            primary: const Color(0xFF8B5CF6),
             onPrimary: Colors.white,
-            surface: Color(0xFF111115),
+            surface: context.secondaryBackgroundColor,
           ),
         ),
         child: child!,
@@ -144,7 +144,7 @@ class _GiftMembershipScreenState extends State<GiftMembershipScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -180,7 +180,7 @@ class _GiftMembershipScreenState extends State<GiftMembershipScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -194,7 +194,7 @@ class _GiftMembershipScreenState extends State<GiftMembershipScreen> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: _selectedItem,
-            dropdownColor: const Color(0xFF111115),
+            dropdownColor: context.secondaryBackgroundColor,
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.black.withOpacity(0.3),
@@ -214,7 +214,7 @@ class _GiftMembershipScreenState extends State<GiftMembershipScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -250,7 +250,7 @@ class _GiftMembershipScreenState extends State<GiftMembershipScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -387,7 +387,7 @@ class _GiftMembershipScreenState extends State<GiftMembershipScreen> {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF111115),
+                  color: context.secondaryBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white.withOpacity(0.02)),
                 ),

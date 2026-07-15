@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/event_model.dart';
 import '../../services/event_controller.dart';
 import 'live_event_play_screen.dart';
@@ -134,7 +134,7 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
       Get.snackbar(
         'Password Weak ⚠️',
         'Must be 8+ chars, with Uppercase, Lowercase, Number, and Special character.',
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -162,7 +162,7 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
       Get.snackbar(
         'Incorrect Password 🔒',
         'The password entered did not match. Access Denied.',
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -197,8 +197,8 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
     if (_isRegistrationClosed) return;
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
-        title: Text('Import from $fileType 📂', style: const TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: context.secondaryBackgroundColor,
+        title: Text('Import from $fileType 📂', style: TextStyle(color: Colors.white, fontSize: 16)),
         content: Text('Simulating parser extraction from mock event data table.$fileType...'),
         actions: [
           TextButton(
@@ -218,7 +218,7 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
               });
               _logAction('Imported Questions from $fileType Table');
             },
-            child: const Text('Simulate Import', style: TextStyle(color: AppTheme.primaryColor)),
+            child: Text('Simulate Import', style: TextStyle(color: context.primaryColor)),
           ),
         ],
       ),
@@ -230,19 +230,19 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
     final topicCtrl = TextEditingController();
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
-        title: const Text('AI Question Generator 🤖', style: TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: context.secondaryBackgroundColor,
+        title: Text('AI Question Generator 🤖', style: TextStyle(color: Colors.white, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Describe subject topic (e.g. Flutter layout trees, General Aptitude):', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-            const SizedBox(height: 8),
+            Text('Describe subject topic (e.g. Flutter layout trees, General Aptitude):', style: TextStyle(color: context.textSecondary, fontSize: 11)),
+            SizedBox(height: 8),
             TextField(
               controller: topicCtrl,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              decoration: const InputDecoration(
+              style: TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
                 hintText: 'Enter topic name...',
-                hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                hintStyle: TextStyle(color: context.caption, fontSize: 12),
               ),
             ),
           ],
@@ -265,7 +265,7 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
               });
               _logAction('AI Generated Questions on topic: ${topicCtrl.text}');
             },
-            child: const Text('Generate', style: TextStyle(color: AppTheme.primaryColor)),
+            child: Text('Generate', style: TextStyle(color: context.primaryColor)),
           ),
         ],
       ),
@@ -335,7 +335,7 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
           backgroundColor: Colors.green, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
     } else {
       Get.snackbar('Validation Warning ⚠️', '${errors.length} issues found.',
-          backgroundColor: AppTheme.errorColor, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+          backgroundColor: context.errorColor, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -355,17 +355,17 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
-        title: const Text(
+        title: Text(
           '🔐 Question Bank Management',
           style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.lock_rounded, color: AppTheme.accentColor),
+            icon: Icon(Icons.lock_rounded, color: context.accentOrange),
             onPressed: () {
               setState(() {
                 _isUnlocked = false;
@@ -392,29 +392,29 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
   // Access Denied State
   Widget _buildAccessDeniedScreen() {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.lock_outline_rounded, color: AppTheme.errorColor, size: 64),
-              const SizedBox(height: 16),
-              const Text(
+              Icon(Icons.lock_outline_rounded, color: context.errorColor, size: 64),
+              SizedBox(height: 16),
+              Text(
                 'Security Block 🔒',
                 style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 10),
-              const Text(
+              SizedBox(height: 10),
+              Text(
                 'Access to the Question Bank is strictly restricted to the Event Creator, authorized Co-Owners, and Platform Super Admins.\nNormal Admins or guests cannot access these questions.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                style: TextStyle(color: context.textSecondary, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => Get.back(),
-                child: const Text('Back to Dashboard'),
+                child: Text('Back to Dashboard'),
               ),
             ],
           ),
@@ -426,56 +426,56 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
   // Setup Password View
   Widget _buildSetupPasswordScreen() {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.enhanced_encryption_rounded, color: AppTheme.primaryColor, size: 60),
-              const SizedBox(height: 16),
-              const Text('Setup Question Encryption 🛡️', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              const Text(
+              Icon(Icons.enhanced_encryption_rounded, color: context.primaryColor, size: 60),
+              SizedBox(height: 16),
+              Text('Setup Question Encryption 🛡️', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              Text(
                 'Please configure an encryption password to secure the Question Bank. Without this password, questions cannot be viewed or decrypted.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                style: TextStyle(color: context.textSecondary, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               TextField(
                 controller: _passCreateCtrl,
                 obscureText: _obscurePass,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Create Encryption Password...',
-                  hintStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 13),
+                  hintStyle: TextStyle(color: context.caption, fontSize: 13),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility, color: AppTheme.textTertiary),
+                    icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility, color: context.caption),
                     onPressed: () => setState(() => _obscurePass = !_obscurePass),
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              const Align(
+              SizedBox(height: 10),
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Password Rules:\n• Minimum 8 characters\n• At least one uppercase letter\n• At least one lowercase letter\n• At least one digit number\n• At least one special symbol (!@#\$&*)',
-                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                  style: TextStyle(color: context.caption, fontSize: 10),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: context.primaryColor,
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: _setupPassword,
-                      child: const Text('Encrypt Question Bank', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: Text('Encrypt Question Bank', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -490,44 +490,44 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
   // Unlock View
   Widget _buildUnlockScreen() {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.vpn_key_rounded, color: Color(0xFFFBBF24), size: 52),
-              const SizedBox(height: 16),
-              const Text('Question Bank Encrypted 🔑', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              const Text('Enter encryption password to open dashboard.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 12)),
-              const SizedBox(height: 24),
+              Icon(Icons.vpn_key_rounded, color: Color(0xFFFBBF24), size: 52),
+              SizedBox(height: 16),
+              Text('Question Bank Encrypted 🔑', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              Text('Enter encryption password to open dashboard.', style: TextStyle(color: context.caption, fontSize: 12)),
+              SizedBox(height: 24),
               TextField(
                 controller: _passInputCtrl,
                 obscureText: _obscurePass,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Enter Password...',
-                  hintStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 13),
+                  hintStyle: TextStyle(color: context.caption, fontSize: 13),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility, color: AppTheme.textTertiary),
+                    icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility, color: context.caption),
                     onPressed: () => setState(() => _obscurePass = !_obscurePass),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFBBF24),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: Color(0xFFFBBF24),
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: _unlockQuestionBank,
-                      child: const Text('Unlock Bank', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                      child: Text('Unlock Bank', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -543,8 +543,8 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
   Widget _buildMenuBar() {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        border: Border(bottom: BorderSide(color: AppTheme.borderColor.withOpacity(0.5))),
+        color: context.secondaryBackgroundColor,
+        border: Border(bottom: BorderSide(color: context.borderColor.withOpacity(0.5))),
       ),
       child: Row(
         children: [
@@ -563,13 +563,13 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
       child: GestureDetector(
         onTap: () => setState(() => _activeTab = index),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: isSel ? AppTheme.primaryColor : Colors.transparent, width: 2)),
+            border: Border(bottom: BorderSide(color: isSel ? context.primaryColor : Colors.transparent, width: 2)),
           ),
           child: Text(
             label,
-            style: TextStyle(color: isSel ? Colors.white : AppTheme.textTertiary, fontSize: 11, fontWeight: isSel ? FontWeight.bold : FontWeight.normal),
+            style: TextStyle(color: isSel ? Colors.white : context.caption, fontSize: 11, fontWeight: isSel ? FontWeight.bold : FontWeight.normal),
             textAlign: TextAlign.center,
           ),
         ),
@@ -595,18 +595,18 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
     final hardCount = _questions.where((q) => q['difficulty'] == 'Hard').length;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       children: [
         // Registration Lock status
         if (_isRegistrationClosed) ...[
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.red.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.red.withOpacity(0.3)),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Icon(Icons.lock_rounded, color: Colors.red, size: 18),
                 SizedBox(width: 8),
@@ -619,37 +619,37 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
         ],
 
         // Metrics Grid
         Row(
           children: [
-            Expanded(child: _metricBox('Total Qs', '${_questions.length}', AppTheme.primaryColor)),
-            const SizedBox(width: 8),
+            Expanded(child: _metricBox('Total Qs', '${_questions.length}', context.primaryColor)),
+            SizedBox(width: 8),
             Expanded(child: _metricBox('Total Marks', '$totalMarks pts', Colors.amber)),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(child: _metricBox('Avg. Timer', '$avgTimer s', Colors.blue)),
           ],
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Row(
           children: [
             Expanded(child: _metricBox('Easy', '$easyCount', Colors.green)),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(child: _metricBox('Medium', '$mediumCount', Colors.orange)),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(child: _metricBox('Hard', '$hardCount', Colors.red)),
           ],
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
         // Randomization controls
-        const Text(
+        Text(
           '🔀 Randomization Controls',
           style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         _switchRow('Randomize Question Order', _randomizeQuestionOrder, (v) {
           if (_isRegistrationClosed) return;
           setState(() => _randomizeQuestionOrder = v);
@@ -676,17 +676,17 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
 
   Widget _metricBox(String label, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Column(
         children: [
           Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9)),
+          SizedBox(height: 4),
+          Text(label, style: TextStyle(color: context.caption, fontSize: 9)),
         ],
       ),
     );
@@ -694,14 +694,14 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
 
   Widget _switchRow(String label, bool value, ValueChanged<bool> onChanged) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          Text(label, style: TextStyle(color: context.textSecondary, fontSize: 12)),
           Switch(
             value: value,
-            activeColor: AppTheme.primaryColor,
+            activeColor: context.primaryColor,
             onChanged: _isRegistrationClosed ? null : onChanged,
           ),
         ],
@@ -712,64 +712,64 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
   // Tab 1: Question Builder (Manual Form, Excel/CSV Imports, AI Generative prompt)
   Widget _buildManageQuestionsTab() {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       children: [
         // Import panel shortcuts
-        const Text('📥 Import Question Bank', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
+        Text('📥 Import Question Bank', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+        SizedBox(height: 10),
         Row(
           children: [
             Expanded(child: _importOptionCard('Excel', Icons.table_view_rounded, Colors.green, () => _importMockFile('.xlsx'))),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(child: _importOptionCard('CSV', Icons.insert_drive_file_outlined, Colors.blue, () => _importMockFile('.csv'))),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(child: _importOptionCard('JSON', Icons.code_rounded, Colors.amber, () => _importMockFile('.json'))),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Row(
           children: [
             Expanded(child: _importOptionCard('AI Question Generator 🤖', Icons.psychology_rounded, Colors.purple, _importAI)),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(child: _importOptionCard('Clone Previous Event', Icons.copy_all_rounded, Colors.white60, _clonePreviousEventQuestions)),
           ],
         ),
-        const Divider(color: AppTheme.borderColor, height: 32),
+        Divider(color: context.borderColor, height: 32),
 
         // Manual builder Form Trigger
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
-            backgroundColor: _isRegistrationClosed ? Colors.grey : AppTheme.primaryColor,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            backgroundColor: _isRegistrationClosed ? Colors.grey : context.primaryColor,
+            padding: EdgeInsets.symmetric(vertical: 12),
           ),
           onPressed: _isRegistrationClosed ? null : _showManualAddDialog,
-          icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
-          label: const Text('Add Question Manually', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          icon: Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+          label: Text('Add Question Manually', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // List of currently added questions
-        const Text('📄 Added Questions', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
+        Text('📄 Added Questions', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+        SizedBox(height: 10),
         if (_questions.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.all(20),
-            child: Center(child: Text('No questions added.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 12))),
+            child: Center(child: Text('No questions added.', style: TextStyle(color: context.caption, fontSize: 12))),
           )
         else
           ..._questions.asMap().entries.map((entry) {
             final idx = entry.key;
             final q = entry.value;
             return Card(
-              color: AppTheme.cardBg,
-              margin: const EdgeInsets.only(bottom: 8),
+              color: context.surfaceColor,
+              margin: EdgeInsets.only(bottom: 8),
               child: ListTile(
-                title: Text(q['question'] as String, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                subtitle: Text('Subject: ${q['subject']} • Marks: ${q['marks']} • Timer: ${q['timer']}s', style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10)),
+                title: Text(q['question'] as String, style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                subtitle: Text('Subject: ${q['subject']} • Marks: ${q['marks']} • Timer: ${q['timer']}s', style: TextStyle(color: context.caption, fontSize: 10)),
                 trailing: _isRegistrationClosed
                     ? null
                     : IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                        icon: Icon(Icons.delete_outline_rounded, color: Colors.red),
                         onPressed: () {
                           setState(() {
                             _questions.removeAt(idx);
@@ -789,16 +789,16 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
     return InkWell(
       onTap: _isRegistrationClosed ? null : onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: _isRegistrationClosed ? Colors.grey.withOpacity(0.05) : AppTheme.cardBg,
+          color: _isRegistrationClosed ? Colors.grey.withOpacity(0.05) : context.surfaceColor,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _isRegistrationClosed ? Colors.transparent : AppTheme.borderColor.withOpacity(0.4)),
+          border: Border.all(color: _isRegistrationClosed ? Colors.transparent : context.borderColor.withOpacity(0.4)),
         ),
         child: Column(
           children: [
             Icon(icon, color: _isRegistrationClosed ? Colors.grey : color, size: 20),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(label, style: TextStyle(color: _isRegistrationClosed ? Colors.grey : Colors.white70, fontSize: 10), textAlign: TextAlign.center),
           ],
         ),
@@ -821,8 +821,8 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
 
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
-        title: const Text('Add Question Manually 📝', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+        backgroundColor: context.secondaryBackgroundColor,
+        title: Text('Add Question Manually 📝', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -832,7 +832,7 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
               TextField(controller: bCtrl, decoration: const InputDecoration(hintText: 'Option B...')),
               TextField(controller: cCtrl, decoration: const InputDecoration(hintText: 'Option C...')),
               TextField(controller: dCtrl, decoration: const InputDecoration(hintText: 'Option D...')),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: correctVal,
                 items: ['A', 'B', 'C', 'D'].map((o) => DropdownMenuItem(value: o, child: Text('Answer $o'))).toList(),
@@ -859,7 +859,7 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel', style: TextStyle(color: AppTheme.textTertiary))),
+          TextButton(onPressed: () => Get.back(), child: Text('Cancel', style: TextStyle(color: context.caption))),
           ElevatedButton(
             onPressed: () {
               if (qCtrl.text.isEmpty || aCtrl.text.isEmpty || bCtrl.text.isEmpty || cCtrl.text.isEmpty || dCtrl.text.isEmpty) {
@@ -877,7 +877,7 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
               });
               Get.back();
             },
-            child: const Text('Add'),
+            child: Text('Add'),
           ),
         ],
       ),
@@ -887,26 +887,26 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
   // Tab 2: Verification Engine & Quiz Sandbox preview
   Widget _buildValidationPreviewTab() {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       children: [
         // Validation checker trigger
         ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+          style: ElevatedButton.styleFrom(backgroundColor: context.primaryColor),
           onPressed: _runValidation,
-          icon: const Icon(Icons.playlist_add_check_rounded),
-          label: const Text('Validate & Encrypt Question Bank', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          icon: Icon(Icons.playlist_add_check_rounded),
+          label: Text('Validate & Encrypt Question Bank', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Display validation errors
         if (_isValidated) ...[
-          const Text('Verification Report:', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
+          Text('Verification Report:', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+          SizedBox(height: 10),
           if (_validationErrors.isEmpty)
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(color: Colors.green.withOpacity(0.12), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.green.withOpacity(0.3))),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 16),
                   SizedBox(width: 8),
@@ -916,34 +916,34 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
             )
           else
             ..._validationErrors.map((err) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  padding: EdgeInsets.symmetric(vertical: 4.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.cancel_rounded, color: Colors.red, size: 14),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(err, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11))),
+                      Icon(Icons.cancel_rounded, color: Colors.red, size: 14),
+                      SizedBox(width: 8),
+                      Expanded(child: Text(err, style: TextStyle(color: context.textSecondary, fontSize: 11))),
                     ],
                   ),
                 )),
-          const Divider(color: AppTheme.borderColor, height: 32),
+          Divider(color: context.borderColor, height: 32),
         ],
 
         // Preview Mode
-        const Text('👁️ Organizer Preview Mode', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        const Text('Launch the event in sandbox mode using the same gameplay UI to preview flow. Answers will not be recorded.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-        const SizedBox(height: 14),
+        Text('👁️ Organizer Preview Mode', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+        SizedBox(height: 6),
+        Text('Launch the event in sandbox mode using the same gameplay UI to preview flow. Answers will not be recorded.', style: TextStyle(color: context.caption, fontSize: 11)),
+        SizedBox(height: 14),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: AppTheme.primaryColor),
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            side: BorderSide(color: context.primaryColor),
+            padding: EdgeInsets.symmetric(vertical: 12),
           ),
           onPressed: () {
             // Launch simulation play screen
             Get.to(() => LiveEventPlayScreen(event: widget.event));
           },
-          icon: const Icon(Icons.play_arrow_rounded, color: AppTheme.primaryColor),
-          label: const Text('Start Sandbox Preview', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+          icon: Icon(Icons.play_arrow_rounded, color: context.primaryColor),
+          label: Text('Start Sandbox Preview', style: TextStyle(color: context.primaryColor, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -952,19 +952,19 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
   // Tab 3: Immutable Audit Trails
   Widget _buildAuditTrailTab() {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       children: [
-        const Text('🛡️ Tamper-Proof Audit Trail', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        const Text('Immutable verification records of all actions on the Question Bank.', style: TextStyle(color: AppTheme.textTertiary, fontSize: 10)),
-        const SizedBox(height: 14),
+        Text('🛡️ Tamper-Proof Audit Trail', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+        SizedBox(height: 4),
+        Text('Immutable verification records of all actions on the Question Bank.', style: TextStyle(color: context.caption, fontSize: 10)),
+        SizedBox(height: 14),
         ..._auditLogs.map((log) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
+              margin: EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.cardBg,
+                color: context.surfaceColor,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+                border: Border.all(color: context.borderColor.withOpacity(0.4)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -972,12 +972,12 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(log['action'] as String, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                      Text('${log['date']} ${log['time']}', style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9)),
+                      Text(log['action'] as String, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Text('${log['date']} ${log['time']}', style: TextStyle(color: context.caption, fontSize: 9)),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text('By: ${log['userId']} (${log['role']}) • Device: ${log['device']} • IP: ${log['ip']}', style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9)),
+                  SizedBox(height: 4),
+                  Text('By: ${log['userId']} (${log['role']}) • Device: ${log['device']} • IP: ${log['ip']}', style: TextStyle(color: context.caption, fontSize: 9)),
                 ],
               ),
             )),

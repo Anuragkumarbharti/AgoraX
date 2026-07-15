@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../auth/login_screen.dart';
 import '../home/main_screen.dart';
@@ -99,7 +99,7 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(
         children: [
           // 1. Subtle Animated Gradient Background
@@ -114,15 +114,15 @@ class _SplashScreenState extends State<SplashScreen>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppTheme.bgDark,
+                      context.scaffoldBackgroundColor,
                       Color.lerp(
-                        AppTheme.bgDark,
-                        const Color(0xFF1E1B4B),
+                        context.scaffoldBackgroundColor,
+                        Color(0xFF1E1B4B),
                         0.4 + 0.1 * sin(_particleController.value * 2 * pi),
                       )!,
                       Color.lerp(
-                        AppTheme.bgDark,
-                        const Color(0xFF311B92),
+                        context.scaffoldBackgroundColor,
+                        Color(0xFF311B92),
                         0.2 + 0.1 * cos(_particleController.value * 2 * pi),
                       )!,
                     ],
@@ -161,18 +161,18 @@ class _SplashScreenState extends State<SplashScreen>
                       width: 130,
                       height: 130,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            AppTheme.primaryColor,
+                            context.primaryColor,
                             AppTheme.secondaryColor,
                           ],
                         ),
                         borderRadius: BorderRadius.circular(32),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            color: context.primaryColor.withOpacity(0.3),
                             blurRadius: 30,
                             spreadRadius: 5,
                           ),
@@ -200,7 +200,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32),
 
                 // Title, Tagline and Subtitle
                 FadeTransition(
@@ -211,34 +211,34 @@ class _SplashScreenState extends State<SplashScreen>
                         'Creania',
                         style: GoogleFonts.outfit(
                           fontSize: 40,
-                          color: AppTheme.textPrimary,
+                          color: context.textPrimary,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       
                       // Tagline
                       Text(
                         'Create. Connect. Grow.',
                         style: GoogleFonts.poppins(
                           fontSize: 16,
-                          color: AppTheme.accentColor,
+                          color: context.accentOrange,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 2.0,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                       
                       // Subtitle
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        padding: EdgeInsets.symmetric(horizontal: 40),
                         child: Text(
                           'Knowledge  •  Careers  •  Communities\nEvents  •  Voice Rooms  •  Creators',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
                             fontSize: 11,
-                            color: AppTheme.textSecondary.withOpacity(0.7),
+                            color: context.textSecondary.withOpacity(0.7),
                             fontWeight: FontWeight.w500,
                             height: 1.8,
                             letterSpacing: 0.5,

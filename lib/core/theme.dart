@@ -3,8 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // ── LIGHT THEME COLS (Creania Premium Design System v1.0) ──
-  static const Color lightBg = Color(0xFFF5F7FB);
-  static const Color lightSecBg = Color(0xFFEEF3F9);
+  static const Color lightBg = Color(0xFFF8FAFC);
+  static const Color lightSecBg = Color(0xFFF2F5FA);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightFloatingCard = Color(0xFFFFFFFF);
 
@@ -17,39 +17,39 @@ class AppTheme {
       const Color(0xFFFFFFFF).withOpacity(0.35);
 
   // Typography
-  static const Color lightTextPrimary = Color(0xFF111827);
-  static const Color lightTextSecondary = Color(0xFF475569);
-  static const Color lightTextBody = Color(0xFF334155);
-  static const Color lightCaption = Color(0xFF64748B);
-  static const Color lightPlaceholder = Color(0xFF94A3B8);
-  static const Color lightDisabled = Color(0xFFB6C2D1);
+  static const Color lightTextPrimary = Color(0xFF1A1C1E);
+  static const Color lightTextSecondary = Color(0xFF4B5563);
+  static const Color lightTextBody = Color(0xFF4B5563);
+  static const Color lightCaption = Color(0xFF6B7280);
+  static const Color lightPlaceholder = Color(0xFF9CA3AF);
+  static const Color lightDisabled = Color(0xFFCBD5E1);
 
   // Dividers, Borders, Shadows
-  static const Color lightBorder = Color(0xFFD6DEE8);
-  static const Color lightDivider = Color(0xFFE7EDF5);
-  static const Color lightShadow = Color(0x140F172A); // rgba(15,23,42,0.08)
+  static const Color lightBorder = Color(0xFFDCE3ED);
+  static const Color lightDivider = Color(0xFFE7ECF4);
+  static const Color lightShadow = Color(0x0F0F172A); // rgba(15,23,42,0.06)
 
   // Brand & Accents
-  static const Color lightPrimary = Color(0xFF5B5CF0);
-  static const Color lightPrimaryHover = Color(0xFF4C4DD9);
-  static const Color lightPrimaryPressed = Color(0xFF4142C9);
-  static const Color lightSecondaryBrand = Color(0xFF2AA8FF);
+  static const Color lightPrimary = Color(0xFFFF4D8D); // Primary Pink
+  static const Color lightPrimaryHover = Color(0xFFE03F78);
+  static const Color lightPrimaryPressed = Color(0xFFC23063);
+  static const Color lightSecondaryBrand = Color(0xFF8B5CFF); // Primary Purple
 
-  static const Color lightAccentPurple = Color(0xFF7C4DFF);
-  static const Color lightAccentBlue = Color(0xFF3B82F6);
-  static const Color lightAccentCyan = Color(0xFF06B6D4);
-  static const Color lightAccentPink = Color(0xFFEC4899);
-  static const Color lightAccentOrange = Color(0xFFF97316);
-  static const Color lightAccentGold = Color(0xFFF4B400);
+  static const Color lightAccentPurple = Color(0xFF8B5CFF);
+  static const Color lightAccentBlue = Color(0xFF00C2FF); // Primary Blue
+  static const Color lightAccentCyan = Color(0xFF00C2FF);
+  static const Color lightAccentPink = Color(0xFFFF4D8D);
+  static const Color lightAccentOrange = Color(0xFFFF7A09);
+  static const Color lightAccentGold = Color(0xFFFFB020); // Accent Gold
 
   // Statuses
-  static const Color lightSuccess = Color(0xFF16A34A);
-  static const Color lightWarning = Color(0xFFF59E0B);
+  static const Color lightSuccess = Color(0xFF22C55E);
+  static const Color lightWarning = Color(0xFFFFB020);
   static const Color lightError = Color(0xFFEF4444);
-  static const Color lightInfo = Color(0xFF2563EB);
+  static const Color lightInfo = Color(0xFF00C2FF); // Link / verified / info color
 
   // Gamification & Badges
-  static const Color lightVipGold = Color(0xFFD4AF37);
+  static const Color lightVipGold = Color(0xFFFFB020);
   static const Color lightSilver = Color(0xFFAEB8C2);
   static const Color lightBronze = Color(0xFFB87333);
 
@@ -115,19 +115,19 @@ class AppTheme {
   static final Color darkGlass = darkGlassSurface;
 
   // ── Fallbacks / Legacy static fields to ensure backward compatibility ──
-  static const Color primaryColor = darkPrimary;
-  static const Color secondaryColor = darkPrimary;
-  static const Color accentColor = darkAccentPurple;
-  static const Color bgDark = darkBg;
-  static const Color bgLight = darkSecBg;
-  static const Color cardBg = darkSecBg;
-  static const Color borderColor = darkBorder;
-  static const Color textPrimary = darkTextPrimary;
-  static const Color textSecondary = darkTextSecondary;
-  static const Color textTertiary = darkCaption;
-  static const Color errorColor = darkError;
-  static const Color successColor = darkSuccess;
-  static const Color warningColor = darkWarning;
+  static const Color primaryColor = lightPrimary;
+  static const Color secondaryColor = lightPrimary;
+  static const Color accentColor = lightAccentPurple;
+  static const Color bgDark = lightBg;
+  static const Color bgLight = lightSecBg;
+  static const Color cardBg = lightSurface;
+  static const Color borderColor = lightBorder;
+  static const Color textPrimary = lightTextPrimary;
+  static const Color textSecondary = lightTextSecondary;
+  static const Color textTertiary = lightCaption;
+  static const Color errorColor = lightError;
+  static const Color successColor = lightSuccess;
+  static const Color warningColor = lightWarning;
 
   // ThemeData lightTheme
   static ThemeData lightTheme = ThemeData(
@@ -141,63 +141,74 @@ class AppTheme {
       surface: lightSurface,
       error: lightError,
     ),
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: false,
-      iconTheme: IconThemeData(color: lightTextPrimary),
-      titleTextStyle: TextStyle(
+      iconTheme: const IconThemeData(color: lightTextPrimary),
+      titleTextStyle: GoogleFonts.plusJakartaSans(
         color: lightTextPrimary,
         fontSize: 22,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.bold,
       ),
     ),
     textTheme: TextTheme(
-      displayLarge: GoogleFonts.outfit(
-          fontSize: 32, fontWeight: FontWeight.w700, color: lightTextPrimary),
-      displayMedium: GoogleFonts.outfit(
-          fontSize: 28, fontWeight: FontWeight.w700, color: lightTextPrimary),
-      headlineLarge: GoogleFonts.outfit(
-          fontSize: 24, fontWeight: FontWeight.w700, color: lightTextPrimary),
-      headlineSmall: GoogleFonts.outfit(
-          fontSize: 20, fontWeight: FontWeight.w700, color: lightTextPrimary),
-      titleMedium: GoogleFonts.outfit(
-          fontSize: 18, fontWeight: FontWeight.w700, color: lightTextPrimary),
-      bodyLarge: GoogleFonts.poppins(
-          fontSize: 16, fontWeight: FontWeight.w500, color: lightTextPrimary),
-      bodyMedium: GoogleFonts.poppins(
-          fontSize: 14, fontWeight: FontWeight.w500, color: lightTextSecondary),
-      bodySmall: GoogleFonts.poppins(
-          fontSize: 12, fontWeight: FontWeight.w400, color: lightCaption),
+      displayLarge: GoogleFonts.plusJakartaSans(
+          fontSize: 34, fontWeight: FontWeight.bold, color: lightTextPrimary),
+      displayMedium: GoogleFonts.plusJakartaSans(
+          fontSize: 28, fontWeight: FontWeight.bold, color: lightTextPrimary),
+      headlineLarge: GoogleFonts.plusJakartaSans(
+          fontSize: 22, fontWeight: FontWeight.bold, color: lightTextPrimary),
+      headlineSmall: GoogleFonts.plusJakartaSans(
+          fontSize: 18, fontWeight: FontWeight.bold, color: lightTextPrimary),
+      titleMedium: GoogleFonts.plusJakartaSans(
+          fontSize: 17, fontWeight: FontWeight.bold, color: lightTextPrimary),
+      bodyLarge: GoogleFonts.inter(
+          fontSize: 15, fontWeight: FontWeight.normal, color: lightTextSecondary, height: 1.5),
+      bodyMedium: GoogleFonts.inter(
+          fontSize: 14, fontWeight: FontWeight.normal, color: lightCaption, height: 1.5),
+      bodySmall: GoogleFonts.inter(
+          fontSize: 12, fontWeight: FontWeight.w500, color: lightCaption),
+      labelLarge: GoogleFonts.inter(
+          fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+      labelMedium: GoogleFonts.inter(
+          fontSize: 20, fontWeight: FontWeight.bold, color: lightTextPrimary),
+      labelSmall: GoogleFonts.inter(
+          fontSize: 12, fontWeight: FontWeight.w500, color: lightCaption),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: lightBorder),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE7EBF2)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: lightBorder),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE7EBF2)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: lightPrimary, width: 2),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFF8B5CFF), width: 2),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: lightError, width: 1.5),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: lightError, width: 2),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      hintStyle: GoogleFonts.poppins(
-        fontSize: 14,
+      contentPadding: const EdgeInsets.all(16),
+      hintStyle: GoogleFonts.inter(
+        fontSize: 15,
         color: lightPlaceholder,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.normal,
+      ),
+      labelStyle: GoogleFonts.inter(
+        fontSize: 15,
+        color: lightTextPrimary,
+        fontWeight: FontWeight.w500,
       ),
     ),
     cardTheme: CardThemeData(
@@ -364,4 +375,228 @@ extension ThemeExtension on BuildContext {
   Color get vipGold => isDark ? AppTheme.darkVipGold : AppTheme.lightVipGold;
   Color get silver => isDark ? AppTheme.darkSilver : AppTheme.lightSilver;
   Color get bronze => isDark ? AppTheme.darkBronze : AppTheme.lightBronze;
+
+  List<BoxShadow> get smallShadow => [
+        BoxShadow(
+          color: isDark ? Colors.black.withOpacity(0.42) : const Color(0xFF0F172A).withOpacity(0.06),
+          blurRadius: 24,
+          offset: const Offset(0, 8),
+        ),
+      ];
+
+  List<BoxShadow> get largeShadow => [
+        BoxShadow(
+          color: isDark ? Colors.black.withOpacity(0.55) : const Color(0xFF0F172A).withOpacity(0.08),
+          blurRadius: 40,
+          offset: const Offset(0, 16),
+        ),
+      ];
+
+  LinearGradient get pinkToPurpleGradient => const LinearGradient(
+        colors: [Color(0xFFFF4D8D), Color(0xFF8B5CFF)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
+  LinearGradient get purpleToBlueGradient => const LinearGradient(
+        colors: [Color(0xFF8B5CFF), Color(0xFF00C2FF)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
+  LinearGradient get orangeToGoldGradient => const LinearGradient(
+        colors: [Color(0xFFFF7A09), Color(0xFFFFB020)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
+  TextStyle get logoStyle => GoogleFonts.plusJakartaSans(
+        fontSize: 34,
+        fontWeight: FontWeight.bold,
+      );
+
+  TextStyle get splashTitleStyle => GoogleFonts.plusJakartaSans(
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        color: textPrimary,
+      );
+
+  TextStyle get pageTitleStyle => GoogleFonts.plusJakartaSans(
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
+        color: textPrimary,
+      );
+
+  TextStyle get sectionHeadingStyle => GoogleFonts.plusJakartaSans(
+        fontSize: 22,
+        fontWeight: FontWeight.w600, // SemiBold
+        color: textPrimary,
+      );
+
+  TextStyle get cardTitleStyle => GoogleFonts.plusJakartaSans(
+        fontSize: 18,
+        fontWeight: FontWeight.w600, // SemiBold
+        color: textPrimary,
+      );
+
+  TextStyle get roomTitleStyle => GoogleFonts.plusJakartaSans(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: textPrimary,
+      );
+
+  TextStyle get userNameStyle => GoogleFonts.plusJakartaSans(
+        fontSize: 17,
+        fontWeight: FontWeight.bold,
+        color: textPrimary,
+      );
+
+  TextStyle get profileNameStyle => GoogleFonts.plusJakartaSans(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: textPrimary,
+      );
+
+  TextStyle get buttonTextStyle => GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.w600, // SemiBold
+      );
+
+  TextStyle get bodyTextStyle => GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.normal, // Regular
+        color: textSecondary,
+        height: 1.5,
+      );
+
+  TextStyle get descriptionStyle => GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.normal, // Regular
+        color: caption,
+        height: 1.5,
+      );
+
+  TextStyle get inputTextStyle => GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.w500, // Medium
+        color: textPrimary,
+      );
+
+  TextStyle get placeholderStyle => GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.normal, // Regular
+        color: placeholder,
+      );
+
+  TextStyle get captionStyle => GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w500, // Medium
+        color: caption,
+      );
+
+  TextStyle get smallTextStyle => GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w500, // Medium
+        color: caption,
+      );
+
+  TextStyle get tinyLabelStyle => GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w500, // Medium
+        color: caption,
+      );
+
+  TextStyle get statsNumbersStyle => GoogleFonts.inter(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: textPrimary,
+      );
+
+  TextStyle get followersLabelStyle => GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w500, // Medium
+        color: caption,
+      );
+
+  TextStyle get walletBalanceStyle => GoogleFonts.inter(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: textPrimary,
+      );
+
+  TextStyle get coinsStyle => GoogleFonts.inter(
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+        color: textPrimary,
+      );
+
+  TextStyle get otpDigitsStyle => GoogleFonts.inter(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: textPrimary,
+      );
+
+  TextStyle get levelTextStyle => GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w600, // SemiBold
+        color: textPrimary,
+      );
+
+  TextStyle get badgeTextStyle => GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w600, // SemiBold
+        color: textPrimary,
+      );
+
+  TextStyle get notificationTimeStyle => GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w500, // Medium
+        color: caption,
+      );
+
+  TextStyle get chatMessageStyle => GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.normal, // Regular
+        color: textPrimary,
+      );
+
+  TextStyle get chatTimeStyle => GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w500, // Medium
+        color: caption,
+      );
+
+  TextStyle get menuTextStyle => GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.w500, // Medium
+        color: textPrimary,
+      );
+
+  TextStyle get settingsTitleStyle => GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600, // SemiBold
+        color: textPrimary,
+      );
+
+  TextStyle get settingsDescriptionStyle => GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.normal, // Regular
+        color: caption,
+      );
+
+  TextStyle get bottomNavTextStyle => GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w500, // Medium
+      );
+
+  TextStyle get tabTextStyle => GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w600, // SemiBold
+      );
+
+  TextStyle get searchHintStyle => GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.normal, // Regular
+        color: placeholder,
+      );
 }

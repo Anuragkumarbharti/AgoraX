@@ -1,4 +1,6 @@
-import 'package:zego_uikit/zego_uikit.dart';
+import 'package:get/get.dart';
+import 'package:zego_express_engine/zego_express_engine.dart';
+import 'dart:math';
 import 'zego_config.dart';
 
 class ZegoCloudService {
@@ -10,28 +12,53 @@ class ZegoCloudService {
 
   ZegoCloudService._internal();
 
-  /// Initialize ZEGOCLOUD with empty appSign (for Token Authentication)
+  ZegoUser _currentUser = ZegoUser('', '');
+  bool _isInRoom = false;
+  bool _isMicEnabled = false;
+  bool _isCameraEnabled = false;
+  String _currentRoomId = '';
+  int _membersCount = 1;
+
+  final RxList<ZegoUser> roomUsers = <ZegoUser>[].obs;
+
+  /// Initialize ZEGOCLOUD Express Engine
   Future<void> init() async {
     try {
-      await ZegoUIKit.instance.init(
-        appID: ZegoConfig.appId,
-        appSign: '', // Set empty to use token authentication in production
+      ZegoEngineProfile profile = ZegoEngineProfile(
+        ZegoConfig.appId,
+        ZegoScenario.StandardVoiceCall,
+        appSign: '', // empty to use token authentication in production
       );
-      print('✅ ZEGOCLOUD initialized successfully (Token Mode)');
+      await ZegoExpressEngine.createEngineWithProfile(profile);
+      
+      // Setup event callbacks
+      ZegoExpressEngine.onRoomUserUpdate = (roomId, updateType, userList) {
+        if (updateType == ZegoUpdateType.Add) {
+          for (var user in userList) {
+            if (!roomUsers.any((u) => u.userID == user.userID)) {
+              roomUsers.add(user);
+            }
+          }
+          _membersCount = roomUsers.length;
+        } else {
+          for (var user in userList) {
+            roomUsers.removeWhere((u) => u.userID == user.userID);
+          }
+          _membersCount = max(1, roomUsers.length);
+        }
+      };
+
+      print('✅ ZEGOCLOUD Express Engine initialized successfully');
     } catch (e) {
-      print('❌ ZEGOCLOUD initialization error: $e');
+      print('❌ ZEGOCLOUD Express Engine initialization error: $e');
       rethrow;
     }
   }
 
   /// Set user info
   void setUserInfo(String userId, String userName) {
-    try {
-      ZegoUIKit.instance.login(userId, userName);
-      print('✅ User info set: $userId - $userName');
-    } catch (e) {
-      print('❌ Error setting user info: $e');
-    }
+    _currentUser = ZegoUser(userId, userName);
+    print('✅ ZEGOCLOUD User info set: $userId - $userName');
   }
 
   /// Join a room with token
@@ -42,12 +69,27 @@ class ZegoCloudService {
     required String token,
   }) async {
     try {
-      await ZegoUIKit.instance.joinRoom(roomId, token: token);
-      ZegoUIKit.instance.turnMicrophoneOn(enableMic);
-      ZegoUIKit.instance.turnCameraOn(enableCamera);
-      print('✅ Joined room: $roomId with token');
+      _currentRoomId = roomId;
+      ZegoRoomConfig config = ZegoRoomConfig.defaultConfig();
+      config.token = token;
+      config.isUserStatusNotify = true;
+
+      await ZegoExpressEngine.instance.loginRoom(roomId, _currentUser, config: config);
+      _isInRoom = true;
+      roomUsers.clear();
+      roomUsers.add(_currentUser);
+      _membersCount = 1; // reset count upon entering new room
+
+      // Audio & Video state initialization
+      await ZegoExpressEngine.instance.muteMicrophone(!enableMic);
+      _isMicEnabled = enableMic;
+
+      await ZegoExpressEngine.instance.enableCamera(enableCamera);
+      _isCameraEnabled = enableCamera;
+
+      print('✅ ZEGOCLOUD Joined room: $roomId with token');
     } catch (e) {
-      print('❌ Error joining room: $e');
+      print('❌ ZEGOCLOUD Error joining room: $e');
       rethrow;
     }
   }
@@ -55,87 +97,79 @@ class ZegoCloudService {
   /// Renew token in active room
   Future<void> renewToken(String token) async {
     try {
-      await ZegoUIKit.instance.renewRoomToken(token);
+      await ZegoExpressEngine.instance.renewToken(_currentRoomId, token);
       print('✅ ZEGOCLOUD token renewed successfully');
     } catch (e) {
-      print('❌ Error renewing ZEGOCLOUD token: $e');
+      print('❌ ZEGOCLOUD Error renewing token: $e');
     }
   }
 
   /// Leave room
   Future<void> leaveRoom() async {
     try {
-      await ZegoUIKit.instance.leaveRoom();
-      print('✅ Left room');
+      if (_isInRoom) {
+        await ZegoExpressEngine.instance.logoutRoom(_currentRoomId);
+        _isInRoom = false;
+        _currentRoomId = '';
+        _membersCount = 1;
+      }
+      print('✅ ZEGOCLOUD Left room');
     } catch (e) {
-      print('❌ Error leaving room: $e');
+      print('❌ ZEGOCLOUD Error leaving room: $e');
       rethrow;
     }
   }
 
   /// Toggle microphone
-  void toggleMic(bool isOn) {
+  void toggleMic(bool isOn) async {
     try {
-      ZegoUIKit.instance.turnMicrophoneOn(isOn);
-      print('🎤 Microphone: ${isOn ? 'ON' : 'OFF'}');
+      await ZegoExpressEngine.instance.muteMicrophone(!isOn);
+      _isMicEnabled = isOn;
+      print('🎤 ZEGOCLOUD Microphone: ${isOn ? 'ON' : 'OFF'}');
     } catch (e) {
-      print('❌ Error toggling mic: $e');
+      print('❌ ZEGOCLOUD Error toggling mic: $e');
     }
   }
 
   /// Toggle camera
-  void toggleCamera(bool isOn) {
+  void toggleCamera(bool isOn) async {
     try {
-      ZegoUIKit.instance.turnCameraOn(isOn);
-      print('📹 Camera: ${isOn ? 'ON' : 'OFF'}');
+      await ZegoExpressEngine.instance.enableCamera(isOn);
+      _isCameraEnabled = isOn;
+      print('📹 ZEGOCLOUD Camera: ${isOn ? 'ON' : 'OFF'}');
     } catch (e) {
-      print('❌ Error toggling camera: $e');
+      print('❌ ZEGOCLOUD Error toggling camera: $e');
     }
   }
 
   /// Get current room state
   bool isInRoom() {
-    try {
-      return ZegoUIKit.instance.getRoom().id.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
+    return _isInRoom;
   }
 
   /// Get microphone state
   bool isMicOn() {
-    try {
-      return ZegoUIKit.instance.getLocalUser().microphone.value;
-    } catch (_) {
-      return false;
-    }
+    return _isMicEnabled;
   }
 
   /// Get camera state
   bool isCameraOn() {
-    try {
-      return ZegoUIKit.instance.getLocalUser().camera.value;
-    } catch (_) {
-      return false;
-    }
+    return _isCameraEnabled;
   }
 
   /// Get room members count
   int getRoomMembersCount() {
-    try {
-      return ZegoUIKit.instance.getRemoteUsers().length + 1; // +1 for current user
-    } catch (_) {
-      return 1;
-    }
+    return _membersCount;
   }
 
   /// Dispose/cleanup
   Future<void> dispose() async {
     try {
-      await ZegoUIKit.instance.leaveRoom();
-      print('✅ ZEGOCLOUD cleaned up');
+      await leaveRoom();
+      await ZegoExpressEngine.destroyEngine();
+      print('✅ ZEGOCLOUD Express Engine destroyed');
     } catch (e) {
-      print('❌ Error during cleanup: $e');
+      print('❌ ZEGOCLOUD Error during cleanup: $e');
     }
   }
 }

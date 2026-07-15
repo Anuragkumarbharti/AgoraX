@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
+import '../../widgets/custom_image_editor.dart';
 import '../../models/event_model.dart';
 import '../../services/event_controller.dart';
 
@@ -123,13 +124,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppTheme.primaryColor,
+            colorScheme: ColorScheme.dark(
+              primary: context.primaryColor,
               onPrimary: Colors.white,
-              surface: AppTheme.bgLight,
+              surface: context.secondaryBackgroundColor,
               onSurface: Colors.white,
             ),
-            dialogBackgroundColor: AppTheme.bgDark,
+            dialogBackgroundColor: context.scaffoldBackgroundColor,
           ),
           child: child!,
         );
@@ -147,13 +148,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppTheme.primaryColor,
+            colorScheme: ColorScheme.dark(
+              primary: context.primaryColor,
               onPrimary: Colors.white,
-              surface: AppTheme.bgLight,
+              surface: context.secondaryBackgroundColor,
               onSurface: Colors.white,
             ),
-            dialogBackgroundColor: AppTheme.bgDark,
+            dialogBackgroundColor: context.scaffoldBackgroundColor,
           ),
           child: child!,
         );
@@ -243,15 +244,15 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.assignment_turned_in_rounded, color: AppTheme.primaryColor, size: 24),
+            Icon(Icons.assignment_turned_in_rounded, color: context.primaryColor, size: 24),
             SizedBox(width: 10),
             Text(
               'Publish Event Preview',
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -260,37 +261,37 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Verify event details before deducting creation coins and publishing.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                style: TextStyle(color: context.textSecondary, fontSize: 11),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               if (_isPaid) ...[
                 Text(
                   '🏆 Prize Pool: ₹${minPrize.toInt()} - ₹${maxPrize.toInt()}',
-                  style: const TextStyle(color: Color(0xFFFBBF24), fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(color: Color(0xFFFBBF24), fontWeight: FontWeight.bold, fontSize: 13),
                 ),
-                const SizedBox(height: 4),
-                Text('Winner Split: ${finalWinnerType.toUpperCase()}', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                const SizedBox(height: 12),
+                SizedBox(height: 4),
+                Text('Winner Split: ${finalWinnerType.toUpperCase()}', style: TextStyle(color: Colors.white, fontSize: 11)),
+                SizedBox(height: 12),
               ],
-              const Divider(color: AppTheme.borderColor),
-              const SizedBox(height: 8),
+              Divider(color: context.borderColor),
+              SizedBox(height: 8),
                Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Host Fee', style: TextStyle(color: AppTheme.textTertiary, fontSize: 12)),
-                  const Text('🪙 59', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('Host Fee', style: TextStyle(color: context.caption, fontSize: 12)),
+                  Text('🪙 59', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total Creation Cost', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('Total Creation Cost', style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
                   Text(
                     '🪙 $creationCost',
-                    style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 15, fontWeight: FontWeight.w900),
+                    style: TextStyle(color: Color(0xFFFBBF24), fontSize: 15, fontWeight: FontWeight.w900),
                   ),
                 ],
               ),
@@ -300,11 +301,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Edit Form', style: TextStyle(color: AppTheme.textTertiary)),
+            child: Text('Edit Form', style: TextStyle(color: context.caption)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: context.primaryColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
@@ -373,12 +374,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   '🎉 Event Published Successfully!',
                   'Deducted 🪙 $creationCost coins from your account.',
                   snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: AppTheme.accentColor.withOpacity(0.9),
+                  backgroundColor: context.accentOrange.withOpacity(0.9),
                   colorText: Colors.white,
                 );
               }
             },
-            child: const Text('Publish Event', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text('Publish Event', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -388,18 +389,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'Host New Event',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -408,39 +409,39 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           children: [
             // ── Banner selector preset card ────────────────────────────────
             _buildBannerSelector(),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // ── Section 1: Basic Information ──────────────────────────────
             _buildInputSection(
               title: '📝 Basic Information',
               children: [
                 _buildTextField('Event Name', _nameController, 'Enter event title', (v) => v!.isEmpty ? 'Name required' : null),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildTextField('Description', _descController, 'Explain target audience, syllabus details...', null, maxLines: 3),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildDropdown('Category', _selectedCategory, _categories, (val) => setState(() => _selectedCategory = val!)),
                 if (_selectedCategory == 'Other (Custom)') ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _buildTextField('Custom Category Name', _customCategoryController, 'Enter category name', (v) => v!.isEmpty ? 'Category required' : null),
                 ],
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // ── Section 2: Formatting & Type ──────────────────────────────
             _buildInputSection(
               title: '🎨 Format & Difficulty',
               children: [
                 _buildDropdown('Format Type', _selectedFormat, ['Quiz', 'Coding Contest', 'Debate', 'Hackathon', 'Live Test'], (val) => setState(() => _selectedFormat = val!)),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildDropdown('Difficulty', _selectedDifficulty, ['Easy', 'Medium', 'Hard'], (val) => setState(() => _selectedDifficulty = val!)),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildTextField('Rules & Syllabus (comma separated)', _rulesController, 'e.g. Plagiarism check active, time limit 20 mins', null),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildToggleRow('Is Multi-Round Event', _isMultiRound, (v) {
                   setState(() {
                     _isMultiRound = v;
@@ -462,12 +463,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   });
                 }),
                 if (_isMultiRound) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _buildMultiRoundWidget(),
                 ],
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // ── Section 3: Registration & Scheduling ───────────────────────
             _buildInputSection(
@@ -482,7 +483,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     _registrationStartDate = DateTime(_registrationStartDate.year, _registrationStartDate.month, _registrationStartDate.day, t.hour, t.minute);
                   }),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 // Registration end picker
                 _buildDateTimePickerRow(
                   label: 'Registration End',
@@ -492,7 +493,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     _registrationEndDate = DateTime(_registrationEndDate.year, _registrationEndDate.month, _registrationEndDate.day, t.hour, t.minute);
                   }),
                 ),
-                const Divider(color: AppTheme.borderColor, height: 24),
+                Divider(color: context.borderColor, height: 24),
                 // Event Start Date/Time
                 _buildDateTimePickerRow(
                   label: 'Event Start Time',
@@ -500,16 +501,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   onDateTap: () => _selectDate(context, _eventStartDate, (d) => _eventStartDate = d),
                   onTimeTap: () => _selectTime(context, _eventStartTime, (t) => _eventStartTime = t),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 // Duration configuration
                 _buildDropdown('Event Duration', _durationString, ['15 min', '30 min', '1 hour', '2 hours', '3 hours', 'Custom Duration'], (val) => setState(() => _durationString = val!)),
                 if (_durationString == 'Custom Duration') ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _buildNumberField('Custom Duration (Minutes)', (v) => setState(() {}), '60', controller: _customDurationController),
                 ],
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // ── Section 4: Pricing & Dynamic Prize Pool ───────────────────
             _buildInputSection(
@@ -521,145 +522,145 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   });
                 }),
                 if (_isPaid) ...[
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildNumberField('Entry Fee Amount (₹)', (v) => setState(() => _entryFeeAmount = int.tryParse(v) ?? 0), '100'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildDropdown('Winner Type', _winnerType == 'top3' ? 'Top 3' : _winnerType == 'top5' ? 'Top 5' : _winnerType == 'top10' ? 'Top 10' : 'Custom Winner Count', ['Top 3', 'Top 5', 'Top 10', 'Custom Winner Count'], (val) {
                     setState(() {
                       _winnerType = val == 'Top 3' ? 'top3' : val == 'Top 5' ? 'top5' : val == 'Top 10' ? 'top10' : 'custom';
                     });
                   }),
                   if (_winnerType == 'custom') ...[
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     _buildNumberField('Custom Winner Count', (v) => setState(() {}), '15', controller: _customWinnerController),
                   ],
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildToggleRow('Auto Prize Pool Calculation', _autoPrizeCalculation, (v) => setState(() => _autoPrizeCalculation = v)),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildToggleRow('Allow Admins & Co-owners to Join', _allowAdminsJoin, (v) => setState(() => _allowAdminsJoin = v)),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   // Minimum & Maximum users/participants
                   Row(
                     children: [
                       Expanded(
                         child: _buildNumberField('Min Participants', (v) => setState(() => _minSeats = int.tryParse(v) ?? 10), '10'),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: _buildNumberField('Max Participants', (v) => setState(() => _maxSeats = int.tryParse(v) ?? 100), '100'),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
                         child: _buildNumberField('Min Users limit', (v) => setState(() => _minUsers = int.tryParse(v) ?? 10), '10'),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: _buildNumberField('Max Users limit', (v) => setState(() => _maxUsers = int.tryParse(v) ?? 100), '100'),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   // Payout structure card preview
                   if (_autoPrizeCalculation) _buildPrizeBreakdownCard(),
                 ],
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // ── Section 5: Access & Privacy ───────────────────────────────
             _buildInputSection(
               title: '🔒 Access & Privacy Settings',
               children: [
                 _buildToggleRow('Public Event (Visible to all)', _isPublic, (v) => setState(() => _isPublic = v)),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildToggleRow('Password Protected Event', _passwordProtected, (v) => setState(() => _passwordProtected = v)),
                 if (_passwordProtected) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _buildTextField('Event Access Password', _passwordController, 'Enter secure password', (v) => v!.isEmpty ? 'Password required' : null),
                 ],
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // ── Section 6: Video/Audio Rooms & Chat permissions ────────────
             _buildInputSection(
               title: '🎙️ Communications & Media',
               children: [
                 _buildToggleRow('Chat Room Enabled', _chatEnabled, (v) => setState(() => _chatEnabled = v)),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildToggleRow('Voice Room Room Enabled', _voiceRoomEnabled, (v) => setState(() => _voiceRoomEnabled = v)),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildToggleRow('Allow Screen Sharing', _screenShareEnabled, (v) => setState(() => _screenShareEnabled = v)),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildToggleRow('Allow Recording Session', _recordingEnabled, (v) => setState(() => _recordingEnabled = v)),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildToggleRow('Allow Spectators (Non-participants)', _allowSpectators, (v) => setState(() => _allowSpectators = v)),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildToggleRow('Allow Late Join (Join after start)', _allowLateJoin, (v) => setState(() => _allowLateJoin = v)),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // ── Section 7: Proctoring & Rules ──────────────────────────────
             _buildInputSection(
               title: '🛡️ Proctoring & Rules config',
               children: [
                 _buildToggleRow('AI Screen Proctoring (Tab Switch Monitor)', _screenMonitoring, (v) => setState(() => _screenMonitoring = v)),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildToggleRow('Negative Marking (-0.25 on MCQ error)', _negativeMarking, (v) => setState(() => _negativeMarking = v)),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildToggleRow('Auto Cancel if Min Seats Not Reached', _autoCancelMinUsers, (v) => setState(() => _autoCancelMinUsers = v)),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildToggleRow('Auto Refund Entry Fees on Cancel', _autoRefund, (v) => setState(() => _autoRefund = v)),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // ── Section 8: Registration Form Creator ───────────────────────
             _buildInputSection(
               title: '📋 Registrant Form Customization',
               children: [
-                const Text(
+                Text(
                   'Select details that participants must provide when registering for your event:',
-                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                  style: TextStyle(color: context.caption, fontSize: 11),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildToggleRow('Require Full Name', _reqName, (v) => setState(() => _reqName = v)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 _buildToggleRow('Require Phone Number', _reqPhone, (v) => setState(() => _reqPhone = v)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 _buildToggleRow('Require Email Address', _reqEmail, (v) => setState(() => _reqEmail = v)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 _buildToggleRow('Require UPI ID (For payouts)', _reqUpi, (v) => setState(() => _reqUpi = v)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 _buildToggleRow('Require Profile Photo / ID Proof', _reqPhoto, (v) => setState(() => _reqPhoto = v)),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildTextField('Custom Event Terms & Conditions (Optional)', _termsController, 'e.g. Host holds rights to disqualify suspicious activities...', null, maxLines: 2),
               ],
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
 
             // Submit Button
             SizedBox(
               height: 52,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: context.primaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: _submit,
-                icon: const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 20),
-                label: const Text(
+                icon: Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 20),
+                label: Text(
                   'Publish & Create Event',
                   style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-            const SizedBox(height: 80),
+            SizedBox(height: 80),
           ],
         ),
       ),
@@ -707,7 +708,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       color: Colors.black26,
                       child: TextButton.icon(
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         ),
                         onPressed: () {
                           setState(() {
@@ -715,8 +716,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             _currentBannerIndex = (_currentBannerIndex + 1) % _presetBanners.length;
                           });
                         },
-                        icon: const Icon(Icons.style_rounded, color: AppTheme.accentColor, size: 14),
-                        label: const Text(
+                        icon: Icon(Icons.style_rounded, color: context.accentOrange, size: 14),
+                        label: Text(
                           'Preset Banner',
                           style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
@@ -724,7 +725,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: BackdropFilter(
@@ -733,19 +734,22 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       color: Colors.black26,
                       child: TextButton.icon(
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         ),
                         onPressed: () async {
                           final ImagePicker picker = ImagePicker();
                           final XFile? image = await picker.pickImage(source: ImageSource.gallery);
                           if (image != null) {
-                            setState(() {
-                              _customGalleryBannerPath = image.path;
-                            });
+                            final editedFile = await CustomImageEditor.editImage(context, File(image.path));
+                            if (editedFile != null) {
+                              setState(() {
+                                _customGalleryBannerPath = editedFile.path;
+                              });
+                            }
                           }
                         },
-                        icon: const Icon(Icons.photo_library_rounded, color: AppTheme.primaryColor, size: 14),
-                        label: const Text(
+                        icon: Icon(Icons.photo_library_rounded, color: context.primaryColor, size: 14),
+                        label: Text(
                           'Gallery Upload',
                           style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
@@ -772,44 +776,44 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.textSecondary, fontSize: 11)),
+        SizedBox(height: 6),
         Row(
           children: [
             Expanded(
               child: GestureDetector(
                 onTap: onDateTap,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                   decoration: BoxDecoration(
-                    color: AppTheme.bgDark,
+                    color: context.scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today_rounded, color: AppTheme.textTertiary, size: 14),
-                      const SizedBox(width: 8),
-                      Text(dateStr, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Icon(Icons.calendar_today_rounded, color: context.caption, size: 14),
+                      SizedBox(width: 8),
+                      Text(dateStr, style: TextStyle(color: Colors.white, fontSize: 12)),
                     ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(
               child: GestureDetector(
                 onTap: onTimeTap,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                   decoration: BoxDecoration(
-                    color: AppTheme.bgDark,
+                    color: context.scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.access_time_rounded, color: AppTheme.textTertiary, size: 14),
-                      const SizedBox(width: 8),
-                      Text(timeStr, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Icon(Icons.access_time_rounded, color: context.caption, size: 14),
+                      SizedBox(width: 8),
+                      Text(timeStr, style: TextStyle(color: Colors.white, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -825,18 +829,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     final double poolMin = _minSeats * _entryFeeAmount * 0.58;
     final double poolMax = _maxSeats * _entryFeeAmount * 0.58;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.bgDark,
+        color: context.scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+        border: Border.all(color: context.primaryColor.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.analytics_outlined, color: AppTheme.accentColor, size: 16),
+              Icon(Icons.analytics_outlined, color: context.accentOrange, size: 16),
               SizedBox(width: 6),
               Text(
                 'Auto Prize Calculation Preview',
@@ -844,19 +848,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _buildPreviewRow('Estimated Prize Pool (58%)', '₹${poolMin.toInt()} - ₹${poolMax.toInt()}', isGolden: true),
           _buildPreviewRow('Platform Fee (17%)', '₹${(_minSeats * _entryFeeAmount * 0.17).toInt()} - ₹${(_maxSeats * _entryFeeAmount * 0.17).toInt()}'),
           _buildPreviewRow('Creator Reward (10%)', '₹${(_minSeats * _entryFeeAmount * 0.10).toInt()} - ₹${(_maxSeats * _entryFeeAmount * 0.10).toInt()}'),
           _buildPreviewRow('Co-Owner Reward (5%)', '₹${(_minSeats * _entryFeeAmount * 0.05).toInt()} - ₹${(_maxSeats * _entryFeeAmount * 0.05).toInt()}'),
           _buildPreviewRow('Admin Pool (10%)', '₹${(_minSeats * _entryFeeAmount * 0.10).toInt()} - ₹${(_maxSeats * _entryFeeAmount * 0.10).toInt()}'),
-          const Divider(color: AppTheme.borderColor),
-          const SizedBox(height: 4),
-          const Text(
+          Divider(color: context.borderColor),
+          SizedBox(height: 4),
+          Text(
             'Estimated Winner Payouts:',
             style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           _buildWinnerEstimates(),
         ],
       ),
@@ -865,17 +869,17 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   Widget _buildInputSection({required String title, required List<Widget> children}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: AppTheme.primaryColor, fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 14),
+          Text(title, style: TextStyle(color: context.primaryColor, fontSize: 14, fontWeight: FontWeight.bold)),
+          SizedBox(height: 14),
           ...children,
         ],
       ),
@@ -886,20 +890,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.textSecondary, fontSize: 11)),
+        SizedBox(height: 6),
         TextFormField(
           controller: controller,
           validator: validator,
           maxLines: maxLines,
-          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+          style: TextStyle(color: context.textPrimary, fontSize: 13),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+            hintStyle: TextStyle(color: context.caption, fontSize: 12),
             filled: true,
-            fillColor: AppTheme.bgDark,
+            fillColor: context.scaffoldBackgroundColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
         ),
       ],
@@ -910,20 +914,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.textSecondary, fontSize: 11)),
+        SizedBox(height: 6),
         TextFormField(
           controller: controller,
           keyboardType: TextInputType.number,
           onChanged: onChanged,
-          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+          style: TextStyle(color: context.textPrimary, fontSize: 13),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+            hintStyle: TextStyle(color: context.caption, fontSize: 12),
             filled: true,
-            fillColor: AppTheme.bgDark,
+            fillColor: context.scaffoldBackgroundColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
         ),
       ],
@@ -934,12 +938,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.textSecondary, fontSize: 11)),
+        SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: AppTheme.bgDark,
+            color: context.scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(10),
           ),
           child: DropdownButtonHideUnderline(
@@ -948,10 +952,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               items: items
                   .map((e) => DropdownMenuItem(
                       value: e,
-                      child: Text(e, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13))))
+                      child: Text(e, style: TextStyle(color: context.textPrimary, fontSize: 13))))
                   .toList(),
               onChanged: onChanged,
-              dropdownColor: AppTheme.bgDark,
+              dropdownColor: context.scaffoldBackgroundColor,
               isExpanded: true,
             ),
           ),
@@ -967,12 +971,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+            style: TextStyle(color: context.textPrimary, fontSize: 13),
           ),
         ),
         Switch(
           value: value,
-          activeColor: AppTheme.primaryColor,
+          activeColor: context.primaryColor,
           onChanged: onChanged,
         ),
       ],
@@ -981,12 +985,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   Widget _buildPreviewRow(String label, String value, {bool isGolden = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: isGolden ? Colors.white : AppTheme.textTertiary, fontSize: 11, fontWeight: isGolden ? FontWeight.bold : FontWeight.normal)),
-          Text(value, style: TextStyle(color: isGolden ? const Color(0xFFFBBF24) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+          Text(label, style: TextStyle(color: isGolden ? Colors.white : context.caption, fontSize: 11, fontWeight: isGolden ? FontWeight.bold : FontWeight.normal)),
+          Text(value, style: TextStyle(color: isGolden ? Color(0xFFFBBF24) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -996,11 +1000,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Divider(color: AppTheme.borderColor),
+        Divider(color: context.borderColor),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               '🏁 Round Configurations',
               style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
             ),
@@ -1022,16 +1026,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ));
                   });
                 },
-                icon: const Icon(Icons.add_rounded, size: 16, color: AppTheme.primaryColor),
-                label: const Text('Add Round', style: TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                icon: Icon(Icons.add_rounded, size: 16, color: context.primaryColor),
+                label: Text('Add Round', style: TextStyle(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         if (_configuredRounds.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text('No rounds configured. At least 1 round is required.', style: TextStyle(color: AppTheme.errorColor, fontSize: 11)),
+            child: Text('No rounds configured. At least 1 round is required.', style: TextStyle(color: context.errorColor, fontSize: 11)),
           )
         else
           ..._configuredRounds.asMap().entries.map((entry) {
@@ -1039,12 +1043,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             final round = entry.value;
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(12),
+              margin: EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.bgDark,
+                color: context.scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+                border: Border.all(color: context.borderColor.withOpacity(0.5)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1054,10 +1058,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     children: [
                       Text(
                         'Round ${idx + 1}: ${round.name}',
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                        icon: Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
                         onPressed: () {
                           setState(() {
                             _configuredRounds.removeAt(idx);
@@ -1066,7 +1070,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   // Round Type Selector
                   _buildDropdown('Round Type', round.format, ['MCQ Quiz', 'Coding Challenge', 'Aptitude Test', 'Reasoning Test', 'Mixed Questions'], (v) {
                     setState(() {
@@ -1084,7 +1088,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       );
                     });
                   }),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   // Total Questions & Timer Row
                   Row(
                     children: [
@@ -1106,7 +1110,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           });
                         }, '${round.totalQuestions}'),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: _buildNumberField('Timer (s)', (v) {
                           setState(() {
@@ -1127,7 +1131,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   // Qualification criteria selector & Break Time
                   Row(
                     children: [
@@ -1149,7 +1153,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           });
                         }),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: _buildNumberField('Break (Mins)', (v) {
                           setState(() {
@@ -1170,7 +1174,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   // Round Start Date & Time
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1180,7 +1184,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           round.startDate == null
                               ? '📅 Schedule Start: Click to select'
                               : '📅 Schedule: ${round.startDate!.toString().substring(0, 16)}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 10),
+                          style: TextStyle(color: Colors.white70, fontSize: 10),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -1219,11 +1223,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             }
                           }
                         },
-                        child: const Text('Pick', style: TextStyle(color: AppTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: Text('Pick', style: TextStyle(color: context.primaryColor, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   // KBC Buzzer Mode Switch
                   _buildToggleRow('KBC Buzzer Mode (Fastest finger)', round.isBuzzerMode, (v) {
                     setState(() {
@@ -1280,12 +1284,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         final minVal = poolMin * pct;
         final maxVal = poolMax * pct;
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2.0),
+          padding: EdgeInsets.symmetric(vertical: 2.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(positions[i], style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
-              Text('₹${minVal.toInt()} - ₹${maxVal.toInt()}', style: const TextStyle(color: Colors.white70, fontSize: 10)),
+              Text(positions[i], style: TextStyle(color: context.textSecondary, fontSize: 10)),
+              Text('₹${minVal.toInt()} - ₹${maxVal.toInt()}', style: TextStyle(color: Colors.white70, fontSize: 10)),
             ],
           ),
         );

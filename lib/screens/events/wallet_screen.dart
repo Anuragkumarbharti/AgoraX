@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/event_controller.dart';
 
 class WalletScreen extends StatefulWidget {
@@ -29,16 +29,16 @@ class _WalletScreenState extends State<WalletScreen> {
 
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.account_balance_wallet, color: AppTheme.primaryColor, size: 24),
+            Icon(Icons.account_balance_wallet, color: context.primaryColor, size: 24),
             SizedBox(width: 10),
             Text(
               'Withdraw Cash (₹)',
               style: TextStyle(
-                color: AppTheme.textPrimary,
+                color: context.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -50,15 +50,15 @@ class _WalletScreenState extends State<WalletScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Funds will be transferred to your UPI ID instantly.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                style: TextStyle(color: context.textSecondary, fontSize: 11),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: Colors.white, fontSize: 14),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Please enter amount';
                   final amt = double.tryParse(v);
@@ -69,17 +69,17 @@ class _WalletScreenState extends State<WalletScreen> {
                 decoration: InputDecoration(
                   prefixText: '₹ ',
                   labelText: 'Amount to Withdraw',
-                  labelStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                  labelStyle: TextStyle(color: context.caption, fontSize: 12),
                   filled: true,
-                  fillColor: AppTheme.bgDark,
+                  fillColor: context.scaffoldBackgroundColor,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextFormField(
                 controller: _upiController,
                 keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: Colors.white, fontSize: 14),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'UPI ID required';
                   if (!v.contains('@')) return 'Invalid UPI format (e.g. user@upi)';
@@ -87,9 +87,9 @@ class _WalletScreenState extends State<WalletScreen> {
                 },
                 decoration: InputDecoration(
                   labelText: 'UPI ID (e.g. mobile@upi)',
-                  labelStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                  labelStyle: TextStyle(color: context.caption, fontSize: 12),
                   filled: true,
-                  fillColor: AppTheme.bgDark,
+                  fillColor: context.scaffoldBackgroundColor,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
               ),
@@ -99,11 +99,11 @@ class _WalletScreenState extends State<WalletScreen> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel', style: TextStyle(color: AppTheme.textTertiary)),
+            child: Text('Cancel', style: TextStyle(color: context.caption)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: context.primaryColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
@@ -117,13 +117,13 @@ class _WalletScreenState extends State<WalletScreen> {
                     'Withdrawal Initiated 💰',
                     '₹$amt is being transferred to $upi',
                     snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: const Color(0xFF10B981),
+                    backgroundColor: Color(0xFF10B981),
                     colorText: Colors.white,
                   );
                 }
               }
             },
-            child: const Text('Withdraw', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text('Withdraw', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -136,7 +136,7 @@ class _WalletScreenState extends State<WalletScreen> {
       'Mock Deposit Success 💳',
       'Added ₹500.00 mock cash to your wallet!',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: AppTheme.accentColor,
+      backgroundColor: context.accentOrange,
       colorText: Colors.white,
     );
   }
@@ -144,25 +144,25 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'Wallet & History',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_card_rounded, color: AppTheme.accentColor),
+            icon: Icon(Icons.add_card_rounded, color: context.accentOrange),
             tooltip: 'Deposit Mock Money',
             onPressed: _depositMockMoney,
           ),
@@ -170,13 +170,13 @@ class _WalletScreenState extends State<WalletScreen> {
       ),
       body: Obx(() {
         return Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Double Balance Card
               _buildBalanceCards(),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // 2. Action buttons
               Row(
@@ -184,37 +184,37 @@ class _WalletScreenState extends State<WalletScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: context.primaryColor,
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      icon: const Icon(Icons.account_balance_wallet_outlined, color: Colors.white),
-                      label: const Text('Withdraw Cash', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      icon: Icon(Icons.account_balance_wallet_outlined, color: Colors.white),
+                      label: Text('Withdraw Cash', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       onPressed: _showWithdrawDialog,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
 
               // 3. Transactions List Header
-              const Text(
+              Text(
                 '📜 Transaction History',
                 style: TextStyle(
-                  color: AppTheme.textPrimary,
+                  color: context.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
 
               // 4. Transactions List
               Expanded(
                 child: _controller.walletTransactions.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text(
                           'No transactions yet.',
-                          style: TextStyle(color: AppTheme.textTertiary, fontSize: 13),
+                          style: TextStyle(color: context.caption, fontSize: 13),
                         ),
                       )
                     : ListView.builder(
@@ -238,14 +238,14 @@ class _WalletScreenState extends State<WalletScreen> {
         // Silver Coins Card
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF475569),
-                  const Color(0xFF1E293B).withOpacity(0.9),
+                  Color(0xFF475569),
+                  Color(0xFF1E293B).withOpacity(0.9),
                 ],
               ),
               borderRadius: BorderRadius.circular(20),
@@ -254,77 +254,77 @@ class _WalletScreenState extends State<WalletScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Text('🪙', style: TextStyle(fontSize: 18)),
                     SizedBox(width: 6),
                     Text(
                       'Silver Coins',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   '${_controller.silverCoins.value}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: 4),
+                Text(
                   'For hosting events & tools',
-                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 9),
+                  style: TextStyle(color: context.caption, fontSize: 9),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         // Cash Card
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF1E1B4B),
-                  const Color(0xFF0F172A).withOpacity(0.9),
+                  Color(0xFF1E1B4B),
+                  Color(0xFF0F172A).withOpacity(0.9),
                 ],
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
+              border: Border.all(color: context.primaryColor.withOpacity(0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Text('💰', style: TextStyle(fontSize: 16)),
                     SizedBox(width: 6),
                     Text(
                       'Cash Balance',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   '₹${_controller.cashBalance.value.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: AppTheme.accentColor,
+                  style: TextStyle(
+                    color: context.accentOrange,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: 4),
+                Text(
                   'For entry fees & winnings',
-                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 9),
+                  style: TextStyle(color: context.caption, fontSize: 9),
                 ),
               ],
             ),
@@ -349,16 +349,16 @@ class _WalletScreenState extends State<WalletScreen> {
       iconColor = Colors.redAccent;
     } else {
       icon = Icons.call_received_rounded;
-      iconColor = const Color(0xFF10B981);
+      iconColor = Color(0xFF10B981);
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.3)),
+        border: Border.all(color: context.borderColor.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -367,24 +367,24 @@ class _WalletScreenState extends State<WalletScreen> {
             radius: 18,
             child: Icon(icon, color: iconColor, size: 16),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppTheme.bgDark,
+                        color: context.scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -392,10 +392,10 @@ class _WalletScreenState extends State<WalletScreen> {
                         style: TextStyle(color: iconColor, fontSize: 9, fontWeight: FontWeight.w700),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(
                       date,
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                      style: TextStyle(color: context.caption, fontSize: 10),
                     ),
                   ],
                 ),
@@ -405,7 +405,7 @@ class _WalletScreenState extends State<WalletScreen> {
           Text(
             '${isCredit ? '+' : '-'}$amount',
             style: TextStyle(
-              color: isCredit ? const Color(0xFF10B981) : Colors.white,
+              color: isCredit ? Color(0xFF10B981) : Colors.white,
               fontWeight: FontWeight.w900,
               fontSize: 13,
             ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/chat_model.dart';
 import '../../models/user_model.dart';
 import '../../services/chat_controller.dart';
@@ -107,19 +107,19 @@ class _NewChatScreenState extends State<NewChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         elevation: 0,
         title: Text(
           'New Chat',
           style: GoogleFonts.outfit(
             fontWeight: FontWeight.bold,
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: context.textPrimary),
           onPressed: () => Get.back(),
         ),
       ),
@@ -129,7 +129,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
           Expanded(
             child: Obx(() {
               if (_isLoading.value) {
-                return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
+                return Center(child: CircularProgressIndicator(color: context.primaryColor));
               }
               final query = _searchQuery.value;
               if (query.isNotEmpty) {
@@ -145,35 +145,35 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      color: AppTheme.bgLight.withOpacity(0.5),
+      padding: EdgeInsets.all(16),
+      color: context.secondaryBackgroundColor.withOpacity(0.5),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.bgDark,
+          color: context.scaffoldBackgroundColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.borderColor),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           children: [
-            const SizedBox(width: 14),
-            const Icon(Icons.search_rounded, color: AppTheme.textTertiary, size: 20),
-            const SizedBox(width: 10),
+            SizedBox(width: 14),
+            Icon(Icons.search_rounded, color: context.caption, size: 20),
+            SizedBox(width: 10),
             Expanded(
               child: TextField(
                 controller: _searchCtrl,
-                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                style: TextStyle(color: context.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Search by name or username...',
-                  hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 14),
+                  hintStyle: TextStyle(color: context.caption, fontSize: 14),
                   border: InputBorder.none,
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  contentPadding: EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),
             if (_searchCtrl.text.isNotEmpty)
               IconButton(
-                icon: const Icon(Icons.clear, color: AppTheme.textTertiary, size: 16),
+                icon: Icon(Icons.clear, color: context.caption, size: 16),
                 onPressed: () => _searchCtrl.clear(),
               ),
           ],
@@ -188,12 +188,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
       return Center(
         child: Text(
           'No contacts found matching "${_searchQuery.value}"',
-          style: GoogleFonts.outfit(color: AppTheme.textTertiary, fontSize: 14),
+          style: GoogleFonts.outfit(color: context.caption, fontSize: 14),
         ),
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8),
       itemCount: list.length,
       itemBuilder: (context, idx) => _contactTile(list[idx]),
     );
@@ -241,36 +241,36 @@ class _NewChatScreenState extends State<NewChatScreen> {
         if (_realContacts.isEmpty && recents.isEmpty)
           Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 80.0),
+              padding: EdgeInsets.symmetric(vertical: 80.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.people_outline_rounded, size: 48, color: AppTheme.textTertiary.withOpacity(0.5)),
-                  const SizedBox(height: 12),
+                  Icon(Icons.people_outline_rounded, size: 48, color: context.caption.withOpacity(0.5)),
+                  SizedBox(height: 12),
                   Text(
                     'No contacts found',
-                    style: GoogleFonts.outfit(color: AppTheme.textTertiary, fontSize: 15),
+                    style: GoogleFonts.outfit(color: context.caption, fontSize: 15),
                   ),
                 ],
               ),
             ),
           ),
 
-        const SizedBox(height: 40),
+        SizedBox(height: 40),
       ],
     );
   }
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
             style: GoogleFonts.outfit(
-              color: AppTheme.primaryColor,
+              color: context.primaryColor,
               fontSize: 13,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
@@ -279,7 +279,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
           Text(
             'See All',
             style: GoogleFonts.outfit(
-              color: AppTheme.textTertiary,
+              color: context.caption,
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
@@ -294,7 +294,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       height: 96,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: 16),
         itemCount: convs.length,
         itemBuilder: (context, idx) {
           final c = convs[idx];
@@ -302,17 +302,17 @@ class _NewChatScreenState extends State<NewChatScreen> {
             onTap: () => _openPrivateChat(c),
             child: Container(
               width: 72,
-              margin: const EdgeInsets.only(right: 12),
+              margin: EdgeInsets.only(right: 12),
               child: Column(
                 children: [
                   Stack(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(2),
+                        padding: EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: c.level > 0 ? AppTheme.accentColor : Colors.transparent,
+                            color: c.level > 0 ? context.accentOrange : Colors.transparent,
                             width: c.level > 0 ? 1.5 : 0,
                           ),
                         ),
@@ -329,19 +329,19 @@ class _NewChatScreenState extends State<NewChatScreen> {
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: AppTheme.successColor,
+                              color: context.successColor,
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppTheme.bgDark, width: 2),
+                              border: Border.all(color: context.scaffoldBackgroundColor, width: 2),
                             ),
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     c.otherUserName.split(' ').first,
                     style: GoogleFonts.outfit(
-                      color: AppTheme.textSecondary,
+                      color: context.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -364,11 +364,11 @@ class _NewChatScreenState extends State<NewChatScreen> {
       leading: Stack(
         children: [
           Container(
-            padding: const EdgeInsets.all(2),
+            padding: EdgeInsets.all(2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: contact.vipLevel > 0 ? AppTheme.accentColor : Colors.transparent,
+                color: contact.vipLevel > 0 ? context.accentOrange : Colors.transparent,
                 width: contact.vipLevel > 0 ? 1.5 : 0,
               ),
             ),
@@ -385,9 +385,9 @@ class _NewChatScreenState extends State<NewChatScreen> {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: AppTheme.successColor,
+                  color: context.successColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.bgDark, width: 2),
+                  border: Border.all(color: context.scaffoldBackgroundColor, width: 2),
                 ),
               ),
             ),
@@ -398,28 +398,28 @@ class _NewChatScreenState extends State<NewChatScreen> {
           Text(
             contact.displayName,
             style: GoogleFonts.outfit(
-              color: AppTheme.textPrimary,
+              color: context.textPrimary,
               fontWeight: FontWeight.w600,
               fontSize: 15,
             ),
           ),
           if (contact.isVerified) ...[
-            const SizedBox(width: 4),
-            const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
+            SizedBox(width: 4),
+            Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
           ],
           if (contact.vipLevel > 0) ...[
-            const SizedBox(width: 4),
+            SizedBox(width: 4),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
-                color: AppTheme.accentColor.withOpacity(0.2),
+                color: context.accentOrange.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: AppTheme.accentColor, width: 0.5),
+                border: Border.all(color: context.accentOrange, width: 0.5),
               ),
               child: Text(
                 'VIP ${contact.vipLevel}',
                 style: GoogleFonts.outfit(
-                  color: AppTheme.accentColor,
+                  color: context.accentOrange,
                   fontSize: 8,
                   fontWeight: FontWeight.bold,
                 ),
@@ -431,13 +431,13 @@ class _NewChatScreenState extends State<NewChatScreen> {
       subtitle: Text(
         '@${contact.username}',
         style: GoogleFonts.outfit(
-          color: AppTheme.textTertiary,
+          color: context.caption,
           fontSize: 13,
         ),
       ),
-      trailing: const Icon(
+      trailing: Icon(
         Icons.chat_bubble_outline_rounded,
-        color: AppTheme.primaryColor,
+        color: context.primaryColor,
         size: 18,
       ),
     );

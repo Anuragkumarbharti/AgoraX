@@ -14,6 +14,7 @@ import '../../services/study_vault_controller.dart';
 import '../study_vault/study_vault_home_screen.dart';
 import '../study_vault/book_details_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../../services/store_controller.dart';
 import '../../services/community_controller.dart';
 import '../communities/community_detail_screen.dart';
 
@@ -533,63 +534,110 @@ class _ExploreScreenState extends State<ExploreScreen>
     return '${diff.inDays}d';
   }
 
+  Widget _buildGoldCoinIndicator() {
+    final storeCtrl = Get.find<StoreController>();
+    return Obx(() {
+      final coins = storeCtrl.coinsBalance.value;
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFB020).withOpacity(0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFFFB020).withOpacity(0.3), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🪙', style: TextStyle(fontSize: 14)),
+            const SizedBox(width: 4),
+            Text(
+              '$coins',
+              style: const TextStyle(
+                color: Color(0xFFE28B00),
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => Get.toNamed('/store'),
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFB020),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.add, size: 10, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.bgDark,
       body: SafeArea(
-        child: Column(
-          children: [
-            // ── Header + Search ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'Explore',
-                        style: TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                        ),
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                pinned: true,
+                floating: false,
+                backgroundColor: AppTheme.bgDark,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                automaticallyImplyLeading: false,
+                titleSpacing: 16,
+                title: Row(
+                  children: [
+                    const Text(
+                      'Explore',
+                      style: TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
                       ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.notifications_outlined,
-                            color: AppTheme.textSecondary),
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Search bar
-                  Container(
+                    ),
+                    const Spacer(),
+                    _buildGoldCoinIndicator(),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined,
+                          color: AppTheme.textSecondary),
+                      onPressed: () {},
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Container(
                     decoration: BoxDecoration(
                       color: AppTheme.cardBg,
                       borderRadius: BorderRadius.circular(14),
-                      border:
-                          Border.all(color: AppTheme.borderColor, width: 0.8),
+                      border: Border.all(color: AppTheme.borderColor, width: 0.8),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: Row(
                       children: [
-                        const Icon(Icons.search,
-                            color: AppTheme.textTertiary, size: 20),
+                        const Icon(Icons.search, color: AppTheme.textTertiary, size: 20),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
                             controller: _searchController,
                             onChanged: (val) => setState(() {}),
-                            style: const TextStyle(
-                                color: AppTheme.textPrimary, fontSize: 14),
+                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                             decoration: const InputDecoration(
                               border: InputBorder.none,
                               hintText: 'Search posts, questions, people...',
-                              hintStyle: TextStyle(
-                                  color: AppTheme.textTertiary, fontSize: 14),
+                              hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 14),
                               filled: false,
                             ),
                           ),
@@ -600,47 +648,43 @@ class _ExploreScreenState extends State<ExploreScreen>
                             color: AppTheme.primaryColor.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.tune_rounded,
-                              color: AppTheme.primaryColor, size: 18),
+                          child: const Icon(Icons.tune_rounded, color: AppTheme.primaryColor, size: 18),
                         ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-
-            // ── Tab Bar ──
-            const SizedBox(height: 14),
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              indicatorColor: AppTheme.primaryColor,
-              indicatorWeight: 3,
-              labelColor: AppTheme.primaryColor,
-              unselectedLabelColor: AppTheme.textTertiary,
-              labelStyle:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              tabs: _tabs.map((t) => Tab(text: t)).toList(),
-            ),
-
-            // ── Content ──
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildAllTab(),
-                  _buildPostsTab(),
-                  _buildQuestionsTab(),
-                  _buildCommunitiesTab(),
-                  _buildUsersTab(),
-                  _buildStudyVaultTab(),
-                ],
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverTabBarDelegate(
+                  TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    indicatorColor: AppTheme.primaryColor,
+                    indicatorWeight: 3,
+                    labelColor: AppTheme.primaryColor,
+                    unselectedLabelColor: AppTheme.textTertiary,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    tabs: _tabs.map((t) => Tab(text: t)).toList(),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ];
+          },
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildAllTab(),
+              _buildPostsTab(),
+              _buildQuestionsTab(),
+              _buildCommunitiesTab(),
+              _buildUsersTab(),
+              _buildStudyVaultTab(),
+            ],
+          ),
         ),
       ),
     );
@@ -725,7 +769,14 @@ class _ExploreScreenState extends State<ExploreScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _sectionHeader('👥 Recommended Communities'),
+              const Text(
+                '👥 Recommended Communities',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               TextButton(
                 onPressed: () => _tabController.animateTo(3),
                 child: const Text('See All',
@@ -752,7 +803,14 @@ class _ExploreScreenState extends State<ExploreScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _sectionHeader('⚔️ Trending Arena Events'),
+              const Text(
+                '⚔️ Trending Arena Events',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               TextButton(
                 onPressed: () {},
                 child: const Text('View All',
@@ -1662,6 +1720,30 @@ class _ExploreScreenState extends State<ExploreScreen>
               )
       ],
     );
+  }
+}
+
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+
+  _SliverTabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: AppTheme.bgDark,
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return false;
   }
 }
 

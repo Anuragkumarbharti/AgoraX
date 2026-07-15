@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/career_dna_model.dart';
 
 class SkillTreeScreen extends StatefulWidget {
@@ -36,19 +36,19 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon:
-              const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+              Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'AI Skill Tree',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -69,9 +69,9 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
       height: 56,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: _trees.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => SizedBox(width: 10),
         itemBuilder: (ctx, i) {
           final tree = _trees[i];
           final isSelected = _selectedTreeIndex == i;
@@ -80,7 +80,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
                 gradient: isSelected
                     ? LinearGradient(
@@ -90,11 +90,11 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                         ],
                       )
                     : null,
-                color: isSelected ? null : AppTheme.bgLight,
+                color: isSelected ? null : context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color:
-                      isSelected ? Colors.transparent : AppTheme.borderColor,
+                      isSelected ? Colors.transparent : context.borderColor,
                 ),
                 boxShadow: isSelected
                     ? [
@@ -108,12 +108,12 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(tree.emoji, style: const TextStyle(fontSize: 14)),
-                  const SizedBox(width: 6),
+                  Text(tree.emoji, style: TextStyle(fontSize: 14)),
+                  SizedBox(width: 6),
                   Text(
                     tree.name,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textTertiary,
+                      color: isSelected ? Colors.white : context.caption,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -137,8 +137,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
         .fold(0, (s, n) => s + n.xpReward);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.all(14),
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: _currentTree.color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(14),
@@ -147,11 +147,11 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _treeStat('✅ $completed', 'Completed', AppTheme.accentColor),
+          _treeStat('✅ $completed', 'Completed', context.accentOrange),
           _treeStat('⚡ $inProgress', 'In Progress', _currentTree.color),
           _treeStat('🔒 ${nodes.length - completed - inProgress}', 'Locked',
-              AppTheme.textTertiary),
-          _treeStat('⚡$earnedXp/$totalXp', 'XP', const Color(0xFFFBBF24)),
+              context.caption),
+          _treeStat('⚡$earnedXp/$totalXp', 'XP', Color(0xFFFBBF24)),
         ],
       ),
     );
@@ -164,8 +164,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
             style: TextStyle(
                 color: color, fontSize: 13, fontWeight: FontWeight.w800)),
         Text(label,
-            style: const TextStyle(
-                color: AppTheme.textTertiary, fontSize: 10)),
+            style: TextStyle(
+                color: context.caption, fontSize: 10)),
       ],
     );
   }
@@ -173,24 +173,24 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
   Widget _buildSkillTree() {
     final nodes = _currentTree.roots;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       children: [
         // Tree title
         Row(
           children: [
-            Text(_currentTree.emoji, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: 10),
+            Text(_currentTree.emoji, style: TextStyle(fontSize: 24)),
+            SizedBox(width: 10),
             Text(
               '${_currentTree.name} Skill Tree',
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
+              style: TextStyle(
+                color: context.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         // Nodes as a vertical tree with connectors
         ...nodes.asMap().entries.map((e) {
           return Column(
@@ -200,7 +200,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
             ],
           );
         }),
-        const SizedBox(height: 80),
+        SizedBox(height: 80),
       ],
     );
   }
@@ -210,7 +210,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
     return Container(
       width: 2,
       height: 32,
-      margin: const EdgeInsets.only(left: 37),
+      margin: EdgeInsets.only(left: 37),
       decoration: BoxDecoration(
         gradient: isUnlocked
             ? LinearGradient(
@@ -222,7 +222,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                 ],
               )
             : null,
-        color: isUnlocked ? null : AppTheme.borderColor,
+        color: isUnlocked ? null : context.borderColor,
         borderRadius: BorderRadius.circular(1),
       ),
     );
@@ -238,20 +238,20 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
       onTap: () => _showNodeDetail(node),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isCompleted
               ? color.withOpacity(0.1)
               : isInProgress
-                  ? AppTheme.cardBg
-                  : AppTheme.bgLight.withOpacity(0.5),
+                  ? context.surfaceColor
+                  : context.secondaryBackgroundColor.withOpacity(0.5),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isCompleted
                 ? color.withOpacity(0.4)
                 : isInProgress
                     ? color.withOpacity(0.3)
-                    : AppTheme.borderColor.withOpacity(0.3),
+                    : context.borderColor.withOpacity(0.3),
             width: isInProgress ? 1.5 : 1,
           ),
           boxShadow: isInProgress
@@ -269,7 +269,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isLocked
-                      ? AppTheme.bgLight
+                      ? context.secondaryBackgroundColor
                       : color.withOpacity(
                           isInProgress
                               ? 0.15 + 0.1 * _sparkController.value
@@ -280,15 +280,15 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                         : isInProgress
                             ? color.withOpacity(
                                 0.5 + 0.3 * _sparkController.value)
-                            : AppTheme.borderColor,
+                            : context.borderColor,
                     width: 2,
                   ),
                 ),
                 child: Center(
                   child: isLocked
-                      ? const Text('🔒', style: TextStyle(fontSize: 20))
+                      ? Text('🔒', style: TextStyle(fontSize: 20))
                       : isCompleted
-                          ? const Icon(Icons.check_circle_rounded,
+                          ? Icon(Icons.check_circle_rounded,
                               color: Colors.white, size: 26)
                           : Text(node.icon,
                               style: TextStyle(
@@ -298,7 +298,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,25 +309,25 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                         node.name,
                         style: TextStyle(
                           color: isLocked
-                              ? AppTheme.textTertiary
-                              : AppTheme.textPrimary,
+                              ? context.caption
+                              : context.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       if (isCompleted)
                         Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppTheme.accentColor.withOpacity(0.15),
+                            color: context.accentOrange.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text(
+                          child: Text(
                             '✅ Done',
                             style: TextStyle(
-                              color: AppTheme.accentColor,
+                              color: context.accentOrange,
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                             ),
@@ -335,7 +335,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                         )
                       else if (isInProgress)
                         Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: color.withOpacity(0.15),
@@ -352,27 +352,27 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                         ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   if (node.description.isNotEmpty)
                     Text(
                       node.description,
-                      style: const TextStyle(
-                          color: AppTheme.textTertiary, fontSize: 11),
+                      style: TextStyle(
+                          color: context.caption, fontSize: 11),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   if (isInProgress) ...[
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6),
                       child: LinearProgressIndicator(
                         value: node.progress,
                         minHeight: 5,
-                        backgroundColor: AppTheme.borderColor,
+                        backgroundColor: context.borderColor,
                         valueColor: AlwaysStoppedAnimation(color),
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3),
                     Text(
                       '${node.tasksCompleted}/${node.tasksRequired} tasks',
                       style: TextStyle(
@@ -382,25 +382,25 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   '⚡${node.xpReward}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFFFBBF24),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 if (!isLocked)
                   Icon(Icons.chevron_right_rounded,
                       color: color, size: 20)
                 else
-                  const Icon(Icons.lock_rounded,
-                      color: AppTheme.textTertiary, size: 16),
+                  Icon(Icons.lock_rounded,
+                      color: context.caption, size: 16),
               ],
             ),
           ],
@@ -414,13 +414,13 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
     final isLocked = node.status == SkillNodeStatus.locked;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.bgLight,
+      backgroundColor: context.secondaryBackgroundColor,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -428,11 +428,11 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.borderColor,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Container(
               width: 80,
               height: 80,
@@ -452,37 +452,37 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Text(node.name,
-                style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             if (node.description.isNotEmpty)
               Text(
                 node.description,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: AppTheme.textTertiary, fontSize: 13),
+                style: TextStyle(
+                    color: context.caption, fontSize: 13),
               ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _nodeChip('⚡ +${node.xpReward} XP', const Color(0xFFFBBF24)),
-                const SizedBox(width: 10),
+                _nodeChip('⚡ +${node.xpReward} XP', Color(0xFFFBBF24)),
+                SizedBox(width: 10),
                 _nodeChip(
                     '${node.tasksRequired} Tasks Required', color),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isLocked ? AppTheme.borderColor : color,
+                  backgroundColor: isLocked ? context.borderColor : color,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                 ),
@@ -514,7 +514,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
                       : node.status == SkillNodeStatus.completed
                           ? '✅ Completed — View Certificate'
                           : '▶️ Continue Learning',
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w700),
@@ -529,7 +529,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen>
 
   Widget _nodeChip(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),

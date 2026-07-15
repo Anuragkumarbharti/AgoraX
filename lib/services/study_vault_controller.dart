@@ -1,3 +1,4 @@
+import 'package:creania/core/theme.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -348,13 +349,13 @@ class StudyVaultController extends GetxController {
     if (Get.context != null) {
       Get.defaultDialog(
         title: 'Quota Limit Reached 🔒',
-        titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        backgroundColor: const Color(0xFF13131A),
+        titleStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        backgroundColor: Get.context!.surfaceColor,
         content: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: EdgeInsets.all(12.0),
           child: Text(
             message,
-            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
             textAlign: TextAlign.center,
           ),
         ),
@@ -363,11 +364,11 @@ class StudyVaultController extends GetxController {
             Get.back();
             Get.toNamed('/membership_center');
           },
-          child: const Text('Upgrade Plan'),
+          child: Text('Upgrade Plan'),
         ),
         cancel: TextButton(
           onPressed: () => Get.back(),
-          child: const Text('Close', style: TextStyle(color: Colors.white38)),
+          child: Text('Close', style: TextStyle(color: Colors.white38)),
         ),
       );
     }
@@ -419,7 +420,7 @@ class StudyVaultController extends GetxController {
         'Creator Payout Earned! 💸',
         '₹5.00 credited to ${book.sellerName} for membership read visit.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFF10B981),
+        backgroundColor: Color(0xFF10B981),
         colorText: Colors.white,
         duration: const Duration(seconds: 4),
       );
@@ -497,7 +498,7 @@ class StudyVaultController extends GetxController {
       'Purchase Successful! 🎉',
       '"${book.title}" added to My Library.',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFF10B981),
+      backgroundColor: Color(0xFF10B981),
       colorText: Colors.white,
     );
 
@@ -512,7 +513,7 @@ class StudyVaultController extends GetxController {
     } else {
       wishlistBookIds.add(bookId);
       Get.snackbar('Added to Wishlist 📁', 'We will notify you on price drops!',
-        backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
+        backgroundColor: Color(0xFF8B5CF6).withOpacity(0.9),
         colorText: Colors.white,
       );
     }
@@ -639,7 +640,7 @@ class StudyVaultController extends GetxController {
       'Withdrawal Requested 💸',
       '₹${amount.toStringAsFixed(2)} is pending approval. Will settle in 24 hours.',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFF6366F1),
+      backgroundColor: Color(0xFF6366F1),
       colorText: Colors.white,
     );
 
@@ -712,7 +713,7 @@ class StudyVaultController extends GetxController {
     Get.snackbar(
       'Official Book Uploaded! 👑',
       'Unlocked for VIP $vipLevel members.',
-      backgroundColor: const Color(0xFF10B981),
+      backgroundColor: Color(0xFF10B981),
       colorText: Colors.white,
     );
   }
@@ -752,7 +753,7 @@ class StudyVaultController extends GetxController {
       '+$amount Study XP! ⚡',
       reason,
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFFFFD700),
+      backgroundColor: Color(0xFFFFD700),
       colorText: Colors.black,
       duration: const Duration(milliseconds: 1500),
     );

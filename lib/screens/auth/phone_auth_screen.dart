@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../home/main_screen.dart';
 import 'signup_flow_screen.dart';
 
@@ -106,20 +106,20 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
         // Show: "No account found with this phone number."
         Get.defaultDialog(
           title: 'Account Not Found ⚠️',
-          titleStyle: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
-          backgroundColor: AppTheme.bgLight,
-          contentPadding: const EdgeInsets.all(20),
+          titleStyle: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold),
+          backgroundColor: context.secondaryBackgroundColor,
+          contentPadding: EdgeInsets.all(20),
           content: Column(
             children: [
               Text(
                 'No account found with this phone number.',
-                style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 13),
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: context.primaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   minimumSize: const Size(double.infinity, 48),
                 ),
@@ -129,11 +129,11 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
                 },
                 child: Text('Create Account', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white)),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
-                  side: const BorderSide(color: AppTheme.borderColor),
+                  side: BorderSide(color: context.borderColor),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   minimumSize: const Size(double.infinity, 48),
                 ),
@@ -154,7 +154,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
       Get.snackbar(
         'OTP Sent ✉️',
         'Use code 0 to verify (Sandbox mode)',
-        backgroundColor: AppTheme.accentColor.withOpacity(0.9),
+        backgroundColor: context.accentOrange.withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -171,7 +171,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
         'Invalid OTP ⚠️',
         'Invalid verification code. Use code 0.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.errorColor,
+        backgroundColor: context.errorColor,
         colorText: Colors.white,
       );
       _shakeCtrl.forward(from: 0.0);
@@ -239,44 +239,44 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
   void _showCountryPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.bgLight,
-      shape: const RoundedRectangleBorder(
+      backgroundColor: context.secondaryBackgroundColor,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => Column(
         children: [
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Container(
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppTheme.borderColor,
+              color: context.borderColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
+          SizedBox(height: 16),
+          Text(
             'Select Country',
             style: TextStyle(
                 color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
-          const Divider(color: AppTheme.borderColor),
+          SizedBox(height: 8),
+          Divider(color: context.borderColor),
           Expanded(
             child: ListView.builder(
               itemCount: _countries.length,
               itemBuilder: (_, i) {
                 final c = _countries[i];
                 return ListTile(
-                  leading: Text(c['flag']!, style: const TextStyle(fontSize: 24)),
+                  leading: Text(c['flag']!, style: TextStyle(fontSize: 24)),
                   title: Text(
                     c['name']!,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(color: context.textPrimary, fontSize: 14),
                   ),
                   trailing: Text(
                     c['code']!,
-                    style: const TextStyle(
-                        color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: context.primaryColor, fontWeight: FontWeight.bold),
                   ),
                   onTap: () {
                     setState(() =>
@@ -295,7 +295,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Animated background
@@ -308,12 +308,12 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
                   Positioned(
                     top: -80 + (t * 50),
                     right: -60,
-                    child: _blob(200, const Color(0xFF10B981), 0.25),
+                    child: _blob(200, Color(0xFF10B981), 0.25),
                   ),
                   Positioned(
                     bottom: -80 + (t * 40),
                     left: -60,
-                    child: _blob(220, const Color(0xFF6366F1), 0.22),
+                    child: _blob(220, Color(0xFF6366F1), 0.22),
                   ),
                 ],
               );
@@ -325,7 +325,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
               children: [
                 // Top Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 20, vertical: 12),
                   child: Row(
                     children: [
@@ -340,7 +340,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
                             border: Border.all(
                                 color: Colors.white.withOpacity(0.1)),
                           ),
-                          child: const Icon(Icons.arrow_back_ios_rounded,
+                          child: Icon(Icons.arrow_back_ios_rounded,
                               color: Colors.white, size: 18),
                         ),
                       ),
@@ -350,55 +350,55 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
 
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       children: [
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
 
                         // Icon
                         Container(
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               colors: [Color(0xFF10B981), Color(0xFF059669)],
                             ),
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
                                 color:
-                                    const Color(0xFF10B981).withOpacity(0.4),
+                                    Color(0xFF10B981).withOpacity(0.4),
                                 blurRadius: 24,
                                 offset: const Offset(0, 8),
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.phone_rounded,
+                          child: Icon(Icons.phone_rounded,
                               color: Colors.white, size: 36),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
 
                         Text(
                           _isOtpSent ? 'Verify Your Number' : 'Phone Sign-In',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Text(
                           _isOtpSent
                               ? 'Enter the 6-digit code sent to\n$_selectedCountry ${_phoneCtrl.text}'
                               : 'Enter your phone number to receive\na one-time verification code',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppTheme.textTertiary,
+                          style: TextStyle(
+                            color: context.caption,
                             fontSize: 13,
                             height: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 36),
+                        SizedBox(height: 36),
 
                         // Glass card
                         _buildGlassCard(
@@ -406,7 +406,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
                               ? _buildOtpStep()
                               : _buildPhoneStep(),
                         ),
-                        const SizedBox(height: 32),
+                        SizedBox(height: 32),
                       ],
                     ),
                   ),
@@ -429,14 +429,14 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Phone Number',
             style: TextStyle(
-                color: AppTheme.textSecondary,
+                color: context.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -444,7 +444,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
               GestureDetector(
                 onTap: _showCountryPicker,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 10, vertical: 14),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.06),
@@ -457,34 +457,34 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
                     children: [
                       Text(
                         _selectedCountry,
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: Colors.white,
                             fontSize: 13,
                             fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(width: 2),
-                      const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: AppTheme.textTertiary, size: 14),
+                      SizedBox(width: 2),
+                      Icon(Icons.keyboard_arrow_down_rounded,
+                          color: context.caption, size: 14),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   maxLength: 15,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(color: context.textPrimary, fontSize: 16),
                   decoration: InputDecoration(
                     hintText: '9876543210',
-                    hintStyle: const TextStyle(
-                        color: AppTheme.textTertiary, fontSize: 15),
+                    hintStyle: TextStyle(
+                        color: context.caption, fontSize: 15),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.06),
                     counterText: '',
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -498,41 +498,41 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                          color: AppTheme.accentColor, width: 1.5),
+                      borderSide: BorderSide(
+                          color: context.accentOrange, width: 1.5),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // Privacy note
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.accentColor.withOpacity(0.06),
+              color: context.accentOrange.withOpacity(0.06),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: AppTheme.accentColor.withOpacity(0.2)),
+                  color: context.accentOrange.withOpacity(0.2)),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Icon(Icons.shield_outlined,
-                    color: AppTheme.accentColor, size: 16),
+                    color: context.accentOrange, size: 16),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Your number is encrypted and will never be shared with third parties.',
                     style: TextStyle(
-                        color: AppTheme.textSecondary, fontSize: 11),
+                        color: context.textSecondary, fontSize: 11),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // Send OTP button
           _buildActionButton(
@@ -540,7 +540,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
             isLoading: _isLoading,
             icon: Icons.send_rounded,
             onTap: _sendOtp,
-            color: AppTheme.accentColor,
+            color: context.accentOrange,
           ),
         ],
       ),
@@ -562,16 +562,16 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
             children: List.generate(6, (i) => _buildOtpBox(i)),
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
         // Resend row
         Wrap(
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Text(
+            Text(
               "Didn't receive? ",
-              style: TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+              style: TextStyle(color: context.caption, fontSize: 12),
             ),
             GestureDetector(
               onTap: _resendCountdown == 0 ? _sendOtp : null,
@@ -581,8 +581,8 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
                     : 'Resend OTP',
                 style: TextStyle(
                   color: _resendCountdown == 0
-                      ? AppTheme.primaryColor
-                      : AppTheme.textTertiary,
+                      ? context.primaryColor
+                      : context.caption,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -590,7 +590,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
             ),
           ],
         ),
-        const SizedBox(height: 28),
+        SizedBox(height: 28),
 
         // Verify button
         _buildActionButton(
@@ -598,9 +598,9 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
           isLoading: _isVerifying,
           icon: Icons.verified_rounded,
           onTap: _verifyOtp,
-          color: AppTheme.primaryColor,
+          color: context.primaryColor,
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         // Back to phone
         TextButton(
@@ -608,9 +608,9 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
             _isOtpSent = false;
             for (final c in _otpCtrls) c.clear();
           }),
-          child: const Text(
+          child: Text(
             'Change Phone Number',
-            style: TextStyle(color: AppTheme.textTertiary, fontSize: 13),
+            style: TextStyle(color: context.caption, fontSize: 13),
           ),
         ),
       ],
@@ -628,7 +628,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
         textAlign: TextAlign.center,
         maxLength: 1,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
           fontSize: 22,
           fontWeight: FontWeight.bold,
@@ -650,8 +650,8 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-                color: AppTheme.primaryColor, width: 2),
+            borderSide: BorderSide(
+                color: context.primaryColor, width: 2),
           ),
         ),
         onChanged: (v) {
@@ -678,7 +678,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(28),
@@ -711,7 +711,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
           elevation: 0,
         ),
         icon: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
@@ -721,7 +721,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
         label: Text(
           label,
           style: TextStyle(
-            color: isLoading ? AppTheme.textTertiary : Colors.white,
+            color: isLoading ? context.caption : Colors.white,
             fontSize: 15,
             fontWeight: FontWeight.w700,
           ),
@@ -740,7 +740,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen>
       ),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-        child: const SizedBox(),
+        child: SizedBox(),
       ),
     );
   }

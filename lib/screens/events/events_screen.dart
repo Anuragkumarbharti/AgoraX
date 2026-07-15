@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/event_model.dart';
 import '../../services/event_controller.dart';
 import 'event_detail_screen.dart';
@@ -67,18 +67,18 @@ class _EventsScreenState extends State<EventsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'Creania Events',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -86,23 +86,23 @@ class _EventsScreenState extends State<EventsScreen>
         actions: [
           Obx(() {
             return TextButton.icon(
-              style: TextButton.styleFrom(foregroundColor: AppTheme.accentColor),
-              icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
+              style: TextButton.styleFrom(foregroundColor: context.accentOrange),
+              icon: Icon(Icons.account_balance_wallet_outlined, size: 18),
               label: Text(
                 '₹${_controller.cashBalance.value.toInt()}',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               ),
               onPressed: () => Get.to(() => const WalletScreen()),
             );
           }),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppTheme.primaryColor,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: AppTheme.textTertiary,
-          labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          indicatorColor: context.primaryColor,
+          labelColor: context.primaryColor,
+          unselectedLabelColor: context.caption,
+          labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: 'Official'),
             Tab(text: 'Community'),
@@ -112,9 +112,9 @@ class _EventsScreenState extends State<EventsScreen>
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppTheme.primaryColor,
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text('Host Event',
+        backgroundColor: context.primaryColor,
+        icon: Icon(Icons.add_rounded, color: Colors.white),
+        label: Text('Host Event',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         onPressed: () => Get.to(() => const CreateEventScreen()),
       ),
@@ -134,24 +134,24 @@ class _EventsScreenState extends State<EventsScreen>
 
   Widget _buildEventsList(List<Event> list, bool isOfficial) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       children: [
         if (isOfficial) ...[
           _buildFeaturedBanner(),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _buildSectionTitle('🔥 Active Competitions'),
         ] else ...[
           _buildSectionTitle('🏫 College & Club Events'),
         ],
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         ...list.map((e) => _buildEventCard(e)),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         if (isOfficial) ...[
           _buildSectionTitle('🏆 Hall of Fame (Past Winners)'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ..._pastWinners.map((w) => _buildWinnerCard(w)),
         ],
-        const SizedBox(height: 80),
+        SizedBox(height: 80),
       ],
     );
   }
@@ -159,8 +159,8 @@ class _EventsScreenState extends State<EventsScreen>
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        color: AppTheme.textPrimary,
+      style: TextStyle(
+        color: context.textPrimary,
         fontSize: 16,
         fontWeight: FontWeight.w700,
       ),
@@ -190,19 +190,19 @@ class _EventsScreenState extends State<EventsScreen>
             ],
           ),
         ),
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         alignment: Alignment.bottomLeft,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor,
+                color: context.primaryColor,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
+              child: Text(
                 '👑 FEATURED EVENT',
                 style: TextStyle(
                     color: Colors.white,
@@ -210,8 +210,8 @@ class _EventsScreenState extends State<EventsScreen>
                     fontWeight: FontWeight.w800),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               'National AI Hackathon 2026',
               style: TextStyle(
                 color: Colors.white,
@@ -219,7 +219,7 @@ class _EventsScreenState extends State<EventsScreen>
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const Text(
+            Text(
               'Prize Pool: ₹1,50,000 • Starts in 2 days',
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
@@ -231,8 +231,8 @@ class _EventsScreenState extends State<EventsScreen>
 
   Widget _buildEventCard(Event event) {
     final entryColor = event.entryFeeType == EntryFeeType.free
-        ? AppTheme.accentColor
-        : const Color(0xFFFBBF24);
+        ? context.accentOrange
+        : Color(0xFFFBBF24);
 
     final int registeredCount = event.registeredUserIds.length;
     final int maxSeats = event.maxParticipants;
@@ -254,16 +254,16 @@ class _EventsScreenState extends State<EventsScreen>
     return GestureDetector(
       onTap: () => Get.to(() => EventDetailScreen(event: event)),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: event.isPaid
-                ? AppTheme.primaryColor.withOpacity(0.35)
+                ? context.primaryColor.withOpacity(0.35)
                 : event.isOfficial
-                    ? AppTheme.accentColor.withOpacity(0.3)
-                    : AppTheme.borderColor.withOpacity(0.4),
+                    ? context.accentOrange.withOpacity(0.3)
+                    : context.borderColor.withOpacity(0.4),
           ),
           boxShadow: [
             BoxShadow(
@@ -305,12 +305,12 @@ class _EventsScreenState extends State<EventsScreen>
                     top: 12,
                     left: 12,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: event.isPaid
-                            ? const Color(0xFF8B5CF6) // Purple for Paid Events
+                            ? Color(0xFF8B5CF6) // Purple for Paid Events
                             : event.isOfficial
-                                ? AppTheme.primaryColor
+                                ? context.primaryColor
                                 : Colors.black.withOpacity(0.6),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -326,14 +326,14 @@ class _EventsScreenState extends State<EventsScreen>
                             color: Colors.white,
                             size: 11,
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text(
                             event.isPaid
                                 ? '🏆 PAID EVENT'
                                 : event.isOfficial
                                     ? '👑 OFFICIAL'
                                     : '🏫 COMMUNITY',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 9,
                               fontWeight: FontWeight.w900,
@@ -353,7 +353,7 @@ class _EventsScreenState extends State<EventsScreen>
                         Expanded(
                           child: Text(
                             event.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
@@ -366,14 +366,14 @@ class _EventsScreenState extends State<EventsScreen>
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.6),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             event.formatString,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -389,45 +389,45 @@ class _EventsScreenState extends State<EventsScreen>
 
             // Content Panel
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Community and Organizer Metadata
                   Row(
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 8,
-                        backgroundColor: AppTheme.primaryColor,
+                        backgroundColor: context.primaryColor,
                         child: Icon(Icons.people, size: 10, color: Colors.white),
                       ),
-                      const SizedBox(width: 6),
+                      SizedBox(width: 6),
                       Text(
                         event.organizer,
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
+                        style: TextStyle(
+                          color: context.textSecondary,
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.verified, color: Colors.blue, size: 12),
+                      SizedBox(width: 4),
+                      Icon(Icons.verified, color: Colors.blue, size: 12),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
 
                   // Standard / Paid Detail Ranges
                   if (event.isPaid) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           '🏆 Projected Prize Pool',
-                          style: TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                          style: TextStyle(color: context.caption, fontSize: 11),
                         ),
                         Text(
                           '₹${event.minPrizePool.toInt()} - ₹${event.maxPrizePool.toInt()}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Color(0xFFFBBF24),
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
@@ -435,39 +435,39 @@ class _EventsScreenState extends State<EventsScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
 
                     // Winner Ranges Grid (1st, 2nd, 3rd)
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppTheme.bgDark,
+                        color: context.scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildRewardRangeItem('🥇 1st', event.minPrizePool * 0.50, event.maxPrizePool * 0.50),
-                          Container(width: 1, height: 24, color: AppTheme.borderColor),
+                          Container(width: 1, height: 24, color: context.borderColor),
                           _buildRewardRangeItem('🥈 2nd', event.minPrizePool * 0.30, event.maxPrizePool * 0.30),
-                          Container(width: 1, height: 24, color: AppTheme.borderColor),
+                          Container(width: 1, height: 24, color: context.borderColor),
                           _buildRewardRangeItem('🥉 3rd', event.minPrizePool * 0.20, event.maxPrizePool * 0.20),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                   ] else ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Prize Pool', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
+                        Text('Prize Pool', style: TextStyle(color: context.caption, fontSize: 11)),
                         Text(
                           event.prizePool,
-                          style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Color(0xFFFBBF24), fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                   ],
 
                   // Registration Progress Bar
@@ -476,31 +476,31 @@ class _EventsScreenState extends State<EventsScreen>
                     children: [
                       Text(
                         'Seats: $registeredCount / $maxSeats Joined',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                       Text(
                         'Min Req: ${event.minParticipants}',
-                        style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                        style: TextStyle(color: context.caption, fontSize: 10),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 6,
-                      backgroundColor: AppTheme.bgDark,
+                      backgroundColor: context.scaffoldBackgroundColor,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         progress >= 1.0
                             ? Colors.redAccent
                             : event.isPaid
-                                ? const Color(0xFF8B5CF6)
-                                : AppTheme.primaryColor,
+                                ? Color(0xFF8B5CF6)
+                                : context.primaryColor,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
 
                   // Timing and Entry Fee Row
                   Row(
@@ -508,16 +508,16 @@ class _EventsScreenState extends State<EventsScreen>
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.timer_outlined, size: 13, color: AppTheme.textTertiary),
-                          const SizedBox(width: 4),
+                          Icon(Icons.timer_outlined, size: 13, color: context.caption),
+                          SizedBox(width: 4),
                           Text(
                             'Ends in: $regEndsStr',
-                            style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                            style: TextStyle(color: context.caption, fontSize: 10),
                           ),
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: entryColor.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(8),
@@ -549,11 +549,11 @@ class _EventsScreenState extends State<EventsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(title, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 2),
+        Text(title, style: TextStyle(color: context.textSecondary, fontSize: 9, fontWeight: FontWeight.bold)),
+        SizedBox(height: 2),
         Text(
           '₹${min.toInt()}-₹${max.toInt()}',
-          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
+          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
         ),
       ],
     );
@@ -561,12 +561,12 @@ class _EventsScreenState extends State<EventsScreen>
 
   Widget _buildWinnerCard(Map<String, dynamic> winner) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Row(
         children: [
@@ -574,23 +574,23 @@ class _EventsScreenState extends State<EventsScreen>
             backgroundImage: NetworkImage(winner['avatar'] as String),
             radius: 20,
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   winner['name'] as String,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                  style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   winner['event'] as String,
-                  style: const TextStyle(
-                      color: AppTheme.textTertiary, fontSize: 11),
+                  style: TextStyle(
+                      color: context.caption, fontSize: 11),
                 ),
               ],
             ),
@@ -600,15 +600,15 @@ class _EventsScreenState extends State<EventsScreen>
             children: [
               Text(
                 winner['rank'] as String,
-                style: const TextStyle(
-                  color: AppTheme.accentColor,
+                style: TextStyle(
+                  color: context.accentOrange,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               Text(
                 winner['prize'] as String,
-                style: const TextStyle(
+                style: TextStyle(
                     color: Color(0xFFFBBF24),
                     fontSize: 10,
                     fontWeight: FontWeight.w700),
@@ -626,15 +626,15 @@ class _EventsScreenState extends State<EventsScreen>
     return Obx(() {
       final list = _pastEvents;
       if (list.isEmpty) {
-        return const Center(
+        return Center(
           child: Text(
             'No completed events in the last 7 days.',
-            style: TextStyle(color: AppTheme.textTertiary, fontSize: 13),
+            style: TextStyle(color: context.caption, fontSize: 13),
           ),
         );
       }
       return ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         itemCount: list.length,
         itemBuilder: (context, index) {
           final e = list[index];
@@ -648,11 +648,11 @@ class _EventsScreenState extends State<EventsScreen>
     return GestureDetector(
       onTap: () => Get.to(() => EventDetailScreen(event: e)),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
+        margin: EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+          border: Border.all(color: context.borderColor.withOpacity(0.4)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -672,18 +672,18 @@ class _EventsScreenState extends State<EventsScreen>
                     top: 10,
                     right: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.black54,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle_rounded, color: Colors.green, size: 12),
-                          const SizedBox(width: 4),
+                          Icon(Icons.check_circle_rounded, color: Colors.green, size: 12),
+                          SizedBox(width: 4),
                           Text(
                             e.status == EventStatus.resultPublished ? 'RESULTS OUT' : 'COMPLETED',
-                            style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -693,7 +693,7 @@ class _EventsScreenState extends State<EventsScreen>
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -702,7 +702,7 @@ class _EventsScreenState extends State<EventsScreen>
                     children: [
                       Text(
                         e.organizer,
-                        style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                        style: TextStyle(color: context.caption, fontSize: 11),
                       ),
                       Text(
                         e.entryFeeType == EntryFeeType.free
@@ -710,16 +710,16 @@ class _EventsScreenState extends State<EventsScreen>
                             : e.entryFeeType == EntryFeeType.cash
                                 ? '₹${e.entryFeeAmount}'
                                 : '🪙 ${e.entryFeeAmount}',
-                        style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Color(0xFFFBBF24), fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     e.title,
-                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -728,17 +728,17 @@ class _EventsScreenState extends State<EventsScreen>
                       _pastCardMetric(Icons.person_pin_circle_outlined, '${e.winners.length} Winners'),
                     ],
                   ),
-                  const Divider(color: AppTheme.borderColor, height: 20),
+                  Divider(color: context.borderColor, height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Ended: ${_formatDate(e.endDate)}',
-                        style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                        style: TextStyle(color: context.caption, fontSize: 10),
                       ),
                       Text(
                         'Duration: ${e.durationString}',
-                        style: const TextStyle(color: AppTheme.accentColor, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: context.accentOrange, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -754,9 +754,9 @@ class _EventsScreenState extends State<EventsScreen>
   Widget _pastCardMetric(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: AppTheme.textSecondary, size: 12),
-        const SizedBox(width: 4),
-        Text(text, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
+        Icon(icon, color: context.textSecondary, size: 12),
+        SizedBox(width: 4),
+        Text(text, style: TextStyle(color: context.textSecondary, fontSize: 10)),
       ],
     );
   }
@@ -792,17 +792,17 @@ class _EventsScreenState extends State<EventsScreen>
     }
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: ['Upcoming', 'Live', 'Completed', 'Cancelled'].map((f) {
             final isSel = _myEventsFilter == f;
             return ChoiceChip(
-              label: Text(f, style: TextStyle(color: isSel ? Colors.white : AppTheme.textSecondary, fontSize: 11)),
+              label: Text(f, style: TextStyle(color: isSel ? Colors.white : context.textSecondary, fontSize: 11)),
               selected: isSel,
-              selectedColor: AppTheme.primaryColor,
-              backgroundColor: AppTheme.cardBg,
+              selectedColor: context.primaryColor,
+              backgroundColor: context.surfaceColor,
               onSelected: (val) {
                 if (val) {
                   setState(() {
@@ -813,29 +813,29 @@ class _EventsScreenState extends State<EventsScreen>
             );
           }).toList(),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         _buildSectionTitle('🛡️ Events You Manage ($_myEventsFilter)'),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         if (matched.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40),
+            padding: EdgeInsets.symmetric(vertical: 40),
             child: Center(
               child: Text(
                 'No $_myEventsFilter events where you are Host/Admin.',
-                style: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                style: TextStyle(color: context.caption, fontSize: 12),
               ),
             ),
           )
         else
           ...matched.map((e) {
             String roleBadge = '👑 Owner';
-            Color badgeCol = const Color(0xFFF59E0B);
+            Color badgeCol = Color(0xFFF59E0B);
             if (e.coOwnerId == myId) {
               roleBadge = '🛡️ Co-Owner';
-              badgeCol = const Color(0xFF10B981);
+              badgeCol = Color(0xFF10B981);
             } else if (e.adminIds.contains(myId)) {
               roleBadge = '🛡️ Admin';
-              badgeCol = const Color(0xFF3B82F6);
+              badgeCol = Color(0xFF3B82F6);
             }
             return _buildMyManagedRow(e, roleBadge, badgeCol);
           }),
@@ -847,12 +847,12 @@ class _EventsScreenState extends State<EventsScreen>
     return GestureDetector(
       onTap: () => Get.to(() => EventDetailScreen(event: event)),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+          border: Border.all(color: context.borderColor.withOpacity(0.4)),
         ),
         child: Row(
           children: [
@@ -867,29 +867,29 @@ class _EventsScreenState extends State<EventsScreen>
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     event.title,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
+                    style: TextStyle(
+                      color: context.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     event.organizer,
-                    style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                    style: TextStyle(color: context.caption, fontSize: 11),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: roleColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),

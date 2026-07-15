@@ -153,6 +153,8 @@ class RoomController extends GetxController {
   // Track participant states per room (simulated local states)
   // roomId -> list of muted user IDs
   final RxMap<String, List<String>> mutedUsers = <String, List<String>>{}.obs;
+  // roomId -> list of chat muted user IDs
+  final RxMap<String, List<String>> mutedChatUsers = <String, List<String>>{}.obs;
   // roomId -> list of banned user IDs
   final RxMap<String, List<String>> bannedUsers = <String, List<String>>{}.obs;
 
@@ -2194,6 +2196,19 @@ class RoomController extends GetxController {
     mutedUsers[roomId] = List<String>.from(list);
   }
 
+  // Moderation: Mute Chat
+  void toggleMuteUserChat(String roomId, String userId) {
+    final list = mutedChatUsers[roomId] ?? [];
+    if (list.contains(userId)) {
+      list.remove(userId);
+      addSystemActivity(roomId, '🔊 $userId chat was unmuted by Host.', messageType: 'activity');
+    } else {
+      list.add(userId);
+      addSystemActivity(roomId, '🔇 $userId chat was muted by Host.', messageType: 'activity');
+    }
+    mutedChatUsers[roomId] = List<String>.from(list);
+  }
+
   // Moderation: Ban User
   void banUser(String roomId, String userId) {
     final list = bannedUsers[roomId] ?? [];
@@ -2668,7 +2683,7 @@ class RoomController extends GetxController {
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
                               color: Colors.pinkAccent,
-                              child: const Icon(Icons.music_note, color: Colors.white, size: 24),
+                              child: Icon(Icons.music_note, color: Colors.white, size: 24),
                             ),
                           ),
                         ),
@@ -2690,12 +2705,12 @@ class RoomController extends GetxController {
                         left: -2,
                         top: -2,
                         child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
+                          padding: EdgeInsets.all(3),
+                          decoration: BoxDecoration(
                             color: Colors.pinkAccent,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.mic, color: Colors.white, size: 10),
+                          child: Icon(Icons.mic, color: Colors.white, size: 10),
                         ),
                       ),
                     ],
@@ -3270,7 +3285,7 @@ class LevelUpDialog extends StatelessWidget {
       backgroundColor: Colors.transparent,
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: [Color(0xFF312E81), Color(0xFF1E1B4B)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -3285,61 +3300,61 @@ class LevelUpDialog extends StatelessWidget {
             )
           ],
         ),
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.stars,
               color: Colors.amber,
               size: 80,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               'ROOM LEVEL UP! 🎉',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Colors.amber,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
-                  ) ?? const TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold),
+                  ) ?? TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               roomName,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
-                  ) ?? const TextStyle(color: Colors.white, fontSize: 16),
+                  ) ?? TextStyle(color: Colors.white, fontSize: 16),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildLevelCircle(context, oldLevel.toString(), 'Level'),
-                const SizedBox(width: 16),
-                const Icon(Icons.arrow_forward, color: Colors.white54, size: 28),
-                const SizedBox(width: 16),
+                SizedBox(width: 16),
+                Icon(Icons.arrow_forward, color: Colors.white54, size: 28),
+                SizedBox(width: 16),
                 _buildLevelCircle(context, newLevel.toString(), 'Level', isNew: true),
               ],
             ),
-            const SizedBox(height: 24),
-            const Text(
+            SizedBox(height: 24),
+            Text(
               'New role slots and entry permissions have been unlocked for this room!',
               style: TextStyle(color: Colors.white70, fontSize: 13),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => Get.back(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.amber,
                 foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
-              child: const Text(
+              child: Text(
                 'Awesome!',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
@@ -3382,10 +3397,10 @@ class LevelUpDialog extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(color: Colors.white54, fontSize: 11),
+          style: TextStyle(color: Colors.white54, fontSize: 11),
         ),
       ],
     );

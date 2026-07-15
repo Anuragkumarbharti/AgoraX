@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/store_controller.dart';
 import '../../services/razorpay_backend_service.dart';
 
@@ -33,7 +33,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07070A),
+      backgroundColor: Color(0xFF07070A),
       body: Stack(
         children: [
           SafeArea(
@@ -42,23 +42,23 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
                 _buildHeader(),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.all(20),
                     physics: const BouncingScrollPhysics(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildSalesStatsOverview(),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         _buildRevenueMockChart(),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         _buildFlashSaleToggleCard(),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         _buildPricingModifierSlider(),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         _buildCouponManagementCard(),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         _buildProductControlCard(),
-                        const SizedBox(height: 40),
+                        SizedBox(height: 40),
                       ],
                     ),
                   ),
@@ -73,11 +73,11 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
             onPressed: () => Get.back(),
           ),
           Text(
@@ -86,7 +86,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
               fontWeight: FontWeight.w900,
               fontSize: 18,
               letterSpacing: 2,
-              color: const Color(0xFFFFD700),
+              color: Color(0xFFFFD700),
             ),
           ),
         ],
@@ -132,8 +132,8 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
         children: [
           // Mode Switcher Banner
           Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            margin: EdgeInsets.only(bottom: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.yellow.withOpacity(0.08),
               borderRadius: BorderRadius.circular(16),
@@ -144,8 +144,8 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.toggle_on_rounded, color: Colors.yellow, size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.toggle_on_rounded, color: Colors.yellow, size: 20),
+                    SizedBox(width: 8),
                     Text('GATEWAY MODE', style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -154,7 +154,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
                     GestureDetector(
                       onTap: () => RazorpayBackendService.to.setMode('Test'),
                       child: Obx(() => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
                           color: RazorpayBackendService.to.activeMode.value == 'Test' ? Colors.yellow : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
@@ -162,11 +162,11 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
                         child: Text('TEST', style: GoogleFonts.poppins(color: RazorpayBackendService.to.activeMode.value == 'Test' ? Colors.black : Colors.white60, fontSize: 10, fontWeight: FontWeight.bold)),
                       )),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => RazorpayBackendService.to.setMode('Live'),
                       child: Obx(() => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
                           color: RazorpayBackendService.to.activeMode.value == 'Live' ? Colors.redAccent : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
@@ -182,9 +182,9 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
 
           // Total Stats
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: const Color(0xFF111115),
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.white.withOpacity(0.04)),
             ),
@@ -197,26 +197,26 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('VERIFIED REVENUE', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                          const SizedBox(height: 4),
-                          Text('₹${totalRev.toStringAsFixed(2)}', style: GoogleFonts.poppins(color: const Color(0xFFFFD700), fontSize: 20, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('₹${totalRev.toStringAsFixed(2)}', style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 20, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
                     Container(width: 1, height: 40, color: Colors.white10),
-                    const SizedBox(width: 20),
+                    SizedBox(width: 20),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('SETTLED ORDERS', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text('$successCount orders', style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const Divider(color: Colors.white10, height: 24),
+                Divider(color: Colors.white10, height: 24),
                 // Detailed breakdown grid
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -226,7 +226,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
                     _subStat('Novel', '$novelPurchases'),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -248,7 +248,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: GoogleFonts.poppins(color: Colors.white24, fontSize: 9.5)),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(value, style: GoogleFonts.poppins(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
       ],
     );
@@ -256,9 +256,9 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
 
   Widget _buildRevenueMockChart() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -266,20 +266,20 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('WEEKLY STORE METRICS CHART', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           SizedBox(
             height: 100,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _barItem('Mon', 0.4, const Color(0xFF8B5CF6)),
-                _barItem('Tue', 0.6, const Color(0xFF8B5CF6)),
-                _barItem('Wed', 0.35, const Color(0xFF8B5CF6)),
-                _barItem('Thu', 0.8, const Color(0xFFD946EF)),
-                _barItem('Fri', 0.55, const Color(0xFF8B5CF6)),
-                _barItem('Sat', 0.95, const Color(0xFFFFD700)),
-                _barItem('Sun', 0.75, const Color(0xFF8B5CF6)),
+                _barItem('Mon', 0.4, Color(0xFF8B5CF6)),
+                _barItem('Tue', 0.6, Color(0xFF8B5CF6)),
+                _barItem('Wed', 0.35, Color(0xFF8B5CF6)),
+                _barItem('Thu', 0.8, Color(0xFFD946EF)),
+                _barItem('Fri', 0.55, Color(0xFF8B5CF6)),
+                _barItem('Sat', 0.95, Color(0xFFFFD700)),
+                _barItem('Sun', 0.75, Color(0xFF8B5CF6)),
               ],
             ),
           )
@@ -303,7 +303,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(label, style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9)),
       ],
     );
@@ -313,11 +313,11 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
     return Obx(() {
       final active = _storeCtrl.isFlashSaleActive.value;
       return Container(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFF111115),
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: active ? const Color(0xFFD946EF).withOpacity(0.4) : Colors.white.withOpacity(0.04)),
+          border: Border.all(color: active ? Color(0xFFD946EF).withOpacity(0.4) : Colors.white.withOpacity(0.04)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -327,7 +327,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('LAUNCH STORE-WIDE FLASH SALE', style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text('Applies an instant 35% discount to all checkout screens.', style: GoogleFonts.poppins(color: Colors.white24, fontSize: 10)),
                 ],
               ),
@@ -335,7 +335,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
             Switch(
               value: active,
               onChanged: (v) => _storeCtrl.toggleFlashSale(v),
-              activeColor: const Color(0xFFD946EF),
+              activeColor: Color(0xFFD946EF),
             ),
           ],
         ),
@@ -347,9 +347,9 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
     return Obx(() {
       final val = _storeCtrl.priceModifier.value;
       return Container(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFF111115),
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.white.withOpacity(0.04)),
         ),
@@ -360,19 +360,19 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('GLOBAL PRICE MODIFIER', style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                Text('${(val * 100).toInt()}%', style: GoogleFonts.poppins(color: const Color(0xFFFFD700), fontSize: 13, fontWeight: FontWeight.bold)),
+                Text('${(val * 100).toInt()}%', style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 13, fontWeight: FontWeight.bold)),
               ],
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text('Modify prices globally (e.g. increase for inflation or decrease for sales).', style: GoogleFonts.poppins(color: Colors.white24, fontSize: 9.5)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Slider(
               value: val,
               min: 0.5,
               max: 1.5,
               divisions: 10,
               onChanged: (v) => _storeCtrl.setPriceModifier(v),
-              activeColor: const Color(0xFF8B5CF6),
+              activeColor: Color(0xFF8B5CF6),
             ),
           ],
         ),
@@ -382,9 +382,9 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
 
   Widget _buildCouponManagementCard() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -392,7 +392,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('COUPON & PROMO MANAGEMENT', style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -400,42 +400,42 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
                   height: 40,
                   child: TextField(
                     controller: _codeCtrl,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    style: TextStyle(color: Colors.white, fontSize: 12),
                     decoration: InputDecoration(
                       hintText: 'CODE (e.g. FESTIVAL50)',
-                      hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
+                      hintStyle: TextStyle(color: Colors.white24, fontSize: 11),
                       filled: true,
                       fillColor: Colors.black.withOpacity(0.3),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: SizedBox(
                   height: 40,
                   child: TextField(
                     controller: _discountCtrl,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    style: TextStyle(color: Colors.white, fontSize: 12),
                     decoration: InputDecoration(
                       hintText: 'DISCOUNT % (e.g. 50)',
-                      hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
+                      hintStyle: TextStyle(color: Colors.white24, fontSize: 11),
                       filled: true,
                       fillColor: Colors.black.withOpacity(0.3),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
+                  backgroundColor: Color(0xFF8B5CF6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  padding: EdgeInsets.symmetric(horizontal: 14),
                 ),
                 onPressed: () {
                   final code = _codeCtrl.text.toUpperCase().trim();
@@ -452,9 +452,9 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text('ACTIVE COUPONS LIST', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 8.5, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Obx(() {
             final codes = _storeCtrl.couponCodes;
             return Wrap(
@@ -462,14 +462,14 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
               runSpacing: 6,
               children: codes.entries.map((e) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white10)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(e.key, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10.5, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 4),
-                      Text('(${(e.value * 100).toInt()}% off)', style: GoogleFonts.poppins(color: const Color(0xFFFFD700), fontSize: 9.5)),
+                      SizedBox(width: 4),
+                      Text('(${(e.value * 100).toInt()}% off)', style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 9.5)),
                     ],
                   ),
                 );
@@ -483,9 +483,9 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
 
   Widget _buildProductControlCard() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF111115),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -493,7 +493,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('COSMETIC CATALOG CONTROLS', style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -503,7 +503,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
               return Obx(() {
                 final isDisabled = _storeCtrl.disabledProducts.contains(prod);
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  padding: EdgeInsets.symmetric(vertical: 4.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -517,7 +517,7 @@ class _AdminStorePanelState extends State<AdminStorePanel> {
                             _storeCtrl.disableProduct(prod);
                           }
                         },
-                        activeColor: const Color(0xFF10B981),
+                        activeColor: Color(0xFF10B981),
                       ),
                     ],
                   ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../auth/login_screen.dart';
 import '../../widgets/custom_permission_popup.dart';
 
@@ -146,24 +146,24 @@ class _PermissionOnboardingScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Container(
         decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.topCenter,
             radius: 1.5,
             colors: [
-              AppTheme.primaryColor.withOpacity(0.08),
-              AppTheme.bgDark,
+              context.primaryColor.withOpacity(0.08),
+              context.scaffoldBackgroundColor,
             ],
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-                const SizedBox(height: 36),
+                SizedBox(height: 36),
                 // Header
                 FadeTransition(
                   opacity: _headerFade,
@@ -172,14 +172,14 @@ class _PermissionOnboardingScreenState
                     child: _buildHeader(context),
                   ),
                 ),
-                const SizedBox(height: 36),
+                SizedBox(height: 36),
                 // Permission Cards
                 Expanded(
                   child: FadeTransition(
                     opacity: _cardsFade,
                     child: ListView.separated(
                       itemCount: _permissions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, __) => SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final item = _permissions[index];
                         final status = _statuses[item.title];
@@ -188,7 +188,7 @@ class _PermissionOnboardingScreenState
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 // Skip text
                 if (!_canContinue)
                   TextButton(
@@ -196,14 +196,14 @@ class _PermissionOnboardingScreenState
                     child: Text(
                       'Skip for now',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textTertiary,
+                            color: context.caption,
                           ),
                     ),
                   ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 // Continue Button
                 _buildContinueButton(context),
-                const SizedBox(height: 32),
+                SizedBox(height: 32),
               ],
             ),
           ),
@@ -220,41 +220,41 @@ class _PermissionOnboardingScreenState
           width: 90,
           height: 90,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
+              colors: [context.primaryColor, AppTheme.secondaryColor],
             ),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryColor.withOpacity(0.5),
+                color: context.primaryColor.withOpacity(0.5),
                 blurRadius: 30,
                 spreadRadius: 2,
                 offset: const Offset(0, 8),
               ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.record_voice_over_rounded,
             size: 44,
             color: Colors.white,
           ),
         ),
-        const SizedBox(height: 22),
+        SizedBox(height: 22),
         Text(
           'Set Up Creania',
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                color: AppTheme.textPrimary,
+                color: context.textPrimary,
                 fontWeight: FontWeight.w700,
                 fontSize: 28,
               ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Text(
           'Grant a few permissions to unlock\nall features and the best experience',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textTertiary,
+                color: context.caption,
                 height: 1.6,
               ),
           textAlign: TextAlign.center,
@@ -276,26 +276,26 @@ class _PermissionOnboardingScreenState
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
         color: isGranted
-            ? AppTheme.accentColor.withOpacity(0.05)
-            : AppTheme.cardBg,
+            ? context.accentOrange.withOpacity(0.05)
+            : context.surfaceColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isGranted
-              ? AppTheme.accentColor.withOpacity(0.5)
-              : AppTheme.borderColor.withOpacity(0.6),
+              ? context.accentOrange.withOpacity(0.5)
+              : context.borderColor.withOpacity(0.6),
           width: isGranted ? 1.5 : 0.8,
         ),
         boxShadow: [
           BoxShadow(
             color: isGranted
-                ? AppTheme.accentColor.withOpacity(0.08)
+                ? context.accentOrange.withOpacity(0.08)
                 : Colors.black.withOpacity(0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Row(
         children: [
           // Icon container
@@ -307,14 +307,14 @@ class _PermissionOnboardingScreenState
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isGranted
-                    ? [AppTheme.accentColor, const Color(0xFF059669)]
+                    ? [context.accentOrange, Color(0xFF059669)]
                     : item.gradientColors,
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
                   color: (isGranted
-                          ? AppTheme.accentColor
+                          ? context.accentOrange
                           : item.gradientColors[0])
                       .withOpacity(0.3),
                   blurRadius: 10,
@@ -328,7 +328,7 @@ class _PermissionOnboardingScreenState
               size: 28,
             ),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           // Text content
           Expanded(
             child: Column(
@@ -343,25 +343,25 @@ class _PermissionOnboardingScreenState
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: context.textPrimary,
                             ),
                       ),
                     ),
                     if (item.isRequired) ...[
-                      const SizedBox(width: 6),
+                      SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 6,
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.errorColor.withOpacity(0.15),
+                          color: context.errorColor.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text(
                           'Required',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.errorColor,
+                                color: context.errorColor,
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.3,
@@ -371,30 +371,30 @@ class _PermissionOnboardingScreenState
                     ],
                   ],
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   item.description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textTertiary,
+                        color: context.caption,
                         height: 1.4,
                       ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           // Action button
           if (isGranted)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.accentColor.withOpacity(0.15),
+                color: context.accentOrange.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 'Granted',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.accentColor,
+                      color: context.accentOrange,
                       fontWeight: FontWeight.w600,
                       fontSize: 11,
                     ),
@@ -404,15 +404,15 @@ class _PermissionOnboardingScreenState
             GestureDetector(
               onTap: () => openAppSettings(),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppTheme.errorColor.withOpacity(0.12),
+                  color: context.errorColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   'Settings',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.errorColor,
+                        color: context.errorColor,
                         fontWeight: FontWeight.w600,
                         fontSize: 11,
                       ),
@@ -423,7 +423,7 @@ class _PermissionOnboardingScreenState
             GestureDetector(
               onTap: () => _requestPermission(item),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: item.gradientColors,
@@ -460,16 +460,16 @@ class _PermissionOnboardingScreenState
         onPressed: _isLoading ? null : (_canContinue ? _continue : null),
         style: ElevatedButton.styleFrom(
           backgroundColor: _canContinue
-              ? AppTheme.primaryColor
-              : AppTheme.primaryColor.withOpacity(0.4),
+              ? context.primaryColor
+              : context.primaryColor.withOpacity(0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: _canContinue ? 8 : 0,
-          shadowColor: AppTheme.primaryColor.withOpacity(0.5),
+          shadowColor: context.primaryColor.withOpacity(0.5),
         ),
         child: _isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(

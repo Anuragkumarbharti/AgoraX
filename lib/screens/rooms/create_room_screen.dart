@@ -4,7 +4,8 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io' as io;
 import 'package:image_picker/image_picker.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
+import '../../widgets/custom_image_editor.dart';
 import '../../services/room_controller.dart';
 import '../../services/user_profile_cache_manager.dart';
 import 'voice_room_call_screen.dart';
@@ -113,7 +114,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     // Show loading spinner if custom cover needs uploading
     if (_customCoverFile != null) {
       Get.dialog(
-        const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+        Center(child: CircularProgressIndicator(color: context.primaryColor)),
         barrierDismissible: false,
       );
     }
@@ -180,12 +181,12 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
           onPressed: () => Get.back(),
         ),
         title: Text(
@@ -195,20 +196,20 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         centerTitle: true,
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: EdgeInsets.only(right: 16),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.bgLight,
+                  color: context.secondaryBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.borderColor),
+                  border: Border.all(color: context.borderColor),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
+                    Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                    SizedBox(width: 4),
                     Obx(() => Text(
                           '${_controller.walletBalance.value}',
                           style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white),
@@ -222,7 +223,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Form(
             key: _formKey,
             child: Column(
@@ -230,23 +231,23 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
               children: [
                 // Arena Type Selector Card
                 _buildRoomTypeSelector(),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
 
                 // Name
                 Text('Arena Name', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
                   maxLength: 50,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'e.g., Chill Debate Lounge, Code & Coffee',
                     hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
                     filled: true,
-                    fillColor: AppTheme.bgLight,
+                    fillColor: context.secondaryBackgroundColor,
                     counterText: '',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().length < 3) {
@@ -255,14 +256,14 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Username
                 Text('Arena Username', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextFormField(
                   controller: _usernameController,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
                   inputFormatters: [
                     TextInputFormatter.withFunction((oldValue, newValue) {
                       if (newValue.text.startsWith('@')) {
@@ -276,13 +277,13 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   ],
                   decoration: InputDecoration(
                     prefixText: '@',
-                    prefixStyle: const TextStyle(color: Colors.white, fontSize: 16),
+                    prefixStyle: TextStyle(color: Colors.white, fontSize: 16),
                     hintText: 'studyhub',
                     hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
                     filled: true,
-                    fillColor: AppTheme.bgLight,
+                    fillColor: context.secondaryBackgroundColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -302,22 +303,22 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Description
                 Text('Description', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextFormField(
                   controller: _descriptionController,
                   maxLines: 2,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'What is this arena about? Write a catchy summary...',
                     hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
                     filled: true,
-                    fillColor: AppTheme.bgLight,
+                    fillColor: context.secondaryBackgroundColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -326,13 +327,13 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Cover Photo Selector
                 Text('Arena Cover Photo', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 _buildCoverPhotoSelector(),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Category & Permission (Two Column Dropdowns)
                 Row(
@@ -342,7 +343,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Category Arena', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           _buildDropdown(_categories, _selectedCategory, (val) {
                             setState(() {
                               _selectedCategory = val!;
@@ -356,13 +357,13 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Entry Permission', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           _buildDropdown(
                             _permissions.map((p) => p.replaceAll('_', ' ').capitalizeFirst!).toList(), 
                             _selectedPermission.replaceAll('_', ' ').capitalizeFirst!, 
@@ -375,26 +376,26 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Conditional Password Field
                 if (_selectedCategory == 'Private Room' || _selectedPermission == 'password_required') ...[
                   Text('Access Password', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Enter access password for private room',
                       hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
                       filled: true,
-                      fillColor: AppTheme.bgLight,
+                      fillColor: context.secondaryBackgroundColor,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                 ],
 
                 // Country & Language Dropdowns
@@ -405,20 +406,20 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Country', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           _buildDropdown(_countries, _selectedCountry, (val) {
                             setState(() => _selectedCountry = val!);
                           }),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Language', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           _buildDropdown(_languages, _selectedLanguage, (val) {
                             setState(() => _selectedLanguage = val!);
                           }),
@@ -427,16 +428,16 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Premium Predefined Tags Selector
                 Text('Select Arena Tags', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.bgLight,
+                    color: context.secondaryBackgroundColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Wrap(
@@ -457,7 +458,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                                   'Max Tags',
                                   'You can select up to 5 tags for your arena.',
                                   snackPosition: SnackPosition.BOTTOM,
-                                  backgroundColor: AppTheme.warningColor.withOpacity(0.8),
+                                  backgroundColor: context.warningColor.withOpacity(0.8),
                                   colorText: Colors.white,
                                 );
                               }
@@ -465,12 +466,12 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                           });
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.05),
+                            color: isSelected ? context.primaryColor : Colors.white.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.1),
+                              color: isSelected ? context.primaryColor : Colors.white.withOpacity(0.1),
                               width: 1,
                             ),
                           ),
@@ -487,25 +488,25 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     }).toList(),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Rules
                 Text('Arena Rules (one rule per line)', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextFormField(
                   controller: _rulesController,
                   maxLines: 3,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: "1. Be respectful\n2. Wait for turn\n3. Share constructive feedback",
                     hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
                     filled: true,
-                    fillColor: AppTheme.bgLight,
+                    fillColor: context.secondaryBackgroundColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32),
 
                 // Submit Button
                 SizedBox(
@@ -513,9 +514,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   child: ElevatedButton(
                     onPressed: _submitForm,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isPermanent ? Colors.amber : AppTheme.primaryColor,
+                      backgroundColor: _isPermanent ? Colors.amber : context.primaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: 16),
                       elevation: 4,
                     ),
                     child: Text(
@@ -528,7 +529,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
               ],
             ),
           ),
@@ -540,11 +541,11 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   Widget _buildRoomTypeSelector() {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor),
+        border: Border.all(color: context.borderColor),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -552,7 +553,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
             'Choose Arena Session Duration',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               // Temporary Room Option
@@ -561,12 +562,12 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   onTap: () => setState(() => _isPermanent = false),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: !_isPermanent ? AppTheme.bgLight : Colors.transparent,
+                      color: !_isPermanent ? context.secondaryBackgroundColor : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: !_isPermanent ? AppTheme.primaryColor : Colors.transparent,
+                        color: !_isPermanent ? context.primaryColor : Colors.transparent,
                         width: 1.5,
                       ),
                     ),
@@ -574,22 +575,22 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                       children: [
                         Icon(
                           Icons.timer_outlined,
-                          color: !_isPermanent ? AppTheme.primaryColor : AppTheme.textTertiary,
+                          color: !_isPermanent ? context.primaryColor : context.caption,
                           size: 32,
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Text(
                           'Temporary',
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: !_isPermanent ? Colors.white : AppTheme.textSecondary,
+                            color: !_isPermanent ? Colors.white : context.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           'Free • Auto-deletes when empty',
-                          style: GoogleFonts.poppins(fontSize: 9, color: AppTheme.textTertiary),
+                          style: GoogleFonts.poppins(fontSize: 9, color: context.caption),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -597,14 +598,14 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               // Permanent Room Option
               Expanded(
                 child: GestureDetector(
                   onTap: () => setState(() => _isPermanent = true),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: _isPermanent ? Colors.amber.withOpacity(0.05) : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
@@ -617,24 +618,24 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                       children: [
                         Icon(
                           Icons.workspace_premium_outlined,
-                          color: _isPermanent ? Colors.amber : AppTheme.textTertiary,
+                          color: _isPermanent ? Colors.amber : context.caption,
                           size: 32,
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Text(
                           'Permanent',
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: _isPermanent ? Colors.amber : AppTheme.textSecondary,
+                            color: _isPermanent ? Colors.amber : context.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           '599 Coins • Never expires • XP enabled',
                           style: GoogleFonts.poppins(
                             fontSize: 9,
-                            color: _isPermanent ? Colors.amber.withOpacity(0.8) : AppTheme.textTertiary,
+                            color: _isPermanent ? Colors.amber.withOpacity(0.8) : context.caption,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -652,17 +653,17 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
   Widget _buildDropdown(List<String> items, String selectedValue, void Function(String?) onChanged) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor),
+        border: Border.all(color: context.borderColor),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: selectedValue,
-          dropdownColor: AppTheme.bgLight,
-          icon: const Icon(Icons.arrow_drop_down, color: AppTheme.textTertiary),
+          dropdownColor: context.secondaryBackgroundColor,
+          icon: Icon(Icons.arrow_drop_down, color: context.caption),
           isExpanded: true,
           style: GoogleFonts.poppins(color: Colors.white, fontSize: 13),
           onChanged: onChanged,
@@ -688,11 +689,11 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -712,10 +713,10 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                           : null),
                 ),
                 child: (_selectedCoverPhoto == null && _customCoverFile == null)
-                    ? const Center(child: Icon(Icons.image_outlined, color: Colors.white30))
+                    ? Center(child: Icon(Icons.image_outlined, color: Colors.white30))
                     : null,
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -724,16 +725,16 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                       _customCoverFile != null ? 'Custom Cover Selected' : 'Preset Cover Selected',
                       style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     ElevatedButton.icon(
                       onPressed: _pickCustomCover,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white10,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                      icon: const Icon(Icons.cloud_upload_outlined, size: 16),
+                      icon: Icon(Icons.cloud_upload_outlined, size: 16),
                       label: Text('Upload Custom', style: GoogleFonts.poppins(fontSize: 11)),
                     ),
                   ],
@@ -741,11 +742,11 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const Divider(color: Colors.white10),
-          const SizedBox(height: 8),
+          SizedBox(height: 16),
+          Divider(color: Colors.white10),
+          SizedBox(height: 8),
           Text('Select from presets:', style: GoogleFonts.poppins(color: Colors.white60, fontSize: 11)),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           SizedBox(
             height: 60,
             child: ListView.builder(
@@ -761,12 +762,12 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     });
                   },
                   child: Container(
-                    margin: const EdgeInsets.only(right: 8),
+                    margin: EdgeInsets.only(right: 8),
                     width: 60,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                        color: isSelected ? context.primaryColor : Colors.transparent,
                         width: 2,
                       ),
                     ),
@@ -788,10 +789,13 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _customCoverFile = io.File(pickedFile.path);
-        _selectedCoverPhoto = null;
-      });
+      final editedFile = await CustomImageEditor.editImage(context, io.File(pickedFile.path));
+      if (editedFile != null) {
+        setState(() {
+          _customCoverFile = io.File(editedFile.path);
+          _selectedCoverPhoto = null;
+        });
+      }
     }
   }
 }

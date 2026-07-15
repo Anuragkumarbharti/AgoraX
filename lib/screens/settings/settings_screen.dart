@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../auth/login_screen.dart';
 import '../vip/vip_purchase_screen.dart';
 import '../novel/novel_purchase_screen.dart';
@@ -33,7 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.textPrimary),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Get.back(),
         ),
       ),
@@ -73,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => Get.to(() => const StoreHomeScreen()),
             ),
 
-            const Divider(color: AppTheme.borderColor, height: 32, thickness: 0.5),
+            Divider(color: context.borderColor, height: 32, thickness: 0.5),
 
             // Privacy & Security
             _buildSectionHeader('Privacy & Security'),
@@ -113,7 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               (val) => setState(() => _twoFactorEnabled = val),
             ),
 
-            const Divider(color: AppTheme.borderColor, height: 32, thickness: 0.5),
+            Divider(color: context.borderColor, height: 32, thickness: 0.5),
 
             // Preferences
             _buildSectionHeader('Preferences'),
@@ -146,7 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => _showComingSoon('Language Settings'),
             ),
 
-            const Divider(color: AppTheme.borderColor, height: 32, thickness: 0.5),
+            Divider(color: context.borderColor, height: 32, thickness: 0.5),
 
             // Support & Info
             _buildSectionHeader('Help & Support'),
@@ -174,36 +174,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         width: 80,
                         fit: BoxFit.contain,
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       Text(
                         'Creania v1.0.0',
                         style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         'Create. Connect. Grow.',
-                        style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 13),
+                        style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
                       ),
                     ],
                   ),
-                  backgroundColor: AppTheme.bgLight,
+                  backgroundColor: context.secondaryBackgroundColor,
                   confirm: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
+                      backgroundColor: context.primaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: () => Get.back(),
-                    child: const Text('Close', style: TextStyle(color: Colors.white)),
+                    child: Text('Close', style: TextStyle(color: Colors.white)),
                   ),
                 );
               },
             ),
 
-            const Divider(color: AppTheme.borderColor, height: 32, thickness: 0.5),
+            Divider(color: context.borderColor, height: 32, thickness: 0.5),
 
             // Danger Zone Actions
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
                   SizedBox(
@@ -212,40 +212,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: OutlinedButton(
                       onPressed: _showLogoutConfirm,
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppTheme.errorColor),
+                        side: BorderSide(color: context.errorColor),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text(
                         'Logout',
                         style: GoogleFonts.poppins(
-                          color: AppTheme.errorColor,
+                          color: context.errorColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: OutlinedButton(
                       onPressed: _showDeleteConfirm,
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppTheme.errorColor),
+                        side: BorderSide(color: context.errorColor),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text(
                         'Delete Account',
                         style: GoogleFonts.poppins(
-                          color: AppTheme.errorColor,
+                          color: context.errorColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  SizedBox(height: 40),
                 ],
               ),
             ),
@@ -257,11 +257,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Text(
         title,
         style: GoogleFonts.outfit(
-          color: AppTheme.primaryColor,
+          color: context.primaryColor,
           fontWeight: FontWeight.bold,
           fontSize: 14,
         ),
@@ -277,28 +277,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.borderColor, width: 0.5),
+            border: Border.all(color: context.borderColor, width: 0.5),
           ),
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(12),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppTheme.bgDark,
+                  color: context.scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: AppTheme.textSecondary, size: 20),
+                child: Icon(icon, color: context.textSecondary, size: 20),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,18 +311,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         fontSize: 13,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: GoogleFonts.poppins(
-                        color: AppTheme.textTertiary,
+                        color: context.caption,
                         fontSize: 11,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.textTertiary, size: 14),
+              Icon(Icons.arrow_forward_ios_rounded, color: context.caption, size: 14),
             ],
           ),
         ),
@@ -338,25 +338,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Function(bool) onChanged,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.borderColor, width: 0.5),
+          border: Border.all(color: context.borderColor, width: 0.5),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.bgDark,
+                color: context.scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: AppTheme.textSecondary, size: 20),
+              child: Icon(icon, color: context.textSecondary, size: 20),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,11 +369,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: GoogleFonts.poppins(
-                      color: AppTheme.textTertiary,
+                      color: context.caption,
                       fontSize: 11,
                     ),
                   ),
@@ -383,8 +383,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Switch(
               value: value,
               onChanged: onChanged,
-              activeColor: AppTheme.primaryColor,
-              activeTrackColor: AppTheme.primaryColor.withOpacity(0.3),
+              activeColor: context.primaryColor,
+              activeTrackColor: context.primaryColor.withOpacity(0.3),
             ),
           ],
         ),
@@ -396,7 +396,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Get.snackbar(
       'Coming Soon 🚀',
       '$feature will be editable in the next update.',
-      backgroundColor: AppTheme.primaryColor.withOpacity(0.9),
+      backgroundColor: context.primaryColor.withOpacity(0.9),
       colorText: Colors.white,
       snackPosition: SnackPosition.BOTTOM,
     );
@@ -406,9 +406,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Get.defaultDialog(
       title: 'Sign Out?',
       middleText: 'Are you sure you want to log out of your Creania account?',
-      backgroundColor: AppTheme.bgLight,
+      backgroundColor: context.secondaryBackgroundColor,
       titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-      middleTextStyle: GoogleFonts.poppins(color: AppTheme.textSecondary),
+      middleTextStyle: GoogleFonts.poppins(color: context.textSecondary),
       confirm: ElevatedButton(
         onPressed: () async {
           try {
@@ -416,12 +416,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           } catch (_) {}
           Get.offAll(() => const LoginScreen());
         },
-        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
-        child: const Text('Logout'),
+        style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
+        child: Text('Logout'),
       ),
       cancel: OutlinedButton(
         onPressed: () => Get.back(),
-        child: const Text('Cancel'),
+        child: Text('Cancel'),
       ),
     );
   }
@@ -430,9 +430,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Get.defaultDialog(
       title: 'Delete Account?',
       middleText: 'Deleting your account is permanent. All your coins, diamond balances, and library assets will be deleted.',
-      backgroundColor: AppTheme.bgLight,
-      titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppTheme.errorColor),
-      middleTextStyle: GoogleFonts.poppins(color: AppTheme.textSecondary),
+      backgroundColor: context.secondaryBackgroundColor,
+      titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.errorColor),
+      middleTextStyle: GoogleFonts.poppins(color: context.textSecondary),
       confirm: ElevatedButton(
         onPressed: () async {
           try {
@@ -446,12 +446,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           } catch (_) {}
           Get.offAll(() => const LoginScreen());
         },
-        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
-        child: const Text('Delete Permanently'),
+        style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
+        child: Text('Delete Permanently'),
       ),
       cancel: OutlinedButton(
         onPressed: () => Get.back(),
-        child: const Text('Cancel'),
+        child: Text('Cancel'),
       ),
     );
   }
@@ -461,14 +461,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: context.secondaryBackgroundColor,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return Obx(() {
           final currentPref = themeCtrl.currentThemePreference.value;
           return Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,7 +481,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: context.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'Choose your preferred theme for the app.',
                   style: GoogleFonts.poppins(
@@ -489,7 +489,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: context.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 _buildThemeOption(
                   context,
                   title: 'System (Recommended)',
@@ -499,7 +499,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   isSelected: currentPref == 'system',
                   onTap: () => themeCtrl.updateThemePreference('system'),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildThemeOption(
                   context,
                   title: 'Light Theme',
@@ -509,7 +509,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   isSelected: currentPref == 'light',
                   onTap: () => themeCtrl.updateThemePreference('light'),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildThemeOption(
                   context,
                   title: 'Dark Theme',
@@ -519,7 +519,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   isSelected: currentPref == 'dark',
                   onTap: () => themeCtrl.updateThemePreference('dark'),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
               ],
             ),
           );
@@ -540,7 +540,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
               ? context.primaryColor.withOpacity(0.08)
@@ -560,7 +560,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: isSelected ? context.primaryColor : context.textSecondary,
               size: 24,
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,7 +573,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: isSelected ? context.primaryColor : context.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: GoogleFonts.poppins(

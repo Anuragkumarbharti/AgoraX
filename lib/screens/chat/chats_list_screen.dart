@@ -224,7 +224,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         username: room.ownerName,
         avatar: room.avatar ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
         avatarFrame: room.roomTheme.toLowerCase().contains('gold') ? 'Golden Frame' : 'Normal',
-        vipBadge: room.level > 1 ? 'VIP ${room.level}' : null,
+        vipBadge: (UserProfileCacheManager.getCachedUser(room.hostId)?.vipLevel != null && UserProfileCacheManager.getCachedUser(room.hostId)!.vipLevel > 0) ? 'VIP ${UserProfileCacheManager.getCachedUser(room.hostId)!.vipLevel}' : null,
         isSpeaking: room.speakerIds.contains(room.hostId) || room.hostIds.contains(room.hostId),
         roomId: room.id,
         room: room,
@@ -282,9 +282,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   Widget _buildLiveInArenaSection() {
     return Obx(() {
       final liveUsers = _getLiveArenaUsers();
-      if (liveUsers.isEmpty) {
-        return const SizedBox.shrink(); // Hide if no live users exist
-      }
+      
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -301,35 +299,76 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () {},
-                  child: Text(
-                    'View All',
-                    style: GoogleFonts.outfit(
-                      color: AppTheme.primaryColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
+                if (liveUsers.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {},
+                    child: Text(
+                      'View All',
+                      style: GoogleFonts.outfit(
+                        color: AppTheme.primaryColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
-          SizedBox(
-            height: 100,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              physics: const BouncingScrollPhysics(),
-              children: [
-                // 1. Party Broadcast (Always First, Circular Icon)
-                _buildPartyBroadcastItem(),
-                
-                // 2. Real Live Arena Users
-                ...liveUsers.map((user) => _buildArenaUserAvatar(user)),
-              ],
+          if (liveUsers.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.4), width: 1.5),
+                      image: const DecorationImage(
+                        image: NetworkImage('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'),
+                        fit: BoxFit.cover,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withOpacity(0.2),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      'No one is live in arena',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            SizedBox(
+              height: 100,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  // 1. Party Broadcast (Always First, Circular Icon)
+                  _buildPartyBroadcastItem(),
+                  
+                  // 2. Real Live Arena Users
+                  ...liveUsers.map((user) => _buildArenaUserAvatar(user)),
+                ],
+              ),
             ),
-          ),
+          const SizedBox(height: 8),
         ],
       );
     });
@@ -670,7 +709,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                           const SizedBox(width: 4),
                           const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
                         ],
-                        if (conv.level > 0) ...[
+                        if (UserProfileCacheManager.getCachedUser(conv.otherUserId)?.vipLevel != null && UserProfileCacheManager.getCachedUser(conv.otherUserId)!.vipLevel > 0) ...[
                           const SizedBox(width: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -680,7 +719,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                               border: Border.all(color: AppTheme.accentColor, width: 0.5),
                             ),
                             child: Text(
-                              'VIP ${conv.level}',
+                              'VIP ${UserProfileCacheManager.getCachedUser(conv.otherUserId)!.vipLevel}',
                               style: const TextStyle(color: AppTheme.accentColor, fontSize: 8, fontWeight: FontWeight.bold),
                             ),
                           ),

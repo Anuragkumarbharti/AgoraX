@@ -1,3 +1,4 @@
+import 'package:creania/core/theme.dart';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'dart:io';
@@ -185,10 +186,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     final TextEditingController controller = TextEditingController();
     Get.dialog(
       Dialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,7 +203,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: controller,
                 maxLines: 3,
@@ -210,16 +211,16 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 decoration: InputDecoration(
                   hintText: 'Write your comment...',
                   hintStyle:
-                      GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
+                      GoogleFonts.poppins(color: context.caption, fontSize: 13),
                   filled: true,
                   fillColor: Colors.black.withOpacity(0.2),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Colors.white12),
+                    borderSide: BorderSide(color: context.borderColor),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -228,7 +229,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     child: Text('Cancel',
                         style: GoogleFonts.poppins(color: Colors.white38)),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
                       if (controller.text.trim().isEmpty) return;
@@ -245,13 +246,13 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                         'Comment Posted 💬',
                         'Your comment was posted successfully!',
                         snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: const Color(0xFF10B981),
+                        backgroundColor: Color(0xFF10B981),
                         colorText: Colors.white,
                         duration: const Duration(seconds: 1),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B5CF6)),
+                        backgroundColor: Color(0xFF8B5CF6)),
                     child: Text('Post',
                         style:
                             GoogleFonts.poppins(fontWeight: FontWeight.bold)),
@@ -294,10 +295,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     final TextEditingController controller = TextEditingController();
     Get.dialog(
       Dialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,7 +312,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: controller,
                 maxLines: 4,
@@ -319,16 +320,16 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 decoration: InputDecoration(
                   hintText: 'Type your answer details here...',
                   hintStyle:
-                      GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
+                      GoogleFonts.poppins(color: context.caption, fontSize: 13),
                   filled: true,
                   fillColor: Colors.black.withOpacity(0.2),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Colors.white12),
+                    borderSide: BorderSide(color: context.borderColor),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -337,7 +338,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     child: Text('Cancel',
                         style: GoogleFonts.poppins(color: Colors.white38)),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
                       if (controller.text.trim().isEmpty) return;
@@ -357,13 +358,13 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                         'Answer Submitted 🎉',
                         'Thank you! Your answer has been posted.',
                         snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: const Color(0xFF10B981),
+                        backgroundColor: Color(0xFF10B981),
                         colorText: Colors.white,
                         duration: const Duration(milliseconds: 1500),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B5CF6)),
+                        backgroundColor: Color(0xFF8B5CF6)),
                     child: Text('Submit',
                         style:
                             GoogleFonts.poppins(fontWeight: FontWeight.bold)),
@@ -395,9 +396,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   Widget build(BuildContext context) {
     final u = _localUser;
     return Scaffold(
-      backgroundColor: const Color(0xFF09090B),
+      backgroundColor: Color(0xFF09090B),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment(0.4, -0.6),
             radius: 1.2,
@@ -417,10 +418,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               delegate: _StickyTabBarDelegate(
                 TabBar(
                   controller: _tabController,
-                  indicatorColor: const Color(0xFF8B5CF6),
+                  indicatorColor: Color(0xFF8B5CF6),
                   indicatorWeight: 3,
-                  labelColor: const Color(0xFF8B5CF6),
-                  unselectedLabelColor: AppTheme.textTertiary,
+                  labelColor: Color(0xFF8B5CF6),
+                  unselectedLabelColor: context.caption,
                   labelStyle: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -459,7 +460,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.share_outlined, color: Colors.white),
+          icon: Icon(Icons.share_outlined, color: context.textPrimary),
           onPressed: () {
             Clipboard.setData(
                 ClipboardData(text: 'https://creania.com/profile/${u.sid}'));
@@ -467,13 +468,13 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               'Link Copied 📋',
               'Profile link copied to clipboard.',
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
+              backgroundColor: Color(0xFF8B5CF6).withOpacity(0.9),
               colorText: Colors.white,
             );
           },
         ),
         IconButton(
-          icon: const Icon(Icons.more_vert, color: Colors.white),
+          icon: Icon(Icons.more_vert, color: Colors.white),
           onPressed: () => _showOptionsSheet(),
         ),
       ],
@@ -489,7 +490,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           clipBehavior: Clip.none,
           children: [
             // Size placeholder to ensure bounds cover overlapping children for hit-testing
-            const SizedBox(
+            SizedBox(
               height: 330,
               width: double.infinity,
             ),
@@ -515,7 +516,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.black.withOpacity(0.1),
-                        const Color(0xFF09090B).withOpacity(0.9),
+                        Color(0xFF09090B).withOpacity(0.9),
                       ],
                     ),
                   ),
@@ -554,10 +555,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.06),
+                            color: context.borderColor,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                                 color: Colors.white.withOpacity(0.12)),
@@ -565,9 +566,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.mail_outline_rounded,
+                              Icon(Icons.mail_outline_rounded,
                                   size: 14, color: Colors.white),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6),
                               Text(
                                 'Message',
                                 style: GoogleFonts.poppins(
@@ -581,21 +582,21 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
 
                   // Follow Button
                   GestureDetector(
                     onTap: _toggleFollow,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                           horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
                         gradient: _isFollowing
                             ? null
-                            : const LinearGradient(
+                            : LinearGradient(
                                 colors: [Color(0xFFD946EF), Color(0xFFEF408B)]),
                         color: _isFollowing
-                            ? Colors.white.withOpacity(0.06)
+                            ? context.borderColor
                             : null,
                         borderRadius: BorderRadius.circular(12),
                         border: _isFollowing
@@ -606,7 +607,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                             : [
                                 BoxShadow(
                                   color:
-                                      const Color(0xFFEF408B).withOpacity(0.3),
+                                      Color(0xFFEF408B).withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 )
@@ -616,7 +617,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                         _isFollowing ? 'Following' : 'Follow',
                         style: GoogleFonts.poppins(
                           color: _isFollowing
-                              ? AppTheme.textSecondary
+                              ? context.textSecondary
                               : Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -630,64 +631,64 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           ],
         ),
 
-        const SizedBox(height: 54), // spacing for avatar overlap
+        SizedBox(height: 54), // spacing for avatar overlap
 
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Username, Verified, Gender Row
               _buildNameSection(u),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
 
               // Dynamic Tag Row containing levels (NO separate cards below)
               _buildTagRow(u),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Follow Stats Row
               _buildStatsCard(u),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Secondary Actions Row: Call, Gift, Block, Report
               _buildSecondaryActionsRow(u),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Status & Bio
               _buildBioSection(u),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Community Card (role, level, member count, etc.)
               _buildFamilyCard(u),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Badges Section
               _buildBadgesRow(u),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Chips Section
               _buildChipsSection(),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Personal Info Section
               _buildPersonalInfoSection(u),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Top Supporters
               _buildTopFansSection(),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Contribution Points
               _buildContributionSection(),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Spotify Listening Status Card
               _buildSpotifyCard(u),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Social Links
               _buildSocialsSection(u),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
             ],
           ),
         ),
@@ -709,44 +710,44 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     switch (vipLevel) {
       case 1:
         return Text(text,
-            style: style.copyWith(color: const Color(0xFF2563EB)));
+            style: style.copyWith(color: Color(0xFF2563EB)));
       case 2:
         return Text(text,
-            style: style.copyWith(color: const Color(0xFF8B5CF6)));
+            style: style.copyWith(color: Color(0xFF8B5CF6)));
       case 3:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFFD700), Color(0xFFD97706)],
           ).createShader(bounds),
           child: Text(text, style: style.copyWith(color: Colors.white)),
         );
       case 4:
         return Text(text,
-            style: style.copyWith(color: const Color(0xFFF1F5F9), shadows: [
-              const Shadow(color: Colors.white30, blurRadius: 4),
+            style: style.copyWith(color: Color(0xFFF1F5F9), shadows: [
+              Shadow(color: context.caption, blurRadius: 4),
             ]));
       case 5:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFF06B6D4), Color(0xFF22D3EE)],
           ).createShader(bounds),
           child: Text(text, style: style.copyWith(color: Colors.white)),
         );
       case 6:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFF007F), Color(0xFFFFBF00), Color(0xFF00F0FF)],
           ).createShader(bounds),
           child: Text(text, style: style.copyWith(color: Colors.white)),
         );
       case 7:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFFD700), Color(0xFF1C1917), Color(0xFFFFD700)],
           ).createShader(bounds),
           child: Text(text,
               style: style.copyWith(color: Colors.white, shadows: [
-                const Shadow(color: Color(0xFFD4AF37), blurRadius: 6),
+                Shadow(color: Color(0xFFD4AF37), blurRadius: 6),
               ])),
         );
       default:
@@ -764,56 +765,56 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     switch (novelLvl) {
       case 1:
         return Text(text,
-            style: style.copyWith(color: const Color(0xFF2563EB)));
+            style: style.copyWith(color: Color(0xFF2563EB)));
       case 2:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFF7C3AED), Color(0xFFC084FC)],
           ).createShader(bounds),
           child: Text(text, style: style.copyWith(color: Colors.white)),
         );
       case 3:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFFD700), Color(0xFFD97706)],
           ).createShader(bounds),
           child: Text(text, style: style.copyWith(color: Colors.white)),
         );
       case 4:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
           ).createShader(bounds),
           child: Text(text,
               style: style.copyWith(color: Colors.white, shadows: [
-                const Shadow(color: Colors.redAccent, blurRadius: 4),
+                Shadow(color: Colors.redAccent, blurRadius: 4),
               ])),
         );
       case 5:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFF97316), Color(0xFFFDBA74)],
           ).createShader(bounds),
           child: Text(text, style: style.copyWith(color: Colors.white)),
         );
       case 6:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFF06B6D4), Color(0xFF22D3EE), Colors.white],
           ).createShader(bounds),
           child: Text(text,
               style: style.copyWith(color: Colors.white, shadows: [
-                const Shadow(color: Colors.cyanAccent, blurRadius: 6),
+                Shadow(color: Colors.cyanAccent, blurRadius: 6),
               ])),
         );
       case 7:
         return ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFFD700), Color(0xFF1C1917), Color(0xFFFFD700)],
           ).createShader(bounds),
           child: Text(text,
               style: style.copyWith(color: Colors.white, shadows: [
-                const Shadow(color: Color(0xFFFFD700), blurRadius: 8),
+                Shadow(color: Color(0xFFFFD700), blurRadius: 8),
               ])),
         );
       default:
@@ -861,28 +862,28 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: context.textPrimary,
                 ),
               ),
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             if (u.isVerified)
-              const Icon(Icons.verified_rounded,
+              Icon(Icons.verified_rounded,
                   color: Color(0xFF38BDF8), size: 20),
             if (novelLevel > 0) ...[
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               NovelBadgeWidget(level: novelLevel, fontSize: 11),
             ] else if (vipLevel > 0) ...[
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               VipBadgeWidget(level: vipLevel, fontSize: 11),
             ],
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Text(
               u.id.hashCode % 2 == 0 ? '♂' : '♀',
               style: TextStyle(
                 color: u.id.hashCode % 2 == 0
-                    ? const Color(0xFF38BDF8)
-                    : const Color(0xFFF43F5E),
+                    ? Color(0xFF38BDF8)
+                    : Color(0xFFF43F5E),
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -890,26 +891,26 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           ],
         ),
         Padding(
-          padding: const EdgeInsets.only(top: 6, bottom: 4),
+          padding: EdgeInsets.only(top: 6, bottom: 4),
           child: PremiumIdentityController.getIdentity(u.id, u.displayName)
               .buildBadgeRow(context, fontSize: 9.5),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Row(
           children: [
             Text(
               'ID: ${u.sid}',
               style: GoogleFonts.poppins(
-                color: AppTheme.textTertiary,
+                color: context.caption,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             GestureDetector(
               onTap: () => _copyToClipboard(u.sid, 'Creania ID'),
               child: Icon(Icons.copy_rounded,
-                  color: AppTheme.textTertiary.withOpacity(0.8), size: 14),
+                  color: context.caption.withOpacity(0.8), size: 14),
             ),
           ],
         ),
@@ -995,13 +996,13 @@ class _UserProfileScreenState extends State<UserProfileScreen>
             Positioned(
               bottom: -4,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                       colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)]),
                   borderRadius: BorderRadius.circular(10),
                   border:
-                      Border.all(color: const Color(0xFF09090B), width: 1.5),
+                      Border.all(color: Color(0xFF09090B), width: 1.5),
                 ),
                 child: Text(
                   'Lv.${u.level}',
@@ -1026,9 +1027,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       tags.add(_buildTagItem(
         label: 'VIP',
         icon: '👑',
-        bgColor: const Color(0xFFFFC107).withOpacity(0.12),
-        borderColor: const Color(0xFFFFC107).withOpacity(0.3),
-        textColor: const Color(0xFFFFC107),
+        bgColor: Color(0xFFFFC107).withOpacity(0.12),
+        borderColor: Color(0xFFFFC107).withOpacity(0.3),
+        textColor: Color(0xFFFFC107),
       ));
     }
 
@@ -1037,9 +1038,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       tags.add(_buildTagItem(
         label: 'Novel',
         icon: '📖',
-        bgColor: const Color(0xFFF97316).withOpacity(0.12),
-        borderColor: const Color(0xFFF97316).withOpacity(0.3),
-        textColor: const Color(0xFFF97316),
+        bgColor: Color(0xFFF97316).withOpacity(0.12),
+        borderColor: Color(0xFFF97316).withOpacity(0.3),
+        textColor: Color(0xFFF97316),
       ));
     }
 
@@ -1047,9 +1048,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     tags.add(_buildTagItem(
       label: 'ID Lv.${u.level}',
       icon: '🌱',
-      bgColor: const Color(0xFF8B5CF6).withOpacity(0.12),
-      borderColor: const Color(0xFF8B5CF6).withOpacity(0.3),
-      textColor: const Color(0xFFA855F7),
+      bgColor: Color(0xFF8B5CF6).withOpacity(0.12),
+      borderColor: Color(0xFF8B5CF6).withOpacity(0.3),
+      textColor: Color(0xFFA855F7),
     ));
 
     // 4. Career Level Tag (Simulated for demo)
@@ -1057,9 +1058,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       tags.add(_buildTagItem(
         label: 'Design Lv.14 (Practitioner)',
         icon: '🎓',
-        bgColor: const Color(0xFF38BDF8).withOpacity(0.12),
-        borderColor: const Color(0xFF38BDF8).withOpacity(0.3),
-        textColor: const Color(0xFF38BDF8),
+        bgColor: Color(0xFF38BDF8).withOpacity(0.12),
+        borderColor: Color(0xFF38BDF8).withOpacity(0.3),
+        textColor: Color(0xFF38BDF8),
       ));
     }
 
@@ -1067,22 +1068,22 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     Color bracketColor;
     String bracketName;
     if (u.level >= 55) {
-      bracketColor = const Color(0xFF10B981);
+      bracketColor = Color(0xFF10B981);
       bracketName = 'Radiant';
     } else if (u.level >= 50) {
-      bracketColor = const Color(0xFFFFD700);
+      bracketColor = Color(0xFFFFD700);
       bracketName = 'Gold';
     } else if (u.level >= 40) {
-      bracketColor = const Color(0xFFA855F7);
+      bracketColor = Color(0xFFA855F7);
       bracketName = 'Purple';
     } else if (u.level >= 30) {
-      bracketColor = const Color(0xFF3B82F6);
+      bracketColor = Color(0xFF3B82F6);
       bracketName = 'Blue';
     } else if (u.level >= 20) {
-      bracketColor = const Color(0xFF94A3B8);
+      bracketColor = Color(0xFF94A3B8);
       bracketName = 'Silver';
     } else {
-      bracketColor = const Color(0xFFB45309);
+      bracketColor = Color(0xFFB45309);
       bracketName = 'Bronze';
     }
 
@@ -1099,9 +1100,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       tags.add(_buildTagItem(
         label: 'Verified',
         icon: '✔',
-        bgColor: const Color(0xFF22C55E).withOpacity(0.12),
-        borderColor: const Color(0xFF22C55E).withOpacity(0.3),
-        textColor: const Color(0xFF22C55E),
+        bgColor: Color(0xFF22C55E).withOpacity(0.12),
+        borderColor: Color(0xFF22C55E).withOpacity(0.3),
+        textColor: Color(0xFF22C55E),
       ));
     }
 
@@ -1111,7 +1112,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       child: Row(
         children: tags
             .map((t) => Padding(
-                  padding: const EdgeInsets.only(right: 6),
+                  padding: EdgeInsets.only(right: 6),
                   child: t,
                 ))
             .toList(),
@@ -1127,7 +1128,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     required Color textColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(8),
@@ -1136,8 +1137,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 11)),
-          const SizedBox(width: 4),
+          Text(icon, style: TextStyle(fontSize: 11)),
+          SizedBox(width: 4),
           Text(
             label,
             style: GoogleFonts.poppins(
@@ -1154,11 +1155,12 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   Widget _buildBioSection(User u) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.borderColor, width: 1.0),
+        boxShadow: context.smallShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1166,21 +1168,21 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           Text(
             u.bio ?? 'No bio written yet.',
             style: GoogleFonts.poppins(
-              color: AppTheme.textSecondary,
+              color: context.textSecondary,
               fontSize: 13,
               height: 1.5,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.link_rounded,
+              Icon(Icons.link_rounded,
                   color: Color(0xFF38BDF8), size: 14),
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               Text(
                 'https://creania.com/${u.username}',
                 style: GoogleFonts.poppins(
-                    color: const Color(0xFF38BDF8),
+                    color: Color(0xFF38BDF8),
                     fontSize: 12,
                     decoration: TextDecoration.underline),
               ),
@@ -1201,7 +1203,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           _actionPill(
             icon: Icons.card_giftcard_rounded,
             label: 'Gift',
-            color: const Color(0xFFFFC107),
+            color: Color(0xFFFFC107),
             onTap: () {
               Get.dialog(SendGiftDialog(
                 roomId: 'global_room',
@@ -1211,7 +1213,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               ));
             },
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
 
           // Block
           _actionPill(
@@ -1231,7 +1233,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               );
             },
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
 
           // Report
           _actionPill(
@@ -1259,7 +1261,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
@@ -1269,11 +1271,11 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 14, color: color),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.poppins(
-                  color: Colors.white,
+                  color: context.textPrimary,
                   fontSize: 11,
                   fontWeight: FontWeight.bold),
             ),
@@ -1325,14 +1327,15 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       items.add(_statItem(_formatNumber(u.diamonds), 'Gifts'));
     }
 
-    if (items.isEmpty) return const SizedBox.shrink();
+    if (items.isEmpty) return SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: context.borderColor, width: 1.0),
+        boxShadow: context.smallShadow,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1347,16 +1350,16 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         Text(
           value,
           style: GoogleFonts.poppins(
-            color: Colors.white,
+            color: context.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(
           label,
           style: GoogleFonts.poppins(
-            color: AppTheme.textTertiary,
+            color: context.textSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
@@ -1378,7 +1381,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     return Container(
       width: 1,
       height: 28,
-      color: Colors.white10,
+      color: context.borderColor,
     );
   }
 
@@ -1389,16 +1392,16 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         Get.to(() => const CommunityDetailScreen(communityId: 'c3'));
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF3B0764).withOpacity(0.6), // deep purple
+              Color(0xFF3B0764).withOpacity(0.6), // deep purple
               Colors.black.withOpacity(0.5),
             ],
           ),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.2)),
+          border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1409,14 +1412,14 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                         colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)]),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Center(
+                  child: Center(
                       child: Text('🦋', style: TextStyle(fontSize: 20))),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1430,24 +1433,24 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.verified_rounded,
+                          SizedBox(width: 4),
+                          Icon(Icons.verified_rounded,
                               color: Color(0xFF38BDF8), size: 14),
                         ],
                       ),
                       Text(
                         'Role: Captain',
                         style: GoogleFonts.poppins(
-                            color: AppTheme.textSecondary, fontSize: 11),
+                            color: context.textSecondary, fontSize: 11),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded,
-                    color: Colors.white30, size: 14),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    color: context.caption, size: 14),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1474,7 +1477,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         Text(
           desc,
           style:
-              GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 10),
+              GoogleFonts.poppins(color: context.caption, fontSize: 10),
         ),
       ],
     );
@@ -1500,31 +1503,31 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               child: Text(
                 'View All >',
                 style: GoogleFonts.poppins(
-                    color: const Color(0xFF8B5CF6),
+                    color: Color(0xFF8B5CF6),
                     fontSize: 12,
                     fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         SizedBox(
           height: 38,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: u.badges.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            separatorBuilder: (_, __) => SizedBox(width: 8),
             itemBuilder: (context, i) {
               final badgeColors = [
-                [const Color(0xFFFFC107), const Color(0xFFF59E0B)],
-                [const Color(0xFF8B5CF6), const Color(0xFF6366F1)],
-                [const Color(0xFF38BDF8), const Color(0xFF1D4ED8)],
-                [const Color(0xFFF97316), const Color(0xFFEF4444)],
+                [Color(0xFFFFC107), Color(0xFFF59E0B)],
+                [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                [Color(0xFF38BDF8), Color(0xFF1D4ED8)],
+                [Color(0xFFF97316), Color(0xFFEF4444)],
               ];
               final colors = badgeColors[i % badgeColors.length];
               return Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [
                     colors[0].withOpacity(0.15),
@@ -1537,8 +1540,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(['🏆', '💡', '🔥', '💎'][i % 4],
-                        style: const TextStyle(fontSize: 12)),
-                    const SizedBox(width: 6),
+                        style: TextStyle(fontSize: 12)),
+                    SizedBox(width: 6),
                     Text(
                       u.badges[i],
                       style: GoogleFonts.poppins(
@@ -1571,24 +1574,24 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         Text(
           'Chips',
           style: GoogleFonts.poppins(
-              color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+              color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: chips.map((c) {
             return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.03),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withOpacity(0.06)),
+                border: Border.all(color: context.borderColor),
               ),
               child: Text(
                 c,
                 style: GoogleFonts.poppins(
-                    color: AppTheme.textSecondary,
+                    color: context.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w500),
               ),
@@ -1626,14 +1629,15 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       infoItems.add({'label': 'Website', 'val': u.website!});
     }
 
-    if (infoItems.isEmpty) return const SizedBox();
+    if (infoItems.isEmpty) return SizedBox();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: context.borderColor, width: 1.0),
+        boxShadow: context.smallShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1641,15 +1645,15 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           Text(
             'Personal Info',
             style: GoogleFonts.poppins(
-                color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: infoItems.length,
             separatorBuilder: (_, __) =>
-                const Divider(color: Colors.white10, height: 12),
+                Divider(color: context.borderColor, height: 12),
             itemBuilder: (context, i) {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1657,12 +1661,12 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   Text(
                     infoItems[i]['label']!,
                     style: GoogleFonts.poppins(
-                        color: AppTheme.textTertiary, fontSize: 12),
+                        color: context.caption, fontSize: 12),
                   ),
                   Text(
                     infoItems[i]['val']!,
                     style: GoogleFonts.poppins(
-                        color: Colors.white,
+                        color: context.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600),
                   ),
@@ -1698,11 +1702,12 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         items: _getSupportersData(),
       ),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.02),
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: context.borderColor, width: 1.0),
+          boxShadow: context.smallShadow,
         ),
         child: Row(
           children: [
@@ -1713,17 +1718,17 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   Text(
                     'Top Supporters',
                     style: GoogleFonts.poppins(
-                        color: Colors.white,
+                        color: context.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Row(
                     children: [
                       Row(
                         children: topFans.map((f) {
                           return Container(
-                            margin: const EdgeInsets.only(right: 6),
+                            margin: EdgeInsets.only(right: 6),
                             child: Stack(
                               clipBehavior: Clip.none,
                               children: [
@@ -1736,17 +1741,17 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                                   bottom: -2,
                                   right: -2,
                                   child: Container(
-                                    padding: const EdgeInsets.all(2),
+                                    padding: EdgeInsets.all(2),
                                     decoration: BoxDecoration(
                                       color: [
-                                        const Color(0xFFFFC107),
-                                        const Color(0xFFC0C0C0),
+                                        Color(0xFFFFC107),
+                                        Color(0xFFC0C0C0),
                                       ][(f['rank'] as int) - 1],
                                       shape: BoxShape.circle,
                                     ),
                                     child: Text(
                                       '${f['rank']}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                           fontSize: 8,
                                           color: Colors.black,
                                           fontWeight: FontWeight.bold),
@@ -1758,9 +1763,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                           );
                         }).toList(),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.05),
@@ -1769,9 +1774,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                         child: Text(
                           '+42',
                           style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold),
+                    color: context.textPrimary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -1779,8 +1784,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                color: Colors.white30, size: 14),
+            Icon(Icons.arrow_forward_ios_rounded,
+                color: context.caption, size: 14),
           ],
         ),
       ),
@@ -1795,11 +1800,12 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         items: _getContributorsData(),
       ),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.02),
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: context.borderColor, width: 1.0),
+          boxShadow: context.smallShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1810,58 +1816,58 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 Text(
                   'Contribution Points',
                   style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      color: context.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.bold),
                 ),
                 Text(
                   '4.5K XP',
                   style: GoogleFonts.poppins(
-                      color: const Color(0xFFD946EF),
+                      color: Color(0xFFD946EF),
                       fontSize: 14,
                       fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _contributionRing(
-                    label: 'ID XP', val: 0.6, color: const Color(0xFF8B5CF6)),
+                    label: 'ID XP', val: 0.6, color: Color(0xFF8B5CF6)),
                 _contributionRing(
                     label: 'Career XP',
                     val: 0.4,
-                    color: const Color(0xFF38BDF8)),
+                    color: Color(0xFF38BDF8)),
                 _contributionRing(
-                    label: 'Room XP', val: 0.8, color: const Color(0xFFEC4899)),
+                    label: 'Room XP', val: 0.8, color: Color(0xFFEC4899)),
                 _contributionRing(
                     label: 'Community XP',
                     val: 0.5,
-                    color: const Color(0xFF22C55E)),
+                    color: Color(0xFF22C55E)),
               ],
             ),
-            const Divider(color: Colors.white10, height: 24),
+            Divider(color: Colors.white10, height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Contributed to',
                   style: GoogleFonts.poppins(
-                      color: AppTheme.textSecondary,
+                      color: context.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600),
                 ),
                 Text(
                   '8 Users & 2 Families',
                   style: GoogleFonts.poppins(
-                      color: const Color(0xFF38BDF8),
+                      color: Color(0xFF38BDF8),
                       fontSize: 11,
                       fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Row(
               children: [
                 Row(
@@ -1871,7 +1877,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100',
                   ].map((url) {
                     return Container(
-                      margin: const EdgeInsets.only(right: 6),
+                      margin: EdgeInsets.only(right: 6),
                       child: CircleAvatar(
                         radius: 14,
                         backgroundImage: NetworkImage(url),
@@ -1879,10 +1885,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     );
                   }).toList(),
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(8),
@@ -1890,7 +1896,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   child: Text(
                     '+8 more',
                     style: GoogleFonts.poppins(
-                        color: AppTheme.textTertiary,
+                        color: context.caption,
                         fontSize: 9,
                         fontWeight: FontWeight.bold),
                   ),
@@ -1916,24 +1922,24 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               CircularProgressIndicator(
                 value: val,
                 strokeWidth: 4,
-                backgroundColor: Colors.white.withOpacity(0.05),
+                backgroundColor: context.borderColor,
                 valueColor: AlwaysStoppedAnimation(color),
               ),
               Text(
                 '${(val * 100).toInt()}%',
                 style: GoogleFonts.poppins(
-                    color: Colors.white,
+                    color: context.textPrimary,
                     fontSize: 10,
                     fontWeight: FontWeight.bold),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(
           label,
           style: GoogleFonts.poppins(
-              color: AppTheme.textTertiary,
+              color: context.caption,
               fontSize: 10,
               fontWeight: FontWeight.w500),
         ),
@@ -1944,16 +1950,16 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   Widget _buildSocialsSection(User u) {
     final List<Map<String, dynamic>> activeSocials = [];
     if (u.instagram != null && u.instagram!.isNotEmpty) {
-      activeSocials.add({'name': 'Instagram', 'color': const Color(0xFFE1306C), 'icon': Icons.camera_alt_rounded});
+      activeSocials.add({'name': 'Instagram', 'color': Color(0xFFE1306C), 'icon': Icons.camera_alt_rounded});
     }
     if (u.youtube != null && u.youtube!.isNotEmpty) {
-      activeSocials.add({'name': 'YouTube', 'color': const Color(0xFFFF0000), 'icon': Icons.play_circle_outline_rounded});
+      activeSocials.add({'name': 'YouTube', 'color': Color(0xFFFF0000), 'icon': Icons.play_circle_outline_rounded});
     }
     if (u.twitter != null && u.twitter!.isNotEmpty) {
-      activeSocials.add({'name': 'Twitter', 'color': const Color(0xFF1DA1F2), 'icon': Icons.chat_bubble_outline_rounded});
+      activeSocials.add({'name': 'Twitter', 'color': Color(0xFF1DA1F2), 'icon': Icons.chat_bubble_outline_rounded});
     }
 
-    if (activeSocials.isEmpty) return const SizedBox();
+    if (activeSocials.isEmpty) return SizedBox();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1963,7 +1969,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           style: GoogleFonts.poppins(
               color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: activeSocials.map((s) {
@@ -1973,7 +1979,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.02),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.06)),
+                border: Border.all(color: context.borderColor),
               ),
               child: Center(
                 child: Icon(
@@ -1991,14 +1997,14 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   Widget _buildInitialsAvatar(User u) {
     return Container(
-      color: AppTheme.primaryColor.withOpacity(0.2),
+      color: context.primaryColor.withOpacity(0.2),
       child: Center(
         child: Text(
           u.displayName.substring(0, 1).toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w700,
-            color: AppTheme.primaryColor,
+            color: context.primaryColor,
           ),
         ),
       ),
@@ -2008,8 +2014,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   void _showOptionsSheet() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        decoration: BoxDecoration(
           color: Color(0xFF18181B),
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
@@ -2018,7 +2024,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(
-              leading: const Icon(Icons.block_flipped, color: Colors.redAccent),
+              leading: Icon(Icons.block_flipped, color: Colors.redAccent),
               title: Text('Block User',
                   style: GoogleFonts.poppins(
                       color: Colors.redAccent, fontSize: 14)),
@@ -2030,7 +2036,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.report_gmailerrorred_outlined,
+              leading: Icon(Icons.report_gmailerrorred_outlined,
                   color: Colors.orangeAccent),
               title: Text('Report Abuse',
                   style:
@@ -2054,7 +2060,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       '$label Copied 📋',
       '$label copied to clipboard.',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFF22C55E).withOpacity(0.9),
+      backgroundColor: Color(0xFF22C55E).withOpacity(0.9),
       colorText: Colors.white,
     );
   }
@@ -2064,16 +2070,16 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   Widget _buildEmptyState(String message, IconData icon) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: AppTheme.textTertiary.withOpacity(0.5)),
-            const SizedBox(height: 16),
+            Icon(icon, size: 64, color: context.caption.withOpacity(0.5)),
+            SizedBox(height: 16),
             Text(
               message,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
+              style: TextStyle(
+                color: context.textSecondary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -2087,15 +2093,15 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   Widget _buildPostsTab(User u) {
     if (_isLoadingPosts) {
-      return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
+      return Center(child: CircularProgressIndicator(color: context.primaryColor));
     }
     if (_posts.isEmpty) {
       return _buildEmptyState('No posts shared yet', Icons.notes_rounded);
     }
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       itemCount: _posts.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, __) => SizedBox(height: 12),
       itemBuilder: (context, i) => _buildPostCard(u, _posts[i]),
     );
   }
@@ -2107,7 +2113,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2122,7 +2128,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   fit: BoxFit.cover,
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2138,8 +2144,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                           ),
                         ),
                         if (u.isVerified) ...[
-                          const SizedBox(width: 4),
-                          const Icon(Icons.verified_rounded,
+                          SizedBox(width: 4),
+                          Icon(Icons.verified_rounded,
                               size: 14, color: Color(0xFF38BDF8)),
                         ],
                       ],
@@ -2147,7 +2153,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     Text(
                       '${_timeAgo(post.createdAt)} · @${u.username}',
                       style: GoogleFonts.poppins(
-                        color: AppTheme.textTertiary,
+                        color: context.caption,
                         fontSize: 11,
                       ),
                     ),
@@ -2156,16 +2162,16 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             post.content,
             style: GoogleFonts.poppins(
-              color: AppTheme.textSecondary,
+              color: context.textSecondary,
               fontSize: 13,
               height: 1.5,
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Row(
             children: [
               GestureDetector(
@@ -2174,22 +2180,22 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 child: _postAction(
                   post.isLiked ? Icons.favorite : Icons.favorite_outline,
                   '${post.likes}',
-                  post.isLiked ? AppTheme.errorColor : AppTheme.textTertiary,
+                  post.isLiked ? AppTheme.errorColor : context.caption,
                 ),
               ),
-              const SizedBox(width: 20),
+              SizedBox(width: 20),
               GestureDetector(
                 onTap: () => _commentPost(context, post),
                 behavior: HitTestBehavior.opaque,
                 child: _postAction(Icons.chat_bubble_outline,
-                    '${post.comments}', AppTheme.textTertiary),
+                    '${post.comments}', context.caption),
               ),
-              const SizedBox(width: 20),
+              SizedBox(width: 20),
               GestureDetector(
                 onTap: () => _sharePost(post),
                 behavior: HitTestBehavior.opaque,
                 child: _postAction(Icons.repeat_rounded, '${post.shares}',
-                    AppTheme.textTertiary),
+                    context.caption),
               ),
             ],
           ),
@@ -2202,7 +2208,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     return Row(
       children: [
         Icon(icon, size: 16, color: color),
-        const SizedBox(width: 4),
+        SizedBox(width: 4),
         Text(
           count,
           style: GoogleFonts.poppins(
@@ -2217,9 +2223,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       return _buildEmptyState('No questions asked yet', Icons.help_outline_rounded);
     }
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       itemCount: _questions.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, __) => SizedBox(height: 12),
       itemBuilder: (context, i) => _buildQuestionCard(_questions[i]),
     );
   }
@@ -2231,7 +2237,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2244,27 +2250,27 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Wrap(
             spacing: 6,
             children: q.tags.map((tag) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                  color: Color(0xFF8B5CF6).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   tag,
                   style: GoogleFonts.poppins(
-                      color: const Color(0xFF8B5CF6),
+                      color: Color(0xFF8B5CF6),
                       fontSize: 10,
                       fontWeight: FontWeight.bold),
                 ),
               );
             }).toList(),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               GestureDetector(
@@ -2273,21 +2279,21 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 child: _qStat(
                   Icons.arrow_upward_rounded,
                   '${q.upvotes}',
-                  q.isUpvoted ? AppTheme.primaryColor : AppTheme.textTertiary,
+                  q.isUpvoted ? context.primaryColor : context.caption,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               GestureDetector(
                 onTap: () => _answerQuestion(context, q),
                 behavior: HitTestBehavior.opaque,
                 child: _qStat(Icons.chat_bubble_outline_rounded,
-                    '${q.answers} answers', AppTheme.textTertiary),
+                    '${q.answers} answers', context.caption),
               ),
               const Spacer(),
               Text(
                 _timeAgo(q.createdAt),
                 style: GoogleFonts.poppins(
-                    color: AppTheme.textTertiary, fontSize: 10),
+                    color: context.caption, fontSize: 10),
               ),
             ],
           ),
@@ -2301,7 +2307,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 14, color: color),
-        const SizedBox(width: 4),
+        SizedBox(width: 4),
         Text(label,
             style: GoogleFonts.poppins(
                 color: color, fontSize: 11, fontWeight: FontWeight.bold)),
@@ -2314,9 +2320,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       return _buildEmptyState('No communities joined yet', Icons.groups_rounded);
     }
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       itemCount: _communities.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, __) => SizedBox(height: 12),
       itemBuilder: (context, i) => _buildCommunityCard(_communities[i]),
     );
   }
@@ -2333,7 +2339,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         child: Row(
           children: [
             Container(
@@ -2342,16 +2348,16 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFF8B5CF6).withOpacity(0.2),
-                    const Color(0xFFD946EF).withOpacity(0.1),
+                    Color(0xFF8B5CF6).withOpacity(0.2),
+                    Color(0xFFD946EF).withOpacity(0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
-                  child: Text(c['icon'], style: const TextStyle(fontSize: 22))),
+                  child: Text(c['icon'], style: TextStyle(fontSize: 22))),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2364,25 +2370,25 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     '${c['members']} members',
                     style: GoogleFonts.poppins(
-                        color: AppTheme.textTertiary, fontSize: 11),
+                        color: context.caption, fontSize: 11),
                   ),
                 ],
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                color: Color(0xFF8B5CF6).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 c['role'],
                 style: GoogleFonts.poppins(
-                  color: const Color(0xFF8B5CF6),
+                  color: Color(0xFF8B5CF6),
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -2395,20 +2401,20 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   Widget _buildSpotifyCard(User u) {
-    if (!u.onlineStatus) return const SizedBox.shrink();
+    if (!u.onlineStatus) return SizedBox.shrink();
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1DB954).withOpacity(0.04),
+        color: Color(0xFF1DB954).withOpacity(0.04),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1DB954).withOpacity(0.15)),
+        border: Border.all(color: Color(0xFF1DB954).withOpacity(0.15)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.music_note_rounded,
+          Icon(Icons.music_note_rounded,
               color: Color(0xFF1DB954), size: 20),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2420,7 +2426,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       fontSize: 10,
                       fontWeight: FontWeight.w500),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   'Blinding Lights - The Weeknd',
                   style: GoogleFonts.poppins(
@@ -2431,8 +2437,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.equalizer_rounded,
+          SizedBox(width: 8),
+          Icon(Icons.equalizer_rounded,
               color: Color(0xFF1DB954), size: 16),
         ],
       ),
@@ -2447,7 +2453,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       Container(
         height: Get.height * 0.65,
         decoration: BoxDecoration(
-          color: const Color(0xFF0F0F12),
+          color: context.scaffoldBackgroundColor,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -2456,48 +2462,48 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         ),
         child: Column(
           children: [
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Container(
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     title,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+            color: context.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close,
-                        color: Colors.white54, size: 20),
+                    icon: Icon(Icons.close,
+                        color: context.textSecondary, size: 20),
                     onPressed: () => Get.back(),
                   ),
                 ],
               ),
             ),
-            const Divider(color: Colors.white10),
+            Divider(color: Colors.white10),
             Expanded(
               child: ListView.builder(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 itemCount: users.length,
                 itemBuilder: (context, index) {
                   final u = users[index];
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
+                    margin: EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.02),
                       borderRadius: BorderRadius.circular(16),
@@ -2521,8 +2527,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                             ),
                           ),
                           if (u.isVerified) ...[
-                            const SizedBox(width: 4),
-                            const Icon(Icons.verified,
+                            SizedBox(width: 4),
+                            Icon(Icons.verified,
                                 color: Color(0xFF38BDF8), size: 14),
                           ],
                         ],
@@ -2530,21 +2536,21 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       subtitle: Text(
                         '@${u.username}',
                         style: GoogleFonts.poppins(
-                          color: AppTheme.textTertiary,
+                          color: context.caption,
                           fontSize: 11,
                         ),
                       ),
                       trailing: Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                          color: Color(0xFF8B5CF6).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'Lv.${u.level}',
                           style: GoogleFonts.poppins(
-                            color: const Color(0xFF8B5CF6),
+                            color: Color(0xFF8B5CF6),
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -2578,7 +2584,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       Container(
         height: Get.height * 0.65,
         decoration: BoxDecoration(
-          color: const Color(0xFF0F0F12),
+          color: context.scaffoldBackgroundColor,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -2587,42 +2593,42 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         ),
         child: Column(
           children: [
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Container(
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     title,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+            color: context.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close,
-                        color: Colors.white54, size: 20),
+                    icon: Icon(Icons.close,
+                        color: context.textSecondary, size: 20),
                     onPressed: () => Get.back(),
                   ),
                 ],
               ),
             ),
-            const Divider(color: Colors.white10),
+            Divider(color: Colors.white10),
             Expanded(
               child: ListView.builder(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
@@ -2646,8 +2652,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   );
 
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
+                    margin: EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.02),
                       borderRadius: BorderRadius.circular(16),
@@ -2670,8 +2676,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                             ),
                           ),
                           if (index == 0) ...[
-                            const SizedBox(width: 4),
-                            const Icon(Icons.verified,
+                            SizedBox(width: 4),
+                            Icon(Icons.verified,
                                 color: Color(0xFF38BDF8), size: 14),
                           ],
                         ],
@@ -2679,7 +2685,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       subtitle: Text(
                         item['role'] ?? 'Supporter',
                         style: GoogleFonts.poppins(
-                          color: AppTheme.textTertiary,
+                          color: context.caption,
                           fontSize: 11,
                         ),
                       ),
@@ -2690,7 +2696,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                           Text(
                             item['amount'] ?? '',
                             style: GoogleFonts.poppins(
-                              color: const Color(0xFFFFC107),
+                              color: Color(0xFFFFC107),
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                             ),
@@ -2698,7 +2704,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                           Text(
                             'Rank #${index + 1}',
                             style: GoogleFonts.poppins(
-                              color: Colors.white30,
+                              color: context.caption,
                               fontSize: 10,
                             ),
                           ),
@@ -2844,7 +2850,7 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   Widget build(
           BuildContext context, double shrinkOffset, bool overlapsContent) =>
       Container(
-        color: const Color(0xFF09090B),
+        color: Color(0xFF09090B),
         child: tabBar,
       );
 

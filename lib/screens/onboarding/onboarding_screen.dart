@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../auth/login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -48,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Background soft glowing blob
@@ -60,7 +60,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.primaryColor.withOpacity(0.15),
+                color: context.primaryColor.withOpacity(0.15),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
@@ -91,7 +91,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: [
                 // Top bar with Skip button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Align(
                     alignment: Alignment.topRight,
                     child: TextButton(
@@ -99,7 +99,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Text(
                         'Skip',
                         style: GoogleFonts.poppins(
-                          color: AppTheme.textSecondary,
+                          color: context.textSecondary,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -121,7 +121,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     itemBuilder: (context, index) {
                       final item = _onboardingData[index];
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -130,7 +130,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               height: size.height * 0.35,
                               child: _buildIllustration(item['type']),
                             ),
-                            const SizedBox(height: 40),
+                            SizedBox(height: 40),
 
                             // 2. Title
                             Text(
@@ -138,11 +138,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               textAlign: TextAlign.center,
                               style: GoogleFonts.outfit(
                                 fontSize: 30,
-                                color: AppTheme.textPrimary,
+                                color: context.textPrimary,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
 
                             // 3. Description
                             Text(
@@ -150,7 +150,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
-                                color: AppTheme.textSecondary,
+                                color: context.textSecondary,
                                 fontWeight: FontWeight.w400,
                                 height: 1.6,
                               ),
@@ -164,7 +164,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                 // Bottom Controls (Indicator + Button)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -174,13 +174,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           _onboardingData.length,
                           (index) => AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            margin: const EdgeInsets.only(right: 6),
+                            margin: EdgeInsets.only(right: 6),
                             height: 6,
                             width: _currentPage == index ? 20 : 6,
                             decoration: BoxDecoration(
                               color: _currentPage == index
-                                  ? AppTheme.primaryColor
-                                  : AppTheme.borderColor,
+                                  ? context.primaryColor
+                                  : context.borderColor,
                               borderRadius: BorderRadius.circular(3),
                             ),
                           ),
@@ -200,14 +200,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          padding: const EdgeInsets.symmetric(
+                          backgroundColor: context.primaryColor,
+                          padding: EdgeInsets.symmetric(
                               horizontal: 28, vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                           elevation: 8,
-                          shadowColor: AppTheme.primaryColor.withOpacity(0.4),
+                          shadowColor: context.primaryColor.withOpacity(0.4),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -222,8 +222,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            const Icon(
+                            SizedBox(width: 8),
+                            Icon(
                               Icons.arrow_forward_rounded,
                               size: 18,
                               color: Colors.white,
@@ -256,7 +256,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppTheme.primaryColor.withOpacity(0.2),
+                  color: context.primaryColor.withOpacity(0.2),
                   width: 2,
                 ),
               ),
@@ -288,7 +288,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       width: 1,
                     ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.mic_rounded,
                     size: 40,
                     color: Colors.white,
@@ -332,7 +332,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: AppTheme.borderColor.withOpacity(0.3),
+                  color: context.borderColor.withOpacity(0.3),
                   width: 1,
                 ),
               ),
@@ -353,7 +353,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       width: 1,
                     ),
                   ),
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -365,17 +365,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
-                              color: AppTheme.accentColor.withOpacity(0.2),
+                              color: context.accentOrange.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.school_rounded,
                               size: 18,
-                              color: AppTheme.accentColor,
+                              color: context.accentOrange,
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.1),
@@ -403,7 +403,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           Container(
                             width: 50,
                             height: 6,
@@ -467,7 +467,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -476,7 +476,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         height: 50,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             colors: [Color(0xFF6366F1), Color(0xFFEC4899)],
                           ),
                           border: Border.all(
@@ -484,7 +484,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             width: 1.5,
                           ),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Icon(
                             Icons.person_rounded,
                             color: Colors.white,
@@ -492,7 +492,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       Container(
                         width: 90,
                         height: 10,
@@ -501,7 +501,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           borderRadius: BorderRadius.circular(5),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       Container(
                         width: 60,
                         height: 8,
@@ -510,13 +510,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       // Verified Creator Frame / Badge
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _smallBadge('💎 VIP 3'),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6),
                           _smallBadge('✨ Creator'),
                         ],
                       ),
@@ -557,7 +557,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Center(
         child: Text(
           emoji,
-          style: const TextStyle(fontSize: 20),
+          style: TextStyle(fontSize: 20),
         ),
       ),
     );
@@ -565,7 +565,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _smallBadge(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.12),
         borderRadius: BorderRadius.circular(6),

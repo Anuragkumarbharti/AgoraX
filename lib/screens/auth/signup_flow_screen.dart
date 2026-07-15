@@ -8,13 +8,14 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../../services/user_progress_sync_service.dart';
 import '../home/main_screen.dart';
 import 'login_screen.dart';
 import '../../services/email_validation_service.dart';
+import '../../widgets/custom_image_editor.dart';
 
 class SignupFlowScreen extends StatefulWidget {
   final String? userId; // If authenticated via Google/Apple, pass the user ID
@@ -147,7 +148,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       Get.snackbar(
         'Weak Password ⚠️',
         'Password must be at least 8 characters long, and contain uppercase, lowercase, a number, and a special character.',
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -161,7 +162,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       Get.snackbar(
         'Too many attempts ⚠️',
         'Too many failures. Please wait before trying again.',
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -175,7 +176,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         Get.snackbar(
           'Invalid Email ⚠️',
           'Please enter a valid email address format.',
-          backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+          backgroundColor: context.errorColor.withOpacity(0.9),
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
         );
@@ -188,7 +189,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         Get.snackbar(
           'Disposable Email Blocked 🚫',
           'This temporary email address is not allowed. Please use your real email.',
-          backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+          backgroundColor: context.errorColor.withOpacity(0.9),
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
           duration: const Duration(seconds: 4),
@@ -205,7 +206,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         Get.snackbar(
           'Undeliverable Domain ⚠️',
           'This email domain is undeliverable. Please check spelling or use a different email.',
-          backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+          backgroundColor: context.errorColor.withOpacity(0.9),
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
         );
@@ -218,7 +219,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         Get.snackbar(
           'Business Email Blocked ⚠️',
           'Role-based/business administrative emails are not permitted.',
-          backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+          backgroundColor: context.errorColor.withOpacity(0.9),
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
         );
@@ -232,7 +233,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       Get.snackbar(
         'Rate Limit Exceeded ⚠️',
         'Too many OTP requests. Please wait before trying again.',
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -245,7 +246,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       Get.snackbar(
         'Device Limit Reached ⚠️',
         'Too many registration attempts from this device. Please try again later.',
-        backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+        backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -269,7 +270,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           _isPhoneAuth
               ? 'This phone number already has an account. Please sign in.'
               : 'This email already has an account. Please sign in.',
-          backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+          backgroundColor: context.errorColor.withOpacity(0.9),
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
         );
@@ -289,7 +290,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     Get.snackbar(
       'OTP Sent ✉️',
       'Use code 0 to verify (Sandbox mode)',
-      backgroundColor: AppTheme.accentColor.withOpacity(0.9),
+      backgroundColor: context.accentOrange.withOpacity(0.9),
       colorText: Colors.white,
       snackPosition: SnackPosition.BOTTOM,
     );
@@ -405,11 +406,11 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppTheme.primaryColor,
+            colorScheme: ColorScheme.dark(
+              primary: context.primaryColor,
               onPrimary: Colors.white,
-              surface: AppTheme.bgLight,
-              onSurface: AppTheme.textPrimary,
+              surface: context.secondaryBackgroundColor,
+              onSurface: context.textPrimary,
             ),
           ),
           child: child!,
@@ -436,9 +437,12 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source, imageQuality: 70);
     if (pickedFile != null) {
-      setState(() {
-        _avatarFile = File(pickedFile.path);
-      });
+      final editedFile = await CustomImageEditor.editImage(context, File(pickedFile.path));
+      if (editedFile != null) {
+        setState(() {
+          _avatarFile = editedFile;
+        });
+      }
     }
   }
 
@@ -561,7 +565,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Background blobs
@@ -573,11 +577,11 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.primaryColor.withOpacity(0.12),
+                color: context.primaryColor.withOpacity(0.12),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
-                child: const SizedBox(),
+                child: SizedBox(),
               ),
             ),
           ),
@@ -593,7 +597,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
-                child: const SizedBox(),
+                child: SizedBox(),
               ),
             ),
           ),
@@ -603,13 +607,13 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               children: [
                 // Top header with step bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       if (_currentStep < 7)
                         IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white70, size: 20),
+                          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white70, size: 20),
                           onPressed: () {
                             if (_currentStep > 0) {
                               _prevStep();
@@ -619,11 +623,11 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                           },
                         )
                       else
-                        const SizedBox(width: 40),
+                        SizedBox(width: 40),
                       Text(
                         'Step ${_currentStep + 1} of 8',
                         style: GoogleFonts.poppins(
-                          color: AppTheme.textSecondary,
+                          color: context.textSecondary,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -634,26 +638,26 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                           child: Text(
                             'Skip',
                             style: GoogleFonts.poppins(
-                              color: AppTheme.primaryColor,
+                              color: context.primaryColor,
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         )
                       else
-                        const SizedBox(width: 40),
+                        SizedBox(width: 40),
                     ],
                   ),
                 ),
 
                 // Indicator line
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: EdgeInsets.symmetric(horizontal: 24),
                   child: Container(
                     height: 4,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: AppTheme.borderColor,
+                      color: context.borderColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                     child: Stack(
@@ -663,8 +667,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                           width: (size.width - 48) * ((_currentStep + 1) / 8),
                           height: 4,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
+                            gradient: LinearGradient(
+                              colors: [context.primaryColor, AppTheme.secondaryColor],
                             ),
                             borderRadius: BorderRadius.circular(2),
                           ),
@@ -678,7 +682,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(24),
                     child: _buildStepContent(),
                   ),
                 ),
@@ -709,7 +713,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       case 7:
         return _buildStep8Congrats();
       default:
-        return const SizedBox();
+        return SizedBox();
     }
   }
 
@@ -719,15 +723,15 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Verify Account', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text('Enter email or phone to receive a verification OTP code.', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 14)),
-        const SizedBox(height: 32),
+        SizedBox(height: 8),
+        Text('Enter email or phone to receive a verification OTP code.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        SizedBox(height: 32),
 
         Row(
           children: [
             Expanded(
               child: ChoiceChip(
-                label: const Text('Email'),
+                label: Text('Email'),
                 selected: !_isPhoneAuth,
                 onSelected: (val) {
                   setState(() {
@@ -735,14 +739,14 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                     _emailPhoneCtrl.clear();
                   });
                 },
-                selectedColor: AppTheme.primaryColor.withOpacity(0.2),
-                labelStyle: TextStyle(color: !_isPhoneAuth ? Colors.white : AppTheme.textTertiary),
+                selectedColor: context.primaryColor.withOpacity(0.2),
+                labelStyle: TextStyle(color: !_isPhoneAuth ? Colors.white : context.caption),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: ChoiceChip(
-                label: const Text('Phone'),
+                label: Text('Phone'),
                 selected: _isPhoneAuth,
                 onSelected: (val) {
                   setState(() {
@@ -750,67 +754,67 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                     _emailPhoneCtrl.clear();
                   });
                 },
-                selectedColor: AppTheme.primaryColor.withOpacity(0.2),
-                labelStyle: TextStyle(color: _isPhoneAuth ? Colors.white : AppTheme.textTertiary),
+                selectedColor: context.primaryColor.withOpacity(0.2),
+                labelStyle: TextStyle(color: _isPhoneAuth ? Colors.white : context.caption),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
-        Text(_isPhoneAuth ? 'Phone Number' : 'Email Address', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-        const SizedBox(height: 8),
+        Text(_isPhoneAuth ? 'Phone Number' : 'Email Address', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        SizedBox(height: 8),
         TextField(
           controller: _emailPhoneCtrl,
           keyboardType: _isPhoneAuth ? TextInputType.phone : TextInputType.emailAddress,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: _isPhoneAuth ? '+91 98765 43210' : 'name@domain.com',
-            prefixIcon: Icon(_isPhoneAuth ? Icons.phone_android_rounded : Icons.email_outlined, color: AppTheme.textTertiary),
+            prefixIcon: Icon(_isPhoneAuth ? Icons.phone_android_rounded : Icons.email_outlined, color: context.caption),
           ),
           enabled: !_otpSent,
         ),
-        Text('Password', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-        const SizedBox(height: 8),
+        Text('Password', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        SizedBox(height: 8),
         TextField(
           controller: _passwordCtrl,
           obscureText: _obscurePassword,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: '••••••••',
-            prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.textTertiary),
+            prefixIcon: Icon(Icons.lock_outline_rounded, color: context.caption),
             suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: AppTheme.textTertiary),
+              icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: context.caption),
               onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
           enabled: !_otpSent,
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
-        Text('Confirm Password', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-        const SizedBox(height: 8),
+        Text('Confirm Password', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        SizedBox(height: 8),
         TextField(
           controller: _confirmPasswordCtrl,
           obscureText: _obscureConfirmPassword,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: '••••••••',
-            prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.textTertiary),
+            prefixIcon: Icon(Icons.lock_outline_rounded, color: context.caption),
             suffixIcon: IconButton(
-              icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: AppTheme.textTertiary),
+              icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: context.caption),
               onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
             ),
           ),
           enabled: !_otpSent,
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
         if (_otpSent) ...[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('OTP Code', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
+              Text('OTP Code', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
               TextButton(
                 onPressed: () {
                   setState(() {
@@ -820,24 +824,24 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 },
                 child: Text(
                   'Change ${_isPhoneAuth ? 'Phone' : 'Email'}',
-                  style: GoogleFonts.poppins(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
+                  style: GoogleFonts.poppins(color: context.primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           TextField(
             controller: _otpCtrl,
             keyboardType: TextInputType.number,
             maxLength: 6,
-            style: const TextStyle(color: Colors.white, letterSpacing: 8, fontSize: 18),
+            style: TextStyle(color: Colors.white, letterSpacing: 8, fontSize: 18),
             textAlign: TextAlign.center,
             decoration: const InputDecoration(
               hintText: '••••••',
               counterText: '',
             ),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: 32),
           _buildActionButton('Verify OTP', _verifyOTP),
         ] else ...[
           _buildActionButton('Send Verification Code', _sendOTP),
@@ -852,26 +856,26 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Choose Username', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text('Create a unique handle for your Creania profile.', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 14)),
-        const SizedBox(height: 32),
+        SizedBox(height: 8),
+        Text('Create a unique handle for your Creania profile.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        SizedBox(height: 32),
 
-        Text('Username', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-        const SizedBox(height: 8),
+        Text('Username', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        SizedBox(height: 8),
         TextField(
           controller: _usernameCtrl,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             prefixText: '@ ',
-            prefixStyle: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold, fontSize: 16),
+            prefixStyle: TextStyle(color: context.accentOrange, fontWeight: FontWeight.bold, fontSize: 16),
             suffixIcon: _isLoading 
-                ? const Padding(
+                ? Padding(
                     padding: EdgeInsets.all(12),
                     child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
                   )
                 : _usernameChecked 
                     ? Icon(_usernameAvailable ? Icons.check_circle_rounded : Icons.cancel_rounded, 
-                           color: _usernameAvailable ? AppTheme.successColor : AppTheme.errorColor)
+                           color: _usernameAvailable ? context.successColor : context.errorColor)
                     : null,
           ),
           onChanged: (val) {
@@ -883,18 +887,18 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           },
         ),
         if (_usernameError != null) ...[
-          const SizedBox(height: 8),
-          Text(_usernameError!, style: TextStyle(color: AppTheme.errorColor, fontSize: 12)),
+          SizedBox(height: 8),
+          Text(_usernameError!, style: TextStyle(color: context.errorColor, fontSize: 12)),
         ],
         if (_usernameChecked && !_usernameAvailable) ...[
-          const SizedBox(height: 16),
-          Text('Username is taken. Try suggestions:', style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.textTertiary)),
-          const SizedBox(height: 8),
+          SizedBox(height: 16),
+          Text('Username is taken. Try suggestions:', style: GoogleFonts.poppins(fontSize: 12, color: context.caption)),
+          SizedBox(height: 8),
           Wrap(
             spacing: 8,
             children: _usernameSuggestions.map((sug) => ActionChip(
               label: Text('@$sug'),
-              backgroundColor: AppTheme.bgLight,
+              backgroundColor: context.secondaryBackgroundColor,
               onPressed: () {
                 _usernameCtrl.text = sug;
                 _checkUsername(sug);
@@ -903,7 +907,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           ),
         ],
 
-        const SizedBox(height: 40),
+        SizedBox(height: 40),
         _buildActionButton('Continue', () async {
           final username = _usernameCtrl.text.trim().toLowerCase();
           if (username.isEmpty) {
@@ -978,48 +982,48 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Basic Information', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text('Tell us a bit about yourself. Only display name is visible to others.', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 14)),
-        const SizedBox(height: 32),
+        SizedBox(height: 8),
+        Text('Tell us a bit about yourself. Only display name is visible to others.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        SizedBox(height: 32),
 
-        Text('Display Name *', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-        const SizedBox(height: 8),
+        Text('Display Name *', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        SizedBox(height: 8),
         TextField(
           controller: _displayNameCtrl,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.textPrimary),
           decoration: const InputDecoration(hintText: 'John Doe'),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
-        Text('Date of Birth *', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-        const SizedBox(height: 8),
+        Text('Date of Birth *', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        SizedBox(height: 8),
         GestureDetector(
           onTap: () => _selectDate(context),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: AppTheme.bgLight,
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderColor),
+              border: Border.all(color: context.borderColor),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   _dob == null ? 'Select Birthday' : DateFormat('dd MMM yyyy').format(_dob!),
-                  style: TextStyle(color: _dob == null ? AppTheme.textTertiary : Colors.white),
+                  style: TextStyle(color: _dob == null ? context.caption : Colors.white),
                 ),
-                const Icon(Icons.calendar_month_rounded, color: AppTheme.textTertiary),
+                Icon(Icons.calendar_month_rounded, color: context.caption),
               ],
             ),
           ),
         ),
         if (_dob != null) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text('Calculated Age: $_calculatedAge years old', 
-               style: TextStyle(color: _calculatedAge >= 13 ? AppTheme.successColor : AppTheme.errorColor, fontSize: 12)),
+               style: TextStyle(color: _calculatedAge >= 13 ? context.successColor : context.errorColor, fontSize: 12)),
         ],
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         Row(
           children: [
@@ -1027,20 +1031,20 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Country', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
+                  Text('Country', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: AppTheme.bgLight,
+                      color: context.secondaryBackgroundColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderColor),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedCountry,
-                        dropdownColor: AppTheme.bgLight,
-                        style: const TextStyle(color: Colors.white),
+                        dropdownColor: context.secondaryBackgroundColor,
+                        style: TextStyle(color: context.textPrimary),
                         isExpanded: true,
                         items: ['India', 'United States', 'United Kingdom', 'Canada', 'Australia']
                             .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -1052,26 +1056,26 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Gender (Optional)', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
+                  Text('Gender (Optional)', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: AppTheme.bgLight,
+                      color: context.secondaryBackgroundColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderColor),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedGender,
-                        hint: const Text('Select', style: TextStyle(color: AppTheme.textTertiary)),
-                        dropdownColor: AppTheme.bgLight,
-                        style: const TextStyle(color: Colors.white),
+                        hint: Text('Select', style: TextStyle(color: context.caption)),
+                        dropdownColor: context.secondaryBackgroundColor,
+                        style: TextStyle(color: context.textPrimary),
                         isExpanded: true,
                         items: ['Male', 'Female', 'Non-Binary', 'Prefer not to say']
                             .map((g) => DropdownMenuItem(value: g, child: Text(g)))
@@ -1086,7 +1090,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           ],
         ),
 
-        const SizedBox(height: 40),
+        SizedBox(height: 40),
         _buildActionButton('Continue', () {
           if (_displayNameCtrl.text.trim().isEmpty) {
             Get.snackbar('Error', 'Display Name is required');
@@ -1115,12 +1119,12 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           alignment: Alignment.centerLeft,
           child: Text('Profile Photo', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Align(
           alignment: Alignment.centerLeft,
-          child: Text('Add a profile picture so friends can recognize you.', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 14)),
+          child: Text('Add a profile picture so friends can recognize you.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
         ),
-        const SizedBox(height: 48),
+        SizedBox(height: 48),
 
         Center(
           child: Stack(
@@ -1130,14 +1134,14 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 height: 140,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.primaryColor, width: 3),
-                  color: AppTheme.bgLight,
+                  border: Border.all(color: context.primaryColor, width: 3),
+                  color: context.secondaryBackgroundColor,
                   image: _avatarFile != null 
                       ? DecorationImage(image: FileImage(_avatarFile!), fit: BoxFit.cover)
                       : null,
                 ),
                 child: _avatarFile == null 
-                    ? const Icon(Icons.person_rounded, size: 70, color: AppTheme.textTertiary)
+                    ? Icon(Icons.person_rounded, size: 70, color: context.caption)
                     : null,
               ),
               Positioned(
@@ -1147,24 +1151,24 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                   onTap: () {
                     Get.bottomSheet(
                       Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: const BoxDecoration(
-                          color: AppTheme.bgLight,
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: context.secondaryBackgroundColor,
                           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                         ),
                         child: Wrap(
                           children: [
                             ListTile(
-                              leading: const Icon(Icons.camera_alt_rounded, color: Colors.white),
-                              title: const Text('Camera', style: TextStyle(color: Colors.white)),
+                              leading: Icon(Icons.camera_alt_rounded, color: Colors.white),
+                              title: Text('Camera', style: TextStyle(color: context.textPrimary)),
                               onTap: () {
                                 Get.back();
                                 _pickImage(ImageSource.camera);
                               },
                             ),
                             ListTile(
-                              leading: const Icon(Icons.photo_library_rounded, color: Colors.white),
-                              title: const Text('Gallery', style: TextStyle(color: Colors.white)),
+                              leading: Icon(Icons.photo_library_rounded, color: Colors.white),
+                              title: Text('Gallery', style: TextStyle(color: context.textPrimary)),
                               onTap: () {
                                 Get.back();
                                 _pickImage(ImageSource.gallery);
@@ -1176,19 +1180,19 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                      color: AppTheme.primaryColor,
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: context.primaryColor,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 18),
+                    child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 18),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 54),
+        SizedBox(height: 54),
 
         _buildActionButton('Continue', _nextStep),
       ],
@@ -1201,38 +1205,38 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('About You', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text('Write a short bio to introduce yourself (max 150 chars).', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 14)),
-        const SizedBox(height: 32),
+        SizedBox(height: 8),
+        Text('Write a short bio to introduce yourself (max 150 chars).', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        SizedBox(height: 32),
 
-        Text('Bio', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-        const SizedBox(height: 8),
+        Text('Bio', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        SizedBox(height: 8),
         TextField(
           controller: _bioCtrl,
           maxLines: 4,
           maxLength: 150,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: context.textPrimary),
           decoration: const InputDecoration(
             hintText: 'Share a little about yourself...',
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
-        Text('Suggestions:', style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.textTertiary)),
-        const SizedBox(height: 8),
+        Text('Suggestions:', style: GoogleFonts.poppins(fontSize: 12, color: context.caption)),
+        SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: _bioExamples.map((ex) => ActionChip(
             label: Text(ex),
-            backgroundColor: AppTheme.bgLight,
+            backgroundColor: context.secondaryBackgroundColor,
             onPressed: () {
               _bioCtrl.text = ex;
             },
           )).toList(),
         ),
 
-        const SizedBox(height: 40),
+        SizedBox(height: 40),
         _buildActionButton('Continue', _nextStep),
       ],
     );
@@ -1244,9 +1248,9 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Choose Interests', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text('Select at least 5 interests to customize your recommendations.', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 14)),
-        const SizedBox(height: 24),
+        SizedBox(height: 8),
+        Text('Select at least 5 interests to customize your recommendations.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        SizedBox(height: 24),
 
         Wrap(
           spacing: 8,
@@ -1265,22 +1269,22 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                   }
                 });
               },
-              selectedColor: AppTheme.primaryColor.withOpacity(0.3),
+              selectedColor: context.primaryColor.withOpacity(0.3),
               checkmarkColor: Colors.white,
               labelStyle: TextStyle(
-                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                color: isSelected ? Colors.white : context.textSecondary,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
-              backgroundColor: AppTheme.bgLight,
-              side: BorderSide(color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor),
+              backgroundColor: context.secondaryBackgroundColor,
+              side: BorderSide(color: isSelected ? context.primaryColor : context.borderColor),
             );
           }).toList(),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         Text('Selected: ${_selectedInterests.length} of 5 minimum', 
-             style: TextStyle(color: _selectedInterests.length >= 5 ? AppTheme.successColor : AppTheme.errorColor, fontSize: 12)),
+             style: TextStyle(color: _selectedInterests.length >= 5 ? context.successColor : context.errorColor, fontSize: 12)),
 
-        const SizedBox(height: 42),
+        SizedBox(height: 42),
         _buildActionButton('Continue', () {
           if (_selectedInterests.length < 5) {
             Get.snackbar('Required', 'Please select at least 5 interests.');
@@ -1298,9 +1302,9 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Device Permissions', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text('Grant permissions for a complete Creania experience.', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 14)),
-        const SizedBox(height: 32),
+        SizedBox(height: 8),
+        Text('Grant permissions for a complete Creania experience.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        SizedBox(height: 32),
 
         _permissionItemTile('Microphone', 'Speak in voice rooms and audio circles.', Icons.mic_rounded),
         _permissionItemTile('Camera', 'Take profile picture and stream video.', Icons.camera_alt_rounded),
@@ -1308,7 +1312,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         _permissionItemTile('Contacts (Optional)', 'Find your friends already on Creania.', Icons.contacts_rounded),
         _permissionItemTile('Storage (Optional)', 'Select files and graphics.', Icons.photo_library_rounded),
 
-        const SizedBox(height: 48),
+        SizedBox(height: 48),
         _buildActionButton('Enable Permissions', _requestPermissions),
       ],
     );
@@ -1316,32 +1320,32 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
   Widget _permissionItemTile(String title, String desc, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: 16),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppTheme.bgLight,
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.borderColor),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.1),
+                color: context.primaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: AppTheme.primaryColor, size: 22),
+              child: Icon(icon, color: context.primaryColor, size: 22),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  Text(desc, style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 11)),
+                  Text(title, style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+                  SizedBox(height: 4),
+                  Text(desc, style: GoogleFonts.poppins(color: context.caption, fontSize: 11)),
                 ],
               ),
             ),
@@ -1357,7 +1361,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           // Creania Logo
           Image.asset(
             'assets/images/logo.png',
@@ -1365,39 +1369,39 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
             height: 100,
             fit: BoxFit.contain,
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: 32),
 
           Text('Congratulations! 🎉', style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-          const SizedBox(height: 12),
-          Text('Welcome to Creania! Your profile is ready.', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 15), textAlign: TextAlign.center),
-          const SizedBox(height: 40),
+          SizedBox(height: 12),
+          Text('Welcome to Creania! Your profile is ready.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 15), textAlign: TextAlign.center),
+          SizedBox(height: 40),
 
           // Rewards Card
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.04),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.borderColor),
+              border: Border.all(color: context.borderColor),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Early Explorer Rewards Unlocked:', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.accentColor)),
-                const SizedBox(height: 16),
+                Text('Early Explorer Rewards Unlocked:', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: context.accentOrange)),
+                SizedBox(height: 16),
                 _rewardRow('🎖️', 'Early Explorer Badge', 'Exclusive profile recognition'),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _rewardRow('🪙', '100 Gold Coins', 'Credited directly to your wallet'),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _rewardRow('✨', '7-Day Avatar Frame', 'Equipped automatically'),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _rewardRow('📈', 'Boosted Visibility', 'Higher ranking in recommendations'),
               ],
             ),
           ),
 
-          const SizedBox(height: 48),
+          SizedBox(height: 48),
           _buildActionButton('Enter Creania', _completeOnboardingFlow),
         ],
       ),
@@ -1407,13 +1411,13 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
   Widget _rewardRow(String icon, String title, String desc) {
     return Row(
       children: [
-        Text(icon, style: const TextStyle(fontSize: 20)),
-        const SizedBox(width: 12),
+        Text(icon, style: TextStyle(fontSize: 20)),
+        SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-            Text(desc, style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 10)),
+            Text(title, style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+            Text(desc, style: GoogleFonts.poppins(color: context.caption, fontSize: 10)),
           ],
         ),
       ],
@@ -1428,10 +1432,10 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         onPressed: _isLoading ? null : onTap,
         style: ElevatedButton.styleFrom(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          backgroundColor: AppTheme.primaryColor,
+          backgroundColor: context.primaryColor,
         ),
         child: _isLoading 
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
             : Text(label, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
       ),
     );

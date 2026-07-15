@@ -1,3 +1,4 @@
+import 'package:creania/core/theme.dart';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../models/community_model.dart';
@@ -18,9 +19,9 @@ class CommunityCard extends StatelessWidget {
       child: Container(
         width: 140,
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.borderColor, width: 0.5),
+          border: Border.all(color: context.borderColor, width: 0.5),
         ),
         child: Column(
           children: [
@@ -28,7 +29,7 @@ class CommunityCard extends StatelessWidget {
             Container(
               height: 65,
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.2),
+                color: context.primaryColor.withOpacity(0.2),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(12),
@@ -38,7 +39,7 @@ class CommunityCard extends StatelessWidget {
                 child: Text(
                   community.name.substring(0, 1),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: AppTheme.primaryColor,
+                        color: context.primaryColor,
                       ),
                 ),
               ),
@@ -47,7 +48,7 @@ class CommunityCard extends StatelessWidget {
             // Content
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -64,26 +65,26 @@ class CommunityCard extends StatelessWidget {
                           ),
                         ),
                         if (community.isVerified)
-                          const Icon(
+                          Icon(
                             Icons.verified,
                             size: 12,
-                            color: AppTheme.accentColor,
+                            color: context.accentOrange,
                           ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       '${community.memberCount}K members',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          backgroundColor: AppTheme.primaryColor,
+                          padding: EdgeInsets.symmetric(vertical: 6),
+                          backgroundColor: context.primaryColor,
                         ),
                         child: Text(
                           'Join',

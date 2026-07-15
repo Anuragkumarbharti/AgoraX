@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/store_controller.dart';
 import '../../services/vip_controller.dart';
 import '../../services/novel_controller.dart';
@@ -75,7 +75,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07070A),
+      backgroundColor: Color(0xFF07070A),
       body: Stack(
         children: [
           // Background Gradient Glows
@@ -87,7 +87,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               height: 350,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF6366F1).withOpacity(0.12),
+                color: Color(0xFF6366F1).withOpacity(0.12),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
@@ -103,7 +103,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               height: 350,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF8B5CF6).withOpacity(0.08),
+                color: Color(0xFF8B5CF6).withOpacity(0.08),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 120, sigmaY: 120),
@@ -125,32 +125,32 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                 Expanded(
                   child: ListView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     children: [
                       _buildVipPurchasesSection(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _buildStoreSection(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _buildWalletSection(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _buildIncomeSection(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _buildRewardsSection(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _buildTaskSection(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _buildReferralSection(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _buildCreatorAgencySection(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _buildHistorySection(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _buildSupportSection(),
-                      const SizedBox(height: 32),
+                      SizedBox(height: 32),
                       
                       // Developer panel toggle at the bottom
                       _buildDevPanel(),
-                      const SizedBox(height: 40),
+                      SizedBox(height: 40),
                     ],
                   ),
                 ),
@@ -165,14 +165,14 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   // --- APP BAR ---
   Widget _buildAppBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
             onPressed: () => Get.back(),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             'ACCOUNT & WALLET',
             style: GoogleFonts.outfit(
@@ -207,48 +207,48 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             2,
             (index) => Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
+              margin: EdgeInsets.symmetric(horizontal: 4),
               width: 6,
               height: 6,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: _currentPage == index
-                    ? const Color(0xFF8B5CF6)
+                    ? Color(0xFF8B5CF6)
                     : Colors.white24,
               ),
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
       ],
     );
   }
 
   Widget _buildWalletSummaryCard() {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.symmetric(horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      color: const Color(0xFF13131A).withOpacity(0.85),
+      color: context.surfaceColor.withOpacity(0.85),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.2)),
+          border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.2)),
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF1E1B4B).withOpacity(0.4),
-              const Color(0xFF0F172A).withOpacity(0.8),
+              Color(0xFF1E1B4B).withOpacity(0.4),
+              Color(0xFF0F172A).withOpacity(0.8),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -257,8 +257,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.wallet_rounded, color: Color(0xFFA78BFA), size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.wallet_rounded, color: Color(0xFFA78BFA), size: 20),
+                    SizedBox(width: 8),
                     Text(
                       'My Wallet Summary',
                       style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
@@ -270,14 +270,14 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                   final hasUnclaimed = !_dailyRewardClaimed.value;
                   return hasUnclaimed
                       ? Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEF4444),
+                            color: Color(0xFFEF4444),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Text('Reward Claimable', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                          child: Text('Reward Claimable', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                         )
-                      : const SizedBox();
+                      : SizedBox();
                 }),
               ],
             ),
@@ -306,23 +306,23 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
   Widget _buildIncomeSummaryCard() {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.symmetric(horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      color: const Color(0xFF13131A).withOpacity(0.85),
+      color: context.surfaceColor.withOpacity(0.85),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+          border: Border.all(color: Color(0xFF10B981).withOpacity(0.2)),
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF022C22).withOpacity(0.3),
-              const Color(0xFF0F172A).withOpacity(0.8),
+              Color(0xFF022C22).withOpacity(0.3),
+              Color(0xFF0F172A).withOpacity(0.8),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -331,8 +331,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.monetization_on_rounded, color: Color(0xFF34D399), size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.monetization_on_rounded, color: Color(0xFF34D399), size: 20),
+                    SizedBox(width: 8),
                     Text(
                       'Income Center Dashboard',
                       style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
@@ -341,12 +341,12 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                 ),
                 // Pending withdrawal badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444),
+                    color: Color(0xFFEF4444),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Text('1 Pending', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                  child: Text('1 Pending', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -384,14 +384,14 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Row(
           children: [
             Text(
               emoji,
-              style: const TextStyle(fontSize: 11),
+              style: TextStyle(fontSize: 11),
             ),
-            const SizedBox(width: 3),
+            SizedBox(width: 3),
             Expanded(
               child: Text(
                 value,
@@ -419,7 +419,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       final isExpanded = _expandedSections[id] ?? initiallyExpanded;
       return Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: const Color(0xFF111116).withOpacity(0.7),
+        color: Color(0xFF111116).withOpacity(0.7),
         elevation: 0,
         margin: EdgeInsets.zero,
         child: Container(
@@ -435,11 +435,11 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                   _expandedSections[id] = !isExpanded;
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   child: Row(
                     children: [
-                      Icon(icon, color: const Color(0xFFA78BFA), size: 22),
-                      const SizedBox(width: 12),
+                      Icon(icon, color: Color(0xFFA78BFA), size: 22),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           title,
@@ -452,22 +452,22 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                       ),
                       if (badge != null) ...[
                         badge,
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                       ],
                       AnimatedRotation(
                         turns: isExpanded ? 0.25 : 0.0,
                         duration: const Duration(milliseconds: 250),
-                        child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 14),
+                        child: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 14),
                       ),
                     ],
                   ),
                 ),
               ),
               AnimatedCrossFade(
-                firstChild: const SizedBox(width: double.infinity),
+                firstChild: SizedBox(width: double.infinity),
                 secondChild: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 4),
+                  padding: EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 4),
                   decoration: BoxDecoration(
                     border: Border(
                       top: BorderSide(color: Colors.white.withOpacity(0.02)),
@@ -495,13 +495,13 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       title: '💎 VIP & Purchases',
       icon: Icons.diamond_outlined,
       badge: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: const Color(0xFFEF4444).withOpacity(0.15),
+          color: Color(0xFFEF4444).withOpacity(0.15),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
+          border: Border.all(color: Color(0xFFEF4444).withOpacity(0.3)),
         ),
-        child: const Text('Expiring', style: TextStyle(color: Color(0xFFEF4444), fontSize: 8, fontWeight: FontWeight.bold)),
+        child: Text('Expiring', style: TextStyle(color: Color(0xFFEF4444), fontSize: 8, fontWeight: FontWeight.bold)),
       ),
       children: [
         // VIP Membership Status
@@ -514,11 +514,11 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             subtitle: isVipActive ? 'VIP $vipLevel • ${remaining['displayText']}' : 'Not Subscribed',
             trailing: TextButton(
               onPressed: () => Get.to(() => const VipPurchaseScreen()),
-              child: Text(isVipActive ? 'Extend' : 'Join VIP', style: const TextStyle(color: Color(0xFFA78BFA), fontWeight: FontWeight.bold, fontSize: 12)),
+              child: Text(isVipActive ? 'Extend' : 'Join VIP', style: TextStyle(color: Color(0xFFA78BFA), fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           );
         }),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
 
         // Novel Membership Status
         Obx(() {
@@ -529,25 +529,25 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             subtitle: isNovelActive ? 'Novel Level $novelLevel • Active' : 'Not Subscribed',
             trailing: TextButton(
               onPressed: () => Get.to(() => const NovelPurchaseScreen()),
-              child: Text(isNovelActive ? 'Extend' : 'Join Novel', style: const TextStyle(color: Color(0xFFA78BFA), fontWeight: FontWeight.bold, fontSize: 12)),
+              child: Text(isNovelActive ? 'Extend' : 'Join Novel', style: TextStyle(color: Color(0xFFA78BFA), fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           );
         }),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
 
         // Purchased Items & Expiries (My Purchases)
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(
           'MY PURCHASES (COSMETICS INVENTORY)',
           style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
 
         Obx(() {
           // Filter unlocked items that are in the expiries database
           final items = _custCtrl.itemExpiries.keys.toList();
           if (items.isEmpty) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 8.0),
               child: Text('No purchased cosmetics found.', style: TextStyle(color: Colors.white30, fontSize: 12)),
             );
@@ -581,12 +581,12 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               }
 
               return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
+                margin: EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1C1C24),
+                  color: Color(0xFF1C1C24),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isEquipped ? const Color(0xFF8B5CF6).withOpacity(0.3) : Colors.transparent),
+                  border: Border.all(color: isEquipped ? Color(0xFF8B5CF6).withOpacity(0.3) : Colors.transparent),
                 ),
                 child: Row(
                   children: [
@@ -600,21 +600,21 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                                 itemName,
                                 style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                 decoration: BoxDecoration(
                                   color: isExpired
-                                      ? const Color(0xFFEF4444).withOpacity(0.15)
-                                      : (isEquipped ? const Color(0xFF10B981).withOpacity(0.15) : Colors.white10),
+                                      ? Color(0xFFEF4444).withOpacity(0.15)
+                                      : (isEquipped ? Color(0xFF10B981).withOpacity(0.15) : Colors.white10),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   isExpired ? 'Expired' : (isEquipped ? 'Active' : 'Equippable'),
                                   style: TextStyle(
                                     color: isExpired
-                                        ? const Color(0xFFEF4444)
-                                        : (isEquipped ? const Color(0xFF10B981) : Colors.white60),
+                                        ? Color(0xFFEF4444)
+                                        : (isEquipped ? Color(0xFF10B981) : Colors.white60),
                                     fontSize: 8,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -622,7 +622,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             isExpired
                                 ? 'Expired on ${expiry.day}/${expiry.month}/${expiry.year}'
@@ -645,27 +645,27 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isEquipped ? const Color(0xFFEF4444).withOpacity(0.12) : const Color(0xFF8B5CF6),
-                              foregroundColor: isEquipped ? const Color(0xFFEF4444) : Colors.white,
+                              backgroundColor: isEquipped ? Color(0xFFEF4444).withOpacity(0.12) : Color(0xFF8B5CF6),
+                              foregroundColor: isEquipped ? Color(0xFFEF4444) : Colors.white,
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               minimumSize: const Size(60, 26),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            child: Text(isEquipped ? 'Unequip' : 'Equip', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                            child: Text(isEquipped ? 'Unequip' : 'Equip', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                           ),
                         ] else ...[
                           ElevatedButton(
                             onPressed: () => Get.to(() => const StoreHomeScreen()),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
+                              backgroundColor: Color(0xFF10B981),
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               minimumSize: const Size(60, 26),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            child: const Text('Buy Again', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                            child: Text('Buy Again', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ],
@@ -677,13 +677,13 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           );
         }),
 
-        const Divider(color: Colors.white10),
-        const SizedBox(height: 4),
+        Divider(color: Colors.white10),
+        SizedBox(height: 4),
         Text(
           'COLLECTIONS',
           style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         // Collections Grid Layout
         Wrap(
           spacing: 6,
@@ -706,10 +706,10 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
   Widget _buildCollectionTag(String name) {
     return ActionChip(
-      backgroundColor: const Color(0xFF1A1A24),
-      side: const BorderSide(color: Colors.white10),
+      backgroundColor: Color(0xFF1A1A24),
+      side: BorderSide(color: Colors.white10),
       label: Text(name, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 9.5)),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       onPressed: () => Get.to(() => const ProfileCustomizationScreen()),
     );
   }
@@ -721,21 +721,21 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       title: '🛒 Creania Store',
       icon: Icons.storefront_outlined,
       badge: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: const Color(0xFFEF4444),
+          color: Color(0xFFEF4444),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Text('Sale', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+        child: Text('Sale', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
       ),
       children: [
         _buildFeatureTile(
           title: 'Open Store',
           subtitle: 'Go to Creania Marketplace',
-          trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+          trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
           onTap: () => Get.to(() => const StoreHomeScreen()),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         
         GridView.count(
           shrinkWrap: true,
@@ -766,16 +766,16 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF161620),
+          color: Color(0xFF161620),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.white.withOpacity(0.04)),
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFFA78BFA), size: 16),
-            const SizedBox(width: 8),
+            Icon(icon, color: Color(0xFFA78BFA), size: 16),
+            SizedBox(width: 8),
             Expanded(
               child: Text(
                 label,
@@ -800,29 +800,29 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
         // Wallet Balances summary
         Obx(() {
           return Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF13131A),
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
               children: [
                 _buildWalletBalanceRow('Gold Coins', '${_storeCtrl.coinsBalance.value}', '🪙'),
-                const Divider(color: Colors.white10, height: 12),
+                Divider(color: Colors.white10, height: 12),
                 _buildWalletBalanceRow('Silver Coins', '${_silverCoins.value}', '🥈'),
-                const Divider(color: Colors.white10, height: 12),
+                Divider(color: Colors.white10, height: 12),
                 _buildWalletBalanceRow('Diamonds', '${_diamonds.value}', '💎'),
-                const Divider(color: Colors.white10, height: 12),
+                Divider(color: Colors.white10, height: 12),
                 _buildWalletBalanceRow('Reward Points', '${_rewardPoints.value}', '✨'),
-                const Divider(color: Colors.white10, height: 12),
+                Divider(color: Colors.white10, height: 12),
                 _buildWalletBalanceRow('Bonus Coins', '${_bonusCoins.value}', '🪙'),
-                const Divider(color: Colors.white10, height: 12),
+                Divider(color: Colors.white10, height: 12),
                 _buildWalletBalanceRow('Voucher Balance', '\$${_voucherBalance.value.toStringAsFixed(2)}', '🎟️'),
               ],
             ),
           );
         }),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
 
         // Quick Actions Grid
         GridView.count(
@@ -838,11 +838,11 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             _buildStoreGridButton(Icons.send_rounded, 'Transfer', () => _showTransferDialog()),
           ],
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Wallet History',
           subtitle: 'All credit and debit transactions',
-          trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+          trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
           onTap: () => _showWalletHistoryDialog(),
         ),
       ],
@@ -855,8 +855,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       children: [
         Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 14)),
-            const SizedBox(width: 8),
+            Text(emoji, style: TextStyle(fontSize: 14)),
+            SizedBox(width: 8),
             Text(name, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
           ],
         ),
@@ -872,22 +872,22 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       title: '💵 Income Center',
       icon: Icons.payments_outlined,
       badge: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: const Color(0xFFEF4444).withOpacity(0.15),
+          color: Color(0xFFEF4444).withOpacity(0.15),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
+          border: Border.all(color: Color(0xFFEF4444).withOpacity(0.3)),
         ),
-        child: const Text('Pending', style: TextStyle(color: Color(0xFFEF4444), fontSize: 8, fontWeight: FontWeight.bold)),
+        child: Text('Pending', style: TextStyle(color: Color(0xFFEF4444), fontSize: 8, fontWeight: FontWeight.bold)),
       ),
       children: [
         // Available balance
         Obx(() {
           return Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFF13131A),
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -897,29 +897,29 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Available Balance', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 10)),
-                    const SizedBox(height: 4),
-                    Text('\$${_availableIncome.value.toStringAsFixed(2)}', style: GoogleFonts.poppins(color: const Color(0xFF10B981), fontSize: 20, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    Text('\$${_availableIncome.value.toStringAsFixed(2)}', style: GoogleFonts.poppins(color: Color(0xFF10B981), fontSize: 20, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 ElevatedButton(
                   onPressed: () => _showIncomeWithdrawDialog(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
+                    backgroundColor: Color(0xFF10B981),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('Withdraw', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: Text('Withdraw', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ],
             ),
           );
         }),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
 
         Text(
           'INCOME SOURCES',
           style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
 
         // Income Sources Grid
         GridView.count(
@@ -940,27 +940,27 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             _buildSourceTile('Bonus Income', '\$0.00', '⚡'),
           ],
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
 
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             TextButton.icon(
               onPressed: () => _showPaymentAccountsDialog(),
-              icon: const Icon(Icons.link, size: 14, color: Color(0xFFA78BFA)),
-              label: const Text('Payment Accounts', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
+              icon: Icon(Icons.link, size: 14, color: Color(0xFFA78BFA)),
+              label: Text('Payment Accounts', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
             ),
             TextButton.icon(
               onPressed: () => _showWithdrawalHistoryDialog(),
-              icon: const Icon(Icons.history, size: 14, color: Color(0xFFA78BFA)),
-              label: const Text('Withdrawal History', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
+              icon: Icon(Icons.history, size: 14, color: Color(0xFFA78BFA)),
+              label: Text('Withdrawal History', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
             ),
             TextButton.icon(
               onPressed: () {
                 Get.snackbar('Analytics', 'Income Analytics coming soon!', snackPosition: SnackPosition.BOTTOM);
               },
-              icon: const Icon(Icons.analytics_outlined, size: 14, color: Color(0xFFA78BFA)),
-              label: const Text('Income Analytics', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
+              icon: Icon(Icons.analytics_outlined, size: 14, color: Color(0xFFA78BFA)),
+              label: Text('Income Analytics', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
             ),
           ],
         )
@@ -970,15 +970,15 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
   Widget _buildSourceTile(String name, String val, String emoji) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF14141E),
+        color: Color(0xFF14141E),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 12)),
-          const SizedBox(width: 8),
+          Text(emoji, style: TextStyle(fontSize: 12)),
+          SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1005,12 +1005,12 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             ? Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: Color(0xFFEF4444),
                   shape: BoxShape.circle,
                 ),
               )
-            : const SizedBox();
+            : SizedBox();
       }),
       children: [
         Obx(() {
@@ -1027,12 +1027,12 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                         'Claim Success 🎉',
                         '50 Gold Coins added to your wallet!',
                         snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: const Color(0xFF10B981),
+                        backgroundColor: Color(0xFF10B981),
                         colorText: Colors.white,
                       );
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
+                backgroundColor: Color(0xFF8B5CF6),
                 disabledBackgroundColor: Colors.white12,
                 minimumSize: const Size(60, 28),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1044,42 +1044,42 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             ),
           );
         }),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Weekly Rewards',
           subtitle: 'Active 7-day streak rewards',
-          trailing: const Text('Locked', style: TextStyle(color: Colors.white24, fontSize: 11)),
+          trailing: Text('Locked', style: TextStyle(color: Colors.white24, fontSize: 11)),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Monthly Rewards',
           subtitle: 'End of month loyalty rewards',
-          trailing: const Text('Locked', style: TextStyle(color: Colors.white24, fontSize: 11)),
+          trailing: Text('Locked', style: TextStyle(color: Colors.white24, fontSize: 11)),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Lucky Spin',
           subtitle: 'Spin the wheel for premium rewards',
-          trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+          trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
           onTap: () => Get.to(() => const StoreHomeScreen()), // Lucky Spin is in Store Home
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             TextButton(
               onPressed: () => _showRewardHistoryDialog(),
-              child: const Text('Reward History', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              child: Text('Reward History', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
             TextButton(
               onPressed: () => _showCouponsDialog(),
-              child: const Text('Active Coupons', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              child: Text('Active Coupons', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
             TextButton(
               onPressed: () {
                 Get.snackbar('Promo', 'No promotional rewards currently available.', snackPosition: SnackPosition.BOTTOM);
               },
-              child: const Text('Promo Rewards', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              child: Text('Promo Rewards', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
           ],
         )
@@ -1097,7 +1097,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
         _buildFeatureTile(
           title: 'XP Progress',
           subtitle: 'Level 25 • 1850 / 3000 XP',
-          trailing: const SizedBox(
+          trailing: SizedBox(
             width: 100,
             child: LinearProgressIndicator(
               value: 1850 / 3000,
@@ -1107,36 +1107,36 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             ),
           ),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Daily Streak',
           subtitle: '5 Days Active Streak 🔥',
-          trailing: const Text('+10% XP Boost', style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold)),
+          trailing: Text('+10% XP Boost', style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold)),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'My Tasks',
           subtitle: '2 active daily tasks remaining',
-          trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+          trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
           onTap: () => _showTasksDialog(),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             TextButton(
               onPressed: () => _showTasksDialog(),
-              child: const Text('Completed Tasks', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              child: Text('Completed Tasks', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
             TextButton(
               onPressed: () => _showTasksDialog(),
-              child: const Text('Pending Tasks', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              child: Text('Pending Tasks', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
             TextButton(
               onPressed: () {
                 Get.snackbar('Achievements', 'Achievement rewards already claimed.', snackPosition: SnackPosition.BOTTOM);
               },
-              child: const Text('Achievement Rewards', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              child: Text('Achievement Rewards', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
           ],
         )
@@ -1161,26 +1161,26 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                 'Copied Code 🔗',
                 'Referral code copied to clipboard!',
                 snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: const Color(0xFF8B5CF6),
+                backgroundColor: Color(0xFF8B5CF6),
                 colorText: Colors.white,
               );
             },
-            icon: const Icon(Icons.copy_rounded, size: 10, color: Colors.white),
-            label: const Text('AGX-783-DEV', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+            icon: Icon(Icons.copy_rounded, size: 10, color: Colors.white),
+            label: Text('AGX-783-DEV', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E1B4B),
+              backgroundColor: Color(0xFF1E1B4B),
               minimumSize: const Size(80, 28),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Referral Earnings',
           subtitle: 'Total Earned: \$115.00',
-          trailing: const Text('Available: \$25.00', style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold)),
+          trailing: Text('Available: \$25.00', style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold)),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -1188,13 +1188,13 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               onPressed: () {
                 Get.snackbar('Referral History', 'You have referred 14 friends successfully.', snackPosition: SnackPosition.BOTTOM);
               },
-              child: const Text('Referral History', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              child: Text('Referral History', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
             TextButton(
               onPressed: () {
                 Get.snackbar('Leaderboard', 'Referral Leaderboard is updated weekly.', snackPosition: SnackPosition.BOTTOM);
               },
-              child: const Text('Referral Leaderboard', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              child: Text('Referral Leaderboard', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
           ],
         )
@@ -1211,36 +1211,36 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
         id: 'creator',
         title: '🎤 Creator & Agency',
         icon: Icons.mic_external_on_outlined,
-        badge: !isEligible ? const Icon(Icons.lock_rounded, color: Colors.white30, size: 14) : null,
+        badge: !isEligible ? Icon(Icons.lock_rounded, color: Colors.white30, size: 14) : null,
         children: [
           if (!isEligible) ...[
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFEF4444).withOpacity(0.08),
+                color: Color(0xFFEF4444).withOpacity(0.08),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.2)),
+                border: Border.all(color: Color(0xFFEF4444).withOpacity(0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.lock_rounded, color: Color(0xFFEF4444), size: 16),
-                      const SizedBox(width: 8),
+                      Icon(Icons.lock_rounded, color: Color(0xFFEF4444), size: 16),
+                      SizedBox(width: 8),
                       Text(
                         'Locked Section',
-                        style: GoogleFonts.outfit(color: const Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 13),
+                        style: GoogleFonts.outfit(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     'Eligibility requirements:\n• Reached ID Level 20+ (Your Level: 25)\n• Have 10,000+ Followers (Your Followers: 150K)\n• Official verification approved (Status: Pending)',
                     style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
+                  SizedBox(height: 4),
+                  Text(
                     '*Toggle eligibility using the Developer Panel at the bottom to view unlocked features.',
                     style: TextStyle(color: Colors.white30, fontSize: 8, fontStyle: FontStyle.italic),
                   ),
@@ -1251,35 +1251,35 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             _buildFeatureTile(
               title: 'Creator Dashboard',
               subtitle: 'Manage streams, analytics, and payouts',
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+              trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
               onTap: () => _showCreatorDashboard(),
             ),
-            const Divider(color: Colors.white10),
+            Divider(color: Colors.white10),
             _buildFeatureTile(
               title: 'Agency Dashboard',
               subtitle: 'Host & agency management interface',
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+              trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
               onTap: () => _showAgencyDashboard(),
             ),
-            const Divider(color: Colors.white10),
+            Divider(color: Colors.white10),
             _buildFeatureTile(
               title: 'My Arenas',
               subtitle: '3 owned active voice arenas',
-              trailing: const Text('Configure', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              trailing: Text('Configure', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
-            const Divider(color: Colors.white10),
+            Divider(color: Colors.white10),
             _buildFeatureTile(
               title: 'My Events',
               subtitle: '1 scheduled live webinar event',
-              trailing: const Text('Manage', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+              trailing: Text('Manage', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
             ),
-            const Divider(color: Colors.white10),
+            Divider(color: Colors.white10),
             _buildFeatureTile(
               title: 'My Communities',
               subtitle: 'Manage community moderator settings',
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+              trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
             ),
-            const Divider(color: Colors.white10),
+            Divider(color: Colors.white10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1287,13 +1287,13 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                   onPressed: () {
                     Get.snackbar('Earnings', 'Host earnings total: \$720.00 this month.', snackPosition: SnackPosition.BOTTOM);
                   },
-                  child: const Text('Host Earnings', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+                  child: Text('Host Earnings', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
                 ),
                 TextButton(
                   onPressed: () {
                     Get.snackbar('Analytics', 'Analytics updated daily at midnight PST.', snackPosition: SnackPosition.BOTTOM);
                   },
-                  child: const Text('Creator Analytics', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
+                  child: Text('Creator Analytics', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11)),
                 ),
               ],
             )
@@ -1315,31 +1315,31 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           subtitle: 'All Gold and Silver coin history',
           onTap: () => _showWalletHistoryDialog(),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Purchase History',
           subtitle: 'VIP, Novel, and cosmetic buys',
           onTap: () => _showOrdersDialog(),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Gift History',
           subtitle: 'Sent and received gift records',
           onTap: () => _showGiftHistoryDialog(),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Recharge History',
           subtitle: 'Cash to coin recharge orders',
           onTap: () => _showRechargeHistoryDialog(),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Withdrawal History',
           subtitle: 'Income withdrawal bank payouts',
           onTap: () => _showWithdrawalHistoryDialog(),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Event & Task History',
           subtitle: 'Host rewards & completed tasks logs',
@@ -1361,19 +1361,19 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           subtitle: 'Browse documentation & guides',
           onTap: () => _showFaqDialog(),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Contact Support',
           subtitle: 'Open a live chat ticket with us',
           onTap: () => _showContactSupportDialog(),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'Report Problem',
           subtitle: 'Submit bug reports & arena abuse logs',
           onTap: () => _showReportDialog(),
         ),
-        const Divider(color: Colors.white10),
+        Divider(color: Colors.white10),
         _buildFeatureTile(
           title: 'FAQs',
           subtitle: 'Frequently Asked Questions',
@@ -1394,7 +1394,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+        padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
         child: Row(
           children: [
             Expanded(
@@ -1405,7 +1405,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                     title,
                     style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: GoogleFonts.poppins(color: Colors.white38, fontSize: 10),
@@ -1423,22 +1423,22 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   // --- DEV PANEL TESTER (ELIGIBILITY SWITCH) ---
   Widget _buildDevPanel() {
     return Card(
-      color: const Color(0xFF1E1E28).withOpacity(0.4),
+      color: Color(0xFF1E1E28).withOpacity(0.4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.15)),
+          border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.15)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               '🛠️ DEVELOPER TESTING PANEL',
-              style: GoogleFonts.outfit(color: const Color(0xFFA78BFA), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+              style: GoogleFonts.outfit(color: Color(0xFFA78BFA), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1463,7 +1463,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                     onChanged: (v) {
                       _isCreatorEligible.value = v;
                     },
-                    activeColor: const Color(0xFF8B5CF6),
+                    activeColor: Color(0xFF8B5CF6),
                   );
                 }),
               ],
@@ -1480,8 +1480,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showOrdersDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -1490,18 +1490,18 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Order History & Purchases', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildHistoryItem('Neon Frame (Animated)', '-\$5.99', 'Purchased • 30 Days', 'Completed'),
             _buildHistoryItem('500 Coins Bundle', '-\$4.99', 'Recharge • Wallet Credit', 'Completed'),
             _buildHistoryItem('VIP 3 Upgrade', '-\$12.99', 'Membership • 30 Days', 'Completed'),
             _buildHistoryItem('Gold Glow Frame', '-\$2.99', 'Purchased • 7 Days', 'Completed'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('Close'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('Close'),
               ),
             )
           ],
@@ -1514,8 +1514,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showCouponsDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -1524,17 +1524,17 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Active Store Coupons', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildCouponItem('FESTIVAL50', '50% Discount on all store cosmetics', 'Valid till: 30 Jul'),
             _buildCouponItem('CREATOR10', '10% Discount on VIP purchases', 'Valid till: 15 Aug'),
             _buildCouponItem('STUDENT20', '20% Discount on Novel volumes', 'Valid till: 10 Sep'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('Close'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('Close'),
               ),
             )
           ],
@@ -1548,7 +1548,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
     final textController = TextEditingController();
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Redeem Promo Code', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         content: Column(
@@ -1556,7 +1556,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           children: [
             TextField(
               controller: textController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 hintText: 'Enter code (e.g. FESTIVAL50)',
                 hintStyle: TextStyle(color: Colors.white24),
@@ -1567,7 +1567,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel', style: TextStyle(color: Colors.white30))),
+          TextButton(onPressed: () => Get.back(), child: Text('Cancel', style: TextStyle(color: Colors.white30))),
           ElevatedButton(
             onPressed: () {
               final code = textController.text.trim().toUpperCase();
@@ -1578,7 +1578,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                   'Code Redeemed 🏷️',
                   'Coupon code $code applied successfully! Use it at checkout.',
                   snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: const Color(0xFF10B981),
+                  backgroundColor: Color(0xFF10B981),
                   colorText: Colors.white,
                 );
               } else {
@@ -1586,13 +1586,13 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                   'Redemption Failed ⚠️',
                   'Invalid or expired code. Please try another.',
                   snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: const Color(0xFFEF4444),
+                  backgroundColor: Color(0xFFEF4444),
                   colorText: Colors.white,
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Redeem'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+            child: Text('Redeem'),
           ),
         ],
       ),
@@ -1603,22 +1603,22 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showRechargeDialog() {
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Recharge Wallet', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        content: const Text(
+        content: Text(
           'Recharge options are integrated through Razorpay. You can buy Gold Packs inside the store.',
           style: TextStyle(color: Colors.white70, fontSize: 12),
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel', style: TextStyle(color: Colors.white30))),
+          TextButton(onPressed: () => Get.back(), child: Text('Cancel', style: TextStyle(color: Colors.white30))),
           ElevatedButton(
             onPressed: () {
               Get.back();
               Get.to(() => const StoreHomeScreen());
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-            child: const Text('Go to Store'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF10B981)),
+            child: Text('Go to Store'),
           ),
         ],
       ),
@@ -1637,7 +1637,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Transfer Coins to Friend', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         content: Column(
@@ -1645,18 +1645,18 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           children: [
             TextField(
               controller: userController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 hintText: 'Recipient Username',
                 hintStyle: TextStyle(color: Colors.white24),
                 focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF8B5CF6))),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             TextField(
               controller: amountController,
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 hintText: 'Amount (Gold Coins)',
                 hintStyle: TextStyle(color: Colors.white24),
@@ -1666,7 +1666,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel', style: TextStyle(color: Colors.white30))),
+          TextButton(onPressed: () => Get.back(), child: Text('Cancel', style: TextStyle(color: Colors.white30))),
           ElevatedButton(
             onPressed: () {
               final user = userController.text.trim();
@@ -1675,7 +1675,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               if (user.isEmpty || amtVal <= 0) return;
               if (amtVal > _storeCtrl.coinsBalance.value) {
                 Get.back();
-                Get.snackbar('Transfer Error ⚠️', 'Insufficient balance.', snackPosition: SnackPosition.BOTTOM, backgroundColor: const Color(0xFFEF4444), colorText: Colors.white);
+                Get.snackbar('Transfer Error ⚠️', 'Insufficient balance.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Color(0xFFEF4444), colorText: Colors.white);
                 return;
               }
 
@@ -1691,12 +1691,12 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                 'Transfer Successful 💸',
                 '$amtVal Gold Coins transferred to $user successfully!',
                 snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: const Color(0xFF10B981),
+                backgroundColor: Color(0xFF10B981),
                 colorText: Colors.white,
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Transfer'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+            child: Text('Transfer'),
           ),
         ],
       ),
@@ -1713,7 +1713,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            backgroundColor: const Color(0xFF13131A),
+            backgroundColor: context.surfaceColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Text('Withdraw Diamonds', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             content: Column(
@@ -1723,19 +1723,19 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                 Obx(() {
                   return Text(
                     'Available Diamonds: ${_storeCtrl.diamondsBalance.value} 💎 (₹${_storeCtrl.diamondsBalance.value})',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
                   );
                 }),
-                const SizedBox(height: 12),
-                const Text(
+                SizedBox(height: 12),
+                Text(
                   'Withdrawal Rules:\n• Min withdrawal is 1000 Diamonds (₹1000).\n• 1 Diamond = ₹1 INR.',
                   style: TextStyle(color: Colors.white38, fontSize: 10),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: amtController,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: TextStyle(color: Colors.white, fontSize: 13),
                   decoration: const InputDecoration(
                     labelText: 'Withdrawal Amount (Diamonds)',
                     labelStyle: TextStyle(color: Colors.white30, fontSize: 11),
@@ -1743,11 +1743,11 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                     focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF10B981))),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: selectedMethod,
-                  dropdownColor: const Color(0xFF13131A),
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  dropdownColor: context.surfaceColor,
+                  style: TextStyle(color: Colors.white, fontSize: 13),
                   decoration: const InputDecoration(
                     labelText: 'Payout Method',
                     labelStyle: TextStyle(color: Colors.white30, fontSize: 11),
@@ -1768,12 +1768,12 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Get.back(), child: const Text('Cancel', style: TextStyle(color: Colors.white30))),
+              TextButton(onPressed: () => Get.back(), child: Text('Cancel', style: TextStyle(color: Colors.white30))),
               ElevatedButton(
                 onPressed: () {
                   final val = int.tryParse(amtController.text) ?? 0;
                   if (val < 1000) {
-                    Get.snackbar('Withdraw Error ⚠️', 'Minimum withdrawal is 1000 Diamonds.', snackPosition: SnackPosition.BOTTOM, backgroundColor: const Color(0xFFEF4444), colorText: Colors.white);
+                    Get.snackbar('Withdraw Error ⚠️', 'Minimum withdrawal is 1000 Diamonds.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Color(0xFFEF4444), colorText: Colors.white);
                     return;
                   }
                   
@@ -1784,13 +1784,13 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                       'Withdrawal Requested 💵',
                       'Your withdrawal of ₹$val INR (using $selectedMethod) has been requested.',
                       snackPosition: SnackPosition.BOTTOM,
-                      backgroundColor: const Color(0xFF10B981),
+                      backgroundColor: Color(0xFF10B981),
                       colorText: Colors.white,
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-                child: const Text('Request Payout'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF10B981)),
+                child: Text('Request Payout'),
               ),
             ],
           );
@@ -1803,8 +1803,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showPaymentAccountsDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -1813,11 +1813,11 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Linked Payment Accounts', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildLinkedAccountItem('PayPal Account', 'anurag.dev@gmail.com', true),
             _buildLinkedAccountItem('Bank Account (HDFC)', '**** **** 8245', false),
             _buildLinkedAccountItem('UPI Address', 'anurag@ybl', false),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -1825,8 +1825,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                   Get.back();
                   Get.snackbar('Link Account', 'Linking page coming soon!', snackPosition: SnackPosition.BOTTOM);
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('+ Link New Account'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('+ Link New Account'),
               ),
             )
           ],
@@ -1837,10 +1837,10 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
   Widget _buildLinkedAccountItem(String type, String val, bool isPrimary) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C24),
+        color: Color(0xFF1C1C24),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -1855,9 +1855,9 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           ),
           if (isPrimary)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
-              child: const Text('Primary', style: TextStyle(color: Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.bold)),
+              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: Color(0xFF10B981).withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
+              child: Text('Primary', style: TextStyle(color: Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.bold)),
             ),
         ],
       ),
@@ -1868,8 +1868,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showWalletHistoryDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -1878,18 +1878,18 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Coin Transactions History', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildHistoryItem('Daily Reward Claimed', '+50 Gold', 'Claimed reward coins', 'Success'),
             _buildHistoryItem('Dragon Wings Aura unlock', '-300 Gold', 'Cosmetics unlock purchase', 'Success'),
             _buildHistoryItem('Referral Bonus Coins', '+100 Gold', 'Friend signup commission', 'Success'),
             _buildHistoryItem('Vip 3 subscription gift', '+500 Gold', 'Bonus gift for subscribing', 'Success'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('Close'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('Close'),
               ),
             )
           ],
@@ -1902,8 +1902,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showWithdrawalHistoryDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -1912,17 +1912,17 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Withdrawal History', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildHistoryItem('PayPal Payout P-9428', '\$100.00', 'Pending • Processing payout', 'Processing'),
             _buildHistoryItem('Bank Account H-2940', '\$150.00', 'Transferred • 04 Jun', 'Completed'),
             _buildHistoryItem('PayPal Payout P-8392', '\$50.00', 'Transferred • 12 May', 'Completed'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('Close'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('Close'),
               ),
             )
           ],
@@ -1935,8 +1935,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showTasksDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -1945,17 +1945,17 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Active Task Center', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildTaskTile('Host a voice arena for 30 mins', '+200 XP • +50 Gold', true),
             _buildTaskTile('Comment on 5 trending posts', '+100 XP • +10 Gold', false),
             _buildTaskTile('Send a gift to any co-host speaker', '+150 XP • +30 Gold', true),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('Close'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('Close'),
               ),
             )
           ],
@@ -1966,10 +1966,10 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
   Widget _buildTaskTile(String desc, String rewards, bool isCompleted) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C24),
+        color: Color(0xFF1C1C24),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -1980,13 +1980,13 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(desc, style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                Text(rewards, style: GoogleFonts.poppins(color: const Color(0xFFA78BFA), fontSize: 9)),
+                Text(rewards, style: GoogleFonts.poppins(color: Color(0xFFA78BFA), fontSize: 9)),
               ],
             ),
           ),
           Icon(
             isCompleted ? Icons.check_circle_rounded : Icons.pending_actions_rounded,
-            color: isCompleted ? const Color(0xFF10B981) : Colors.white24,
+            color: isCompleted ? Color(0xFF10B981) : Colors.white24,
             size: 18,
           ),
         ],
@@ -1998,7 +1998,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showFaqDialog() {
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Frequently Asked Questions', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         content: SizedBox(
@@ -2015,8 +2015,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
         actions: [
           ElevatedButton(
             onPressed: () => Get.back(),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Close'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+            child: Text('Close'),
           ),
         ],
       ),
@@ -2025,12 +2025,12 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
   Widget _buildFaqItem(String q, String a) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: EdgeInsets.only(bottom: 12.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Q: $q', style: GoogleFonts.poppins(color: const Color(0xFFA78BFA), fontSize: 11, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
+          Text('Q: $q', style: GoogleFonts.poppins(color: Color(0xFFA78BFA), fontSize: 11, fontWeight: FontWeight.bold)),
+          SizedBox(height: 2),
           Text(a, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10)),
         ],
       ),
@@ -2042,18 +2042,18 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
     final txtController = TextEditingController();
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Contact Live Support', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Enter message describing your issue. Support response time is typically <12 hours.', style: TextStyle(color: Colors.white54, fontSize: 11)),
-            const SizedBox(height: 8),
+            Text('Enter message describing your issue. Support response time is typically <12 hours.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+            SizedBox(height: 8),
             TextField(
               controller: txtController,
               maxLines: 3,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 hintText: 'Describe issue...',
                 hintStyle: TextStyle(color: Colors.white24),
@@ -2064,15 +2064,15 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel', style: TextStyle(color: Colors.white30))),
+          TextButton(onPressed: () => Get.back(), child: Text('Cancel', style: TextStyle(color: Colors.white30))),
           ElevatedButton(
             onPressed: () {
               if (txtController.text.trim().isEmpty) return;
               Get.back();
-              Get.snackbar('Ticket Opened 📩', 'Support ticket opened successfully. Reference: #AGX-${DateTime.now().millisecond}', snackPosition: SnackPosition.BOTTOM, backgroundColor: const Color(0xFF10B981), colorText: Colors.white);
+              Get.snackbar('Ticket Opened 📩', 'Support ticket opened successfully. Reference: #AGX-${DateTime.now().millisecond}', snackPosition: SnackPosition.BOTTOM, backgroundColor: Color(0xFF10B981), colorText: Colors.white);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Send Message'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+            child: Text('Send Message'),
           ),
         ],
       ),
@@ -2084,7 +2084,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
     final txtController = TextEditingController();
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Report Abuse / Bug', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         content: Column(
@@ -2093,7 +2093,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             TextField(
               controller: txtController,
               maxLines: 3,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 hintText: 'Enter bug details or user ID to report...',
                 hintStyle: TextStyle(color: Colors.white24),
@@ -2104,15 +2104,15 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel', style: TextStyle(color: Colors.white30))),
+          TextButton(onPressed: () => Get.back(), child: Text('Cancel', style: TextStyle(color: Colors.white30))),
           ElevatedButton(
             onPressed: () {
               if (txtController.text.trim().isEmpty) return;
               Get.back();
-              Get.snackbar('Report Submitted 🛡️', 'Thank you for reporting. Our moderation team will investigate.', snackPosition: SnackPosition.BOTTOM, backgroundColor: const Color(0xFF10B981), colorText: Colors.white);
+              Get.snackbar('Report Submitted 🛡️', 'Thank you for reporting. Our moderation team will investigate.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Color(0xFF10B981), colorText: Colors.white);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Submit Report'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+            child: Text('Submit Report'),
           ),
         ],
       ),
@@ -2121,14 +2121,14 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
   // Dummy methods for dialog builders
   Widget _buildHistoryItem(String title, String amt, String desc, String status) {
-    Color statColor = const Color(0xFF10B981);
+    Color statColor = Color(0xFF10B981);
     if (status == 'Failed' || status == 'Processing') {
-      statColor = const Color(0xFFEF4444);
+      statColor = Color(0xFFEF4444);
     }
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: const Color(0xFF161620), borderRadius: BorderRadius.circular(10)),
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(10),
+      decoration: BoxDecoration(color: Color(0xFF161620), borderRadius: BorderRadius.circular(10)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -2155,13 +2155,13 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
   Widget _buildCouponItem(String code, String desc, String valDate) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFF1C1C24), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.1))),
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Color(0xFF1C1C24), borderRadius: BorderRadius.circular(10), border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.1))),
       child: Row(
         children: [
-          const Icon(Icons.confirmation_number_outlined, color: Color(0xFFA78BFA), size: 18),
-          const SizedBox(width: 12),
+          Icon(Icons.confirmation_number_outlined, color: Color(0xFFA78BFA), size: 18),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2180,8 +2180,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showGiftHistoryDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -2190,17 +2190,17 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Sent & Received Gifts', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildHistoryItem('Rose Gift 🌹 from sky_limit', '+\$2.50', 'Received in Voice Arena #12', 'Success'),
             _buildHistoryItem('Crown Castle 🏰 to anurag_dev', '-\$15.00', 'Sent in Voice Arena #24', 'Success'),
             _buildHistoryItem('Love Balloon 🎈 from user_482', '+\$1.20', 'Received in Private Message', 'Success'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('Close'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('Close'),
               ),
             )
           ],
@@ -2212,8 +2212,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showRechargeHistoryDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -2222,16 +2222,16 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Recharge Orders Log', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildHistoryItem('1000 Gold Coins Recharge', '+\$9.99', 'Razorpay Order ID: pay_9428', 'Completed'),
             _buildHistoryItem('2500 Gold Coins Recharge', '+\$24.99', 'Razorpay Order ID: pay_2841', 'Completed'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('Close'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('Close'),
               ),
             )
           ],
@@ -2243,8 +2243,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showTaskHistoryDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -2253,16 +2253,16 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Completed Milestones History', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildHistoryItem('Host for 30 minutes', '+200 XP • +50 Gold', 'Daily task reward', 'Success'),
             _buildHistoryItem('Reach ID Level 25 milestone', '+1000 XP • +100 Gold', 'Milestone reward achievement', 'Success'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('Close'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('Close'),
               ),
             )
           ],
@@ -2274,8 +2274,8 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showRewardHistoryDialog() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
           color: Color(0xFF0F0F16),
           borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
@@ -2284,17 +2284,17 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Claimed Rewards History', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildHistoryItem('Daily Login Bonus', '+50 Gold Coins', 'Day 5 Streak claim', 'Success'),
             _buildHistoryItem('Lucky Draw Spin Win', '3 Days VIP', 'Spin Wheel reward', 'Success'),
             _buildHistoryItem('Promo Code FESTIVAL50', '50% Off Store Coupon', 'Redeemed promo code', 'Success'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Get.back(),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                child: const Text('Close'),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+                child: Text('Close'),
               ),
             )
           ],
@@ -2306,7 +2306,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showCreatorDashboard() {
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Creator Dashboard', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         content: Column(
@@ -2314,17 +2314,17 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Welcome back, Creator!', style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text('• Live streams hosted: 14\n• Total viewers: 42,800\n• Diamonds earned: 8,420\n• Current status: Active & Verified', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
-            const SizedBox(height: 12),
-            const Text('Your monthly creator payout will be automatically credited to PayPal.', style: TextStyle(color: Colors.white38, fontSize: 10)),
+            SizedBox(height: 12),
+            Text('Your monthly creator payout will be automatically credited to PayPal.', style: TextStyle(color: Colors.white38, fontSize: 10)),
           ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Get.back(),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Close'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+            child: Text('Close'),
           ),
         ],
       ),
@@ -2334,7 +2334,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   void _showAgencyDashboard() {
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF13131A),
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Agency Dashboard', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         content: Column(
@@ -2342,15 +2342,15 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Agency: Creania Talent Network', style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text('• Registered host count: 8\n• Active hosts streaming: 3\n• Today\'s agency commission: \$12.40\n• Current monthly agency tier: Gold (2.5%)', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
           ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Get.back(),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Close'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF8B5CF6)),
+            child: Text('Close'),
           ),
         ],
       ),

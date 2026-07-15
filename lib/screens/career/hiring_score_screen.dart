@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 
 class HiringScoreScreen extends StatefulWidget {
   const HiringScoreScreen({Key? key}) : super(key: key);
@@ -22,7 +22,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
       'icon': '💡',
       'value': 82,
       'detail': '482 problems • 340 AC',
-      'color': const Color(0xFF6366F1),
+      'color': Color(0xFF6366F1),
       'weight': 20,
     },
     {
@@ -30,7 +30,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
       'icon': '🏆',
       'value': 68,
       'detail': 'Best rank: #142 (LeetCode Weekly)',
-      'color': const Color(0xFFF59E0B),
+      'color': Color(0xFFF59E0B),
       'weight': 15,
     },
     {
@@ -38,7 +38,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
       'icon': '🏗️',
       'value': 70,
       'detail': '3 projects • 2 deployed',
-      'color': const Color(0xFF10B981),
+      'color': Color(0xFF10B981),
       'weight': 18,
     },
     {
@@ -46,7 +46,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
       'icon': '📁',
       'value': 65,
       'detail': 'GitHub: 48 repos • 230 contributions',
-      'color': const Color(0xFF8B5CF6),
+      'color': Color(0xFF8B5CF6),
       'weight': 12,
     },
     {
@@ -54,7 +54,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
       'icon': '🔥',
       'value': 88,
       'detail': '28-day streak • 4.2 avg/week',
-      'color': const Color(0xFFF97316),
+      'color': Color(0xFFF97316),
       'weight': 15,
     },
     {
@@ -62,7 +62,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
       'icon': '🗣️',
       'value': 72,
       'detail': 'Community posts: 48 • Rating: 4.2',
-      'color': const Color(0xFF3B82F6),
+      'color': Color(0xFF3B82F6),
       'weight': 8,
     },
     {
@@ -70,7 +70,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
       'icon': '👑',
       'value': 55,
       'detail': 'Community admin: 1 • Mentored: 3',
-      'color': const Color(0xFFFBBF24),
+      'color': Color(0xFFFBBF24),
       'weight': 7,
     },
     {
@@ -78,7 +78,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
       'icon': '🤖',
       'value': 78,
       'detail': 'Code quality: 82 • Readability: 74',
-      'color': const Color(0xFFEC4899),
+      'color': Color(0xFFEC4899),
       'weight': 5,
     },
   ];
@@ -124,30 +124,30 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'Hiring Score',
           style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: context.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w700),
         ),
         actions: [
           Row(
             children: [
-              const Text('Public',
+              Text('Public',
                   style: TextStyle(
-                      color: AppTheme.textTertiary, fontSize: 12)),
+                      color: context.caption, fontSize: 12)),
               Switch(
                 value: _isPublic,
-                activeColor: AppTheme.primaryColor,
+                activeColor: context.primaryColor,
                 onChanged: (v) => setState(() => _isPublic = v),
               ),
             ],
@@ -155,16 +155,16 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
           _buildScoreGauge(),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _buildVisibilityBanner(),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _buildFactorsSection(),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _buildTipsSection(),
-          const SizedBox(height: 80),
+          SizedBox(height: 80),
         ],
       ),
     );
@@ -172,14 +172,14 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
 
   Widget _buildScoreGauge() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
             _scoreColor().withOpacity(0.15),
-            AppTheme.bgLight.withOpacity(0.5),
+            context.secondaryBackgroundColor.withOpacity(0.5),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
@@ -187,15 +187,15 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             'Your Hiring Score',
             style: TextStyle(
-              color: AppTheme.textTertiary,
+              color: context.caption,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           // Gauge
           AnimatedBuilder(
             animation: _scoreController,
@@ -214,7 +214,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(height: 30),
+                        SizedBox(height: 30),
                         Text(
                           '$animatedScore',
                           style: TextStyle(
@@ -238,11 +238,11 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
               );
             },
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             '📈 Top ${100 - _totalScore}% better than this week',
-            style: const TextStyle(
-                color: AppTheme.textTertiary, fontSize: 12),
+            style: TextStyle(
+                color: context.caption, fontSize: 12),
           ),
         ],
       ),
@@ -250,9 +250,9 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
   }
 
   Color _scoreColor() {
-    if (_totalScore >= 85) return const Color(0xFF10B981);
-    if (_totalScore >= 65) return const Color(0xFFF59E0B);
-    return const Color(0xFFEF4444);
+    if (_totalScore >= 85) return Color(0xFF10B981);
+    if (_totalScore >= 65) return Color(0xFFF59E0B);
+    return Color(0xFFEF4444);
   }
 
   String _scoreLabel() {
@@ -264,17 +264,17 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
 
   Widget _buildVisibilityBanner() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: (_isPublic
-            ? AppTheme.accentColor
-            : AppTheme.textTertiary)
+            ? context.accentOrange
+            : context.caption)
             .withOpacity(0.1),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: (_isPublic
-              ? AppTheme.accentColor
-              : AppTheme.textTertiary)
+              ? context.accentOrange
+              : context.caption)
               .withOpacity(0.3),
         ),
       ),
@@ -285,11 +285,11 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
                 ? Icons.visibility_rounded
                 : Icons.visibility_off_rounded,
             color: _isPublic
-                ? AppTheme.accentColor
-                : AppTheme.textTertiary,
+                ? context.accentOrange
+                : context.caption,
             size: 20,
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Text(
               _isPublic
@@ -297,8 +297,8 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
                   : '🔒 Your score is hidden from companies',
               style: TextStyle(
                 color: _isPublic
-                    ? AppTheme.accentColor
-                    : AppTheme.textTertiary,
+                    ? context.accentOrange
+                    : context.caption,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -313,15 +313,15 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Score Breakdown',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         ..._factors.map((f) => _buildFactorRow(f)),
       ],
     );
@@ -331,32 +331,32 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
     final color = factor['color'] as Color;
     final value = factor['value'] as int;
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Column(
         children: [
           Row(
             children: [
               Text(factor['icon'] as String,
-                  style: const TextStyle(fontSize: 20)),
-              const SizedBox(width: 12),
+                  style: TextStyle(fontSize: 20)),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(factor['label'] as String,
-                        style: const TextStyle(
-                            color: AppTheme.textPrimary,
+                        style: TextStyle(
+                            color: context.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w700)),
                     Text(factor['detail'] as String,
-                        style: const TextStyle(
-                            color: AppTheme.textTertiary, fontSize: 11)),
+                        style: TextStyle(
+                            color: context.caption, fontSize: 11)),
                   ],
                 ),
               ),
@@ -373,14 +373,14 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
                   ),
                   Text(
                     'Weight: ${factor['weight']}%',
-                    style: const TextStyle(
-                        color: AppTheme.textTertiary, fontSize: 10),
+                    style: TextStyle(
+                        color: context.caption, fontSize: 10),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: AnimatedBuilder(
@@ -388,7 +388,7 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
               builder: (ctx, _) => LinearProgressIndicator(
                 value: (value / 100) * _scoreController.value,
                 minHeight: 6,
-                backgroundColor: AppTheme.borderColor,
+                backgroundColor: context.borderColor,
                 valueColor: AlwaysStoppedAnimation(color),
               ),
             ),
@@ -402,24 +402,24 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '🚀 Improve Your Score',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: context.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         ..._tips.map((tip) {
           final impactColor = tip['impact'] == 'HIGH'
-              ? const Color(0xFFEF4444)
+              ? Color(0xFFEF4444)
               : tip['impact'] == 'MEDIUM'
-                  ? const Color(0xFFF59E0B)
-                  : AppTheme.textTertiary;
+                  ? Color(0xFFF59E0B)
+                  : context.caption;
           return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(14),
+            margin: EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: impactColor.withOpacity(0.06),
               borderRadius: BorderRadius.circular(12),
@@ -429,15 +429,15 @@ class _HiringScoreScreenState extends State<HiringScoreScreen>
             child: Row(
               children: [
                 Text(tip['icon'] as String,
-                    style: const TextStyle(fontSize: 18)),
-                const SizedBox(width: 12),
+                    style: TextStyle(fontSize: 18)),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(tip['tip'] as String,
-                      style: const TextStyle(
-                          color: AppTheme.textSecondary, fontSize: 12)),
+                      style: TextStyle(
+                          color: context.textSecondary, fontSize: 12)),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: impactColor.withOpacity(0.15),

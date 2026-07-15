@@ -6,10 +6,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../../services/user_progress_sync_service.dart';
+import '../../widgets/custom_image_editor.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({Key? key}) : super(key: key);
@@ -256,13 +257,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (pickedFile != null) {
-      setState(() {
-        if (isAvatar) {
-          _avatarFile = File(pickedFile.path);
-        } else {
-          _coverFile = File(pickedFile.path);
-        }
-      });
+      final editedFile = await CustomImageEditor.editImage(context, File(pickedFile.path));
+      if (editedFile != null) {
+        setState(() {
+          if (isAvatar) {
+            _avatarFile = editedFile;
+          } else {
+            _coverFile = editedFile;
+          }
+        });
+      }
     }
   }
 
@@ -412,7 +416,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: AlertDialog(
-          backgroundColor: AppTheme.bgLight,
+          backgroundColor: context.secondaryBackgroundColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
             '100% Profile Complete! 🎉',
@@ -426,18 +430,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppTheme.accentColor.withOpacity(0.12),
+                  color: context.accentOrange.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.stars_rounded, color: AppTheme.accentColor, size: 48),
+                child: Icon(Icons.stars_rounded, color: context.accentOrange, size: 48),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               Text(
                 'You have unlocked early explorer status!',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 13),
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _dialogRewardRow('🎖️', 'Early Explorer Badge'),
               _dialogRewardRow('🪙', '100 Gold Coins Added'),
               _dialogRewardRow('✨', '7-Day Avatar Frame Unlocked'),
@@ -451,10 +455,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Get.back(); // Go back to profile screen
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: context.primaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Awesome!'),
+                child: Text('Awesome!'),
               ),
             ),
           ],
@@ -465,12 +469,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Widget _dialogRewardRow(String emoji, String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 18)),
-          const SizedBox(width: 8),
+          Text(emoji, style: TextStyle(fontSize: 18)),
+          SizedBox(width: 8),
           Text(title, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
         ],
       ),
@@ -481,77 +485,77 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     final completionPercent = _calculateCompletion();
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Edit Profile', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.check, color: AppTheme.primaryColor),
+            icon: Icon(Icons.check, color: context.primaryColor),
             onPressed: _saveChanges,
           ),
         ],
       ),
       body: _isLoading && UserProfileCacheManager.currentUser == null
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Profile Completion Tracker Card
                   _buildCompletionCard(completionPercent),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // Cover & Avatar Pickers
                   _buildMediaSelector(),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   _sectionHeader('Basic Identity'),
                   _buildInputField('Display Name', _displayNameCtrl, hint: 'John Doe'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildUsernameInput(),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('Bio (Max 150 chars)', _bioCtrl, hint: 'Share something about yourself', maxLines: 3),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildDobSelector(),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildGenderSelector(),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   _sectionHeader('Location'),
                   _buildInputField('Country', _countryCtrl, hint: 'India'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('State', _stateCtrl, hint: 'Maharashtra'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('City', _cityCtrl, hint: 'Mumbai'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('Languages', _languageCtrl, hint: 'English, Hindi'),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   _sectionHeader('Education & Career'),
                   _buildInputField('Occupation', _occupationCtrl, hint: 'Software Engineer'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('School', _schoolCtrl, hint: 'High School Name'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('College', _collegeCtrl, hint: 'IIT Bombay'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('Company', _companyCtrl, hint: 'Google'),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   _sectionHeader('Social Links & Website'),
                   _buildInputField('Website', _websiteCtrl, hint: 'https://johndoe.com'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('Instagram', _instagramCtrl, hint: 'instagram.com/johndoe'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('YouTube', _youtubeCtrl, hint: 'youtube.com/johndoe'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildInputField('X (Twitter)', _twitterCtrl, hint: 'twitter.com/johndoe'),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   _sectionHeader('Interests'),
                   _buildInterestsGrid(),
-                  const SizedBox(height: 48),
+                  SizedBox(height: 48),
 
                   SizedBox(
                     width: double.infinity,
@@ -559,13 +563,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     child: ElevatedButton(
                       onPressed: _saveChanges,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
+                        backgroundColor: context.primaryColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text('Save Profile Details', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  SizedBox(height: 40),
                 ],
               ),
             ),
@@ -575,11 +579,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildCompletionCard(int percentage) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,23 +592,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Profile Completion', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-              Text('$percentage%', style: GoogleFonts.poppins(color: AppTheme.accentColor, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('$percentage%', style: GoogleFonts.poppins(color: context.accentOrange, fontWeight: FontWeight.bold, fontSize: 16)),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           LinearProgressIndicator(
             value: percentage / 100,
-            backgroundColor: AppTheme.borderColor,
-            color: AppTheme.accentColor,
+            backgroundColor: context.borderColor,
+            color: context.accentOrange,
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             percentage == 100
                 ? '🎉 Congratulations! 100% complete. Early explorer benefits unlocked.'
                 : 'Complete your profile to 100% to unlock the "Early Explorer" badge & 100 coins!',
-            style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 11),
+            style: GoogleFonts.poppins(color: context.caption, fontSize: 11),
           ),
         ],
       ),
@@ -623,7 +627,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.borderColor),
+              border: Border.all(color: context.borderColor),
               image: _coverFile != null
                   ? DecorationImage(image: FileImage(_coverFile!), fit: BoxFit.cover)
                   : (_user.coverPhoto != null && _user.coverPhoto!.isNotEmpty)
@@ -631,11 +635,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       : null,
             ),
             child: _coverFile == null && (_user.coverPhoto == null || _user.coverPhoto!.isEmpty)
-                ? const Center(child: Icon(Icons.add_photo_alternate_rounded, color: Colors.white60, size: 28))
+                ? Center(child: Icon(Icons.add_photo_alternate_rounded, color: Colors.white60, size: 28))
                 : null,
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         // Avatar picker
         Center(
@@ -643,17 +647,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 46,
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: context.primaryColor,
                 child: CircleAvatar(
                   radius: 43,
-                  backgroundColor: AppTheme.bgDark,
+                  backgroundColor: context.scaffoldBackgroundColor,
                   backgroundImage: _avatarFile != null
                       ? FileImage(_avatarFile!) as ImageProvider<Object>
                       : (_user.avatar != null && _user.avatar!.isNotEmpty)
                           ? NetworkImage(_user.avatar!) as ImageProvider<Object>
                           : null,
                   child: _avatarFile == null && (_user.avatar == null || _user.avatar!.isEmpty)
-                      ? const Icon(Icons.person_rounded, size: 40, color: Colors.white54)
+                      ? Icon(Icons.person_rounded, size: 40, color: Colors.white54)
                       : null,
                 ),
               ),
@@ -663,9 +667,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: GestureDetector(
                   onTap: () => _pickImage(true),
                   child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(color: AppTheme.primaryColor, shape: BoxShape.circle),
-                    child: const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(color: context.primaryColor, shape: BoxShape.circle),
+                    child: Icon(Icons.edit_rounded, color: Colors.white, size: 14),
                   ),
                 ),
               ),
@@ -678,10 +682,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Widget _sectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 12),
+      padding: EdgeInsets.only(top: 8, bottom: 12),
       child: Text(
         title,
-        style: GoogleFonts.outfit(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 16),
+        style: GoogleFonts.outfit(color: context.primaryColor, fontWeight: FontWeight.bold, fontSize: 16),
       ),
     );
   }
@@ -690,12 +694,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
+        Text(label, style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+        SizedBox(height: 6),
         TextField(
           controller: controller,
           maxLines: maxLines,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: TextStyle(color: Colors.white, fontSize: 14),
           decoration: InputDecoration(hintText: hint),
         ),
       ],
@@ -706,18 +710,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Username', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
+        Text('Username', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+        SizedBox(height: 6),
         TextField(
           controller: _usernameCtrl,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: TextStyle(color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
             prefixText: '@ ',
-            prefixStyle: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold),
+            prefixStyle: TextStyle(color: context.accentOrange, fontWeight: FontWeight.bold),
             suffixIcon: !_usernameChecked
                 ? null
                 : Icon(_usernameAvailable ? Icons.check_circle_outline : Icons.cancel_outlined,
-                    color: _usernameAvailable ? AppTheme.successColor : AppTheme.errorColor, size: 18),
+                    color: _usernameAvailable ? context.successColor : context.errorColor, size: 18),
           ),
           onChanged: (val) {
             setState(() {
@@ -728,16 +732,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           },
         ),
         if (_usernameError != null) ...[
-          const SizedBox(height: 4),
-          Text(_usernameError!, style: TextStyle(color: AppTheme.errorColor, fontSize: 11)),
+          SizedBox(height: 4),
+          Text(_usernameError!, style: TextStyle(color: context.errorColor, fontSize: 11)),
         ],
         if (!_usernameAvailable && _suggestions.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Wrap(
             spacing: 6,
             children: _suggestions.map((sug) => ActionChip(
               label: Text('@$sug'),
-              backgroundColor: AppTheme.bgLight,
+              backgroundColor: context.secondaryBackgroundColor,
               onPressed: () {
                 _usernameCtrl.text = sug;
                 _checkUsername(sug);
@@ -753,25 +757,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Date of Birth *', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
+        Text('Date of Birth *', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+        SizedBox(height: 6),
         GestureDetector(
           onTap: () => _selectDate(context),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: AppTheme.bgLight,
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderColor),
+              border: Border.all(color: context.borderColor),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   _dob == null ? 'Select Birthday' : DateFormat('dd MMM yyyy').format(_dob!),
-                  style: TextStyle(color: _dob == null ? AppTheme.textTertiary : Colors.white, fontSize: 14),
+                  style: TextStyle(color: _dob == null ? context.caption : Colors.white, fontSize: 14),
                 ),
-                const Icon(Icons.calendar_month_rounded, color: AppTheme.textTertiary, size: 18),
+                Icon(Icons.calendar_month_rounded, color: context.caption, size: 18),
               ],
             ),
           ),
@@ -784,21 +788,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Gender', style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
+        Text('Gender', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+        SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: AppTheme.bgLight,
+            color: context.secondaryBackgroundColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.borderColor),
+            border: Border.all(color: context.borderColor),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _selectedGender,
-              hint: const Text('Select Gender', style: TextStyle(color: AppTheme.textTertiary)),
-              dropdownColor: AppTheme.bgLight,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              hint: Text('Select Gender', style: TextStyle(color: context.caption)),
+              dropdownColor: context.secondaryBackgroundColor,
+              style: TextStyle(color: Colors.white, fontSize: 14),
               isExpanded: true,
               items: ['Male', 'Female', 'Non-Binary', 'Prefer not to say']
                   .map((g) => DropdownMenuItem(value: g, child: Text(g)))
@@ -829,10 +833,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               }
             });
           },
-          selectedColor: AppTheme.primaryColor.withOpacity(0.3),
+          selectedColor: context.primaryColor.withOpacity(0.3),
           checkmarkColor: Colors.white,
-          backgroundColor: AppTheme.bgLight,
-          labelStyle: TextStyle(color: isSelected ? Colors.white : AppTheme.textSecondary),
+          backgroundColor: context.secondaryBackgroundColor,
+          labelStyle: TextStyle(color: isSelected ? Colors.white : context.textSecondary),
         );
       }).toList(),
     );

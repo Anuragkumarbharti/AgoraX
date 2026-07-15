@@ -1,3 +1,4 @@
+import 'package:creania/core/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -96,7 +97,7 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
             '🔒 Skip Forward Disabled',
             'You must watch the video to unlock the quiz.',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: AppTheme.errorColor.withOpacity(0.9),
+            backgroundColor: context.errorColor.withOpacity(0.9),
             colorText: Colors.white,
             duration: const Duration(seconds: 2),
           );
@@ -117,7 +118,7 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
               '🎉 Quiz Unlocked!',
               'You have watched 90% of the video. You can now start the quiz.',
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: AppTheme.accentColor.withOpacity(0.9),
+              backgroundColor: context.accentOrange.withOpacity(0.9),
               colorText: Colors.white,
             );
           }
@@ -148,23 +149,23 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
     // Only allow 1.0x and 1.25x playback speeds
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppTheme.bgLight,
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: context.secondaryBackgroundColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Playback Speed',
               style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _speedOption(1.0, 'Normal (1.0x)'),
             _speedOption(1.25, '1.25x'),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Note: Speed is limited to maximum 1.25x for learning validation.',
               style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
@@ -178,8 +179,8 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
   Widget _speedOption(double speed, String label) {
     final isSelected = _currentPlaybackSpeed == speed;
     return ListTile(
-      title: Text(label, style: TextStyle(color: isSelected ? AppTheme.primaryColor : Colors.white)),
-      trailing: isSelected ? const Icon(Icons.check, color: AppTheme.primaryColor) : null,
+      title: Text(label, style: TextStyle(color: isSelected ? context.primaryColor : Colors.white)),
+      trailing: isSelected ? Icon(Icons.check, color: context.primaryColor) : null,
       onTap: () {
         setState(() {
           _currentPlaybackSpeed = speed;
@@ -209,10 +210,10 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: AppTheme.errorColor, size: 40),
-              const SizedBox(height: 8),
-              const Text('Failed to load learning video', style: TextStyle(color: Colors.white)),
-              const SizedBox(height: 8),
+              Icon(Icons.error_outline, color: context.errorColor, size: 40),
+              SizedBox(height: 8),
+              Text('Failed to load learning video', style: TextStyle(color: Colors.white)),
+              SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -220,7 +221,7 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
                     _initializePlayer();
                   });
                 },
-                child: const Text('Retry'),
+                child: Text('Retry'),
               )
             ],
           ),
@@ -235,8 +236,8 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
           color: Colors.black,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Center(
-          child: CircularProgressIndicator(color: AppTheme.primaryColor),
+        child: Center(
+          child: CircularProgressIndicator(color: context.primaryColor),
         ),
       );
     }
@@ -245,7 +246,7 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+        border: Border.all(color: context.borderColor.withOpacity(0.5)),
       ),
       clipBehavior: Clip.antiAlias,
       child: AspectRatio(
@@ -265,8 +266,8 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: const BoxDecoration(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -278,13 +279,13 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
                     Image.network(
                       'https://upload.wikimedia.org/wikipedia/commons/e/ef/Youtube_logo.png', // youtube icon
                       width: 24,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.play_circle_fill, color: Colors.red, size: 24),
+                      errorBuilder: (_, __, ___) => Icon(Icons.play_circle_fill, color: Colors.red, size: 24),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         widget.videoTitle,
-                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -299,12 +300,12 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
               GestureDetector(
                 onTap: _togglePlay,
                 child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
                     color: Colors.black54,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.play_arrow_rounded,
                     color: Colors.white,
                     size: 38,
@@ -318,8 +319,8 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
-                decoration: const BoxDecoration(
+                padding: EdgeInsets.fromLTRB(12, 16, 12, 8),
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
@@ -334,9 +335,9 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
                       children: [
                         Text(
                           _formatDuration(_currentPosition),
-                          style: const TextStyle(color: Colors.white, fontSize: 10),
+                          style: TextStyle(color: Colors.white, fontSize: 10),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Expanded(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4),
@@ -371,14 +372,14 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Text(
                           _formatDuration(_maxDurationSeconds),
-                          style: const TextStyle(color: Colors.white, fontSize: 10),
+                          style: TextStyle(color: Colors.white, fontSize: 10),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     // Action controls (Play/Pause, Speed, Watch progress text)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -398,7 +399,7 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
                         Text(
                           'Watched: ${(_maxPositionWatched / _maxDurationSeconds * 100).toInt()}% (90% required)',
                           style: TextStyle(
-                            color: _watchRequirementMet ? AppTheme.accentColor : Colors.white70,
+                            color: _watchRequirementMet ? context.accentOrange : Colors.white70,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -408,14 +409,14 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
                         GestureDetector(
                           onTap: _changeSpeed,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.white10,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               '${_currentPlaybackSpeed}x',
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),

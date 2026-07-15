@@ -226,10 +226,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 8),
             Text(
               'Creania',
-              style: GoogleFonts.outfit(
+              style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
                 fontSize: 22,
-                color: Colors.white,
+                color: AppTheme.primaryColor,
               ),
             ),
           ],
@@ -571,7 +571,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Text(
                       'DAILY MISSION',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppTheme.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.5,
@@ -600,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               selectedCat ?? 'Personalized Daily Learning',
               style: const TextStyle(
-                color: Colors.white,
+                color: AppTheme.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -619,7 +619,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 44,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: selectedCat != null ? AppTheme.primaryColor : AppTheme.cardBg,
+                  backgroundColor: AppTheme.primaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),

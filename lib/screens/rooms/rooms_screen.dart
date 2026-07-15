@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/room_model.dart';
 import '../../services/room_controller.dart';
 import '../../services/user_profile_cache_manager.dart';
@@ -55,10 +55,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   }
 
   Color _getPrivilegeColor(int level) {
-    if (level >= 10) return const Color(0xFF00E5FF);
+    if (level >= 10) return Color(0xFF00E5FF);
     if (level >= 7) return Colors.amber;
-    if (level >= 4) return const Color(0xFFC0C0C0);
-    return const Color(0xFFCD7F32);
+    if (level >= 4) return Color(0xFFC0C0C0);
+    return Color(0xFFCD7F32);
   }
 
   String _formatXpValue(int value) {
@@ -173,7 +173,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         'Refreshed',
         'Arenas list updated successfully!',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppTheme.primaryColor.withOpacity(0.9),
+        backgroundColor: context.primaryColor.withOpacity(0.9),
         colorText: Colors.white,
       );
     }
@@ -222,17 +222,17 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   Color _getRoleBadgeColor(String role) {
     switch (role) {
       case 'Owner':
-        return const Color(0xFFFFD700); // Gold
+        return Color(0xFFFFD700); // Gold
       case 'Co-owner':
-        return const Color(0xFF9D4EDD); // Purple
+        return Color(0xFF9D4EDD); // Purple
       case 'Admin':
-        return const Color(0xFF24A0ED); // Blue
+        return Color(0xFF24A0ED); // Blue
       case 'Host':
-        return const Color(0xFF2EC4B6); // Green
+        return Color(0xFF2EC4B6); // Green
       case 'Star Member':
-        return const Color(0xFFF72585); // Pink
+        return Color(0xFFF72585); // Pink
       default:
-        return AppTheme.textTertiary;
+        return context.caption;
     }
   }
 
@@ -315,8 +315,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
       StatefulBuilder(
         builder: (context, setModalState) {
           return Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF1E293B),
+            decoration: BoxDecoration(
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(24),
                 topRight: Radius.circular(24),
@@ -325,7 +325,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                 top: BorderSide(color: Color(0xFF334155), width: 1.5),
               ),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 24),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -336,12 +336,12 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white24,
+                        color: context.caption,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -363,35 +363,35 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             _sortBy = 'Trending';
                           });
                         },
-                        child: const Text(
+                        child: Text(
                           'Reset All',
-                          style: TextStyle(color: AppTheme.primaryColor),
+                          style: TextStyle(color: context.primaryColor),
                         ),
                       ),
                     ],
                   ),
-                  const Divider(color: Color(0xFF334155)),
-                  const SizedBox(height: 12),
+                  Divider(color: Color(0xFF334155)),
+                  SizedBox(height: 12),
 
                   // Sort Options
-                  Text('Sort By', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
+                  Text('Sort By', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  SizedBox(height: 8),
                   Row(
                     children: [
                       _buildFilterChipModal('Trending', _sortBy == 'Trending', (selected) {
                         setModalState(() => _sortBy = 'Trending');
                       }),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       _buildFilterChipModal('Online Users', _sortBy == 'Online Users', (selected) {
                         setModalState(() => _sortBy = 'Online Users');
                       }),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   // Category Filter
-                  Text('Category', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
+                  Text('Category', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -401,11 +401,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             }))
                         .toList(),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   // Language Filter
-                  Text('Language', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
+                  Text('Language', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -415,11 +415,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             }))
                         .toList(),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   // Country Filter
-                  Text('Country', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
+                  Text('Country', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -429,27 +429,27 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             }))
                         .toList(),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   // Room Type Filter
-                  Text('Arena Status', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
+                  Text('Arena Status', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  SizedBox(height: 8),
                   Row(
                     children: [
                       _buildFilterChipModal('All', _filterRoomType == 'All', (selected) {
                         setModalState(() => _filterRoomType = 'All');
                       }),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       _buildFilterChipModal('Permanent', _filterRoomType == 'Permanent', (selected) {
                         setModalState(() => _filterRoomType = 'Permanent');
                       }),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       _buildFilterChipModal('Temporary', _filterRoomType == 'Temporary', (selected) {
                         setModalState(() => _filterRoomType = 'Temporary');
                       }),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32),
 
                   // Apply Button
                   SizedBox(
@@ -461,7 +461,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         Get.back();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
+                        backgroundColor: context.primaryColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text(
@@ -485,29 +485,29 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
       label: Text(label),
       selected: isSelected,
       onSelected: onSelected,
-      backgroundColor: Colors.white.withOpacity(0.04),
-      selectedColor: AppTheme.primaryColor.withOpacity(0.2),
-      checkmarkColor: AppTheme.primaryColor,
+      backgroundColor: context.borderColor,
+      selectedColor: context.primaryColor.withOpacity(0.2),
+      checkmarkColor: context.primaryColor,
       labelStyle: TextStyle(
-        color: isSelected ? AppTheme.primaryColor : Colors.white70,
+        color: isSelected ? context.primaryColor : context.textSecondary,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 12,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isSelected ? AppTheme.primaryColor : Colors.white12,
+          color: isSelected ? context.primaryColor : Colors.white12,
           width: 1.0,
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -543,10 +543,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   // ── CUSTOM TOP BAR WITH GRADIENTS AND GLASSMORPHISM ──
   Widget _buildCustomAppBar(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.white10, width: 0.5),
+          bottom: BorderSide(color: context.borderColor, width: 0.5),
         ),
       ),
       child: Row(
@@ -560,9 +560,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                 width: 32,
                 fit: BoxFit.contain,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
+                shaderCallback: (bounds) => LinearGradient(
                   colors: [Color(0xFF6366F1), Color(0xFF8B5CF6), Color(0xFFF72585)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -584,9 +584,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           GestureDetector(
             onTap: () => _controller.walletBalance.value += 100, // cheat coin add
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.amber.withOpacity(0.3)),
                 boxShadow: [
@@ -599,11 +599,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-                  const SizedBox(width: 4),
+                  Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                  SizedBox(width: 4),
                   Obx(() => Text(
                         '${_controller.walletBalance.value}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -613,11 +613,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           // Create Arena button (plus)
           IconButton(
             onPressed: () => Get.to(() => const CreateRoomScreen()),
-            icon: const Icon(Icons.add_circle, color: Color(0xFF8B5CF6), size: 28),
+            icon: Icon(Icons.add_circle, color: Color(0xFF8B5CF6), size: 28),
             tooltip: 'Create Arena',
             constraints: const BoxConstraints(),
             padding: EdgeInsets.zero,
@@ -630,25 +630,25 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   // ── CUSTOM TOP TABS DESIGN ──
   Widget _buildTabSelector() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      margin: EdgeInsets.fromLTRB(16, 12, 16, 8),
       height: 48,
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: context.borderColor),
       ),
       child: TabBar(
         controller: _topTabController,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6366F1).withOpacity(0.3),
+              color: Color(0xFF6366F1).withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             )
@@ -657,7 +657,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
         labelColor: Colors.white,
-        unselectedLabelColor: Colors.white60,
+        unselectedLabelColor: context.textSecondary,
         labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
         unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
         tabs: const [
@@ -672,7 +672,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   // ── SEARCH BAR & FILTER ROW ──
   Widget _buildSearchFilterRow() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Row(
         children: [
           // Search Field
@@ -680,28 +680,28 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             child: Container(
               height: 46,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                border: Border.all(color: context.borderColor),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: AppTheme.textTertiary, size: 20),
-                  const SizedBox(width: 8),
+                  Icon(Icons.search, color: context.caption, size: 20),
+                  SizedBox(width: 8),
                   Expanded(
                     child: TextField(
                       controller: _searchController,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      style: TextStyle(color: context.textPrimary, fontSize: 14),
                       onChanged: (val) {
                         setState(() {
                           _searchQuery = val;
                         });
                         _controller.searchRooms(val);
                       },
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Search arenas by ID, name, tag...',
-                        hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 13),
+                        hintStyle: TextStyle(color: context.caption, fontSize: 13),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -712,7 +712,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   ),
                   if (_searchQuery.isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+                      icon: Icon(Icons.close, color: Colors.white54, size: 18),
                       onPressed: () {
                         _searchController.clear();
                         setState(() {
@@ -727,7 +727,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           // Filter Button
           GestureDetector(
             onTap: _openFiltersBottomSheet,
@@ -735,19 +735,19 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               height: 46,
               width: 46,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: (_filterCategory != 'All' || _filterLanguage != 'All' || _filterCountry != 'All' || _filterRoomType != 'All' || _sortBy != 'Trending')
-                      ? AppTheme.primaryColor
-                      : Colors.white.withOpacity(0.08),
+                      ? context.primaryColor
+                      : context.borderColor,
                 ),
               ),
               child: Icon(
                 Icons.tune_rounded,
                 color: (_filterCategory != 'All' || _filterLanguage != 'All' || _filterCountry != 'All' || _filterRoomType != 'All' || _sortBy != 'Trending')
-                    ? AppTheme.primaryColor
-                    : Colors.white70,
+                    ? context.primaryColor
+                    : context.textSecondary,
                 size: 20,
               ),
             ),
@@ -761,8 +761,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   Widget _buildExploreTabContent() {
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      color: AppTheme.primaryColor,
-      backgroundColor: const Color(0xFF1E293B),
+      color: context.primaryColor,
+      backgroundColor: context.secondaryBackgroundColor,
       child: _isRefreshing
           ? _buildSkeletonGrid()
           : SingleChildScrollView(
@@ -777,12 +777,12 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   // Dedicated "My Arenas" section
                   _buildMyArenasSection(),
 
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
 
                   // Public Arena Discovery Category selector
                   _buildCategorySelectionRow(),
 
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
 
                   // Switch between discovery states
                   _buildDiscoveryListContent(),
@@ -798,11 +798,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     final matchingMyRooms = _getMyRoomsByRole(_myRoomsActiveRole);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withOpacity(0.7),
+        color: context.secondaryBackgroundColor.withOpacity(0.7),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: context.borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -844,18 +844,18 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               final Color privilegeColor = _getPrivilegeColor(currentLevel);
 
               return Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF6366F1).withOpacity(0.15),
-                      const Color(0xFF8B5CF6).withOpacity(0.05),
+                      Color(0xFF6366F1).withOpacity(0.15),
+                      Color(0xFF8B5CF6).withOpacity(0.05),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  border: const Border(
-                    bottom: BorderSide(color: Colors.white10, width: 0.5),
+                  border: Border(
+                    bottom: BorderSide(color: context.borderColor, width: 0.5),
                   ),
                 ),
                 child: Column(
@@ -870,7 +870,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: hasRoom ? privilegeColor : Colors.white24,
+                              color: hasRoom ? privilegeColor : context.caption,
                               width: 1.5,
                             ),
                             image: hasRoom && roomAvatar != null && roomAvatar.isNotEmpty
@@ -879,19 +879,19 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                                     fit: BoxFit.cover,
                                   )
                                 : null,
-                            color: Colors.white.withOpacity(0.05),
+                            color: context.borderColor,
                           ),
                           child: !hasRoom
-                              ? const Center(
+                              ? Center(
                                   child: Icon(
                                     Icons.meeting_room_outlined,
-                                    color: Colors.white30,
+                                    color: context.caption,
                                     size: 20,
                                   ),
                                 )
                               : null,
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -905,11 +905,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                                 ),
                               ),
                               if (hasRoom) ...[
-                                const SizedBox(height: 2),
+                                SizedBox(height: 2),
                                 Text(
                                   roomId,
-                                  style: const TextStyle(
-                                    color: AppTheme.textTertiary,
+                                  style: TextStyle(
+                                    color: context.caption,
                                     fontSize: 11,
                                   ),
                                 ),
@@ -920,7 +920,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         // Only show Privilege if hasRoom
                         if (hasRoom)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: privilegeColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
@@ -933,45 +933,45 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                                   privilegeName,
                                   style: TextStyle(color: privilegeColor, fontSize: 10, fontWeight: FontWeight.bold),
                                 ),
-                                const SizedBox(width: 2),
+                                SizedBox(width: 2),
                                 Icon(Icons.arrow_forward_ios, size: 8, color: privilegeColor),
                               ],
                             ),
                           ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     // Progress Bar for user EXP
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'LV.$currentLevel / Creator EXP',
-                          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           '${_formatXpValue(currentXp)}/${_formatXpValue(xpNeeded)}',
-                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10),
+                          style: TextStyle(color: context.textSecondary, fontSize: 10),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: xpProgress,
                         minHeight: 5,
-                        backgroundColor: Colors.white10,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                        backgroundColor: context.borderColor,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'Today\'s EXP: +$todayExtraXp',
-                          style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                          style: TextStyle(color: context.caption, fontSize: 10),
                         ),
                         Text(
                           'Next Reward at LV.${currentLevel + 1}',
@@ -986,7 +986,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
             // Middle: 4 Quick Actions (Room Income, Report, Gifts, Course)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -998,14 +998,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               ),
             ),
 
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Divider(color: Colors.white10, height: 1),
+              child: Divider(color: context.borderColor, height: 1),
             ),
 
             // Horizontal sub-tabs for Roles
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: Obx(() {
                 final ownerCount = _getMyRoomsByRole('Owner').length;
                 final coOwnerCount = _getMyRoomsByRole('Co-owner').length;
@@ -1020,23 +1020,23 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       children: [
                         Text(
                           'Managed Arenas',
-                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white70),
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: context.textSecondary),
                         ),
                         Text(
                           '($activeCount Active)',
-                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.white38),
+                          style: GoogleFonts.poppins(fontSize: 12, color: context.caption),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
                           _buildRoleChip('Owner', ownerCount),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           _buildRoleChip('Co-owner', coOwnerCount),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           _buildRoleChip('Admin', adminCount),
                         ],
                       ),
@@ -1059,8 +1059,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   return _buildCreateRoomCard();
                 } else {
                   return Container(
-                    margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                    margin: EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.02),
                       borderRadius: BorderRadius.circular(20),
@@ -1069,7 +1069,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     child: Center(
                       child: Text(
                         'You are not a ${_myRoomsActiveRole.toLowerCase()} in any active arenas.',
-                        style: GoogleFonts.poppins(fontSize: 12, color: Colors.white38),
+                        style: GoogleFonts.poppins(fontSize: 12, color: context.caption),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -1085,8 +1085,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
   Widget _buildCreateRoomCard() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      padding: const EdgeInsets.all(20),
+      margin: EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.02),
         borderRadius: BorderRadius.circular(20),
@@ -1103,14 +1103,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: context.primaryColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.add_to_photos_rounded, color: AppTheme.primaryColor, size: 24),
+            child: Icon(Icons.add_to_photos_rounded, color: context.primaryColor, size: 24),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             'Host Your Own Arena',
             style: GoogleFonts.poppins(
@@ -1119,22 +1119,22 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             'Host live voice panels, gaming lounges, study circles, and build your community.',
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 11,
-              color: Colors.white38,
+              color: context.caption,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           ElevatedButton(
             onPressed: () => Get.to(() => const CreateRoomScreen()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: context.primaryColor,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1167,7 +1167,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         );
       },
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        margin: EdgeInsets.fromLTRB(16, 8, 16, 16),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.02),
           borderRadius: BorderRadius.circular(20),
@@ -1189,7 +1189,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   : _buildCardDefaultBanner(),
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12),
               child: Row(
                 children: [
                   // Avatar / DP
@@ -1198,12 +1198,12 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     backgroundImage: room.avatar != null && room.avatar!.isNotEmpty
                         ? NetworkImage(room.avatar!)
                         : null,
-                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                    backgroundColor: context.primaryColor.withOpacity(0.1),
                     child: room.avatar == null || room.avatar!.isEmpty
-                        ? const Icon(Icons.meeting_room_rounded, color: AppTheme.primaryColor)
+                        ? Icon(Icons.meeting_room_rounded, color: context.primaryColor)
                         : null,
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   // Info
                   Expanded(
                     child: Column(
@@ -1217,21 +1217,21 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2),
                         Text(
                           room.username.startsWith('@') ? room.username : '@${room.username}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppTheme.primaryColor,
+                            color: context.primaryColor,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           'Arena ID: ${room.id}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10.5,
-                            color: Colors.white38,
+                            color: context.caption,
                           ),
                         ),
                       ],
@@ -1250,7 +1250,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         ),
                       );
                     },
-                    icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 14),
+                    icon: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 14),
                   ),
                 ],
               ),
@@ -1268,15 +1268,15 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryColor.withOpacity(0.2),
-            const Color(0xFF6366F1).withOpacity(0.05),
+            context.primaryColor.withOpacity(0.2),
+            Color(0xFF6366F1).withOpacity(0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
       ),
-      child: const Center(
-        child: Icon(Icons.image, color: Colors.white24, size: 28),
+      child: Center(
+        child: Icon(Icons.image, color: context.caption, size: 28),
       ),
     );
   }
@@ -1288,14 +1288,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           label,
           'Opening simulated $label panel...',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: AppTheme.bgLight,
+          backgroundColor: context.secondaryBackgroundColor,
           colorText: Colors.white,
         );
       },
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
               shape: BoxShape.circle,
@@ -1303,10 +1303,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             ),
             child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             label,
-            style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w500, color: AppTheme.textSecondary),
+            style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w500, color: context.textSecondary),
           ),
         ],
       ),
@@ -1323,7 +1323,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? Colors.amber.withOpacity(0.1) : Colors.white.withOpacity(0.02),
           borderRadius: BorderRadius.circular(20),
@@ -1336,15 +1336,15 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isSelected) ...[
-              const Icon(Icons.check, size: 12, color: Colors.amber),
-              const SizedBox(width: 4),
+              Icon(Icons.check, size: 12, color: Colors.amber),
+              SizedBox(width: 4),
             ],
             Text(
               '$role ($count)',
               style: GoogleFonts.poppins(
                 fontSize: 11.5,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.amber : Colors.white70,
+                color: isSelected ? Colors.amber : context.textSecondary,
               ),
             ),
           ],
@@ -1364,25 +1364,25 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Column(
         children: [
           Icon(Icons.heart_broken_rounded, size: 48, color: Colors.pink.withOpacity(0.4)),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
             message,
-            style: const TextStyle(color: AppTheme.textTertiary, fontSize: 13),
+            style: TextStyle(color: context.caption, fontSize: 13),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           ElevatedButton(
             onPressed: () => Get.to(() => const CreateRoomScreen()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF72585),
+              backgroundColor: Color(0xFFF72585),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             ),
-            child: const Text('Enter my arena', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+            child: Text('Enter my arena', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ],
       ),
@@ -1394,13 +1394,13 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     final liveParticipants = room.participantCount + (_liveCountsOffset[room.id] ?? 0);
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.03),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       child: Row(
         children: [
           // Cover Image / Banner
@@ -1414,12 +1414,12 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   ? CachedNetworkImage(
                       imageUrl: room.avatar!,
                       fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => const Icon(Icons.radio, color: Colors.white38),
+                      errorWidget: (context, url, error) => Icon(Icons.radio, color: context.caption),
                     )
-                  : const Icon(Icons.radio, color: Colors.white38),
+                  : Icon(Icons.radio, color: context.caption),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           // Details
           Expanded(
             child: Column(
@@ -1435,10 +1435,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     // Role Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: _getRoleBadgeColor(role).withOpacity(0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -1455,57 +1455,57 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Row(
                   children: [
                     Text(
                       'ID: ${room.id}',
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                      style: TextStyle(color: context.caption, fontSize: 10),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     // Level badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                       decoration: BoxDecoration(
                         color: Colors.blueAccent.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         'LV.${room.level}',
-                        style: const TextStyle(color: Colors.blueAccent, fontSize: 8, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.blueAccent, fontSize: 8, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 // Stats row
                 Row(
                   children: [
                     // Member count (simulated online)
-                    Icon(Icons.people_outline, color: room.isLive ? const Color(0xFF10B981) : AppTheme.textTertiary, size: 12),
-                    const SizedBox(width: 3),
+                    Icon(Icons.people_outline, color: room.isLive ? Color(0xFF10B981) : context.caption, size: 12),
+                    SizedBox(width: 3),
                     Text(
                       room.isLive ? '$liveParticipants Online' : 'Offline',
                       style: TextStyle(
-                        color: room.isLive ? const Color(0xFF10B981) : AppTheme.textTertiary,
+                        color: room.isLive ? Color(0xFF10B981) : context.caption,
                         fontSize: 10,
                         fontWeight: room.isLive ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     // Last active time
-                    const Icon(Icons.access_time, color: AppTheme.textTertiary, size: 12),
-                    const SizedBox(width: 3),
-                    const Text(
+                    Icon(Icons.access_time, color: context.caption, size: 12),
+                    SizedBox(width: 3),
+                    Text(
                       'Active 2m ago',
-                      style: TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                      style: TextStyle(color: context.caption, fontSize: 10),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           // Enter Button
           ElevatedButton(
             onPressed: () => _joinArena(room),
@@ -1513,7 +1513,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               backgroundColor: _getRoleBadgeColor(role).withOpacity(0.2),
               foregroundColor: _getRoleBadgeColor(role),
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(color: _getRoleBadgeColor(role).withOpacity(0.4), width: 1),
@@ -1535,17 +1535,17 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
       height: 38,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: 16),
         itemCount: _discoveryCategories.length,
         itemBuilder: (context, index) {
           final isSelected = _selectedCategoryIndex == index;
           final category = _discoveryCategories[index];
           return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
+            padding: EdgeInsets.only(right: 8.0),
             child: ChoiceChip(
               avatar: Icon(
                 category['icon'] as IconData,
-                color: isSelected ? Colors.white : AppTheme.textTertiary,
+                color: isSelected ? Colors.white : context.caption,
                 size: 14,
               ),
               label: Text(category['name'] as String),
@@ -1557,20 +1557,20 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   });
                 }
               },
-              backgroundColor: const Color(0xFF1E293B),
-              selectedColor: AppTheme.primaryColor,
+              backgroundColor: context.secondaryBackgroundColor,
+              selectedColor: context.primaryColor,
               labelStyle: TextStyle(
-                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                color: isSelected ? Colors.white : context.textSecondary,
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.08),
+                  color: isSelected ? context.primaryColor : context.borderColor,
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             ),
           );
         },
@@ -1603,12 +1603,12 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
     // General category listings (e.g. Communities, Gaming, etc.)
     if (baseFiltered.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: 40),
         child: Center(
           child: Text(
             'No arenas active in this category',
-            style: TextStyle(color: AppTheme.textTertiary),
+            style: TextStyle(color: context.caption),
           ),
         ),
       );
@@ -1622,7 +1622,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       itemCount: 4,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -1633,10 +1633,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
       itemBuilder: (context, index) {
         return Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: context.secondaryBackgroundColor,
             borderRadius: BorderRadius.circular(16),
           ),
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1644,17 +1644,17 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white10,
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               // Name bar
-              Container(width: 100, height: 12, color: Colors.white10),
-              const SizedBox(height: 6),
+              Container(width: 100, height: 12, color: context.borderColor),
+              SizedBox(height: 6),
               // Subtitle bar
-              Container(width: 60, height: 10, color: Colors.white10),
+              Container(width: 60, height: 10, color: context.borderColor),
             ],
           ),
         );
@@ -1672,19 +1672,19 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+      padding: EdgeInsets.symmetric(vertical: 60, horizontal: 24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             type == 'Favorite' ? Icons.bookmark_border_rounded : Icons.history_toggle_off_rounded,
             size: 64,
-            color: AppTheme.textTertiary.withOpacity(0.5),
+            color: context.caption.withOpacity(0.5),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             message,
-            style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 15, fontWeight: FontWeight.w500),
+            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 15, fontWeight: FontWeight.w500),
             textAlign: TextAlign.center,
           ),
         ],
@@ -1704,20 +1704,20 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         _buildTrendingLane('🎮 Gaming Trends', _getFilteredArenas(categoryOverride: 'Gaming Zone')),
         _buildTrendingLane('🎓 Study Trends', _getFilteredArenas(categoryOverride: 'Study Hub')),
         _buildTrendingLane('🆕 New Arenas', _getFilteredArenas().where((r) => !r.isPermanent).toList()),
-        const SizedBox(height: 40),
+        SizedBox(height: 40),
       ],
     );
   }
 
   Widget _buildTrendingLane(String title, List<VoiceRoom> laneRooms) {
-    if (laneRooms.isEmpty) return const SizedBox.shrink();
+    if (laneRooms.isEmpty) return SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Lane Header
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1735,7 +1735,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     title,
                     'Viewing all items in $title...',
                     snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: AppTheme.bgLight,
+                    backgroundColor: context.secondaryBackgroundColor,
                     colorText: Colors.white,
                   );
                 },
@@ -1743,10 +1743,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   children: [
                     Text(
                       'View All',
-                      style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primaryColor),
+                      style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: context.primaryColor),
                     ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.primaryColor),
+                    SizedBox(width: 2),
+                    Icon(Icons.arrow_forward_ios, size: 10, color: context.primaryColor),
                   ],
                 ),
               ),
@@ -1759,14 +1759,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           height: 220,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16),
             itemCount: laneRooms.length,
             itemBuilder: (context, index) {
               return _buildPremiumArenaCard(laneRooms[index]);
             },
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
       ],
     );
   }
@@ -1778,7 +1778,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: gridRooms.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
@@ -1791,19 +1791,19 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           },
         ),
         if (_isLoading)
-          const Padding(
+          Padding(
             padding: EdgeInsets.all(16.0),
             child: Center(
-              child: CircularProgressIndicator(color: AppTheme.primaryColor),
+              child: CircularProgressIndicator(color: context.primaryColor),
             ),
           ),
         if (!_hasMore && gridRooms.length > 4)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
             child: Center(
               child: Text(
                 'No more arenas found.',
-                style: TextStyle(color: AppTheme.textTertiary, fontSize: 12),
+                style: TextStyle(color: context.caption, fontSize: 12),
               ),
             ),
           ),
@@ -1818,9 +1818,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
     Widget cardContent = Container(
       width: isGrid ? double.infinity : 160,
-      margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(right: 12),
+      margin: isGrid ? EdgeInsets.zero : EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withOpacity(0.55),
+        color: context.secondaryBackgroundColor.withOpacity(0.55),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: room.isPermanent ? Colors.amber.withOpacity(0.3) : Colors.white.withOpacity(0.06),
@@ -1845,11 +1845,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     imageUrl: (room.avatar != null && room.avatar!.isNotEmpty) ? room.avatar! : room.banner!,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      color: const Color(0xFF1E293B),
-                      child: const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor, strokeWidth: 2)),
+                      color: context.secondaryBackgroundColor,
+                      child: Center(child: CircularProgressIndicator(color: context.primaryColor, strokeWidth: 2)),
                     ),
                     errorWidget: (context, url, error) => Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Color(0xFF312E81), Color(0xFF1E1B4B)],
                           begin: Alignment.topLeft,
@@ -1860,7 +1860,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     ),
                   )
                 : Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [Color(0xFF312E81), Color(0xFF1E1B4B)],
                         begin: Alignment.topLeft,
@@ -1895,9 +1895,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                 children: [
                   // Category Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.85),
+                      color: context.primaryColor.withOpacity(0.85),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -1912,7 +1912,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
                   // Level Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.amber.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(4),
@@ -1937,7 +1937,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               child: GestureDetector(
                 onTap: () => _controller.toggleFavoriteRoom(room.id),
                 child: Container(
-                  padding: const EdgeInsets.all(5),
+                  padding: EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.5), // Fixed: Colors.black50 -> Colors.black.withOpacity(0.5)
                     shape: BoxShape.circle,
@@ -1945,7 +1945,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   ),
                   child: Icon(
                     isFavorite ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-                    color: isFavorite ? Colors.redAccent : Colors.white70,
+                    color: isFavorite ? Colors.redAccent : context.textSecondary,
                     size: 14,
                   ),
                 ),
@@ -1958,7 +1958,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                 top: 36,
                 left: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.red.withOpacity(0.85),
                     borderRadius: BorderRadius.circular(4),
@@ -1969,12 +1969,12 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       Container(
                         width: 4,
                         height: 4,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text(
                         'LIVE',
                         style: GoogleFonts.poppins(fontSize: 7, fontWeight: FontWeight.bold, color: Colors.white),
@@ -1986,12 +1986,12 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
             // Lock Indicator if private
             if (room.entryPermission != 'everyone')
-              const Positioned(
+              Positioned(
                 bottom: 80,
                 right: 8,
                 child: Icon(
                   Icons.lock_rounded,
-                  color: Colors.white70,
+                  color: context.textSecondary,
                   size: 14,
                 ),
               ),
@@ -2007,20 +2007,20 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   // Tags (horizontal list or wraps)
                   if (room.tags.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
+                      padding: EdgeInsets.only(bottom: 4.0),
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: room.tags.map((tag) => Container(
-                            margin: const EdgeInsets.only(right: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            margin: EdgeInsets.only(right: 4),
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                             decoration: BoxDecoration(
                               color: Colors.white12,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               '#$tag',
-                              style: const TextStyle(color: Colors.white70, fontSize: 7),
+                              style: TextStyle(color: context.textSecondary, fontSize: 7),
                             ),
                           )).toList(),
                         ),
@@ -2035,7 +2035,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       fontSize: 12,
                       color: Colors.white,
                       shadows: [
-                        const Shadow(
+                        Shadow(
                           color: Colors.black87,
                           blurRadius: 4,
                           offset: Offset(0, 1),
@@ -2045,7 +2045,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
 
                   // Host Details and Participant Counts
                   Obx(() {
@@ -2067,11 +2067,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                               child: CircleAvatar(
                                 radius: 10,
                                 backgroundImage: uAvatar.isNotEmpty ? CachedNetworkImageProvider(uAvatar) : null,
-                                backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                                child: uAvatar.isEmpty ? const Icon(Icons.person, size: 10, color: Colors.white70) : null,
+                                backgroundColor: context.primaryColor.withOpacity(0.1),
+                                child: uAvatar.isEmpty ? Icon(Icons.person, size: 10, color: context.textSecondary) : null,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             // Owner Name
                             Expanded(
                               child: PremiumNameWidget(
@@ -2086,31 +2086,31 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: Colors.blueAccent.withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     'LV.$uLevel',
-                                    style: const TextStyle(color: Colors.blueAccent, fontSize: 8, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: Colors.blueAccent, fontSize: 8, fontWeight: FontWeight.bold),
                                   ),
                                 ),
-                                const SizedBox(width: 4),
+                                SizedBox(width: 4),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: Colors.amber.withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     'Owner',
                                     style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold),
                                   ),
@@ -2120,7 +2120,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             Text(
                               room.isLive ? '$liveParticipants live' : 'Offline',
                               style: TextStyle(
-                                color: room.isLive ? const Color(0xFF10B981) : Colors.white54,
+                                color: room.isLive ? Color(0xFF10B981) : Colors.white54,
                                 fontSize: 8.5,
                                 fontWeight: room.isLive ? FontWeight.bold : FontWeight.normal,
                               ),
@@ -2151,24 +2151,24 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      color: AppTheme.primaryColor,
-      backgroundColor: const Color(0xFF1E293B),
+      color: context.primaryColor,
+      backgroundColor: context.secondaryBackgroundColor,
       child: liveArenas.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.radio_button_off, size: 64, color: AppTheme.textTertiary.withOpacity(0.5)),
-                  const SizedBox(height: 16),
-                  const Text(
+                  Icon(Icons.radio_button_off, size: 64, color: context.caption.withOpacity(0.5)),
+                  SizedBox(height: 16),
+                  Text(
                     'No live arenas active right now.',
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                    style: TextStyle(color: context.textSecondary, fontSize: 16),
                   ),
                 ],
               ),
             )
           : GridView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               itemCount: liveArenas.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -2189,35 +2189,35 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      color: AppTheme.primaryColor,
-      backgroundColor: const Color(0xFF1E293B),
+      color: context.primaryColor,
+      backgroundColor: context.secondaryBackgroundColor,
       child: scheduledArenas.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.event_note_rounded, size: 64, color: AppTheme.textTertiary.withOpacity(0.5)),
-                  const SizedBox(height: 16),
-                  const Text(
+                  Icon(Icons.event_note_rounded, size: 64, color: context.caption.withOpacity(0.5)),
+                  SizedBox(height: 16),
+                  Text(
                     'No scheduled events currently.',
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                    style: TextStyle(color: context.textSecondary, fontSize: 16),
                   ),
                 ],
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               itemCount: scheduledArenas.length,
               itemBuilder: (context, index) {
                 final room = scheduledArenas[index];
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin: EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
+                    color: context.secondaryBackgroundColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    border: Border.all(color: context.borderColor),
                   ),
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   child: Row(
                     children: [
                       // Large Event Icon/Cover
@@ -2226,44 +2226,44 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         child: Container(
                           width: 70,
                           height: 70,
-                          color: AppTheme.primaryColor.withOpacity(0.1),
-                          child: const Icon(Icons.rocket_launch_rounded, color: AppTheme.primaryColor, size: 36),
+                          color: context.primaryColor.withOpacity(0.1),
+                          child: Icon(Icons.rocket_launch_rounded, color: context.primaryColor, size: 36),
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      SizedBox(width: 14),
                       // Details
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryColor.withOpacity(0.12),
+                                color: context.primaryColor.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 room.category.toUpperCase(),
-                                style: const TextStyle(color: AppTheme.primaryColor, fontSize: 8, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: context.primaryColor, fontSize: 8, fontWeight: FontWeight.bold),
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            SizedBox(height: 6),
                             Text(
                               room.name,
                               style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               'Host: ${room.ownerName}',
-                              style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                              style: TextStyle(color: context.caption, fontSize: 11),
                             ),
-                            const SizedBox(height: 6),
+                            SizedBox(height: 6),
                             Row(
                               children: [
-                                const Icon(Icons.calendar_month, color: Colors.amber, size: 12),
-                                const SizedBox(width: 4),
+                                Icon(Icons.calendar_month, color: Colors.amber, size: 12),
+                                SizedBox(width: 4),
                                 Text(
                                   'Tomorrow, 7:00 PM',
                                   style: GoogleFonts.poppins(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.w600),
@@ -2273,7 +2273,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                           ],
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       // Action indicator
                       OutlinedButton(
                         onPressed: () {
@@ -2286,11 +2286,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppTheme.primaryColor),
+                          side: BorderSide(color: context.primaryColor),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
-                        child: const Text('RSVP', style: TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                        child: Text('RSVP', style: TextStyle(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

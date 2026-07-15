@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/user_profile_cache_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/vip_controller.dart';
@@ -134,7 +134,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
       'Cosmetic Updated',
       'Successfully equipped $itemId for $category!',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+      backgroundColor: Color(0xFF10B981).withOpacity(0.9),
       colorText: Colors.white,
     );
     setState(() {});
@@ -143,7 +143,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF09090B),
+      backgroundColor: Color(0xFF09090B),
       appBar: AppBar(
         title: Text(
           'VIP COSMETIC STORE',
@@ -156,8 +156,8 @@ class _VipStoreScreenState extends State<VipStoreScreen>
           controller: _categoryTabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          indicatorColor: const Color(0xFFD4AF37),
-          labelColor: const Color(0xFFD4AF37),
+          indicatorColor: Color(0xFFD4AF37),
+          labelColor: Color(0xFFD4AF37),
           unselectedLabelColor: Colors.white60,
           labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
           tabs: _categories.map((c) => Tab(text: c)).toList(),
@@ -171,7 +171,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
             // 1. LIVE COSMETIC PREVIEW HEADER
             _buildLivePreviewHeader(currentVip),
 
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // 2. COSMETICS GRID LIST
             Expanded(
@@ -182,7 +182,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                   final equipped = _getActiveCustomization(category);
 
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
@@ -197,21 +197,21 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                       Color itemColor = Colors.grey;
                       if (requiredLevel > 0) {
                         switch (requiredLevel) {
-                          case 1: itemColor = const Color(0xFF2563EB); break;
-                          case 2: itemColor = const Color(0xFF8B5CF6); break;
-                          case 3: itemColor = const Color(0xFFFFD700); break;
-                          case 4: itemColor = const Color(0xFFE2E8F0); break;
-                          case 5: itemColor = const Color(0xFF06B6D4); break;
-                          case 6: itemColor = const Color(0xFFEC4899); break;
-                          case 7: itemColor = const Color(0xFFD4AF37); break;
+                          case 1: itemColor = Color(0xFF2563EB); break;
+                          case 2: itemColor = Color(0xFF8B5CF6); break;
+                          case 3: itemColor = Color(0xFFFFD700); break;
+                          case 4: itemColor = Color(0xFFE2E8F0); break;
+                          case 5: itemColor = Color(0xFF06B6D4); break;
+                          case 6: itemColor = Color(0xFFEC4899); break;
+                          case 7: itemColor = Color(0xFFD4AF37); break;
                         }
                       }
 
                       return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        padding: const EdgeInsets.all(16),
+                        margin: EdgeInsets.symmetric(vertical: 8),
+                        padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B).withOpacity(isActive ? 0.25 : 0.12),
+                          color: Color(0xFF1E293B).withOpacity(isActive ? 0.25 : 0.12),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isActive
@@ -232,7 +232,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                               ),
                               child: Center(
                                 child: isLocked
-                                    ? const Icon(Icons.lock_outline, color: Colors.white38)
+                                    ? Icon(Icons.lock_outline, color: Colors.white38)
                                     : Text(
                                         requiredLevel > 0 ? 'VIP $requiredLevel' : 'FREE',
                                         style: GoogleFonts.outfit(
@@ -243,7 +243,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                                       ),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            SizedBox(width: 16),
 
                             // Details
                             Expanded(
@@ -258,7 +258,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                                       fontSize: 15,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  SizedBox(height: 4),
                                   Text(
                                     desc,
                                     style: GoogleFonts.poppins(
@@ -273,7 +273,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                             // CTA button
                             if (isLocked)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
                                   border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
                                   borderRadius: BorderRadius.circular(8),
@@ -289,7 +289,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                                   backgroundColor: isActive ? Colors.white10 : itemColor,
                                   foregroundColor: isActive ? Colors.white38 : Colors.white,
                                   elevation: 0,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                 ),
                                 onPressed: isActive ? null : () => _equipItem(category, itemId),
@@ -325,10 +325,10 @@ class _VipStoreScreenState extends State<VipStoreScreen>
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(20),
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withOpacity(0.18),
+        color: Color(0xFF1E293B).withOpacity(0.18),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
@@ -343,7 +343,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
               letterSpacing: 1.0,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -354,7 +354,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                     level: activeFrameLvl,
                     size: 80,
                     child: Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         image: DecorationImage(
                           image: NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400'),
@@ -363,7 +363,7 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Text(
                     'Avatar Border',
                     style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12),
@@ -381,20 +381,20 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                         if (nameColorId.startsWith('VIP ')) {
                           final lvl = int.tryParse(nameColorId.substring(4)) ?? 0;
                           if (lvl >= 6) {
-                            return const LinearGradient(
+                            return LinearGradient(
                               colors: [Color(0xFFFF007F), Color(0xFFFFBF00), Color(0xFF00F0FF)],
                             ).createShader(bounds);
                           } else if (lvl == 3) {
-                            return const LinearGradient(
+                            return LinearGradient(
                               colors: [Color(0xFFFFD700), Color(0xFFD97706)],
                             ).createShader(bounds);
                           } else if (lvl == 5) {
-                            return const LinearGradient(
+                            return LinearGradient(
                               colors: [Color(0xFF06B6D4), Color(0xFF22D3EE)],
                             ).createShader(bounds);
                           }
                         }
-                        return const LinearGradient(colors: [Colors.white, Colors.white]).createShader(bounds);
+                        return LinearGradient(colors: [Colors.white, Colors.white]).createShader(bounds);
                       },
                       child: Text(
                         UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student',
@@ -405,24 +405,24 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
                     // Bubble preview
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         gradient: bubbleId.startsWith('VIP ')
                             ? LinearGradient(
                                 colors: [
-                                  AppTheme.primaryColor.withOpacity(0.4),
+                                  context.primaryColor.withOpacity(0.4),
                                   AppTheme.secondaryColor.withOpacity(0.3),
                                 ],
                               )
                             : null,
-                        color: bubbleId == 'None' ? const Color(0xFF1E293B) : null,
+                        color: bubbleId == 'None' ? Color(0xFF1E293B) : null,
                         borderRadius: BorderRadius.circular(16),
                         border: bubbleId.startsWith('VIP ')
-                            ? Border.all(color: const Color(0xFFFFD700).withOpacity(0.3))
+                            ? Border.all(color: Color(0xFFFFD700).withOpacity(0.3))
                             : null,
                       ),
                       child: Text(

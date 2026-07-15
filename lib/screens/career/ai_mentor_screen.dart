@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 
 class AiMentorScreen extends StatefulWidget {
   const AiMentorScreen({Key? key}) : super(key: key);
@@ -79,12 +79,12 @@ class _AiMentorScreenState extends State<AiMentorScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Column(
         children: [
           _buildMentorHeader(),
           _buildTodaySnapshot(),
-          const Divider(color: AppTheme.borderColor, height: 1),
+          Divider(color: context.borderColor, height: 1),
           Expanded(child: _buildChatArea()),
           _buildChatInput(),
         ],
@@ -105,15 +105,15 @@ class _AiMentorScreenState extends State<AiMentorScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF6366F1).withOpacity(0.2),
-            AppTheme.bgDark,
+            Color(0xFF6366F1).withOpacity(0.2),
+            context.scaffoldBackgroundColor,
           ],
         ),
       ),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_rounded,
+            icon: Icon(Icons.arrow_back_ios_rounded,
                 color: Colors.white, size: 20),
             onPressed: () => Get.back(),
           ),
@@ -125,11 +125,11 @@ class _AiMentorScreenState extends State<AiMentorScreen>
                 height: 46,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                   ),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text('🤖', style: TextStyle(fontSize: 22)),
                 ),
               ),
@@ -140,23 +140,23 @@ class _AiMentorScreenState extends State<AiMentorScreen>
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: AppTheme.accentColor,
+                    color: context.accentOrange,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppTheme.bgDark, width: 2),
+                    border: Border.all(color: context.scaffoldBackgroundColor, width: 2),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'AI Mentor',
                   style: TextStyle(
-                    color: AppTheme.textPrimary,
+                    color: context.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -164,7 +164,7 @@ class _AiMentorScreenState extends State<AiMentorScreen>
                 Text(
                   'Online • Personalized for you',
                   style: TextStyle(
-                    color: AppTheme.accentColor.withOpacity(0.8),
+                    color: context.accentOrange.withOpacity(0.8),
                     fontSize: 11,
                   ),
                 ),
@@ -172,7 +172,7 @@ class _AiMentorScreenState extends State<AiMentorScreen>
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: AppTheme.textTertiary),
+            icon: Icon(Icons.more_vert, color: context.caption),
             onPressed: () {},
           ),
         ],
@@ -183,24 +183,24 @@ class _AiMentorScreenState extends State<AiMentorScreen>
   Widget _buildTodaySnapshot() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           _snapshotCard('📚 Study Today',
               '${(_todayPlan['studyToday'] as List).length} topics',
-              const Color(0xFF6366F1), () => _scrollToStudyPlan()),
-          const SizedBox(width: 10),
+              Color(0xFF6366F1), () => _scrollToStudyPlan()),
+          SizedBox(width: 10),
           _snapshotCard('🔄 Revise',
               '${(_todayPlan['reviseYesterday'] as List).length} topics',
-              const Color(0xFF10B981), () => _addQuickMessage('Kal ka revision plan?')),
-          const SizedBox(width: 10),
+              Color(0xFF10B981), () => _addQuickMessage('Kal ka revision plan?')),
+          SizedBox(width: 10),
           _snapshotCard('💼 Interview',
               '${_todayPlan['interviewReady']}% ready',
-              const Color(0xFFF59E0B), () => _addQuickMessage('Interview ke liye ready hoon?')),
-          const SizedBox(width: 10),
+              Color(0xFFF59E0B), () => _addQuickMessage('Interview ke liye ready hoon?')),
+          SizedBox(width: 10),
           _snapshotCard('🏢 Company',
               '${_todayPlan['companyReady']}% ready',
-              const Color(0xFFEC4899), () => _addQuickMessage('Company readiness score?')),
+              Color(0xFFEC4899), () => _addQuickMessage('Company readiness score?')),
         ],
       ),
     );
@@ -211,7 +211,7 @@ class _AiMentorScreenState extends State<AiMentorScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(14),
@@ -221,11 +221,11 @@ class _AiMentorScreenState extends State<AiMentorScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title,
-                style: const TextStyle(
-                    color: AppTheme.textTertiary,
+                style: TextStyle(
+                    color: context.caption,
                     fontSize: 10,
                     fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(value,
                 style: TextStyle(
                     color: color,
@@ -240,11 +240,11 @@ class _AiMentorScreenState extends State<AiMentorScreen>
   Widget _buildChatArea() {
     return ListView(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
         ..._chatMessages.map((msg) => _buildChatBubble(msg)),
         if (_isTyping) _buildTypingIndicator(),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         // Quick questions
         if (_chatMessages.length < 3) _buildQuickQuestions(),
       ],
@@ -256,20 +256,20 @@ class _AiMentorScreenState extends State<AiMentorScreen>
     return Align(
       alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: EdgeInsets.only(bottom: 12),
         constraints:
             BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
           gradient: isAi
               ? LinearGradient(
                   colors: [
-                    const Color(0xFF6366F1).withOpacity(0.15),
-                    const Color(0xFF8B5CF6).withOpacity(0.08),
+                    Color(0xFF6366F1).withOpacity(0.15),
+                    Color(0xFF8B5CF6).withOpacity(0.08),
                   ],
                 )
               : null,
-          color: isAi ? null : AppTheme.primaryColor,
+          color: isAi ? null : context.primaryColor,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -278,14 +278,14 @@ class _AiMentorScreenState extends State<AiMentorScreen>
           ),
           border: isAi
               ? Border.all(
-                  color: const Color(0xFF6366F1).withOpacity(0.2))
+                  color: Color(0xFF6366F1).withOpacity(0.2))
               : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (isAi) ...[
-              const Row(
+              Row(
                 children: [
                   Text('🤖', style: TextStyle(fontSize: 12)),
                   SizedBox(width: 4),
@@ -299,24 +299,24 @@ class _AiMentorScreenState extends State<AiMentorScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
             ],
             Text(
               msg['text'] as String,
               style: TextStyle(
-                color: isAi ? AppTheme.textPrimary : Colors.white,
+                color: isAi ? context.textPrimary : Colors.white,
                 fontSize: 13,
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Align(
               alignment: Alignment.bottomRight,
               child: Text(
                 msg['time'] as String,
                 style: TextStyle(
                   color: isAi
-                      ? AppTheme.textTertiary
+                      ? context.caption
                       : Colors.white.withOpacity(0.6),
                   fontSize: 10,
                 ),
@@ -332,10 +332,10 @@ class _AiMentorScreenState extends State<AiMentorScreen>
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: context.surfaceColor,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
@@ -343,7 +343,7 @@ class _AiMentorScreenState extends State<AiMentorScreen>
             bottomLeft: Radius.circular(4),
           ),
           border: Border.all(
-              color: const Color(0xFF6366F1).withOpacity(0.2)),
+              color: Color(0xFF6366F1).withOpacity(0.2)),
         ),
         child: AnimatedBuilder(
           animation: _typingController,
@@ -352,12 +352,12 @@ class _AiMentorScreenState extends State<AiMentorScreen>
             children: List.generate(
               3,
               (i) => Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2),
+                margin: EdgeInsets.symmetric(horizontal: 2),
                 width: 7,
                 height: 7,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF6366F1).withOpacity(
+                  color: Color(0xFF6366F1).withOpacity(
                     i == 0
                         ? _typingController.value
                         : i == 1
@@ -377,15 +377,15 @@ class _AiMentorScreenState extends State<AiMentorScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Quick Questions',
           style: TextStyle(
-            color: AppTheme.textTertiary,
+            color: context.caption,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -393,16 +393,16 @@ class _AiMentorScreenState extends State<AiMentorScreen>
             return GestureDetector(
               onTap: () => _addQuickMessage(q),
               child: Container(
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withOpacity(0.1),
+                  color: Color(0xFF6366F1).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                      color: const Color(0xFF6366F1).withOpacity(0.3)),
+                      color: Color(0xFF6366F1).withOpacity(0.3)),
                 ),
                 child: Text(q,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF6366F1),
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -424,26 +424,26 @@ class _AiMentorScreenState extends State<AiMentorScreen>
         top: 10,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.bgDark,
-        border: Border(top: BorderSide(color: AppTheme.borderColor.withOpacity(0.3))),
+        color: context.scaffoldBackgroundColor,
+        border: Border(top: BorderSide(color: context.borderColor.withOpacity(0.3))),
       ),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.bgLight,
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppTheme.borderColor),
+                border: Border.all(color: context.borderColor),
               ),
               child: TextField(
                 controller: _chatController,
-                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-                decoration: const InputDecoration(
+                style: TextStyle(color: context.textPrimary, fontSize: 14),
+                decoration: InputDecoration(
                   hintText: 'Mentor se poocho kuch bhi...',
                   hintStyle: TextStyle(
-                      color: AppTheme.textTertiary, fontSize: 13),
+                      color: context.caption, fontSize: 13),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(vertical: 8),
@@ -454,7 +454,7 @@ class _AiMentorScreenState extends State<AiMentorScreen>
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           GestureDetector(
             onTap: () {
               final text = _chatController.text.trim();
@@ -464,12 +464,12 @@ class _AiMentorScreenState extends State<AiMentorScreen>
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                 ),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.send_rounded,
+              child: Icon(Icons.send_rounded,
                   color: Colors.white, size: 20),
             ),
           ),

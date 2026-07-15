@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import 'career_dna_screen.dart';
 import 'skill_tree_screen.dart';
 import 'ai_mentor_screen.dart';
@@ -24,45 +24,45 @@ class _StubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
         title: Text(title,
-            style: const TextStyle(
-                color: AppTheme.textPrimary, fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                color: context.textPrimary, fontWeight: FontWeight.w700)),
       ),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 64)),
-            const SizedBox(height: 16),
+            Text(emoji, style: TextStyle(fontSize: 64)),
+            SizedBox(height: 16),
             Text(title,
-                style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(desc,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: AppTheme.textTertiary, fontSize: 13)),
-            const SizedBox(height: 24),
+                style: TextStyle(
+                    color: context.caption, fontSize: 13)),
+            SizedBox(height: 24),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.1),
+                color: context.primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: AppTheme.primaryColor.withOpacity(0.3)),
+                    color: context.primaryColor.withOpacity(0.3)),
               ),
-              child: const Text('🚀 Coming Soon',
+              child: Text('🚀 Coming Soon',
                   style: TextStyle(
-                      color: AppTheme.primaryColor,
+                      color: context.primaryColor,
                       fontWeight: FontWeight.w700)),
             ),
           ],
@@ -90,7 +90,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Career DNA',
       'emoji': '🧬',
       'desc': 'Your AI-powered career identity',
-      'color': const Color(0xFF6366F1),
+      'color': Color(0xFF6366F1),
       'isUnique': true,
       'badge': 'UNIQUE',
       'screen': () => const CareerDnaScreen(),
@@ -100,7 +100,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Skill Tree',
       'emoji': '🌲',
       'desc': 'Game-style skill progression',
-      'color': const Color(0xFF10B981),
+      'color': Color(0xFF10B981),
       'isUnique': false,
       'badge': 'GAME',
       'screen': () => const SkillTreeScreen(),
@@ -110,7 +110,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'AI Mentor',
       'emoji': '🤖',
       'desc': 'Personal study coach',
-      'color': const Color(0xFF8B5CF6),
+      'color': Color(0xFF8B5CF6),
       'isUnique': false,
       'badge': 'AI',
       'screen': () => const AiMentorScreen(),
@@ -120,7 +120,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Hiring Score',
       'emoji': '📊',
       'desc': 'Real skill-based score',
-      'color': const Color(0xFFF59E0B),
+      'color': Color(0xFFF59E0B),
       'isUnique': false,
       'badge': 'LIVE',
       'screen': () => const HiringScoreScreen(),
@@ -130,7 +130,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Live Battle',
       'emoji': '⚔️',
       'desc': '8 battle modes, AI judge',
-      'color': const Color(0xFFEF4444),
+      'color': Color(0xFFEF4444),
       'isUnique': false,
       'badge': 'LIVE',
       'screen': () => const LiveBattleScreen(),
@@ -140,7 +140,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Brain Training',
       'emoji': '🧠',
       'desc': '8 daily cognitive games',
-      'color': const Color(0xFF6366F1),
+      'color': Color(0xFF6366F1),
       'isUnique': false,
       'badge': 'DAILY',
       'screen': () => const BrainTrainingScreen(),
@@ -150,7 +150,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Skill Verification',
       'emoji': '✅',
       'desc': 'Earn verified skill tags',
-      'color': const Color(0xFF10B981),
+      'color': Color(0xFF10B981),
       'isUnique': false,
       'badge': 'NEW',
       'screen': () => const _StubScreen(
@@ -164,7 +164,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Seasonal Events',
       'emoji': '🎪',
       'desc': 'Monthly competitions',
-      'color': const Color(0xFFEC4899),
+      'color': Color(0xFFEC4899),
       'isUnique': false,
       'badge': 'LIVE',
       'screen': () => const _StubScreen(
@@ -178,7 +178,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'University Rank',
       'emoji': '🎓',
       'desc': 'College leaderboard',
-      'color': const Color(0xFF3B82F6),
+      'color': Color(0xFF3B82F6),
       'isUnique': false,
       'badge': null,
       'screen': () => const _StubScreen(
@@ -192,7 +192,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Company Challenges',
       'emoji': '🏢',
       'desc': 'Google, TCS, Infosys tests',
-      'color': const Color(0xFFF97316),
+      'color': Color(0xFFF97316),
       'isUnique': false,
       'badge': 'HOT',
       'screen': () => const _StubScreen(
@@ -206,7 +206,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Research Hub',
       'emoji': '🔬',
       'desc': 'Papers, patents, peer review',
-      'color': const Color(0xFF14B8A6),
+      'color': Color(0xFF14B8A6),
       'isUnique': false,
       'badge': null,
       'screen': () => const _StubScreen(
@@ -220,7 +220,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'AI Resume Builder',
       'emoji': '📄',
       'desc': 'One-click resume & CV',
-      'color': const Color(0xFF64748B),
+      'color': Color(0xFF64748B),
       'isUnique': false,
       'badge': 'AI',
       'screen': () => const _StubScreen(
@@ -234,7 +234,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Personality Score',
       'emoji': '🧩',
       'desc': 'Leadership, creativity score',
-      'color': const Color(0xFFEC4899),
+      'color': Color(0xFFEC4899),
       'isUnique': false,
       'badge': 'AI',
       'screen': () => const _StubScreen(
@@ -248,7 +248,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Knowledge Streaks',
       'emoji': '🔥',
       'desc': '7 separate streak trackers',
-      'color': const Color(0xFFF97316),
+      'color': Color(0xFFF97316),
       'isUnique': false,
       'badge': 'DAILY',
       'screen': () => const _StubScreen(
@@ -262,7 +262,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Achievement Gallery',
       'emoji': '🏆',
       'desc': 'Trophies, medals, effects',
-      'color': const Color(0xFFFBBF24),
+      'color': Color(0xFFFBBF24),
       'isUnique': false,
       'badge': null,
       'screen': () => const _StubScreen(
@@ -276,7 +276,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'AI Reputation',
       'emoji': '⭐',
       'desc': 'Community trust score',
-      'color': const Color(0xFF6366F1),
+      'color': Color(0xFF6366F1),
       'isUnique': false,
       'badge': 'AI',
       'screen': () => const _StubScreen(
@@ -290,7 +290,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'name': 'Skill Marketplace',
       'emoji': '🛒',
       'desc': 'Teach, sell, earn coins',
-      'color': const Color(0xFF10B981),
+      'color': Color(0xFF10B981),
       'isUnique': false,
       'badge': 'EARN',
       'screen': () => const _StubScreen(
@@ -310,29 +310,29 @@ class _CareerHubScreenState extends State<CareerHubScreen>
   final RxBool _simGrindActive = false.obs;
 
   final List<Map<String, dynamic>> _allCareers = [
-    {'name': 'Computer Science', 'emoji': '💻', 'color': const Color(0xFF6366F1), 'skills': ['Coding', 'Algorithms', 'DSA', 'System Design']},
-    {'name': 'Doctor', 'emoji': '🩺', 'color': const Color(0xFF10B981), 'skills': ['Anatomy', 'Biology', 'Medicine', 'First Aid']},
-    {'name': 'Engineer', 'emoji': '🏗️', 'color': const Color(0xFFF59E0B), 'skills': ['Math', 'Physics', 'CAD', 'Design']},
-    {'name': 'Teacher', 'emoji': '🍎', 'color': const Color(0xFFEF4444), 'skills': ['Pedagogy', 'Communication', 'Psychology']},
-    {'name': 'UPSC', 'emoji': '🏛️', 'color': const Color(0xFFEC4899), 'skills': ['Polity', 'History', 'Current Affairs', 'GS']},
-    {'name': 'SSC', 'emoji': '📝', 'color': const Color(0xFF06B6D4), 'skills': ['Quant', 'Reasoning', 'English', 'GS']},
-    {'name': 'Banking', 'emoji': '💰', 'color': const Color(0xFF8B5CF6), 'skills': ['Finance', 'Aptitude', 'Accounts', 'Banking']},
-    {'name': 'Law', 'emoji': '⚖️', 'color': const Color(0xFFE2E8F0), 'skills': ['Constitution', 'IPC', 'Contracts', 'Torts']},
-    {'name': 'Business', 'emoji': '💼', 'color': const Color(0xFFD946EF), 'skills': ['Strategy', 'Leadership', 'Sales', 'Finance']},
-    {'name': 'Marketing', 'emoji': '📢', 'color': const Color(0xFF38BDF8), 'skills': ['SEO', 'Content', 'Ads', 'Branding']},
-    {'name': 'Designer', 'emoji': '🎨', 'color': const Color(0xFFF472B6), 'skills': ['Graphics', 'Illustration', 'Figma', 'Colors']},
-    {'name': 'UI/UX', 'emoji': '📱', 'color': const Color(0xFF10B981), 'skills': ['Wireframing', 'User Research', 'Figma']},
-    {'name': 'Cyber Security', 'emoji': '🛡️', 'color': const Color(0xFF06B6D4), 'skills': ['Networking', 'Linux', 'Ethical Hacking']},
-    {'name': 'AI Engineer', 'emoji': '🤖', 'color': const Color(0xFF8B5CF6), 'skills': ['Python', 'Machine Learning', 'PyTorch']},
-    {'name': 'Photographer', 'emoji': '📷', 'color': const Color(0xFFF97316), 'skills': ['Lighting', 'Composition', 'Editing']},
-    {'name': 'Musician', 'emoji': '🎵', 'color': const Color(0xFFEC4899), 'skills': ['Theory', 'Instrument', 'Vocals', 'DAW']},
-    {'name': 'Content Creator', 'emoji': '📹', 'color': const Color(0xFFEF4444), 'skills': ['Video', 'Scripts', 'Editing', 'Socials']},
-    {'name': 'Video Editor', 'emoji': '🎞️', 'color': const Color(0xFF38BDF8), 'skills': ['Premiere Pro', 'After Effects', 'Cuts']},
-    {'name': 'Game Developer', 'emoji': '🎮', 'color': const Color(0xFF6366F1), 'skills': ['Unity', 'C#', '3D Math', 'Design']},
-    {'name': 'Animation', 'emoji': '🎬', 'color': const Color(0xFFF59E0B), 'skills': ['2D/3D', 'Keyframes', 'Blender', 'Maya']},
-    {'name': 'Architecture', 'emoji': '📐', 'color': const Color(0xFF14B8A6), 'skills': ['Drafting', 'Structures', 'Sketching']},
-    {'name': 'Data Science', 'emoji': '📊', 'color': const Color(0xFF64748B), 'skills': ['SQL', 'R/Python', 'Statistics']},
-    {'name': 'Machine Learning', 'emoji': '🧠', 'color': const Color(0xFF8B5CF6), 'skills': ['Math', 'Supervised Learning', 'DL']},
+    {'name': 'Computer Science', 'emoji': '💻', 'color': Color(0xFF6366F1), 'skills': ['Coding', 'Algorithms', 'DSA', 'System Design']},
+    {'name': 'Doctor', 'emoji': '🩺', 'color': Color(0xFF10B981), 'skills': ['Anatomy', 'Biology', 'Medicine', 'First Aid']},
+    {'name': 'Engineer', 'emoji': '🏗️', 'color': Color(0xFFF59E0B), 'skills': ['Math', 'Physics', 'CAD', 'Design']},
+    {'name': 'Teacher', 'emoji': '🍎', 'color': Color(0xFFEF4444), 'skills': ['Pedagogy', 'Communication', 'Psychology']},
+    {'name': 'UPSC', 'emoji': '🏛️', 'color': Color(0xFFEC4899), 'skills': ['Polity', 'History', 'Current Affairs', 'GS']},
+    {'name': 'SSC', 'emoji': '📝', 'color': Color(0xFF06B6D4), 'skills': ['Quant', 'Reasoning', 'English', 'GS']},
+    {'name': 'Banking', 'emoji': '💰', 'color': Color(0xFF8B5CF6), 'skills': ['Finance', 'Aptitude', 'Accounts', 'Banking']},
+    {'name': 'Law', 'emoji': '⚖️', 'color': Color(0xFFE2E8F0), 'skills': ['Constitution', 'IPC', 'Contracts', 'Torts']},
+    {'name': 'Business', 'emoji': '💼', 'color': Color(0xFFD946EF), 'skills': ['Strategy', 'Leadership', 'Sales', 'Finance']},
+    {'name': 'Marketing', 'emoji': '📢', 'color': Color(0xFF38BDF8), 'skills': ['SEO', 'Content', 'Ads', 'Branding']},
+    {'name': 'Designer', 'emoji': '🎨', 'color': Color(0xFFF472B6), 'skills': ['Graphics', 'Illustration', 'Figma', 'Colors']},
+    {'name': 'UI/UX', 'emoji': '📱', 'color': Color(0xFF10B981), 'skills': ['Wireframing', 'User Research', 'Figma']},
+    {'name': 'Cyber Security', 'emoji': '🛡️', 'color': Color(0xFF06B6D4), 'skills': ['Networking', 'Linux', 'Ethical Hacking']},
+    {'name': 'AI Engineer', 'emoji': '🤖', 'color': Color(0xFF8B5CF6), 'skills': ['Python', 'Machine Learning', 'PyTorch']},
+    {'name': 'Photographer', 'emoji': '📷', 'color': Color(0xFFF97316), 'skills': ['Lighting', 'Composition', 'Editing']},
+    {'name': 'Musician', 'emoji': '🎵', 'color': Color(0xFFEC4899), 'skills': ['Theory', 'Instrument', 'Vocals', 'DAW']},
+    {'name': 'Content Creator', 'emoji': '📹', 'color': Color(0xFFEF4444), 'skills': ['Video', 'Scripts', 'Editing', 'Socials']},
+    {'name': 'Video Editor', 'emoji': '🎞️', 'color': Color(0xFF38BDF8), 'skills': ['Premiere Pro', 'After Effects', 'Cuts']},
+    {'name': 'Game Developer', 'emoji': '🎮', 'color': Color(0xFF6366F1), 'skills': ['Unity', 'C#', '3D Math', 'Design']},
+    {'name': 'Animation', 'emoji': '🎬', 'color': Color(0xFFF59E0B), 'skills': ['2D/3D', 'Keyframes', 'Blender', 'Maya']},
+    {'name': 'Architecture', 'emoji': '📐', 'color': Color(0xFF14B8A6), 'skills': ['Drafting', 'Structures', 'Sketching']},
+    {'name': 'Data Science', 'emoji': '📊', 'color': Color(0xFF64748B), 'skills': ['SQL', 'R/Python', 'Statistics']},
+    {'name': 'Machine Learning', 'emoji': '🧠', 'color': Color(0xFF8B5CF6), 'skills': ['Math', 'Supervised Learning', 'DL']},
   ];
 
   @override
@@ -378,8 +378,8 @@ class _CareerHubScreenState extends State<CareerHubScreen>
     
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.bgLight,
-      shape: const RoundedRectangleBorder(
+      backgroundColor: context.secondaryBackgroundColor,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       isScrollControlled: true,
@@ -404,46 +404,46 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppTheme.borderColor,
+                        color: context.borderColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   Text(
                     isChange ? '🔄 Change Career Pathway' : '🎯 Choose Your Career Track',
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
+                    style: TextStyle(
+                      color: context.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     isChange 
                       ? 'Warning: Changing your career track resets all Career levels, XP, and badges. Old progress can be restored within 15 days.' 
                       : 'AI will automatically customize daily challenges, quizzes, roadmaps, and battles based on your track.',
-                    style: const TextStyle(
-                      color: AppTheme.textTertiary,
+                    style: TextStyle(
+                      color: context.caption,
                       fontSize: 11,
                     ),
                   ),
                   if (warning != null) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444).withOpacity(0.08),
+                        color: Color(0xFFEF4444).withOpacity(0.08),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
+                        border: Border.all(color: Color(0xFFEF4444).withOpacity(0.3)),
                       ),
                       child: Text(
                         warning,
-                        style: const TextStyle(color: Color(0xFFEF4444), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Color(0xFFEF4444), fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   ConstrainedBox(
                     constraints: BoxConstraints(
                       maxHeight: MediaQuery.of(context).size.height * 0.4,
@@ -465,31 +465,31 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                             opacity: warning != null ? 0.5 : 1.0,
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(12),
+                              margin: EdgeInsets.only(bottom: 10),
+                              padding: EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: isSelected ? color.withOpacity(0.12) : AppTheme.cardBg,
+                                color: isSelected ? color.withOpacity(0.12) : context.surfaceColor,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: isSelected ? color : AppTheme.borderColor.withOpacity(0.4),
+                                  color: isSelected ? color : context.borderColor.withOpacity(0.4),
                                   width: isSelected ? 2 : 1,
                                 ),
                               ),
                               child: Row(
                                 children: [
-                                  Text(cat['emoji'] as String, style: const TextStyle(fontSize: 22)),
-                                  const SizedBox(width: 14),
+                                  Text(cat['emoji'] as String, style: TextStyle(fontSize: 22)),
+                                  SizedBox(width: 14),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           cat['name'] as String,
-                                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w700),
+                                          style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w700),
                                         ),
                                         Text(
                                           'Focus: ${(cat['skills'] as List<String>).join(", ")}',
-                                          style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                                          style: TextStyle(color: context.caption, fontSize: 10),
                                         ),
                                       ],
                                     ),
@@ -503,15 +503,15 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                       },
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: selectedTemp != null && warning == null
-                            ? const Color(0xFF8B5CF6)
-                            : AppTheme.borderColor,
+                            ? Color(0xFF8B5CF6)
+                            : context.borderColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: selectedTemp == null || warning != null
@@ -524,7 +524,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                                   '🎉 Track Changed!',
                                   'Your career track is now ${selectedTemp!}. Previous progress backed up for 15 days.',
                                   snackPosition: SnackPosition.BOTTOM,
-                                  backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
+                                  backgroundColor: Color(0xFF8B5CF6).withOpacity(0.9),
                                   colorText: Colors.white,
                                 );
                               } else {
@@ -534,7 +534,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                             },
                       child: Text(
                         isChange ? 'Confirm Change' : 'Confirm Track',
-                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -554,49 +554,49 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       final color = activeCat['color'] as Color;
 
       return Scaffold(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         body: CustomScrollView(
           slivers: [
             _buildSliverAppBar(),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _buildHeroStats(),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   _buildCareerDnaHero(),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   
                   // Daily Missions (Video Watch & Quiz Solver)
                   _buildSectionTitle('📅 Daily Missions', 'Earn both Global and Career XP today'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildDailyMissionsSection(),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   // Interactive Activity Simulator
                   _buildSectionTitle('🕹️ Activity Simulator (Anti-Grind)', 'Earn XP by completing daily actions'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildActivitySimulator(),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   // Career Track Settings (Rollback & Switch Limits)
                   _buildSectionTitle('⚙️ Track Settings & Rollbacks', 'Manage pathway shifts & undo options'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildTrackManager(),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   _buildSectionTitle('🎮 Learn & Compete', 'Develop skills & battle'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildFeaturesGrid(_features.sublist(1, 6)),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   _buildSectionTitle('🏆 Track & Prove', 'Verify and showcase'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildFeaturesGrid(_features.sublist(6, 11)),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   _buildSectionTitle('🌐 Build & Earn', 'Connect and grow'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _buildFeaturesGrid(_features.sublist(11)),
-                  const SizedBox(height: 80),
+                  SizedBox(height: 80),
                 ]),
               ),
             ),
@@ -608,10 +608,10 @@ class _CareerHubScreenState extends State<CareerHubScreen>
 
   Widget _buildOnboardingSelectionScreen() {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -623,16 +623,16 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 'Choose a professional path to customize your learning tree, unlock daily assignments, leaderboards, and enter skill battles.',
                 style: GoogleFonts.poppins(
-                  color: AppTheme.textSecondary,
+                  color: context.textSecondary,
                   fontSize: 12,
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Expanded(
                 child: StatefulBuilder(
                   builder: (context, setInnerState) {
@@ -657,12 +657,12 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
-                            padding: const EdgeInsets.all(12),
+                            padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: isSel ? color.withOpacity(0.12) : AppTheme.cardBg,
+                              color: isSel ? color.withOpacity(0.12) : context.surfaceColor,
                               borderRadius: BorderRadius.circular(18),
                               border: Border.all(
-                                color: isSel ? color : AppTheme.borderColor.withOpacity(0.4),
+                                color: isSel ? color : context.borderColor.withOpacity(0.4),
                                 width: isSel ? 2 : 1,
                               ),
                             ),
@@ -672,7 +672,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(c['emoji'] as String, style: const TextStyle(fontSize: 22)),
+                                    Text(c['emoji'] as String, style: TextStyle(fontSize: 22)),
                                     if (isSel) Icon(Icons.check_circle_rounded, color: color, size: 18),
                                   ],
                                 ),
@@ -685,11 +685,11 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                SizedBox(height: 2),
                                 Text(
                                   (c['skills'] as List<String>).take(2).join(', '),
                                   style: GoogleFonts.poppins(
-                                    color: AppTheme.textTertiary,
+                                    color: context.caption,
                                     fontSize: 9,
                                   ),
                                   maxLines: 1,
@@ -704,13 +704,13 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   },
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _onboardingSelectedCareer != null ? const Color(0xFF8B5CF6) : AppTheme.borderColor,
+                    backgroundColor: _onboardingSelectedCareer != null ? Color(0xFF8B5CF6) : context.borderColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: _onboardingSelectedCareer == null
@@ -721,7 +721,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                             '🎉 Pathway Unlocked!',
                             'Creania has configured challenges for ${_onboardingSelectedCareer!}. Welcome to level 1!',
                             snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
+                            backgroundColor: Color(0xFF8B5CF6).withOpacity(0.9),
                             colorText: Colors.white,
                           );
                         },
@@ -745,20 +745,20 @@ class _CareerHubScreenState extends State<CareerHubScreen>
     return SliverAppBar(
       pinned: true,
       expandedHeight: 180,
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+        icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
         onPressed: () => Get.back(),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
+          icon: Icon(Icons.info_outline_rounded, color: Colors.white),
           onPressed: () {
             Get.snackbar(
               'Career Path Progression 📈',
               'Perform Career hub tasks to increase Career level. Perform general platform activities to increase ID level.',
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.95),
+              backgroundColor: Color(0xFF8B5CF6).withOpacity(0.95),
               colorText: Colors.white,
             );
           },
@@ -773,14 +773,14 @@ class _CareerHubScreenState extends State<CareerHubScreen>
               colors: [
                 color.withOpacity(0.8),
                 color.withOpacity(0.4),
-                const Color(0xFF09090B),
+                Color(0xFF09090B),
               ],
               stops: const [0, 0.4, 1],
             ),
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(60, 16, 20, 20),
+              padding: EdgeInsets.fromLTRB(60, 16, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -795,9 +795,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.white24,
                           borderRadius: BorderRadius.circular(6),
@@ -809,7 +809,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     'AI Custom Focus: ${(activeCat['skills'] as List<String>).join(", ")}',
                     style: GoogleFonts.poppins(
@@ -819,11 +819,11 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Row(
                     children: [
                       _headerChip('🔥 Streak Active', Colors.white),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       _headerChip('🎯 Level ${_progCtrl.careerLevel.value}', Colors.white),
                     ],
                   ),
@@ -838,7 +838,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
 
   Widget _headerChip(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),
@@ -861,15 +861,15 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       child: Row(
         children: [
           Expanded(child: _statCard('🏆', stats['statName'] as String, stats['score'] as String, color)),
-          const SizedBox(width: 8),
-          Expanded(child: _statCard('🧠', 'Brain Score', '72/100', const Color(0xFF8B5CF6))),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
+          Expanded(child: _statCard('🧠', 'Brain Score', '72/100', Color(0xFF8B5CF6))),
+          SizedBox(width: 8),
           Obx(() => Expanded(
             child: _statCard(
               '⚡', 
               stats['label'] as String, 
               'Lv.${_progCtrl.careerLevel.value}', 
-              AppTheme.accentColor
+              context.accentOrange
             )
           )),
         ],
@@ -887,9 +887,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       final score = studyCtrl.quizScoreToday.value;
 
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white.withOpacity(0.04)),
         ),
@@ -900,7 +900,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
               title: 'Watch Today\'s Video Lesson',
               desc: todayPack.videoTitle,
               icon: isVideoWatched ? Icons.check_circle_rounded : Icons.play_circle_fill_rounded,
-              iconColor: isVideoWatched ? const Color(0xFF10B981) : const Color(0xFF8B5CF6),
+              iconColor: isVideoWatched ? Color(0xFF10B981) : Color(0xFF8B5CF6),
               xpText: '+150 Career XP',
               buttonText: isVideoWatched ? 'Completed' : 'Play Video',
               isCompleted: isVideoWatched,
@@ -919,12 +919,12 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                         '🎥 Video Task Completed!',
                         'You watched today\'s video and earned 150 Career XP!',
                         snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: const Color(0xFF22C55E).withOpacity(0.9),
+                        backgroundColor: Color(0xFF22C55E).withOpacity(0.9),
                         colorText: Colors.white,
                       );
                     },
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
               child: Divider(color: Colors.white10, height: 1),
             ),
@@ -933,7 +933,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
               title: 'Solve Daily MCQ Quiz',
               desc: isQuizDone ? 'Score: $score / 5 Correct Answers' : 'Test your learning from the video',
               icon: isQuizDone ? Icons.check_circle_rounded : Icons.quiz_rounded,
-              iconColor: isQuizDone ? const Color(0xFF10B981) : const Color(0xFF38BDF8),
+              iconColor: isQuizDone ? Color(0xFF10B981) : Color(0xFF38BDF8),
               xpText: '+250 Career XP',
               buttonText: isQuizDone
                   ? 'Done'
@@ -951,7 +951,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                           '🎉 Quiz Completed!',
                           'You completed today\'s quiz and earned 250 Career XP!',
                           snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: const Color(0xFF22C55E).withOpacity(0.9),
+                          backgroundColor: Color(0xFF22C55E).withOpacity(0.9),
                           colorText: Colors.white,
                         );
                       }
@@ -976,14 +976,14 @@ class _CareerHubScreenState extends State<CareerHubScreen>
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: iconColor.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: iconColor, size: 22),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -992,7 +992,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                 title,
                 style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text(
                 desc,
                 style: GoogleFonts.poppins(color: Colors.white30, fontSize: 10),
@@ -1002,22 +1002,22 @@ class _CareerHubScreenState extends State<CareerHubScreen>
             ],
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
               xpText,
-              style: GoogleFonts.poppins(color: const Color(0xFFFFC107), fontSize: 10, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(color: Color(0xFFFFC107), fontSize: 10, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             SizedBox(
               height: 28,
               child: ElevatedButton(
                 onPressed: onTap,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isCompleted ? Colors.white12 : const Color(0xFF8B5CF6),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  backgroundColor: isCompleted ? Colors.white12 : Color(0xFF8B5CF6),
+                  padding: EdgeInsets.symmetric(horizontal: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
                 ),
@@ -1039,7 +1039,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
 
   Widget _statCard(String emoji, String label, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
@@ -1047,16 +1047,16 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       ),
       child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 20)),
-          const SizedBox(height: 4),
+          Text(emoji, style: TextStyle(fontSize: 20)),
+          SizedBox(height: 4),
           Text(
             value,
             style: GoogleFonts.poppins(color: color, fontSize: 13, fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(
             label,
-            style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 9, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -1075,7 +1075,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       child: AnimatedBuilder(
         animation: _pulseController,
         builder: (ctx, _) => Container(
-          padding: const EdgeInsets.all(18),
+          padding: EdgeInsets.all(18),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -1104,10 +1104,10 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Text(activeCat['emoji'] as String, style: const TextStyle(fontSize: 26))
+                  child: Text(activeCat['emoji'] as String, style: TextStyle(fontSize: 26))
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1122,9 +1122,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.white24,
                             borderRadius: BorderRadius.circular(6),
@@ -1136,7 +1136,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       'AI Custom Focus: ${(activeCat['skills'] as List<String>).take(3).join(", ")}',
                       style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10),
@@ -1146,7 +1146,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
+              Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
             ],
           ),
         ),
@@ -1156,7 +1156,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
 
   Widget _buildActivitySimulator() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.02),
         borderRadius: BorderRadius.circular(20),
@@ -1167,15 +1167,15 @@ class _CareerHubScreenState extends State<CareerHubScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.play_circle_outline, color: Color(0xFF8B5CF6), size: 18),
-              const SizedBox(width: 8),
+              Icon(Icons.play_circle_outline, color: Color(0xFF8B5CF6), size: 18),
+              SizedBox(width: 8),
               Text(
                 'Simulate Learning Activities',
                 style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1183,50 +1183,50 @@ class _CareerHubScreenState extends State<CareerHubScreen>
               _simulatorPill(
                 label: 'Solve Assignment',
                 xpText: '+150 Career XP',
-                color: const Color(0xFF6366F1),
+                color: Color(0xFF6366F1),
                 onTap: () => _simulateAction('assignment', 150, true),
               ),
               _simulatorPill(
                 label: 'Career Quiz',
                 xpText: '+80 Career XP',
-                color: const Color(0xFFEC4899),
+                color: Color(0xFFEC4899),
                 onTap: () => _simulateAction('quiz', 80, true),
               ),
               _simulatorPill(
                 label: 'Voice Room Host',
                 xpText: '+120 ID XP',
-                color: const Color(0xFF10B981),
+                color: Color(0xFF10B981),
                 onTap: () => _simulateAction('voice_room', 120, false),
               ),
             ],
           ),
           Obx(() {
-            if (!_simGrindActive.value && _simEarnedXp.value == 0) return const SizedBox.shrink();
+            if (!_simGrindActive.value && _simEarnedXp.value == 0) return SizedBox.shrink();
             return Container(
-              margin: const EdgeInsets.only(top: 14),
-              padding: const EdgeInsets.all(12),
+              margin: EdgeInsets.only(top: 14),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _simGrindActive.value ? const Color(0xFFEF4444).withOpacity(0.08) : const Color(0xFF22C55E).withOpacity(0.08),
+                color: _simGrindActive.value ? Color(0xFFEF4444).withOpacity(0.08) : Color(0xFF22C55E).withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _simGrindActive.value ? const Color(0xFFEF4444).withOpacity(0.2) : const Color(0xFF22C55E).withOpacity(0.2),
+                  color: _simGrindActive.value ? Color(0xFFEF4444).withOpacity(0.2) : Color(0xFF22C55E).withOpacity(0.2),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
                     _simGrindActive.value ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
-                    color: _simGrindActive.value ? const Color(0xFFEF4444) : const Color(0xFF22C55E),
+                    color: _simGrindActive.value ? Color(0xFFEF4444) : Color(0xFF22C55E),
                     size: 18,
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       _simGrindActive.value
                           ? 'Anti-Grind Active: Action repeated! XP payout decayed to ${(_simMultiplier.value * 100).toInt()}% (+${_simEarnedXp.value} XP).'
                           : 'Success: Action completed! Full XP awarded (+${_simEarnedXp.value} XP).',
                       style: GoogleFonts.poppins(
-                        color: _simGrindActive.value ? const Color(0xFFEF4444) : const Color(0xFF22C55E),
+                        color: _simGrindActive.value ? Color(0xFFEF4444) : Color(0xFF22C55E),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1246,7 +1246,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
@@ -1278,7 +1278,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
 
   Widget _buildTrackManager() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.02),
         borderRadius: BorderRadius.circular(20),
@@ -1296,46 +1296,46 @@ class _CareerHubScreenState extends State<CareerHubScreen>
               ),
               Text(
                 '${_progCtrl.careerChangesCount.value}/3 Changes',
-                style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 11, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(color: context.caption, fontSize: 11, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Developer Support Override',
-                style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
               ),
               Obx(() => Switch(
                 value: _progCtrl.isSupportOverrideActive.value,
                 onChanged: (val) {
                   _progCtrl.isSupportOverrideActive.value = val;
                 },
-                activeColor: const Color(0xFF8B5CF6),
+                activeColor: Color(0xFF8B5CF6),
               )),
             ],
           ),
-          const Divider(color: Colors.white10, height: 18),
+          Divider(color: Colors.white10, height: 18),
           Row(
             children: [
               // Change track button
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => _showCareerSelectionBottomSheet(isChange: true),
-                  icon: const Icon(Icons.swap_horiz, size: 14),
+                  icon: Icon(Icons.swap_horiz, size: 14),
                   label: Text('Switch Track', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white.withOpacity(0.05),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
               if (_progCtrl.isRollbackAvailable()) ...[
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 // Rollback button
                 Expanded(
                   child: ElevatedButton.icon(
@@ -1346,18 +1346,18 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                           '↩️ Career Restored!',
                           'Previous career progress successfully restored!',
                           snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: const Color(0xFF22C55E).withOpacity(0.9),
+                          backgroundColor: Color(0xFF22C55E).withOpacity(0.9),
                           colorText: Colors.white,
                         );
                         setState(() {});
                       }
                     },
-                    icon: const Icon(Icons.history, size: 14, color: Color(0xFFF59E0B)),
+                    icon: Icon(Icons.history, size: 14, color: Color(0xFFF59E0B)),
                     label: Text('Undo Switch', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF59E0B).withOpacity(0.12),
-                      foregroundColor: const Color(0xFFF59E0B),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      backgroundColor: Color(0xFFF59E0B).withOpacity(0.12),
+                      foregroundColor: Color(0xFFF59E0B),
+                      padding: EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -1380,7 +1380,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
         ),
         Text(
           subtitle,
-          style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 10),
+          style: GoogleFonts.poppins(color: context.caption, fontSize: 10),
         ),
       ],
     );
@@ -1403,7 +1403,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
     return GestureDetector(
       onTap: () => Get.to(() => const DailyTaskScreen()),
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(16),
@@ -1415,10 +1415,10 @@ class _CareerHubScreenState extends State<CareerHubScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(feature['emoji'] as String, style: const TextStyle(fontSize: 22)),
+                Text(feature['emoji'] as String, style: TextStyle(fontSize: 22)),
                 if (feature['badge'] != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(5),
@@ -1437,10 +1437,10 @@ class _CareerHubScreenState extends State<CareerHubScreen>
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            SizedBox(height: 2),
             Text(
               feature['desc'] as String,
-              style: GoogleFonts.poppins(color: AppTheme.textTertiary, fontSize: 9),
+              style: GoogleFonts.poppins(color: context.caption, fontSize: 9),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),

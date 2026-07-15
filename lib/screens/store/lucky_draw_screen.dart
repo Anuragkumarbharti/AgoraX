@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math';
 import 'dart:ui';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/store_controller.dart';
 
 class LuckyDrawScreen extends StatefulWidget {
@@ -42,7 +42,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
       Get.snackbar(
         'Insufficient Coins! 🪙',
         'A lucky spin costs 100 coins. Top up your wallet in the Coin Store.',
-        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+        backgroundColor: Color(0xFFEF4444).withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -93,7 +93,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF151518),
+        backgroundColor: Color(0xFF151518),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
           side: BorderSide(color: reward.color.withOpacity(0.3), width: 1.5),
@@ -108,20 +108,20 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: reward.color.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
-              child: Text(reward.icon, style: const TextStyle(fontSize: 48)),
+              child: Text(reward.icon, style: TextStyle(fontSize: 48)),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text(
               reward.name,
               style: GoogleFonts.poppins(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               'Your reward was added to your profile inventory.',
               style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11),
@@ -135,7 +135,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
               style: ElevatedButton.styleFrom(
                 backgroundColor: reward.color,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 28, vertical: 12),
               ),
               onPressed: () => Navigator.pop(context),
               child: Text(
@@ -152,7 +152,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07070A),
+      backgroundColor: Color(0xFF07070A),
       body: Stack(
         children: [
           // Background Glows
@@ -166,7 +166,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.08),
+                    color: Color(0xFF8B5CF6).withOpacity(0.08),
                     blurRadius: 120,
                   )
                 ],
@@ -180,10 +180,10 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
               slivers: [
                 SliverAppBar(
                   pinned: true,
-                  backgroundColor: const Color(0xFF07070A).withOpacity(0.85),
+                  backgroundColor: Color(0xFF07070A).withOpacity(0.85),
                   elevation: 0,
                   leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
                     onPressed: () => Get.back(),
                   ),
                   title: Text(
@@ -198,15 +198,15 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(20.0),
+                    padding: EdgeInsets.all(20.0),
                     child: Column(
                       children: [
                         _buildTopBalanceHeader(),
-                        const SizedBox(height: 30),
+                        SizedBox(height: 30),
                         _buildSpinWheelContainer(),
-                        const SizedBox(height: 40),
+                        SizedBox(height: 40),
                         _buildSpinHistoryList(),
-                        const SizedBox(height: 30),
+                        SizedBox(height: 30),
                       ],
                     ),
                   ),
@@ -221,9 +221,9 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
 
   Widget _buildTopBalanceHeader() {
     return Obx(() => Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF111115),
+            color: context.secondaryBackgroundColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white.withOpacity(0.04)),
           ),
@@ -233,12 +233,12 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('SPIN FEE: 100 COINS', style: GoogleFonts.outfit(color: const Color(0xFFFFB800), fontSize: 11, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
+                  Text('SPIN FEE: 100 COINS', style: GoogleFonts.outfit(color: Color(0xFFFFB800), fontSize: 11, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 2),
                   Text('Your Balance: 🪙 ${_storeCtrl.coinsBalance.value}', style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12)),
                 ],
               ),
-              const Icon(Icons.stars_rounded, color: Color(0xFFFFB800)),
+              Icon(Icons.stars_rounded, color: Color(0xFFFFB800)),
             ],
           ),
         ));
@@ -251,7 +251,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.15), blurRadius: 40, spreadRadius: 10)
+          BoxShadow(color: Color(0xFF8B5CF6).withOpacity(0.15), blurRadius: 40, spreadRadius: 10)
         ],
       ),
       child: Stack(
@@ -274,7 +274,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
               height: 70,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)],
                 ),
                 boxShadow: [
@@ -307,7 +307,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
   Widget _buildSpinHistoryList() {
     return Obx(() {
       final history = _storeCtrl.luckySpinHistory;
-      if (history.isEmpty) return const SizedBox.shrink();
+      if (history.isEmpty) return SizedBox.shrink();
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +316,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
             'SPIN REWARDS HISTORY',
             style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -324,17 +324,17 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
             itemBuilder: (context, index) {
               final log = history[index];
               return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
+                margin: EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF111115),
+                  color: context.secondaryBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white.withOpacity(0.02)),
                 ),
                 child: Row(
                   children: [
-                    Text(log['icon'] as String, style: const TextStyle(fontSize: 16)),
-                    const SizedBox(width: 12),
+                    Text(log['icon'] as String, style: TextStyle(fontSize: 16)),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Won ${log['reward']}',

@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/vip_controller.dart';
 import '../../services/novel_controller.dart';
 import '../../services/store_controller.dart';
@@ -127,10 +127,10 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
         title: Text(
@@ -139,7 +139,7 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppTheme.primaryColor,
+          indicatorColor: context.primaryColor,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white38,
           tabs: const [
@@ -165,15 +165,15 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
       final hasVip = currentLevel > 0;
 
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
           // Current status card
           _buildStatusCard(
             title: hasVip ? 'VIP Level $currentLevel Active' : 'No VIP Active',
             subtitle: hasVip ? timeInfo['displayText'] ?? '' : 'Unlock premium customisations & daily claims',
             icon: Icons.star_rounded,
-            color: const Color(0xFFFFD700),
-            gradient: const LinearGradient(
+            color: Color(0xFFFFD700),
+            gradient: LinearGradient(
               colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -186,20 +186,20 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
             onClaim: () => _vipCtrl.claimDailyCoins(),
             claimCoins: _vipCtrl.getDailyCoinsAmount(),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Upgrade Slider Title
           Text(
             'Select VIP Level to Buy/Upgrade',
             style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
 
           // VIP Level Selector (1-7)
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: AppTheme.bgLight,
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -211,10 +211,10 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                   onTap: () => setState(() => _selectedVipLevel = level),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       gradient: isSelected
-                          ? const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)])
+                          ? LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)])
                           : null,
                       color: isSelected ? null : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
@@ -231,20 +231,20 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
               }),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Pricing Grid for VIP
           Text(
             'Select Duration Package',
             style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _buildDurationGrid(
             pricingMap: vipPricing[_selectedVipLevel] ?? {},
             selectedDuration: _selectedVipDuration,
             onSelect: (dur) => setState(() => _selectedVipDuration = dur),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Action Button
           Builder(
@@ -264,9 +264,9 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  backgroundColor: isLowerOrEqual ? Colors.grey : const Color(0xFF8B5CF6),
+                  backgroundColor: isLowerOrEqual ? Colors.grey : Color(0xFF8B5CF6),
                 ),
                 child: Text(
                   isLowerOrEqual
@@ -277,14 +277,14 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
               );
             }
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // VIP Feature comparison deck
           Text(
             'VIP Perks Breakdown',
             style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _buildVipPerksBreakdown(),
         ],
       );
@@ -298,15 +298,15 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
       final hasNovel = currentLevel > 0;
 
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
           // Current status card
           _buildStatusCard(
             title: hasNovel ? 'Novel Level $currentLevel Active' : 'No Novel Active',
             subtitle: hasNovel ? timeInfo['displayText'] ?? '' : 'Exclusive custom layouts & reader coins',
             icon: Icons.book_rounded,
-            color: const Color(0xFF10B981),
-            gradient: const LinearGradient(
+            color: Color(0xFF10B981),
+            gradient: LinearGradient(
               colors: [Color(0xFF10B981), Color(0xFF047857)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -319,7 +319,7 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
             onClaim: () => _novelCtrl.claimDailyCoins(),
             claimCoins: _novelCtrl.getDailyCoinsAmount(),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Equip visual style widget (Novel Collector System)
           if (hasNovel && _novelCtrl.ownedNovels.isNotEmpty) ...[
@@ -327,13 +327,13 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
               'Equip Owned Novel Style',
               style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppTheme.bgLight,
+                color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderColor),
+                border: Border.all(color: context.borderColor),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -343,14 +343,14 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                     style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
                   ),
                   DropdownButton<int>(
-                    dropdownColor: AppTheme.bgLight,
+                    dropdownColor: context.secondaryBackgroundColor,
                     value: _novelCtrl.ownedNovels.contains(_novelCtrl.activeNovelStyle.value) 
                         ? _novelCtrl.activeNovelStyle.value 
                         : _novelCtrl.ownedNovels.first,
                     items: _novelCtrl.ownedNovels.map((int lvl) {
                       return DropdownMenuItem<int>(
                         value: lvl,
-                        child: Text('Level $lvl', style: const TextStyle(color: Colors.white)),
+                        child: Text('Level $lvl', style: TextStyle(color: Colors.white)),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -362,7 +362,7 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
 
           // Level Selection Slider
@@ -370,13 +370,13 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
             'Select Novel Level to Buy/Upgrade',
             style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
 
           // Novel Level Selector (1-7)
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: AppTheme.bgLight,
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -388,10 +388,10 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                   onTap: () => setState(() => _selectedNovelLevel = level),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       gradient: isSelected
-                          ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)])
+                          ? LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)])
                           : null,
                       color: isSelected ? null : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
@@ -408,20 +408,20 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
               }),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Pricing Grid for Novel
           Text(
             'Select Duration Package',
             style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _buildDurationGrid(
             pricingMap: novelPricing[_selectedNovelLevel] ?? {},
             selectedDuration: _selectedNovelDuration,
             onSelect: (dur) => setState(() => _selectedNovelDuration = dur),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Action Button
           Builder(
@@ -441,9 +441,9 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  backgroundColor: isLowerOrEqual ? Colors.grey : const Color(0xFF10B981),
+                  backgroundColor: isLowerOrEqual ? Colors.grey : Color(0xFF10B981),
                 ),
                 child: Text(
                   isLowerOrEqual
@@ -454,14 +454,14 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
               );
             }
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // Novel Features comparison deck
           Text(
             'Novel Perks Breakdown',
             style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _buildNovelPerksBreakdown(),
         ],
       );
@@ -496,7 +496,7 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
           )
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -506,7 +506,7 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
               Row(
                 children: [
                   Icon(icon, color: Colors.white, size: 28),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Text(
                     title,
                     style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
@@ -514,7 +514,7 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -526,22 +526,22 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
               )
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             subtitle,
             style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  const Text(
+                  Text(
                     'Auto-Renewal',
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Switch(
                     value: isAutoRenew,
                     onChanged: (val) => onRenewToggle(),
@@ -557,11 +557,11 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                     backgroundColor: Colors.white,
                     foregroundColor: color,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   ),
                   child: Text(
                     canClaim ? 'Claim $claimCoins Coins' : claimText,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 )
             ],
@@ -606,14 +606,14 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
           onTap: () => onSelect(dur),
           child: Container(
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.bgLight : AppTheme.bgLight.withOpacity(0.5),
+              color: isSelected ? context.secondaryBackgroundColor : context.secondaryBackgroundColor.withOpacity(0.5),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor.withOpacity(0.3),
+                color: isSelected ? context.primaryColor : context.borderColor.withOpacity(0.3),
                 width: 2,
               ),
             ),
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(10),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -621,21 +621,21 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                   dur,
                   style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Text(
                   '₹${price.toStringAsFixed(0)}',
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.accentColor),
+                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: context.accentOrange),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.primaryColor.withOpacity(0.2) : Colors.white10,
+                    color: isSelected ? context.primaryColor.withOpacity(0.2) : Colors.white10,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     discount,
-                    style: const TextStyle(fontSize: 9, color: Colors.white70),
+                    style: TextStyle(fontSize: 9, color: Colors.white70),
                   ),
                 )
               ],
@@ -659,11 +659,11 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderColor),
+        border: Border.all(color: context.borderColor),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Column(
         children: perks.entries.map((entry) {
           final level = entry.key;
@@ -671,12 +671,12 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
           final isCurrent = _vipCtrl.vipLevel.value == level;
 
           return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
+            margin: EdgeInsets.only(bottom: 12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isCurrent ? AppTheme.primaryColor.withOpacity(0.15) : Colors.white10.withOpacity(0.02),
+              color: isCurrent ? context.primaryColor.withOpacity(0.15) : Colors.white10.withOpacity(0.02),
               borderRadius: BorderRadius.circular(12),
-              border: isCurrent ? Border.all(color: AppTheme.primaryColor) : null,
+              border: isCurrent ? Border.all(color: context.primaryColor) : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -689,26 +689,26 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                       style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
                     ),
                     if (isCurrent)
-                      const Text(
+                      Text(
                         'CURRENT PLAN',
                         style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
                       )
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
                   children: perksList.map((perk) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white12,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         perk,
-                        style: const TextStyle(fontSize: 11, color: Colors.white70),
+                        style: TextStyle(fontSize: 11, color: Colors.white70),
                       ),
                     );
                   }).toList(),
@@ -734,11 +734,11 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderColor),
+        border: Border.all(color: context.borderColor),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Column(
         children: perks.entries.map((entry) {
           final level = entry.key;
@@ -746,12 +746,12 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
           final isCurrent = _novelCtrl.novelLevel.value == level;
 
           return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
+            margin: EdgeInsets.only(bottom: 12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isCurrent ? AppTheme.accentColor.withOpacity(0.15) : Colors.white10.withOpacity(0.02),
+              color: isCurrent ? context.accentOrange.withOpacity(0.15) : Colors.white10.withOpacity(0.02),
               borderRadius: BorderRadius.circular(12),
-              border: isCurrent ? Border.all(color: AppTheme.accentColor) : null,
+              border: isCurrent ? Border.all(color: context.accentOrange) : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -764,26 +764,26 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                       style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
                     ),
                     if (isCurrent)
-                      const Text(
+                      Text(
                         'CURRENT PLAN',
                         style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
                       )
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
                   children: perksList.map((perk) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white12,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         perk,
-                        style: const TextStyle(fontSize: 11, color: Colors.white70),
+                        style: TextStyle(fontSize: 11, color: Colors.white70),
                       ),
                     );
                   }).toList(),

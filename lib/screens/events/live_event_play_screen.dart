@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../models/event_model.dart';
 import '../../models/user_model.dart';
 import '../profile/user_profile_screen.dart';
@@ -160,31 +160,31 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
     HapticFeedback.heavyImpact();
     Get.dialog(
       AlertDialog(
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor, size: 24),
-            const SizedBox(width: 8),
-            const Text('Secure Mode Alert 🛡️', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            Icon(Icons.warning_amber_rounded, color: context.errorColor, size: 24),
+            SizedBox(width: 8),
+            Text('Secure Mode Alert 🛡️', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(
           _isDisqualified
               ? 'You have been disqualified for switching screens/tabs $_proctoringViolations times.'
               : 'Violation detected: $reason.\nLeaving the exam screen is prohibited.\n\nWarnings: $_proctoringViolations/$_maxAllowedViolations',
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          style: TextStyle(color: context.textSecondary, fontSize: 13),
         ),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
+            style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
             onPressed: () {
               Get.back();
               if (_isDisqualified) {
                 Get.off(() => LiveEventWinnerScreen(event: widget.event, wasDisqualified: true));
               }
             },
-            child: Text(_isDisqualified ? 'View Results' : 'Acknowledge', style: const TextStyle(color: Colors.white)),
+            child: Text(_isDisqualified ? 'View Results' : 'Acknowledge', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -420,8 +420,8 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
   @override
   Widget build(BuildContext context) {
     if (_isDisqualified) {
-      return const Scaffold(
-        backgroundColor: AppTheme.bgDark,
+      return Scaffold(
+        backgroundColor: context.scaffoldBackgroundColor,
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -438,7 +438,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: AppTheme.bgDark,
+          backgroundColor: context.scaffoldBackgroundColor,
           body: SafeArea(
             child: Column(
               children: [
@@ -451,7 +451,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                 // ── Main Layout (Question Area Full Width) ────────────────────
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -459,7 +459,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                         Expanded(
                           child: _buildQuestionCard(q),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
 
                         if (isBuzzerRound) ...[
                           if (_whoBuzzed != null && _whoBuzzed != 'me')
@@ -471,7 +471,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                               final opt = q['options'][i] as String;
                               return _buildOptionButton(opt);
                             }),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             _buildSubmitButton(),
                           ],
                         ] else ...[
@@ -480,7 +480,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                             final opt = q['options'][i] as String;
                             return _buildOptionButton(opt);
                           }),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           _buildSubmitButton(),
                         ],
                       ],
@@ -503,10 +503,10 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
   // ── Top Bar Widget ─────────────────────────────────────────────────────────
   Widget _buildTopBar(Map<String, dynamic> q) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        border: Border(bottom: BorderSide(color: AppTheme.borderColor.withOpacity(0.5))),
+        color: context.secondaryBackgroundColor,
+        border: Border(bottom: BorderSide(color: context.borderColor.withOpacity(0.5))),
       ),
       child: Column(
         children: [
@@ -515,18 +515,18 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
             children: [
               Text(
                 widget.event.title,
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
               ),
               Row(
                 children: [
-                  const Icon(Icons.timer_outlined, color: AppTheme.accentColor, size: 14),
-                  const SizedBox(width: 4),
-                  Text('$_questionTimer s left', style: const TextStyle(color: AppTheme.accentColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Icon(Icons.timer_outlined, color: context.accentOrange, size: 14),
+                  SizedBox(width: 4),
+                  Text('$_questionTimer s left', style: TextStyle(color: context.accentOrange, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           // Timer Progress Bar
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
@@ -534,7 +534,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
               value: _questionTimer / (q['timer'] as int),
               backgroundColor: Colors.white.withOpacity(0.08),
               valueColor: AlwaysStoppedAnimation<Color>(
-                _questionTimer < 5 ? Colors.red : AppTheme.primaryColor,
+                _questionTimer < 5 ? Colors.red : context.primaryColor,
               ),
               minHeight: 5,
             ),
@@ -547,11 +547,11 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
   // ── Question Card Widget ───────────────────────────────────────────────────
   Widget _buildQuestionCard(Map<String, dynamic> q) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
+        color: context.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+        border: Border.all(color: context.borderColor.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,39 +560,39 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.15),
+                  color: context.primaryColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   'Question ${_currentQuestionIndex + 1}/${_mockQuestions.length}',
-                  style: const TextStyle(color: AppTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: context.primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               ),
               Text(
                 'Difficulty: ${q['difficulty']}',
-                style: const TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+                style: TextStyle(color: context.caption, fontSize: 10),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(
               child: Text(
                 q['question'] as String,
-                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold, height: 1.4),
+                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold, height: 1.4),
               ),
             ),
           ),
           if (_showResultDetails) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: AppTheme.bgDark,
+                color: context.scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+                border: Border.all(color: context.borderColor.withOpacity(0.5)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -604,7 +604,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                         color: _selectedOption == q['answer'] ? Colors.green : Colors.red,
                         size: 16,
                       ),
-                      const SizedBox(width: 6),
+                      SizedBox(width: 6),
                       Text(
                         _selectedOption == q['answer'] ? 'Correct! 🎉' : 'Incorrect ❌',
                         style: TextStyle(
@@ -617,7 +617,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                   ),
                   Text(
                     'Rank: #$_rank • Score: $_score pts',
-                    style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.w900),
+                    style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.w900),
                   ),
                 ],
               ),
@@ -649,13 +649,13 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
         textColor = Colors.red;
       }
     } else if (isSelected) {
-      containerColor = AppTheme.primaryColor.withOpacity(0.15);
-      borderColor = AppTheme.primaryColor;
-      textColor = AppTheme.primaryColor;
+      containerColor = context.primaryColor.withOpacity(0.15);
+      borderColor = context.primaryColor;
+      textColor = context.primaryColor;
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8),
       child: GestureDetector(
         onTap: _isSubmitted
             ? null
@@ -666,7 +666,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                 HapticFeedback.lightImpact();
               },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: containerColor,
             borderRadius: BorderRadius.circular(12),
@@ -688,7 +688,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
       height: 48,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: hasSelected ? AppTheme.accentColor : Colors.grey.withOpacity(0.1),
+          backgroundColor: hasSelected ? context.accentOrange : Colors.grey.withOpacity(0.1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         onPressed: (hasSelected && !_isSubmitted) ? _submitAnswer : null,
@@ -706,8 +706,8 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
   Widget _buildRightTabHeader() {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        border: Border(bottom: BorderSide(color: AppTheme.borderColor.withOpacity(0.5))),
+        color: context.secondaryBackgroundColor,
+        border: Border(bottom: BorderSide(color: context.borderColor.withOpacity(0.5))),
       ),
       child: Row(
         children: [
@@ -725,13 +725,13 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
       child: GestureDetector(
         onTap: () => setState(() => _activeRightTab = idx),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: isSel ? AppTheme.primaryColor : Colors.transparent, width: 2)),
+            border: Border(bottom: BorderSide(color: isSel ? context.primaryColor : Colors.transparent, width: 2)),
           ),
           child: Text(
             label,
-            style: TextStyle(color: isSel ? Colors.white : AppTheme.textTertiary, fontSize: 11, fontWeight: isSel ? FontWeight.bold : FontWeight.normal),
+            style: TextStyle(color: isSel ? Colors.white : context.caption, fontSize: 11, fontWeight: isSel ? FontWeight.bold : FontWeight.normal),
             textAlign: TextAlign.center,
           ),
         ),
@@ -752,7 +752,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
   // Leaderboard tab widget
   Widget _buildLeaderboardTab() {
     return ListView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: EdgeInsets.all(8),
       itemCount: _leaderboard.length,
       itemBuilder: (context, index) {
         final entry = _leaderboard[index];
@@ -760,7 +760,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
         final medal = index == 0 ? '🥇' : index == 1 ? '🥈' : index == 2 ? '🥉' : '';
 
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          padding: EdgeInsets.symmetric(vertical: 4.0),
           child: InkWell(
             onTap: () => _navigateToUserProfile(entry['name'] as String),
             child: Row(
@@ -769,21 +769,21 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                   width: 24,
                   child: Text(
                     medal.isNotEmpty ? medal : '${entry['rank']}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
                 CircleAvatar(radius: 12, backgroundImage: NetworkImage(entry['avatar'] as String)),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     entry['name'] as String,
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Text(
                   '${entry['score']} pts',
-                  style: TextStyle(color: isTop3 ? const Color(0xFFFBBF24) : Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: isTop3 ? Color(0xFFFBBF24) : Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -799,24 +799,24 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
       children: [
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8),
             itemCount: _chatMessages.length,
             itemBuilder: (context, index) {
               final chat = _chatMessages[index];
               final isAdmin = chat['sender'] == 'Admin';
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
+                padding: EdgeInsets.symmetric(vertical: 3),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '${chat['sender']}: ',
-                      style: TextStyle(color: isAdmin ? AppTheme.accentColor : AppTheme.primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: isAdmin ? context.accentOrange : context.primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                     Expanded(
                       child: Text(
                         chat['msg']!,
-                        style: TextStyle(color: isAdmin ? Colors.white : AppTheme.textSecondary, fontSize: 10),
+                        style: TextStyle(color: isAdmin ? Colors.white : context.textSecondary, fontSize: 10),
                       ),
                     ),
                   ],
@@ -826,26 +826,26 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
           ),
         ),
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: AppTheme.borderColor.withOpacity(0.3))),
+            border: Border(top: BorderSide(color: context.borderColor.withOpacity(0.3))),
           ),
           child: Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _chatInputCtrl,
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: Colors.white, fontSize: 11),
+                  decoration: InputDecoration(
                     hintText: 'Type message...',
-                    hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                    hintStyle: TextStyle(color: context.caption, fontSize: 11),
                     border: InputBorder.none,
                     isDense: true,
                   ),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.send_rounded, color: AppTheme.primaryColor, size: 16),
+                icon: Icon(Icons.send_rounded, color: context.primaryColor, size: 16),
                 onPressed: () {
                   final text = _chatInputCtrl.text.trim();
                   if (text.isEmpty) return;
@@ -865,32 +865,32 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
   // Host room settings tab widget
   Widget _buildHostRoomTab() {
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('📽️ Host Live Broadcast', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          const Text(
+          Text('📽️ Host Live Broadcast', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          SizedBox(height: 6),
+          Text(
             'Community Owners can stream screens during tests for classes.',
-            style: TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+            style: TextStyle(color: context.caption, fontSize: 10),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isScreenSharing ? Colors.red.withOpacity(0.2) : AppTheme.primaryColor.withOpacity(0.2),
-                    side: BorderSide(color: _isScreenSharing ? Colors.red : AppTheme.primaryColor),
+                    backgroundColor: _isScreenSharing ? Colors.red.withOpacity(0.2) : context.primaryColor.withOpacity(0.2),
+                    side: BorderSide(color: _isScreenSharing ? Colors.red : context.primaryColor),
                   ),
                   onPressed: () {
                     setState(() {
                       _isScreenSharing = !_isScreenSharing;
                     });
                   },
-                  icon: Icon(_isScreenSharing ? Icons.stop_screen_share_rounded : Icons.screen_share_rounded, color: _isScreenSharing ? Colors.red : AppTheme.primaryColor, size: 14),
-                  label: Text(_isScreenSharing ? 'Stop Share' : 'Share Screen', style: TextStyle(color: _isScreenSharing ? Colors.red : AppTheme.primaryColor, fontSize: 11)),
+                  icon: Icon(_isScreenSharing ? Icons.stop_screen_share_rounded : Icons.screen_share_rounded, color: _isScreenSharing ? Colors.red : context.primaryColor, size: 14),
+                  label: Text(_isScreenSharing ? 'Stop Share' : 'Share Screen', style: TextStyle(color: _isScreenSharing ? Colors.red : context.primaryColor, fontSize: 11)),
                 ),
               ),
             ],
@@ -903,10 +903,10 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
   // Pinned user rank card at bottom
   Widget _buildPinnedRankBar() {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        border: Border(top: BorderSide(color: AppTheme.borderColor.withOpacity(0.5))),
+        color: context.secondaryBackgroundColor,
+        border: Border(top: BorderSide(color: context.borderColor.withOpacity(0.5))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -919,7 +919,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                   return Transform.scale(
                     scale: _rankAnimCtrl.value > 0 ? (1.0 + (_rankScaleAnim.value * 0.15)) : 1.0,
                     child: Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: _rankChangeText.contains('UP') ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
                         shape: BoxShape.circle,
@@ -932,11 +932,11 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                   );
                 },
               ),
-              const SizedBox(width: 8),
-              const Text('My Live Rank', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              SizedBox(width: 8),
+              Text('My Live Rank', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
             ],
           ),
-          Text('$_score pts', style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.w900)),
+          Text('$_score pts', style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.w900)),
         ],
       ),
     );
@@ -968,10 +968,10 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
   // Bottom Stats Bar Widget
   Widget _buildBottomStatsBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        border: Border(top: BorderSide(color: AppTheme.borderColor.withOpacity(0.5))),
+        color: context.secondaryBackgroundColor,
+        border: Border(top: BorderSide(color: context.borderColor.withOpacity(0.5))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -988,9 +988,9 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
   Widget _statItem(String label, String value) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 9)),
+        Text(value, style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        SizedBox(height: 2),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 9)),
       ],
     );
   }
@@ -1000,22 +1000,22 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
     final nextRound = hasNextRound ? widget.event.rounds[_currentRoundIndex + 1] : widget.event.rounds[0];
 
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Qualified Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.green.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.green),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.stars_rounded, color: Colors.green, size: 20),
@@ -1024,27 +1024,27 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text(
+              SizedBox(height: 24),
+              Text(
                 'Congratulations!',
                 style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 'You passed the qualification cut for ${widget.event.rounds[_currentRoundIndex].name}!',
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                style: TextStyle(color: context.textSecondary, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
+              SizedBox(height: 40),
 
               // Countdown timer to next round
-              const Text(
+              Text(
                 'NEXT ROUND STARTS IN',
-                style: TextStyle(color: AppTheme.textTertiary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                style: TextStyle(color: context.caption, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(12),
@@ -1052,29 +1052,29 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                 ),
                 child: Text(
                   '00:${_breakCountdownSeconds.toString().padLeft(2, '0')}',
-                  style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
+                  style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
                 ),
               ),
-              const SizedBox(height: 40),
+              SizedBox(height: 40),
 
               // Next Round details
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBg,
+                  color: context.surfaceColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+                  border: Border.all(color: context.borderColor.withOpacity(0.4)),
                 ),
                 child: Column(
                   children: [
                     Text(
                       'Next: ${nextRound.name}',
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Format: ${nextRound.format} • Qs: ${nextRound.totalQuestions} • Criteria: ${nextRound.qualifyingCriteria}',
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                      style: TextStyle(color: context.caption, fontSize: 11),
                     ),
                   ],
                 ),
@@ -1091,32 +1091,32 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
       color: Colors.black.withOpacity(0.9),
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Header
-              const Text(
+              Text(
                 '📊 Live Rankings Standings',
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6),
+              Text(
                 'Top participants leaderboard after this question',
-                style: TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                style: TextStyle(color: context.caption, fontSize: 11),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               // Leaders list
               Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBg,
+                  color: context.surfaceColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+                  border: Border.all(color: context.borderColor.withOpacity(0.5)),
                 ),
                 child: ListView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   children: [
                     _leaderboardRow(1, '🥇 Rahul Verma', '120 pts', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'),
                     _leaderboardRow(2, '🥈 Priya Sharma', '110 pts', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'),
@@ -1126,25 +1126,25 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               // User's own Rank Status
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.12),
+                  color: context.primaryColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.primaryColor),
+                  border: Border.all(color: context.primaryColor),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('YOUR STANDING:', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
-                    Text('Rank #$_rank (Score: $_score pts)', style: const TextStyle(color: AppTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.w900)),
+                    Text('YOUR STANDING:', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                    Text('Rank #$_rank (Score: $_score pts)', style: TextStyle(color: context.primaryColor, fontSize: 12, fontWeight: FontWeight.w900)),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text('Closing in 3 seconds...', style: TextStyle(color: AppTheme.textTertiary, fontSize: 10, fontStyle: FontStyle.italic)),
+              SizedBox(height: 12),
+              Text('Closing in 3 seconds...', style: TextStyle(color: context.caption, fontSize: 10, fontStyle: FontStyle.italic)),
             ],
           ),
         ),
@@ -1154,22 +1154,22 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
 
   Widget _leaderboardRow(int rank, String name, String score, String img) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           SizedBox(
             width: 24,
-            child: Text('$rank', style: const TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text('$rank', style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
           CircleAvatar(
             radius: 12,
             backgroundImage: NetworkImage(img),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
-            child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(name, style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
-          Text(score, style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 11, fontWeight: FontWeight.bold)),
+          Text(score, style: TextStyle(color: Color(0xFFFBBF24), fontSize: 11, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -1181,16 +1181,16 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               '🔴 BUZZER ROUND',
               style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: 6),
+            Text(
               'First to press the buzzer gets to answer!',
-              style: TextStyle(color: AppTheme.textTertiary, fontSize: 10),
+              style: TextStyle(color: context.caption, fontSize: 10),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: 30),
             GestureDetector(
               onTap: !_isBuzzerActive
                   ? null
@@ -1226,7 +1226,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                   ],
                   border: Border.all(color: Colors.white24, width: 3),
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     Icons.notifications_active_rounded,
                     color: Colors.white,
@@ -1245,29 +1245,29 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
     return Expanded(
       child: Center(
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
+            border: Border.all(color: context.borderColor.withOpacity(0.4)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock_person_rounded, color: Colors.orange, size: 40),
-              const SizedBox(height: 16),
+              Icon(Icons.lock_person_rounded, color: Colors.orange, size: 40),
+              SizedBox(height: 16),
               Text(
                 '🔒 Buzzer Locked by $_whoBuzzed',
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'Please wait for the competitor to finish speaking/answering...',
-                style: TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                style: TextStyle(color: context.caption, fontSize: 11),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
-              const SizedBox(
+              SizedBox(height: 16),
+              SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.orange)),

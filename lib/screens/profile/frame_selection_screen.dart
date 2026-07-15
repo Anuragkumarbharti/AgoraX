@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 
 class FrameSelectionScreen extends StatefulWidget {
   const FrameSelectionScreen({Key? key}) : super(key: key);
@@ -24,7 +24,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'Free',
       'cost': 0,
       'isOwned': true,
-      'colors': [const Color(0xFF334155), const Color(0xFF1E293B)],
+      'colors': [Color(0xFF334155), Color(0xFF1E293B)],
       'icon': '⭕',
       'style': FrameStyle.none,
     },
@@ -35,7 +35,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'Free',
       'cost': 0,
       'isOwned': true,
-      'colors': [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)],
+      'colors': [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
       'icon': '💙',
       'style': FrameStyle.glow,
     },
@@ -47,7 +47,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'Premium',
       'cost': 500,
       'isOwned': true,
-      'colors': [const Color(0xFFFBBF24), const Color(0xFFF59E0B)],
+      'colors': [Color(0xFFFBBF24), Color(0xFFF59E0B)],
       'icon': '👑',
       'style': FrameStyle.crown,
     },
@@ -58,7 +58,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'Premium',
       'cost': 800,
       'isOwned': true,
-      'colors': [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)],
+      'colors': [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
       'icon': '🔮',
       'style': FrameStyle.glow,
     },
@@ -69,7 +69,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'Premium',
       'cost': 700,
       'isOwned': false,
-      'colors': [const Color(0xFFF97316), const Color(0xFFEF4444)],
+      'colors': [Color(0xFFF97316), Color(0xFFEF4444)],
       'icon': '🔥',
       'style': FrameStyle.animated,
     },
@@ -80,7 +80,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'Premium',
       'cost': 1200,
       'isOwned': false,
-      'colors': [const Color(0xFF6366F1), const Color(0xFF0EA5E9)],
+      'colors': [Color(0xFF6366F1), Color(0xFF0EA5E9)],
       'icon': '🌌',
       'style': FrameStyle.animated,
     },
@@ -92,7 +92,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'VIP',
       'cost': 0,
       'isOwned': false,
-      'colors': [const Color(0xFF67E8F9), const Color(0xFF38BDF8)],
+      'colors': [Color(0xFF67E8F9), Color(0xFF38BDF8)],
       'icon': '💎',
       'style': FrameStyle.wings,
       'requiresVip': true,
@@ -104,7 +104,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'VIP',
       'cost': 0,
       'isOwned': false,
-      'colors': [const Color(0xFFFBBF24), const Color(0xFFEC4899)],
+      'colors': [Color(0xFFFBBF24), Color(0xFFEC4899)],
       'icon': '🏅',
       'style': FrameStyle.crown,
       'requiresVip': true,
@@ -117,7 +117,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'Level',
       'cost': 0,
       'isOwned': true,
-      'colors': [const Color(0xFF10B981), const Color(0xFF059669)],
+      'colors': [Color(0xFF10B981), Color(0xFF059669)],
       'icon': '💚',
       'style': FrameStyle.glow,
       'requiresLevel': 10,
@@ -129,7 +129,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'Level',
       'cost': 0,
       'isOwned': false,
-      'colors': [const Color(0xFFF97316), const Color(0xFF8B5CF6)],
+      'colors': [Color(0xFFF97316), Color(0xFF8B5CF6)],
       'icon': '🌈',
       'style': FrameStyle.animated,
       'requiresLevel': 25,
@@ -141,7 +141,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       'category': 'Level',
       'cost': 0,
       'isOwned': false,
-      'colors': [const Color(0xFFFBBF24), const Color(0xFFF59E0B)],
+      'colors': [Color(0xFFFBBF24), Color(0xFFF59E0B)],
       'icon': '⭐',
       'style': FrameStyle.animated,
       'requiresLevel': 50,
@@ -176,18 +176,18 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bgDark,
+        backgroundColor: context.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'Avatar Frames',
           style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: context.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w700),
         ),
@@ -199,14 +199,14 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                 '✅ Frame Applied!',
                 '${_selectedFrame['name']} frame is now active',
                 snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: AppTheme.primaryColor.withOpacity(0.9),
+                backgroundColor: context.primaryColor.withOpacity(0.9),
                 colorText: Colors.white,
               );
             },
-            child: const Text(
+            child: Text(
               'Apply',
               style: TextStyle(
-                  color: AppTheme.primaryColor,
+                  color: context.primaryColor,
                   fontWeight: FontWeight.w700,
                   fontSize: 15),
             ),
@@ -228,14 +228,14 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
     final colors = frame['colors'] as List<Color>;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
             colors[0].withOpacity(0.12),
-            AppTheme.bgDark,
+            context.scaffoldBackgroundColor,
           ],
         ),
       ),
@@ -285,9 +285,9 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                   Container(
                     width: 112,
                     height: 112,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppTheme.bgDark,
+                      color: context.scaffoldBackgroundColor,
                     ),
                   ),
                   // Avatar inner
@@ -298,12 +298,12 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
                         colors: [
-                          AppTheme.primaryColor.withOpacity(0.3),
+                          context.primaryColor.withOpacity(0.3),
                           AppTheme.secondaryColor.withOpacity(0.2),
                         ],
                       ),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
                         'A',
                         style: TextStyle(
@@ -320,7 +320,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                       top: 0,
                       child: Text(
                         frame['icon'] as String,
-                        style: const TextStyle(fontSize: 26),
+                        style: TextStyle(fontSize: 26),
                       ),
                     ),
                   // Corner decorations for wings
@@ -328,14 +328,14 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                     Positioned(
                       left: 0,
                       child: Text(frame['icon'] as String,
-                          style: const TextStyle(fontSize: 22)),
+                          style: TextStyle(fontSize: 22)),
                     ),
                     Positioned(
                       right: 0,
                       child: Transform.scale(
                         scaleX: -1,
                         child: Text(frame['icon'] as String,
-                            style: const TextStyle(fontSize: 22)),
+                            style: TextStyle(fontSize: 22)),
                       ),
                     ),
                   ],
@@ -346,7 +346,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                       right: 8,
                       child: Transform.rotate(
                         angle: _glowController.value * 6.28,
-                        child: const Text('✨', style: TextStyle(fontSize: 12)),
+                        child: Text('✨', style: TextStyle(fontSize: 12)),
                       ),
                     ),
                     Positioned(
@@ -354,7 +354,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                       left: 8,
                       child: Transform.rotate(
                         angle: -_glowController.value * 6.28,
-                        child: const Text('✨', style: TextStyle(fontSize: 12)),
+                        child: Text('✨', style: TextStyle(fontSize: 12)),
                       ),
                     ),
                   ],
@@ -362,18 +362,18 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
               );
             },
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             frame['name'] as String,
-            style: const TextStyle(
-                color: AppTheme.textPrimary,
+            style: TextStyle(
+                color: context.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700),
           ),
           Text(
             frame['desc'] as String,
-            style: const TextStyle(
-                color: AppTheme.textTertiary, fontSize: 12),
+            style: TextStyle(
+                color: context.caption, fontSize: 12),
           ),
         ],
       ),
@@ -385,27 +385,27 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       height: 48,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: _categories.map((cat) {
           final isActive = _activeCategory == cat;
           return GestureDetector(
             onTap: () => setState(() => _activeCategory = cat),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              margin: EdgeInsets.only(right: 8),
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               decoration: BoxDecoration(
-                color: isActive ? AppTheme.primaryColor : AppTheme.bgLight,
+                color: isActive ? context.primaryColor : context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                     color: isActive
-                        ? AppTheme.primaryColor
-                        : AppTheme.borderColor),
+                        ? context.primaryColor
+                        : context.borderColor),
               ),
               child: Text(cat,
                   style: TextStyle(
                       color:
-                          isActive ? Colors.white : AppTheme.textTertiary,
+                          isActive ? Colors.white : context.caption,
                       fontSize: 12,
                       fontWeight: isActive
                           ? FontWeight.w700
@@ -419,7 +419,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
 
   Widget _buildFrameGrid() {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         childAspectRatio: 0.78,
@@ -446,16 +446,16 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
+        padding: EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: isSelected
               ? colors[0].withOpacity(0.12)
-              : AppTheme.cardBg,
+              : context.surfaceColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
                 ? colors[0]
-                : AppTheme.borderColor.withOpacity(0.5),
+                : context.borderColor.withOpacity(0.5),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -485,9 +485,9 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                 Container(
                   width: 53,
                   height: 53,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppTheme.bgDark,
+                    color: context.scaffoldBackgroundColor,
                   ),
                 ),
                 Container(
@@ -500,7 +500,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                   child: Center(
                     child: Text(
                       frame['icon'] as String,
-                      style: const TextStyle(fontSize: 18),
+                      style: TextStyle(fontSize: 18),
                     ),
                   ),
                 ),
@@ -511,7 +511,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                         shape: BoxShape.circle,
                         color: Colors.black.withOpacity(0.45),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(Icons.lock_rounded,
                             color: Colors.white70, size: 18),
                       ),
@@ -525,24 +525,24 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                       width: 18,
                       height: 18,
                       decoration: BoxDecoration(
-                        color: AppTheme.accentColor,
+                        color: context.accentOrange,
                         shape: BoxShape.circle,
                         border:
-                            Border.all(color: AppTheme.bgDark, width: 2),
+                            Border.all(color: context.scaffoldBackgroundColor, width: 2),
                       ),
-                      child: const Icon(Icons.check,
+                      child: Icon(Icons.check,
                           color: Colors.white, size: 10),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               frame['name'] as String,
               style: TextStyle(
                 color: isSelected
                     ? colors[0]
-                    : AppTheme.textSecondary,
+                    : context.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
@@ -550,32 +550,32 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            SizedBox(height: 2),
             if (frame['cost'] > 0)
               Text(
                 isOwned ? '✅ Owned' : '🪙 ${frame['cost']}',
                 style: TextStyle(
-                  color: isOwned ? AppTheme.accentColor : const Color(0xFFFBBF24),
+                  color: isOwned ? context.accentOrange : Color(0xFFFBBF24),
                   fontSize: 9,
                   fontWeight: FontWeight.w600,
                 ),
               )
             else if (frame['requiresVip'] == true)
-              const Text('👑 VIP Only',
+              Text('👑 VIP Only',
                   style: TextStyle(
                       color: Color(0xFFFBBF24),
                       fontSize: 9,
                       fontWeight: FontWeight.w600))
             else if (frame.containsKey('requiresLevel'))
               Text('🔒 Lv.${frame['requiresLevel']}',
-                  style: const TextStyle(
-                      color: AppTheme.textTertiary,
+                  style: TextStyle(
+                      color: context.caption,
                       fontSize: 9,
                       fontWeight: FontWeight.w600))
             else
-              const Text('Free',
+              Text('Free',
                   style: TextStyle(
-                      color: AppTheme.accentColor,
+                      color: context.accentOrange,
                       fontSize: 9,
                       fontWeight: FontWeight.w600)),
           ],
@@ -588,11 +588,11 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
     final colors = frame['colors'] as List<Color>;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.bgLight,
-      shape: const RoundedRectangleBorder(
+      backgroundColor: context.secondaryBackgroundColor,
+      shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -600,43 +600,43 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: AppTheme.borderColor,
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text(
               frame['icon'] as String,
-              style: const TextStyle(fontSize: 48),
+              style: TextStyle(fontSize: 48),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(frame['name'] as String,
-                style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(frame['desc'] as String,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: AppTheme.textTertiary, fontSize: 13)),
-            const SizedBox(height: 20),
+                style: TextStyle(
+                    color: context.caption, fontSize: 13)),
+            SizedBox(height: 20),
             if (frame['cost'] > 0) ...[
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBBF24).withOpacity(0.1),
+                  color: Color(0xFFFBBF24).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                      color: const Color(0xFFFBBF24).withOpacity(0.3)),
+                      color: Color(0xFFFBBF24).withOpacity(0.3)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('🪙',
+                    Text('🪙',
                         style: TextStyle(fontSize: 22)),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(
                       '${frame['cost']} Coins',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Color(0xFFFBBF24),
                           fontSize: 22,
                           fontWeight: FontWeight.w800),
@@ -644,7 +644,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -665,7 +665,7 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                     );
                   },
                   child: Text('Buy for 🪙${frame['cost']}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.w700)),
@@ -673,12 +673,12 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
               ),
             ] else if (frame['requiresVip'] == true)
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBBF24).withOpacity(0.08),
+                  color: Color(0xFFFBBF24).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
                     Text('👑 VIP Exclusive Frame',
                         style: TextStyle(
@@ -690,22 +690,22 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                         'Upgrade to VIP to unlock this exclusive frame',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            color: AppTheme.textTertiary, fontSize: 12)),
+                            color: context.caption, fontSize: 12)),
                   ],
                 ),
               )
             else
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.accentColor.withOpacity(0.08),
+                  color: context.accentOrange.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
                   'Reach Level ${frame['requiresLevel']} to unlock this frame',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: AppTheme.accentColor, fontSize: 13),
+                  style: TextStyle(
+                      color: context.accentOrange, fontSize: 13),
                 ),
               ),
           ],

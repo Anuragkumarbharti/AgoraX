@@ -1,3 +1,4 @@
+import 'package:creania/core/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/theme.dart';
@@ -33,14 +34,14 @@ class PostAttachmentsWidget extends StatelessWidget {
       children.add(_buildDocs(context, post.docUrls!));
     }
 
-    if (children.isEmpty) return const SizedBox.shrink();
+    if (children.isEmpty) return SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: EdgeInsets.only(top: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: children.map((w) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.only(bottom: 8),
           child: w,
         )).toList(),
       ),
@@ -61,7 +62,7 @@ class PostAttachmentsWidget extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: images.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => SizedBox(width: 8),
         itemBuilder: (context, idx) => ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: _renderImageItem(images[idx], height: 180, width: 140),
@@ -81,20 +82,20 @@ class PostAttachmentsWidget extends StatelessWidget {
         placeholder: (context, url) => Container(
           height: height,
           width: width,
-          color: AppTheme.borderColor.withOpacity(0.3),
-          child: const Center(
+          color: context.borderColor.withOpacity(0.3),
+          child: Center(
             child: SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor),
+              child: CircularProgressIndicator(strokeWidth: 2, color: context.primaryColor),
             ),
           ),
         ),
         errorWidget: (context, url, error) => Container(
           height: height,
           width: width,
-          color: AppTheme.borderColor.withOpacity(0.3),
-          child: const Icon(Icons.broken_image_rounded, color: AppTheme.textTertiary),
+          color: context.borderColor.withOpacity(0.3),
+          child: Icon(Icons.broken_image_rounded, color: context.caption),
         ),
       );
     } else {
@@ -106,8 +107,8 @@ class PostAttachmentsWidget extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) => Container(
           height: height,
           width: width,
-          color: AppTheme.borderColor.withOpacity(0.3),
-          child: const Icon(Icons.broken_image_rounded, color: AppTheme.textTertiary),
+          color: context.borderColor.withOpacity(0.3),
+          child: Icon(Icons.broken_image_rounded, color: context.caption),
         ),
       );
     }
@@ -119,7 +120,7 @@ class PostAttachmentsWidget extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: videos.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => SizedBox(width: 8),
         itemBuilder: (context, idx) {
           final videoUrl = videos[idx];
           return GestureDetector(
@@ -146,12 +147,12 @@ class PostAttachmentsWidget extends StatelessWidget {
                     ),
                     // Semi-transparent play button
                     Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
                         color: Colors.black45,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.play_arrow_rounded,
                         color: Colors.white,
                         size: 32,
@@ -162,7 +163,7 @@ class PostAttachmentsWidget extends StatelessWidget {
                       bottom: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.black54,
                           borderRadius: BorderRadius.circular(4),
@@ -190,56 +191,56 @@ class PostAttachmentsWidget extends StatelessWidget {
         return GestureDetector(
           onTap: () => _openFileAction(context, fileName, 'PDF'),
           child: Container(
-            margin: const EdgeInsets.only(bottom: 6),
-            padding: const EdgeInsets.all(12),
+            margin: EdgeInsets.only(bottom: 6),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.bgLight,
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+              border: Border.all(color: context.borderColor.withOpacity(0.5)),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.errorColor.withOpacity(0.12),
+                    color: context.errorColor.withOpacity(0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.picture_as_pdf_rounded,
-                    color: AppTheme.errorColor,
+                    color: context.errorColor,
                     size: 20,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         fileName,
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
+                        style: TextStyle(
+                          color: context.textPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
-                      const Text(
+                      SizedBox(height: 2),
+                      Text(
                         '1.8 MB · PDF Document',
                         style: TextStyle(
-                          color: AppTheme.textTertiary,
+                          color: context.caption,
                           fontSize: 11,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.arrow_forward_ios_rounded,
-                  color: AppTheme.textTertiary,
+                  color: context.caption,
                   size: 14,
                 ),
               ],
@@ -258,56 +259,56 @@ class PostAttachmentsWidget extends StatelessWidget {
         return GestureDetector(
           onTap: () => _openFileAction(context, fileName, 'Document'),
           child: Container(
-            margin: const EdgeInsets.only(bottom: 6),
-            padding: const EdgeInsets.all(12),
+            margin: EdgeInsets.only(bottom: 6),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.bgLight,
+              color: context.secondaryBackgroundColor,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+              border: Border.all(color: context.borderColor.withOpacity(0.5)),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (isWord ? const Color(0xFF2563EB) : const Color(0xFF059669)).withOpacity(0.12),
+                    color: (isWord ? Color(0xFF2563EB) : Color(0xFF059669)).withOpacity(0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     isWord ? Icons.description_rounded : Icons.table_chart_rounded,
-                    color: isWord ? const Color(0xFF2563EB) : const Color(0xFF059669),
+                    color: isWord ? Color(0xFF2563EB) : Color(0xFF059669),
                     size: 20,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         fileName,
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
+                        style: TextStyle(
+                          color: context.textPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         isWord ? '840 KB · Word Document' : '1.2 MB · Excel Spreadsheet',
-                        style: const TextStyle(
-                          color: AppTheme.textTertiary,
+                        style: TextStyle(
+                          color: context.caption,
                           fontSize: 11,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.arrow_forward_ios_rounded,
-                  color: AppTheme.textTertiary,
+                  color: context.caption,
                   size: 14,
                 ),
               ],
@@ -322,7 +323,7 @@ class PostAttachmentsWidget extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Opening $type: $name'),
-        backgroundColor: AppTheme.accentColor,
+        backgroundColor: context.accentOrange,
         behavior: SnackBarBehavior.floating,
       ),
     );

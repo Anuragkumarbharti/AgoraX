@@ -2,10 +2,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import 'package:creania/core/theme.dart';
 import '../../services/study_vault_controller.dart';
 import '../../services/user_profile_cache_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../../widgets/custom_image_editor.dart';
 
 class UploadBookScreen extends StatefulWidget {
   const UploadBookScreen({Key? key}) : super(key: key);
@@ -88,7 +91,7 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
     Get.snackbar(
       'File Selected 📁',
       'Loaded PDF successfully: $_selectedPdfName',
-      backgroundColor: AppTheme.accentColor.withOpacity(0.9),
+      backgroundColor: context.accentOrange.withOpacity(0.9),
       colorText: Colors.white,
       snackPosition: SnackPosition.BOTTOM,
     );
@@ -142,15 +145,15 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Upload Study Resource',
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        backgroundColor: AppTheme.bgLight,
+        backgroundColor: context.secondaryBackgroundColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Get.back(),
         ),
       ),
@@ -158,65 +161,65 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20),
             physics: const BouncingScrollPhysics(),
             children: [
               // Cover Picker
               _buildCoverImagePicker(),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // File attachment picker
               _buildPdfFilePicker(),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // Basic details section
               _buildSectionTitle('Basic Details'),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _buildTextField(_titleController, 'Title', 'e.g., Fluid Mechanics Handwritten Notes', validator: (v) => v!.isEmpty ? 'Title is required' : null),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _buildTextField(_subtitleController, 'Subtitle', 'e.g., Complete derivations & solved questions for semester exams'),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _buildTextField(_descController, 'Description', 'Write a detailed description explaining what is included, who it is for, and how it will help students study.', maxLines: 4, validator: (v) => v!.isEmpty ? 'Description is required' : null),
               
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               _buildSectionTitle('Categories & Categorization'),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(child: _buildDropdownField('Category', _selectedCategory, _categories, (val) => setState(() => _selectedCategory = val!))),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(child: _buildDropdownField('Resource Type', _selectedFileType, _fileTypes, (val) => setState(() => _selectedFileType = val!))),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Course', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                        const SizedBox(height: 6),
+                        Text('Course', style: TextStyle(color: context.caption, fontSize: 11)),
+                        SizedBox(height: 6),
                         TextFormField(
                           initialValue: _course,
                           onChanged: (v) => _course = v,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          style: TextStyle(color: Colors.white, fontSize: 13),
                           decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Semester', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                        const SizedBox(height: 6),
+                        Text('Semester', style: TextStyle(color: context.caption, fontSize: 11)),
+                        SizedBox(height: 6),
                         TextFormField(
                           initialValue: _semester,
                           onChanged: (v) => _semester = v,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          style: TextStyle(color: Colors.white, fontSize: 13),
                           decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
                         ),
                       ],
@@ -224,35 +227,35 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Branch / Subject', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                        const SizedBox(height: 6),
+                        Text('Branch / Subject', style: TextStyle(color: context.caption, fontSize: 11)),
+                        SizedBox(height: 6),
                         TextFormField(
                           initialValue: _branch,
                           onChanged: (v) => _branch = v,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          style: TextStyle(color: Colors.white, fontSize: 13),
                           decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('University / College', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                        const SizedBox(height: 6),
+                        Text('University / College', style: TextStyle(color: context.caption, fontSize: 11)),
+                        SizedBox(height: 6),
                         TextFormField(
                           initialValue: _university,
                           onChanged: (v) => _university = v,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          style: TextStyle(color: Colors.white, fontSize: 13),
                           decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
                         ),
                       ],
@@ -260,54 +263,54 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Language', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                        const SizedBox(height: 6),
+                        Text('Language', style: TextStyle(color: context.caption, fontSize: 11)),
+                        SizedBox(height: 6),
                         TextFormField(
                           initialValue: _language,
                           onChanged: (v) => _language = v,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          style: TextStyle(color: Colors.white, fontSize: 13),
                           decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: _buildTextField(_tagsController, 'Tags', 'e.g., physics, formula, exam, hand-notes (comma separated)'),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               _buildSectionTitle('Publisher Info'),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(child: _buildTextField(_authorController, 'Author Name', 'e.g., Dr. Amit Sen (or self)')),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(child: _buildTextField(_publisherController, 'Publisher', 'e.g., Wiley or Self-Written')),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(child: _buildTextField(_editionController, 'Edition', 'e.g., 2026 Edition')),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(child: _buildTextField(_isbnController, 'ISBN (optional)', 'e.g., 978-X-...')),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(child: _buildTextField(_pagesController, 'Total Pages', 'e.g., 148', keyboardType: TextInputType.number, validator: (v) => int.tryParse(v ?? '') == null ? 'Enter page count' : null)),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(child: _buildDropdownField('Preview Pages count', _selectedPreviewOption, _previewOptions, (val) {
                     setState(() {
                       _selectedPreviewOption = val!;
@@ -320,12 +323,12 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
               ),
 
               if (_selectedPreviewOption == 'Custom') ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Custom Preview Pages (Must contain Watermark)', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-                    const SizedBox(height: 6),
+                    Text('Custom Preview Pages (Must contain Watermark)', style: TextStyle(color: context.caption, fontSize: 11)),
+                    SizedBox(height: 6),
                     Row(
                       children: [
                         Expanded(
@@ -334,8 +337,8 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                             min: 1,
                             max: 50,
                             divisions: 49,
-                            activeColor: AppTheme.primaryColor,
-                            inactiveColor: AppTheme.borderColor,
+                            activeColor: context.primaryColor,
+                            inactiveColor: context.borderColor,
                             onChanged: (val) {
                               setState(() {
                                 _customPreviewPages = val.toInt();
@@ -346,15 +349,15 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                         Container(
                           width: 60,
                           alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                           decoration: BoxDecoration(
-                            color: AppTheme.cardBg,
+                            color: context.surfaceColor,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.borderColor),
+                            border: Border.all(color: context.borderColor),
                           ),
                           child: Text(
                             '$_customPreviewPages pgs',
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -363,9 +366,9 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                 ),
               ],
 
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               _buildSectionTitle('Pricing System (₹)'),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _buildTextField(
                 _priceController, 
                 'Your Base Selling Price (₹)', 
@@ -379,39 +382,39 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                   return null;
                 }
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _buildLivePriceBreakdownCard(),
 
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               // Copyright declaration check
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Checkbox(
                     value: _copyrightDeclared,
-                    activeColor: AppTheme.primaryColor,
+                    activeColor: context.primaryColor,
                     onChanged: (val) => setState(() => _copyrightDeclared = val ?? false),
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
+                      padding: EdgeInsets.only(top: 8.0),
                       child: Text(
                         'I declare that this file is my own original work (or I hold copyright distribution rights). I understand copyright infringement is illegal and Creania will suspend my seller account in case of piracy reports.',
-                        style: GoogleFonts.poppins(color: AppTheme.textSecondary, fontSize: 11, height: 1.4),
+                        style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11, height: 1.4),
                       ),
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               // Submit button
               SizedBox(
                 height: 52,
                 child: ElevatedButton(
                   onPressed: _submitUpload,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
+                    backgroundColor: context.primaryColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   child: Text(
@@ -420,7 +423,7 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
             ],
           ),
         ),
@@ -432,7 +435,7 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
     return Text(
       title.toUpperCase(),
       style: GoogleFonts.outfit(
-        color: AppTheme.primaryColor,
+        color: context.primaryColor,
         fontSize: 12,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
@@ -444,8 +447,8 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Select Cover Design', style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-        const SizedBox(height: 8),
+        Text('Select Cover Design', style: TextStyle(color: context.caption, fontSize: 11)),
+        SizedBox(height: 8),
         SizedBox(
           height: 130,
           child: ListView.builder(
@@ -456,23 +459,35 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
               if (i == _mockCovers.length) {
                 // custom add cover card
                 return GestureDetector(
-                  onTap: () {
-                    Get.snackbar('Mock Action', 'Triggering system photo gallery...', snackPosition: SnackPosition.BOTTOM);
+                  onTap: () async {
+                    final picker = ImagePicker();
+                    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+                    if (image != null) {
+                      final editedFile = await CustomImageEditor.editImage(context, File(image.path));
+                      if (editedFile != null) {
+                        setState(() {
+                          _selectedCoverUrl = editedFile.path;
+                          if (!_mockCovers.contains(editedFile.path)) {
+                            _mockCovers.add(editedFile.path);
+                          }
+                        });
+                      }
+                    }
                   },
                   child: Container(
                     width: 90,
-                    margin: const EdgeInsets.only(right: 12),
+                    margin: EdgeInsets.only(right: 12),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardBg,
+                      color: context.surfaceColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderColor, style: BorderStyle.values[1]),
+                      border: Border.all(color: context.borderColor, style: BorderStyle.values[1]),
                     ),
-                    child: const Column(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_photo_alternate_outlined, color: AppTheme.textTertiary),
+                        Icon(Icons.add_photo_alternate_outlined, color: context.caption),
                         SizedBox(height: 4),
-                        Text('Custom', style: TextStyle(color: AppTheme.textTertiary, fontSize: 10)),
+                        Text('Custom', style: TextStyle(color: context.caption, fontSize: 10)),
                       ],
                     ),
                   ),
@@ -485,21 +500,26 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                 onTap: () => setState(() => _selectedCoverUrl = cover),
                 child: Container(
                   width: 90,
-                  margin: const EdgeInsets.only(right: 12),
+                  margin: EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                      color: isSelected ? context.primaryColor : Colors.transparent,
                       width: 3,
                     ),
-                    image: DecorationImage(image: NetworkImage(cover), fit: BoxFit.cover),
+                    image: DecorationImage(
+                      image: cover.startsWith('http')
+                          ? NetworkImage(cover)
+                          : FileImage(File(cover)) as ImageProvider,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   child: isSelected
-                      ? const Align(
+                      ? Align(
                           alignment: Alignment.topRight,
                           child: Padding(
                             padding: EdgeInsets.all(4.0),
-                            child: Icon(Icons.check_circle, color: AppTheme.primaryColor, size: 18),
+                            child: Icon(Icons.check_circle, color: context.primaryColor, size: 18),
                           ),
                         )
                       : null,
@@ -515,12 +535,12 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
   Widget _buildPdfFilePicker() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _selectedPdfName.isNotEmpty ? AppTheme.accentColor.withOpacity(0.5) : AppTheme.borderColor,
+          color: _selectedPdfName.isNotEmpty ? context.accentOrange.withOpacity(0.5) : context.borderColor,
         ),
       ),
       child: Column(
@@ -528,30 +548,30 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: (_selectedPdfName.isNotEmpty ? AppTheme.accentColor : AppTheme.primaryColor).withOpacity(0.12),
+                  color: (_selectedPdfName.isNotEmpty ? context.accentOrange : context.primaryColor).withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   _selectedPdfName.isNotEmpty ? Icons.picture_as_pdf : Icons.cloud_upload_outlined,
-                  color: _selectedPdfName.isNotEmpty ? AppTheme.accentColor : AppTheme.primaryColor,
+                  color: _selectedPdfName.isNotEmpty ? context.accentOrange : context.primaryColor,
                   size: 24,
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _selectedPdfName.isNotEmpty ? 'Document Selected' : 'Select PDF File',
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       _selectedPdfName.isNotEmpty ? _selectedPdfName : 'Only PDF format is supported. Max 50MB.',
-                      style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                      style: TextStyle(color: context.caption, fontSize: 11),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -561,15 +581,15 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
               OutlinedButton(
                 onPressed: _simulateFileSelection,
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   side: BorderSide(
-                    color: _selectedPdfName.isNotEmpty ? AppTheme.accentColor : AppTheme.primaryColor,
+                    color: _selectedPdfName.isNotEmpty ? context.accentOrange : context.primaryColor,
                   ),
                 ),
                 child: Text(
                   _selectedPdfName.isNotEmpty ? 'Re-select' : 'Browse',
                   style: TextStyle(
-                    color: _selectedPdfName.isNotEmpty ? AppTheme.accentColor : AppTheme.primaryColor,
+                    color: _selectedPdfName.isNotEmpty ? context.accentOrange : context.primaryColor,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -594,19 +614,19 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
+        SizedBox(height: 6),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
+          style: TextStyle(color: Colors.white, fontSize: 13),
           onChanged: onChanged,
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppTheme.textTertiary, fontSize: 12),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            hintStyle: TextStyle(color: context.caption, fontSize: 12),
+            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
         ),
       ],
@@ -617,21 +637,21 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
+        SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.borderColor),
+            border: Border.all(color: context.borderColor),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
-              dropdownColor: AppTheme.bgLight,
+              dropdownColor: context.secondaryBackgroundColor,
               isExpanded: true,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(color: Colors.white, fontSize: 13),
               items: items.map((t) {
                 return DropdownMenuItem<String>(
                   value: t,
@@ -651,20 +671,20 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
     
     if (basePrice <= 0) {
       return Container(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppTheme.accentColor.withOpacity(0.06),
+          color: context.accentOrange.withOpacity(0.06),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.accentColor.withOpacity(0.2)),
+          border: Border.all(color: context.accentOrange.withOpacity(0.2)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline, color: AppTheme.accentColor, size: 16),
-            const SizedBox(width: 8),
+            Icon(Icons.info_outline, color: context.accentOrange, size: 16),
+            SizedBox(width: 8),
             Expanded(
               child: Text(
                 'This resource is set as FREE. Any student can download and read it without paid tokens.',
-                style: GoogleFonts.poppins(color: AppTheme.accentColor, fontSize: 11, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(color: context.accentOrange, fontSize: 11, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -675,34 +695,34 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
     final breakdown = _controller.calculatePriceBreakdown(basePrice);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF13131A),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+        border: Border.all(color: context.borderColor.withOpacity(0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.calculate_outlined, color: AppTheme.primaryColor, size: 18),
-              const SizedBox(width: 8),
+              Icon(Icons.calculate_outlined, color: context.primaryColor, size: 18),
+              SizedBox(width: 8),
               Text(
                 'Interactive Price Breakdown',
                 style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _priceRow('Seller Set Base Price', '₹${basePrice.toStringAsFixed(2)}', isHeader: true),
-          const Divider(color: Colors.white10),
+          Divider(color: Colors.white10),
           _priceRow('GST (18%)', '+ ₹${breakdown['gst']!.toStringAsFixed(2)}'),
           _priceRow('Payment Gateway (2%)', '+ ₹${breakdown['paymentGateway']!.toStringAsFixed(2)}'),
           _priceRow('Platform Fee (17%)', '+ ₹${breakdown['platformFee']!.toStringAsFixed(2)}'),
-          const Divider(color: Colors.white10),
-          _priceRow('Buyer Pays (Total Price)', '₹${breakdown['buyerPays']!.toStringAsFixed(2)}', highlightColor: AppTheme.accentColor),
-          _priceRow('You Receive (Your Earning)', '₹${breakdown['sellerReceives']!.toStringAsFixed(2)}', highlightColor: const Color(0xFFFFD700)),
+          Divider(color: Colors.white10),
+          _priceRow('Buyer Pays (Total Price)', '₹${breakdown['buyerPays']!.toStringAsFixed(2)}', highlightColor: context.accentOrange),
+          _priceRow('You Receive (Your Earning)', '₹${breakdown['sellerReceives']!.toStringAsFixed(2)}', highlightColor: Color(0xFFFFD700)),
           _priceRow('Platform Receives (Taxes + Fees)', '₹${breakdown['platformReceives']!.toStringAsFixed(2)}'),
         ],
       ),
@@ -711,14 +731,14 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
 
   Widget _priceRow(String label, String value, {bool isHeader = false, Color? highlightColor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: GoogleFonts.poppins(
-              color: isHeader ? Colors.white : AppTheme.textTertiary,
+              color: isHeader ? Colors.white : context.caption,
               fontSize: isHeader ? 12 : 11,
               fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
             ),
@@ -726,7 +746,7 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
           Text(
             value,
             style: GoogleFonts.poppins(
-              color: highlightColor ?? (isHeader ? Colors.white : AppTheme.textSecondary),
+              color: highlightColor ?? (isHeader ? Colors.white : context.textSecondary),
               fontSize: isHeader ? 12 : 11,
               fontWeight: (isHeader || highlightColor != null) ? FontWeight.bold : FontWeight.normal,
             ),
