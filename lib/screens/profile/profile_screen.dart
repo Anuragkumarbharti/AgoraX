@@ -150,10 +150,30 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           .maybeSingle();
 
       if (profileData == null) {
+        if (_isMe) {
+          await UserProfileCacheManager.forceLogout(
+            message: "Your account is unavailable. Please sign in again or contact support."
+          );
+          return;
+        }
         setState(() {
           _isLoadingProfile = false;
           _errorMessage = 'Profile row not found in database.';
         });
+        return;
+      }
+
+      // Validate ban/suspension status for active user
+      final status = profileData['status'] as String?;
+      final isBanned = profileData['is_banned'] as bool? ?? false;
+      final banReason = profileData['ban_reason'] as String?;
+
+      if (_isMe && (status == 'suspended' || status == 'banned' || isBanned)) {
+        await UserProfileCacheManager.forceLogout(
+          message: banReason != null && banReason.isNotEmpty
+              ? "Your account has been suspended. Reason: $banReason"
+              : "Your account has been suspended.",
+        );
         return;
       }
 

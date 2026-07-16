@@ -221,7 +221,7 @@ class NovelController extends GetxController {
         'novel_level': level,
         'novel_expiry': expiry?.toIso8601String(),
         'avatar_frame': frameName,
-      }).eq('id', currentUserId);
+      }).eq('id', Supabase.instance.client.auth.currentUser?.id ?? '');
 
       await UserProfileCacheManager.fetchUserProfile(currentUserId, forceRefresh: true);
       await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();

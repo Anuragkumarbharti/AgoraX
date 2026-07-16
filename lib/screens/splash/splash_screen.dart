@@ -73,12 +73,15 @@ class _SplashScreenState extends State<SplashScreen>
         if (!firstLaunchDone) {
           Get.offAll(() => const OnboardingScreen());
         } else if (isLoggedIn) {
-          try {
-            await UserProfileCacheManager.getOrFetchCanonicalId();
-            await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
-            await UserProgressSyncService.syncFromSupabase();
-          } catch (_) {}
-          Get.offAll(() => const MainScreen());
+          final isValid = await UserProfileCacheManager.validateCurrentUserSession();
+          if (isValid) {
+            try {
+              await UserProfileCacheManager.getOrFetchCanonicalId();
+              await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
+              await UserProgressSyncService.syncFromSupabase();
+            } catch (_) {}
+            Get.offAll(() => const MainScreen());
+          }
         } else {
           Get.offAll(() => const LoginScreen());
         }

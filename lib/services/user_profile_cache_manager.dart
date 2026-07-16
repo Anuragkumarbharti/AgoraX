@@ -14,6 +14,8 @@ import 'career_progression_controller.dart';
 import 'isar_storage_service.dart';
 import '../models/isar_chat_model.dart';
 import 'asset_cache_manager.dart';
+import '../screens/auth/login_screen.dart';
+import 'package:flutter/material.dart';
 
 class UserProfileCacheManager {
   static final Map<String, User> _cache = {};
@@ -98,6 +100,24 @@ class UserProfileCacheManager {
           .eq('id', idToQuery)
           .maybeSingle();
 
+      if (idToQuery == currentId) {
+        if (data == null) {
+          await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+          throw Exception("Profile row missing");
+        }
+        final status = data['status'] as String?;
+        final isBanned = data['is_banned'] as bool? ?? false;
+        final banReason = data['ban_reason'] as String?;
+        if (status == 'suspended' || status == 'banned' || isBanned) {
+          await forceLogout(
+            message: banReason != null && banReason.isNotEmpty
+                ? "Your account has been suspended. Reason: $banReason"
+                : "Your account has been suspended.",
+          );
+          throw Exception("Account suspended");
+        }
+      }
+
       if (data != null) {
         final userObj = User.fromJson(data);
         _cache[idToQuery] = userObj;
@@ -148,6 +168,120 @@ class UserProfileCacheManager {
     rxCache.clear();
     _currentUser = null;
     _notifyListeners();
+  }
+
+  static Future<bool> validateCurrentUserSession() async {
+    final client = Supabase.instance.client;
+    final session = client.auth.currentSession;
+    if (session == null) {
+      return false;
+    }
+
+    try {
+      final currentUser = client.auth.currentUser;
+      if (currentUser == null) {
+        await forceLogout(message: "Your session is invalid. Please sign in again.");
+        return false;
+      }
+
+      // Check if matching row exists in profiles
+      final data = await client
+          .from('profiles')
+          .select('status, is_banned, ban_reason')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+      if (data == null) {
+        await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+        return false;
+      }
+
+      // Check if suspended or banned
+      final status = data['status'] as String?;
+      final isBanned = data['is_banned'] as bool? ?? false;
+      final banReason = data['ban_reason'] as String?;
+
+      if (status == 'suspended' || status == 'banned' || isBanned) {
+        await forceLogout(
+          message: banReason != null && banReason.isNotEmpty
+              ? "Your account has been suspended. Reason: $banReason"
+              : "Your account has been suspended.",
+        );
+        return false;
+      }
+
+      // Check bans ledger for active bans
+      final banLedger = await client
+          .from('bans')
+          .select('reason')
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+
+      if (banLedger != null) {
+        final reason = banLedger['reason'] as String?;
+        await forceLogout(
+          message: reason != null && reason.isNotEmpty
+              ? "Your account has been suspended. Reason: $reason"
+              : "Your account has been suspended.",
+        );
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('[CacheManager] Session validation error: $e');
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('jwt') || errStr.contains('session') || errStr.contains('unauthorized') || errStr.contains('invalid token') || errStr.contains('expired')) {
+        // Attempt session refresh
+        try {
+          final res = await client.auth.refreshSession();
+          if (res.session == null) {
+            await forceLogout(message: "Your session has expired. Please sign in again.");
+            return false;
+          }
+          return true;
+        } catch (_) {
+          await forceLogout(message: "Your session has expired. Please sign in again.");
+          return false;
+        }
+      }
+      return true; // Keep active for temporary network issues
+    }
+  }
+
+  static Future<void> forceLogout({required String message}) async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {}
+
+    clear();
+
+    try {
+      final isar = IsarStorageService.to;
+      await isar.deleteConversation('offline_profiles_cache');
+    } catch (_) {}
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('profiles_last_sync_timestamp');
+      await prefs.remove('store_coins_balance');
+      await prefs.remove('store_silver_balance');
+      await prefs.remove('vip_level');
+      await prefs.remove('vip_expiry');
+      await prefs.remove('novel_level');
+      await prefs.remove('novel_expiry');
+    } catch (_) {}
+
+    Get.offAll(() => const LoginScreen());
+
+    Get.snackbar(
+      'Account Alert 🔒',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+      colorText: Colors.white,
+      duration: const Duration(seconds: 6),
+    );
   }
 
   static Future<void> loadUserConnections() async {

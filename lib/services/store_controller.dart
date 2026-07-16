@@ -594,7 +594,7 @@ class StoreController extends GetxController {
             client.from('profiles').update({
               'vip_level': vipLvl,
               'vip_expiry': expiry.toIso8601String(),
-            }).eq('id', UserProfileCacheManager.currentUserId).then((_) {});
+            }).eq('id', client.auth.currentUser!.id).then((_) {});
           }
         } catch (_) {}
       } else if (category == 'Novel') {
@@ -627,7 +627,7 @@ class StoreController extends GetxController {
             client.from('profiles').update({
               'novel_level': novelLvl,
               'novel_expiry': expiry.toIso8601String(),
-            }).eq('id', UserProfileCacheManager.currentUserId).then((_) {});
+            }).eq('id', client.auth.currentUser!.id).then((_) {});
           }
         } catch (_) {}
       } else if (category == 'Coins') {

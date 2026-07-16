@@ -364,7 +364,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       debugPrint('[Profile Update] Database update started');
       try {
-        await Supabase.instance.client.from('profiles').update(updatePayload).eq('id', userId);
+        final currentUid = Supabase.instance.client.auth.currentUser?.id;
+        if (currentUid == null) throw Exception("User session invalid.");
+        await Supabase.instance.client.from('profiles').update(updatePayload).eq('id', currentUid);
         debugPrint('[Profile Update] Database update success');
       } catch (dbError) {
         debugPrint('[Profile Update] Database update failed: $dbError');

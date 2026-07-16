@@ -62,14 +62,9 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _checkProfileAndNavigate(String userId) async {
     try {
-      // 1. Force refresh profile and progress cache from Supabase
-      await UserProfileCacheManager.getOrFetchCanonicalId();
-      await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
-      await UserProgressSyncService.syncFromSupabase();
-
       final res = await Supabase.instance.client
           .from('profiles')
-          .select('username, display_name, interests')
+          .select('username, display_name, interests, status, is_banned, ban_reason')
           .eq('id', userId)
           .maybeSingle();
 
@@ -77,6 +72,24 @@ class _LoginScreenState extends State<LoginScreen>
         Get.offAll(() => SignupFlowScreen(userId: userId, startStep: 1));
         return;
       }
+
+      final status = res['status'] as String?;
+      final isBanned = res['is_banned'] as bool? ?? false;
+      final banReason = res['ban_reason'] as String?;
+
+      if (status == 'suspended' || status == 'banned' || isBanned) {
+        await UserProfileCacheManager.forceLogout(
+          message: banReason != null && banReason.isNotEmpty
+              ? "Your account has been suspended. Reason: $banReason"
+              : "Your account has been suspended.",
+        );
+        return;
+      }
+
+      // Force refresh profile and progress cache from Supabase
+      await UserProfileCacheManager.getOrFetchCanonicalId();
+      await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
+      await UserProgressSyncService.syncFromSupabase();
 
       final username = res['username'] ?? '';
       final interests = List<String>.from(res['interests'] ?? []);

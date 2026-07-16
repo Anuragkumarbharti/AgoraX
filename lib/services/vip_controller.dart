@@ -172,7 +172,7 @@ class VipController extends GetxController {
         'vip_level': level,
         'vip_expiry': expiry?.toIso8601String(),
         'avatar_frame': frameName,
-      }).eq('id', currentUserId);
+      }).eq('id', Supabase.instance.client.auth.currentUser?.id ?? '');
 
       await UserProfileCacheManager.fetchUserProfile(currentUserId, forceRefresh: true);
       await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
