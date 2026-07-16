@@ -108,3 +108,4 @@ flutter:
   
   assets:
     - assets/images/
+    - assets/identity_tags/

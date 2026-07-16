@@ -6346,97 +6346,59 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
 
   List<Map<String, dynamic>> generateDynamicTagLights(User? user, int fallbackVip, int fallbackNovel, int fallbackLevel) {
     final List<Map<String, dynamic>> tags = [];
-    if (user == null) {
-      // Fallback tags if user is null
-      tags.add({'label': 'ID Level $fallbackLevel', 'color': const Color(0xFFFFB020)});
-      if (fallbackVip > 0) {
-        tags.add({
-          'label': 'VIP Level $fallbackVip',
-          'color': const Color(0xFFFFA751),
-          'gradient': const LinearGradient(
-            colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          )
-        });
-      }
-      if (fallbackNovel > 0) {
-        tags.add({
-          'label': 'Novel $fallbackNovel',
-          'color': const Color(0xFFE94057),
-          'gradient': const LinearGradient(
-            colors: [Color(0xFF8A2387), Color(0xFFE94057)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          )
-        });
-      }
+    if (user == null || user.tagSystem == null) {
       return tags;
     }
 
-    final tagList = user.tagLights.isEmpty ? ['ID Level ${user.level}'] : user.tagLights;
-
-    for (var t in tagList) {
-      t = t.trim();
+    for (var t in user.tagSystem!.identityTagBar) {
+      final label = t.value;
+      final type = t.type;
       Color color = const Color(0xFFBEC2FF);
       Gradient? gradient;
 
-      if (t.startsWith('ID Level ')) {
-        color = const Color(0xFFFFB020);
-      } else if (t.startsWith('VIP Level ')) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFFFFA751);
-      } else if (t.startsWith('Novel ')) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFF8A2387), Color(0xFFE94057)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFFE94057);
-      } else if (t == 'Origin') {
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFB45309)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFFFFD700);
-      } else if (t == 'Studio') {
-        gradient = const LinearGradient(
-          colors: [Color(0xFF8B5CFF), Color(0xFF6D28D9)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFF8B5CFF);
-      } else if (t == 'ArenaX') {
+      if (type == 'id_level') {
+        color = const Color(0xFF3B82F6);
         gradient = const LinearGradient(
           colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
+      } else if (type == 'community') {
+        color = const Color(0xFFEC4899);
+        gradient = const LinearGradient(
+          colors: [Color(0xFFF472B6), Color(0xFFEC4899)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      } else if (type == 'vip') {
         color = const Color(0xFF3B82F6);
-      } else if (t == 'Campus') {
         gradient = const LinearGradient(
-          colors: [Color(0xFF10B981), Color(0xFF047857)],
+          colors: [Color(0xFF60A5FA), Color(0xFF2563EB)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
-        color = const Color(0xFF10B981);
-      } else if (t == 'Connect') {
+      } else if (type == 'noble') {
+        color = const Color(0xFFD97706);
         gradient = const LinearGradient(
-          colors: [Color(0xFF06B6D4), Color(0xFF0891B2)],
+          colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
-        color = const Color(0xFF06B6D4);
-      } else if (t == 'Official') {
-        color = const Color(0xFF8B5CFF);
+      } else if (type == 'special') {
+        color = const Color(0xFF8B5CF6);
+        gradient = const LinearGradient(
+          colors: [Color(0xFFA78BFA), Color(0xFF7C3AED)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
       }
 
-      tags.add({'label': t, 'color': color, 'gradient': gradient});
+      tags.add({
+        'label': label,
+        'color': color,
+        'gradient': gradient,
+        'imageUrl': t.imageUrl,
+      });
     }
 
     return tags;
@@ -6457,6 +6419,31 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
 
     final List<Widget> widgets = displayTags.map((tag) {
       final label = tag['label'] as String;
+      final imageUrl = tag['imageUrl'] as String?;
+
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        Widget imgWidget;
+        if (imageUrl.startsWith('asset://')) {
+          imgWidget = Image.asset(
+            imageUrl.replaceAll('asset://', ''),
+            height: 22,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          );
+        } else {
+          imgWidget = Image.network(
+            imageUrl,
+            height: 22,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          );
+        }
+        return Tooltip(
+          message: 'Identity Tag: $label',
+          child: imgWidget,
+        );
+      }
+
       final color = tag['color'] as Color;
       final gradient = tag['gradient'] as Gradient?;
 
@@ -6561,15 +6548,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     
     // Fallback if tagSystem is not loaded yet
     if (status == null) {
-      final identity = PremiumIdentityController.getIdentity(user.id, user.displayName);
-      final officialTag = identity.officialStatusTag;
-      if (officialTag == null) return const SizedBox.shrink();
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildSingleStatusBadge(officialTag.name, isRole: officialTag.name.toLowerCase() != 'verified'),
-        ],
-      );
+      return const SizedBox.shrink();
     }
 
     final List<Widget> widgets = [];
@@ -6649,7 +6628,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
 
   Widget buildBadgesShowcaseWidget(List<String> activeBadgesList, BuildContext context) {
     final custCtrl = Get.find<CustomizationController>();
-    final badgesToUse = activeBadgesList.isEmpty ? ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester', 'Champion'] : activeBadgesList;
+    final badgesToUse = activeBadgesList;
+    if (badgesToUse.isEmpty) return const SizedBox.shrink();
 
     return Container(
       width: double.infinity,

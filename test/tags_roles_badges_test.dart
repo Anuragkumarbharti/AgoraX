@@ -21,9 +21,9 @@ void main() {
         'following': 50,
         'tag_system': {
           'identityTagBar': [
-            {'type': 'id_level', 'value': 'Lv.26'},
+            {'type': 'id_level', 'value': 'Lv.26', 'image_url': 'asset://assets/identity_tags/id_level_26.png'},
             {'type': 'community', 'value': 'Silver Couple'},
-            {'type': 'vip', 'value': 'VIP 2'},
+            {'type': 'vip', 'value': 'VIP 2', 'image_url': 'asset://assets/identity_tags/vip_level_2.png'},
             {'type': 'noble', 'value': 'King'},
             {'type': 'special', 'value': 'Forever Friends'}
           ],
@@ -51,10 +51,13 @@ void main() {
       expect(tagSystem.identityTagBar.length, 5);
       expect(tagSystem.identityTagBar[0].type, 'id_level');
       expect(tagSystem.identityTagBar[0].value, 'Lv.26');
+      expect(tagSystem.identityTagBar[0].imageUrl, 'asset://assets/identity_tags/id_level_26.png');
       expect(tagSystem.identityTagBar[1].type, 'community');
       expect(tagSystem.identityTagBar[1].value, 'Silver Couple');
+      expect(tagSystem.identityTagBar[1].imageUrl, isNull);
       expect(tagSystem.identityTagBar[2].type, 'vip');
       expect(tagSystem.identityTagBar[2].value, 'VIP 2');
+      expect(tagSystem.identityTagBar[2].imageUrl, 'asset://assets/identity_tags/vip_level_2.png');
       expect(tagSystem.identityTagBar[3].type, 'noble');
       expect(tagSystem.identityTagBar[3].value, 'King');
       expect(tagSystem.identityTagBar[4].type, 'special');

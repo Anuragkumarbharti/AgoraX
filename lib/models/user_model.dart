@@ -466,19 +466,22 @@ class TagSystem {
 class IdentityTag {
   final String type;
   final String value;
+  final String? imageUrl;
 
-  IdentityTag({required this.type, required this.value});
+  IdentityTag({required this.type, required this.value, this.imageUrl});
 
   factory IdentityTag.fromJson(Map<String, dynamic> json) {
     return IdentityTag(
       type: json['type'] ?? '',
       value: json['value'] ?? '',
+      imageUrl: json['image_url'] ?? json['imageUrl'],
     );
   }
 
   Map<String, dynamic> toJson() => {
     'type': type,
     'value': value,
+    'image_url': imageUrl,
   };
 }
 

@@ -324,18 +324,29 @@ class UserProfileCacheManager {
 
                   // Update GetX controllers in real-time
                   try {
-                    if (Get.isRegistered<StoreController>()) {
-                      Get.find<StoreController>().coinsBalance.value = (newRecord['coins_balance'] ?? 0).toInt();
-                    }
-                  } catch (_) {}
-                  try {
                     if (Get.isRegistered<VipController>()) {
-                      Get.find<VipController>().vipLevel.value = (newRecord['vip_level'] ?? 0).toInt();
+                      final vipCtrl = Get.find<VipController>();
+                      vipCtrl.vipLevel.value = (newRecord['vip_level'] ?? 0).toInt();
+                      final expiryStr = newRecord['vip_expiry'];
+                      if (expiryStr != null) {
+                        vipCtrl.expiryDate.value = DateTime.tryParse(expiryStr);
+                      } else {
+                        vipCtrl.expiryDate.value = null;
+                      }
+                      vipCtrl.saveState();
                     }
                   } catch (_) {}
                   try {
                     if (Get.isRegistered<NovelController>()) {
-                      Get.find<NovelController>().novelLevel.value = (newRecord['novel_level'] ?? 0).toInt();
+                      final novelCtrl = Get.find<NovelController>();
+                      novelCtrl.novelLevel.value = (newRecord['novel_level'] ?? 0).toInt();
+                      final expiryStr = newRecord['novel_expiry'];
+                      if (expiryStr != null) {
+                        novelCtrl.expiryDate.value = DateTime.tryParse(expiryStr);
+                      } else {
+                        novelCtrl.expiryDate.value = null;
+                      }
+                      novelCtrl.saveState();
                     }
                   } catch (_) {}
                   try {
@@ -364,6 +375,37 @@ class UserProfileCacheManager {
       debugPrint('[UserProfileCacheManager] Subscribed to profiles table Realtime updates.');
     } catch (e) {
       debugPrint('[UserProfileCacheManager] Realtime subscription failed: $e');
+    }
+
+    // Subscribe to wallets table for coins and silver coins real-time sync
+    try {
+      final walletsChannel = Supabase.instance.client
+          .channel('public:wallets_cache_realtime')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'wallets',
+            callback: (payload) {
+              final newRecord = payload.newRecord;
+              if (newRecord != null && newRecord['id'] != null) {
+                final String userId = newRecord['id'];
+                if (userId == currentUserId) {
+                  final num coins = newRecord['coins_balance'] ?? 0;
+                  final num silver = newRecord['silver_balance'] ?? 0;
+                  try {
+                    if (Get.isRegistered<StoreController>()) {
+                      Get.find<StoreController>().coinsBalance.value = coins.toInt();
+                      Get.find<StoreController>().silverCoinsBalance.value = silver.toInt();
+                    }
+                  } catch (_) {}
+                }
+              }
+            },
+          );
+      walletsChannel.subscribe();
+      debugPrint('[UserProfileCacheManager] Subscribed to wallets table Realtime updates.');
+    } catch (e) {
+      debugPrint('[UserProfileCacheManager] Wallets realtime subscription failed: $e');
     }
   }
 

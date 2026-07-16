@@ -85,9 +85,28 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    UserProfileCacheManager.addListener(_onProfileCacheChanged);
     _loadUserProfile();
     if (!_isMe) {
       _checkFollowingStatus();
+    }
+  }
+
+  @override
+  void dispose() {
+    UserProfileCacheManager.removeListener(_onProfileCacheChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onProfileCacheChanged() {
+    if (!mounted) return;
+    final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
+    final updatedUser = UserProfileCacheManager.getCachedUser(profileId);
+    if (updatedUser != null) {
+      setState(() {
+        _user = updatedUser;
+      });
     }
   }
 
@@ -1075,84 +1094,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           'color': color,
           'gradient': gradient,
           'icon': icon,
+          'imageUrl': t.imageUrl,
         });
       }
-      return tags;
-    }
-
-    final tagList = user.tagLights.isEmpty ? ['ID Level ${user.level}'] : user.tagLights;
-
-    for (var t in tagList) {
-      t = t.trim();
-      Color color = const Color(0xFFBEC2FF);
-      Gradient? gradient;
-      IconData? icon;
-
-      if (t.startsWith('ID Level ')) {
-        color = const Color(0xFFFFB020);
-        icon = Icons.star_rounded;
-      } else if (t.startsWith('VIP Level ')) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFFFFA751);
-        icon = Icons.diamond_rounded;
-      } else if (t.startsWith('Novel ')) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFF8A2387), Color(0xFFE94057)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFFE94057);
-        icon = Icons.workspace_premium_rounded;
-      } else if (t == 'Origin') {
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFB45309)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFFFFD700);
-        icon = Icons.favorite_rounded;
-      } else if (t == 'Studio') {
-        gradient = const LinearGradient(
-          colors: [Color(0xFF8B5CFF), Color(0xFF6D28D9)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFF8B5CFF);
-        icon = Icons.favorite_rounded;
-      } else if (t == 'ArenaX') {
-        gradient = const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFF3B82F6);
-        icon = Icons.favorite_rounded;
-      } else if (t == 'Campus') {
-        gradient = const LinearGradient(
-          colors: [Color(0xFF10B981), Color(0xFF047857)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFF10B981);
-        icon = Icons.favorite_rounded;
-      } else if (t == 'Connect') {
-        gradient = const LinearGradient(
-          colors: [Color(0xFF06B6D4), Color(0xFF0891B2)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        color = const Color(0xFF06B6D4);
-        icon = Icons.favorite_rounded;
-      } else if (t == 'Official') {
-        color = const Color(0xFF8B5CFF);
-        icon = Icons.star_border_rounded;
-      }
-
-      tags.add({'label': t, 'color': color, 'gradient': gradient, 'icon': icon});
     }
 
     return tags;
@@ -1173,6 +1117,31 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
     final List<Widget> widgets = displayTags.map((tag) {
       final label = tag['label'] as String;
+      final imageUrl = tag['imageUrl'] as String?;
+
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        Widget imgWidget;
+        if (imageUrl.startsWith('asset://')) {
+          imgWidget = Image.asset(
+            imageUrl.replaceAll('asset://', ''),
+            height: 19,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          );
+        } else {
+          imgWidget = Image.network(
+            imageUrl,
+            height: 19,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          );
+        }
+        return Tooltip(
+          message: 'Identity Tag: $label',
+          child: imgWidget,
+        );
+      }
+
       final color = tag['color'] as Color;
       final gradient = tag['gradient'] as Gradient?;
       final icon = tag['icon'] as IconData?;
@@ -1287,15 +1256,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     
     // Fallback if tagSystem is not loaded yet
     if (status == null) {
-      final identity = PremiumIdentityController.getIdentity(user.id, user.displayName);
-      final officialTag = identity.officialStatusTag;
-      if (officialTag == null) return const SizedBox.shrink();
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildSingleStatusBadge(officialTag.name, isRole: officialTag.name.toLowerCase() != 'verified'),
-        ],
-      );
+      return const SizedBox.shrink();
     }
 
     final List<Widget> widgets = [];
@@ -1375,7 +1336,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   Widget buildBadgesShowcaseWidget(List<String> activeBadgesList, BuildContext context) {
     final custCtrl = Get.find<CustomizationController>();
-    final badgesToUse = activeBadgesList.isEmpty ? ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester', 'Champion'] : activeBadgesList;
+    final badgesToUse = activeBadgesList;
+    if (badgesToUse.isEmpty) return const SizedBox.shrink();
 
     final displayList = badgesToUse.length > 6 
         ? badgesToUse.take(5).toList() 

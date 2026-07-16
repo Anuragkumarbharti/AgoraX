@@ -428,7 +428,25 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     required Color bgColor,
     required Color borderColor,
     required Color textColor,
+    String? imageUrl,
   }) {
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      if (imageUrl.startsWith('asset://')) {
+        return Image.asset(
+          imageUrl.replaceAll('asset://', ''),
+          height: 19,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        );
+      } else {
+        return Image.network(
+          imageUrl,
+          height: 19,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        );
+      }
+    }
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -620,21 +638,9 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
           bgColor: color.withOpacity(0.12),
           borderColor: color.withOpacity(0.6),
           textColor: color,
+          imageUrl: t.imageUrl,
         ));
       }
-    } else {
-      // Fallback to old property rendering
-      final bool showVip = identity.vipLevel > 0;
-      final bool showNovel = identity.novelLevel > 0;
-      final bool showId = true;
-      final bool showComm = identity.communityTag != null;
-      final officialStatusTag = identity.officialStatusTag;
-
-      if (officialStatusTag != null) list.add(_officialStatusBadge(officialStatusTag, fs));
-      if (showVip) list.add(_vipBadge(identity.vipLevel, fs));
-      if (showNovel) list.add(_novelBadge(identity.novelLevel, fs));
-      if (showComm) list.add(_commBadge(identity.communityTag!, fs));
-      if (showId) list.add(_idBadge(identity.idLevel, fs));
     }
 
     final limited = list.length > 8 ? list.sublist(0, 8) : list;

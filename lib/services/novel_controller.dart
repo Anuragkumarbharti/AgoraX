@@ -86,6 +86,7 @@ class NovelController extends GetxController {
         } else {
           expiryDate.value = null;
         }
+        await _saveState();
       }
     } catch (_) {}
   }
@@ -169,6 +170,8 @@ class NovelController extends GetxController {
 
     _checkAndResetFreeReadQuotas();
   }
+
+  Future<void> saveState() => _saveState();
 
   Future<void> _saveState() async {
     final prefs = await SharedPreferences.getInstance();

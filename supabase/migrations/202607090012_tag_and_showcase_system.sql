@@ -57,7 +57,11 @@ begin
   end if;
 
   -- 1. ID Level Tag (Fixed)
-  v_identity_tags := array_append(v_identity_tags, jsonb_build_object('type', 'id_level', 'value', 'Lv.' || v_level));
+  v_identity_tags := array_append(v_identity_tags, jsonb_build_object(
+    'type', 'id_level',
+    'value', 'Lv.' || v_level,
+    'image_url', 'asset://assets/identity_tags/id_level_' || v_level || '.png'
+  ));
   v_tag_lights := array_append(v_tag_lights, 'ID Level ' || v_level);
 
   -- 2. Community Tag
@@ -93,7 +97,11 @@ begin
 
   -- 3. VIP Tag
   if (v_vip_level > 0 and (v_vip_expiry is null or v_vip_expiry > v_now)) then
-    v_identity_tags := array_append(v_identity_tags, jsonb_build_object('type', 'vip', 'value', 'VIP ' || v_vip_level));
+    v_identity_tags := array_append(v_identity_tags, jsonb_build_object(
+      'type', 'vip',
+      'value', 'VIP ' || v_vip_level,
+      'image_url', 'asset://assets/identity_tags/vip_level_' || v_vip_level || '.png'
+    ));
     v_tag_lights := array_append(v_tag_lights, 'VIP Level ' || v_vip_level);
   end if;
 
