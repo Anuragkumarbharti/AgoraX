@@ -21,6 +21,12 @@ class UserProfileCacheManager {
   static User? _currentUser;
   static final List<VoidCallback> _listeners = [];
   static RealtimeChannel? _realtimeChannel;
+  static RealtimeChannel? _connectionsRealtimeChannel;
+
+  // Connection RxSets
+  static final RxSet<String> followedUserIds = <String>{}.obs;
+  static final RxSet<String> followerUserIds = <String>{}.obs;
+  static final RxMap<String, String> connectionStatuses = <String, String>{}.obs; // key: otherUserId -> status
 
   static User? get currentUser => _currentUser;
 
@@ -144,9 +150,158 @@ class UserProfileCacheManager {
     _notifyListeners();
   }
 
+  static Future<void> loadUserConnections() async {
+    final myId = currentUserId;
+    if (myId.isEmpty) return;
+    try {
+      final response = await Supabase.instance.client
+          .from('connections')
+          .select('follower_id, following_id, status')
+          .or('follower_id.eq.$myId,following_id.eq.$myId');
+
+      final followed = <String>{};
+      final followers = <String>{};
+      final statuses = <String, String>{};
+
+      for (final row in response as List) {
+        final fid = row['follower_id'] as String;
+        final fguid = row['following_id'] as String;
+        final status = row['status'] as String;
+
+        if (fid == myId) {
+          followed.add(fguid);
+          statuses[fguid] = status;
+        }
+        if (fguid == myId) {
+          followers.add(fid);
+          if (statuses[fid] == null || statuses[fid] == 'following') {
+            statuses[fid] = status;
+          }
+        }
+      }
+
+      followedUserIds.assignAll(followed);
+      followerUserIds.assignAll(followers);
+      connectionStatuses.assignAll(statuses);
+      debugPrint('[CacheManager] Connections loaded. Following: ${followed.length}, Followers: ${followers.length}');
+    } catch (e) {
+      debugPrint('[CacheManager] Error loading connections: $e');
+    }
+  }
+
+  static Future<void> followUser(String targetUserId) async {
+    final myId = currentUserId;
+    if (myId.isEmpty || targetUserId.isEmpty || myId == targetUserId) return;
+
+    final isMutual = followerUserIds.contains(targetUserId);
+    final status = isMutual ? 'friends' : 'following';
+
+    final prevFollowed = Set<String>.from(followedUserIds);
+    final prevStatuses = Map<String, String>.from(connectionStatuses);
+
+    // Optimistically update
+    followedUserIds.add(targetUserId);
+    connectionStatuses[targetUserId] = status;
+
+    final me = rxCache[myId];
+    if (me != null) {
+      rxCache[myId] = me.copyWith(
+        following: me.following + 1,
+        friendsCount: isMutual ? me.friendsCount + 1 : me.friendsCount,
+      );
+    }
+    final target = rxCache[targetUserId];
+    if (target != null) {
+      rxCache[targetUserId] = target.copyWith(
+        followers: target.followers + 1,
+        friendsCount: isMutual ? target.friendsCount + 1 : target.friendsCount,
+      );
+    }
+
+    try {
+      await Supabase.instance.client.from('connections').insert({
+        'follower_id': myId,
+        'following_id': targetUserId,
+      });
+      await fetchUserProfile(targetUserId, forceRefresh: true);
+      await fetchUserProfile(myId, forceRefresh: true);
+    } catch (e) {
+      debugPrint('[CacheManager] Follow failed, rolling back: $e');
+      followedUserIds.assignAll(prevFollowed);
+      connectionStatuses.assignAll(prevStatuses);
+      await fetchUserProfile(myId, forceRefresh: true);
+      await fetchUserProfile(targetUserId, forceRefresh: true);
+    }
+  }
+
+  static Future<void> unfollowUser(String targetUserId) async {
+    final myId = currentUserId;
+    if (myId.isEmpty || targetUserId.isEmpty) return;
+
+    final wasMutual = connectionStatuses[targetUserId] == 'friends';
+
+    final prevFollowed = Set<String>.from(followedUserIds);
+    final prevStatuses = Map<String, String>.from(connectionStatuses);
+
+    // Optimistically update
+    followedUserIds.remove(targetUserId);
+    connectionStatuses.remove(targetUserId);
+
+    final me = rxCache[myId];
+    if (me != null) {
+      rxCache[myId] = me.copyWith(
+        following: me.following - 1 >= 0 ? me.following - 1 : 0,
+        friendsCount: wasMutual ? (me.friendsCount - 1 >= 0 ? me.friendsCount - 1 : 0) : me.friendsCount,
+      );
+    }
+    final target = rxCache[targetUserId];
+    if (target != null) {
+      rxCache[targetUserId] = target.copyWith(
+        followers: target.followers - 1 >= 0 ? target.followers - 1 : 0,
+        friendsCount: wasMutual ? (target.friendsCount - 1 >= 0 ? target.friendsCount - 1 : 0) : target.friendsCount,
+      );
+    }
+
+    try {
+      await Supabase.instance.client
+          .from('connections')
+          .delete()
+          .eq('follower_id', myId)
+          .eq('following_id', targetUserId);
+      await fetchUserProfile(targetUserId, forceRefresh: true);
+      await fetchUserProfile(myId, forceRefresh: true);
+    } catch (e) {
+      debugPrint('[CacheManager] Unfollow failed, rolling back: $e');
+      followedUserIds.assignAll(prevFollowed);
+      connectionStatuses.assignAll(prevStatuses);
+      await fetchUserProfile(myId, forceRefresh: true);
+      await fetchUserProfile(targetUserId, forceRefresh: true);
+    }
+  }
+
   /// Subscribe to profiles table changes and update cached values dynamically
   static void initializeRealtimeSubscription() {
     if (_realtimeChannel != null) return;
+    loadUserConnections();
+    
+    // Subscribe to connections table
+    try {
+      _connectionsRealtimeChannel = Supabase.instance.client
+          .channel('public:connections_cache_realtime')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'connections',
+            callback: (payload) {
+              loadUserConnections();
+            },
+          );
+      _connectionsRealtimeChannel?.subscribe();
+      debugPrint('[UserProfileCacheManager] Subscribed to connections table Realtime updates.');
+    } catch (e) {
+      debugPrint('[UserProfileCacheManager] Connections realtime subscription failed: $e');
+    }
+
     try {
       _realtimeChannel = Supabase.instance.client
           .channel('public:profiles_cache_realtime')
@@ -280,5 +435,102 @@ class UserProfileCacheManager {
     } catch (e) {
       debugPrint('[CacheManager] Delta sync failed: $e');
     }
+  }
+
+  static Future<void> rebuildAndSyncCurrentUserTagSystem() async {
+    final user = currentUser;
+    if (user == null) return;
+
+    // 1. Identity Tag Bar
+    final List<Map<String, dynamic>> identityTags = [];
+    identityTags.add({'type': 'id_level', 'value': 'Lv.${user.level}'});
+
+    // Resolve community tag
+    String? commTag;
+    try {
+      final List<dynamic>? comms = await Supabase.instance.client
+          .from('communities')
+          .select('id')
+          .eq('type', 'Official')
+          .contains('members', [user.id]);
+      if (comms != null && comms.isNotEmpty) {
+        final commId = comms.first['id'] as String;
+        if (commId == 'comm-connect-005') commTag = 'Connect';
+        else if (commId == 'comm-creators-002') commTag = 'Studio';
+        else if (commId == 'comm-gamers-003') commTag = 'ArenaX';
+        else if (commId == 'comm-campus-004') commTag = 'Campus';
+        else if (commId == 'comm-official-001') commTag = 'Origin';
+      }
+    } catch (_) {}
+
+    if (commTag != null) {
+      identityTags.add({'type': 'community', 'value': commTag});
+    }
+
+    if (user.vipLevel > 0) {
+      identityTags.add({'type': 'vip', 'value': 'VIP ${user.vipLevel}'});
+    }
+
+    if (user.novelLevel > 0) {
+      identityTags.add({'type': 'noble', 'value': 'Novel ${user.novelLevel}'});
+    }
+
+    // Special tag
+    final rolesSet = user.rTags.map((r) => r.trim().toLowerCase()).toSet();
+    String? specialTag;
+    if (rolesSet.contains('anniversary')) {
+      specialTag = 'Anniversary';
+    } else if (rolesSet.contains('champion')) {
+      specialTag = 'Champion';
+    } else if (rolesSet.contains('creator') || rolesSet.contains('star creator')) {
+      specialTag = 'Creator';
+    } else if (rolesSet.contains('official') || rolesSet.contains('creania official')) {
+      specialTag = 'Official';
+    }
+
+    if (specialTag != null) {
+      identityTags.add({'type': 'special', 'value': specialTag});
+    }
+
+    // 2. Official Status
+    String? verifiedTag;
+    for (final v in ['celebrity', 'partner', 'official', 'verified', 'verified tester']) {
+      if (rolesSet.contains(v)) {
+        verifiedTag = v[0].toUpperCase() + v.substring(1);
+        break;
+      }
+    }
+    if (verifiedTag == null && user.isVerified) {
+      verifiedTag = 'Verified';
+    }
+
+    String? roleTag;
+    for (final r in ['developer', 'administrator', 'admin', 'official staff', 'employee', 'moderator', 'host']) {
+      if (rolesSet.contains(r)) {
+        if (r == 'admin') {
+          roleTag = 'Administrator';
+        } else if (r == 'employee') {
+          roleTag = 'Official Staff';
+        } else {
+          roleTag = r.split(' ').map((word) => word[0].toUpperCase() + word.substring(1)).join(' ');
+        }
+        break;
+      }
+    }
+
+    final localTagSystem = TagSystem(
+      identityTagBar: identityTags.map((e) => IdentityTag.fromJson(e)).toList(),
+      officialStatus: OfficialStatus(verifiedTag: verifiedTag, roleTag: roleTag),
+      profileShowcase: user.showcasedBadges,
+    );
+
+    final List<String> tagLights = identityTags.map((e) => e['value'] as String).toList();
+
+    // Update cache in-memory instantly to avoid infinite recursion
+    final updatedUser = user.copyWith(tagSystem: localTagSystem, tagLights: tagLights);
+    _currentUser = updatedUser;
+    rxCache[user.id] = updatedUser;
+    _cache[user.id] = updatedUser;
+    _notifyListeners();
   }
 }

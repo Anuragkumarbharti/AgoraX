@@ -60,9 +60,13 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
       );
     }
 
-    Widget mainAvatar = ClipRRect(
-      borderRadius: BorderRadius.circular(widget.size),
-      child: widget.child,
+    Widget mainAvatar = SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(widget.size),
+        child: widget.child,
+      ),
     );
 
     switch (widget.level) {

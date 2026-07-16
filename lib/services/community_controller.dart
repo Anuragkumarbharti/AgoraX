@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/community_model.dart';
 import 'store_controller.dart';
@@ -68,10 +69,149 @@ class CommunityController extends GetxController {
         'tasks': m['tasks'] ?? [],
       })).toList();
 
+      final hasOfficial = loaded.any((c) => c.type == 'Official');
+      if (!hasOfficial && currentUserId.isNotEmpty) {
+        debugPrint('[CommunityController] Official communities missing. Auto-creating...');
+        await _createOfficialCommunities();
+        // Reload after creation
+        return _loadCommunitiesFromDatabase();
+      }
+
       communities.assignAll(loaded);
     } catch (e) {
       debugPrint('DB Load Error: Fallback to initial communities: $e');
       _loadInitialCommunities();
+    }
+  }
+
+  Future<void> _createOfficialCommunities() async {
+    final myId = currentUserId;
+    if (myId.isEmpty) return;
+
+    final officialData = [
+      {
+        'id': 'comm-connect-005',
+        'name': 'Creania Connect',
+        'description': 'Meet new people, make friends, chat, voice rooms, and social networking.',
+        'category': 'Social',
+        'type': 'Official',
+        'owner': myId,
+        'image': '🤝',
+        'banner': 'https://images.unsplash.com/photo-1522071820081-009f0129c71c',
+        'is_verified': true,
+        'member_count': 0,
+        'members': [],
+        'co_owner_ids': [],
+        'admins': [],
+        'level': 1,
+        'xp': 0,
+        'creation_type': 'coins',
+        'is_approved': true,
+        'is_logo_unlocked': true,
+        'rules': 'Be respectful. No spamming or self-promotion.',
+        'tasks': [],
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      {
+        'id': 'comm-official-001',
+        'name': 'Creania Official',
+        'description': 'Official announcements, platform events, updates, and verified activities.',
+        'category': 'General',
+        'type': 'Official',
+        'owner': myId,
+        'image': '📢',
+        'banner': 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809',
+        'is_verified': true,
+        'member_count': 0,
+        'members': [],
+        'co_owner_ids': [],
+        'admins': [],
+        'level': 1,
+        'xp': 0,
+        'creation_type': 'coins',
+        'is_approved': true,
+        'is_logo_unlocked': true,
+        'rules': 'Be respectful. No spamming or self-promotion.',
+        'tasks': [],
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      {
+        'id': 'comm-creators-002',
+        'name': 'Creania Creators',
+        'description': 'Content creators, artists, designers, writers, and creators.',
+        'category': 'Education',
+        'type': 'Official',
+        'owner': myId,
+        'image': '🎨',
+        'banner': 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe',
+        'is_verified': true,
+        'member_count': 0,
+        'members': [],
+        'co_owner_ids': [],
+        'admins': [],
+        'level': 1,
+        'xp': 0,
+        'creation_type': 'coins',
+        'is_approved': true,
+        'is_logo_unlocked': true,
+        'rules': 'Be respectful. No spamming or self-promotion.',
+        'tasks': [],
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      {
+        'id': 'comm-gamers-003',
+        'name': 'Creania Gamers',
+        'description': 'Gaming, esports, tournaments, and live gaming rooms.',
+        'category': 'Gaming',
+        'type': 'Official',
+        'owner': myId,
+        'image': '🎮',
+        'banner': 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc',
+        'is_verified': true,
+        'member_count': 0,
+        'members': [],
+        'co_owner_ids': [],
+        'admins': [],
+        'level': 1,
+        'xp': 0,
+        'creation_type': 'coins',
+        'is_approved': true,
+        'is_logo_unlocked': true,
+        'rules': 'Be respectful. No spamming or self-promotion.',
+        'tasks': [],
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      {
+        'id': 'comm-campus-004',
+        'name': 'Creania Campus',
+        'description': 'Students, education, study groups, notes, and discussions.',
+        'category': 'College',
+        'type': 'Official',
+        'owner': myId,
+        'image': '🏫',
+        'banner': 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1',
+        'is_verified': true,
+        'member_count': 0,
+        'members': [],
+        'co_owner_ids': [],
+        'admins': [],
+        'level': 1,
+        'xp': 0,
+        'creation_type': 'coins',
+        'is_approved': true,
+        'is_logo_unlocked': true,
+        'rules': 'Be respectful. No spamming or self-promotion.',
+        'tasks': [],
+        'created_at': DateTime.now().toIso8601String(),
+      },
+    ];
+
+    for (final data in officialData) {
+      try {
+        await Supabase.instance.client.from('communities').upsert(data);
+      } catch (e) {
+        debugPrint('[CommunityController] Failed to create official community ${data['name']}: $e');
+      }
     }
   }
 
@@ -246,6 +386,51 @@ class CommunityController extends GetxController {
     final idx = communities.indexWhere((c) => c.id == communityId);
     if (idx != -1) {
       final comm = communities[idx];
+
+      if (comm.type == 'Official') {
+        // 1. Single Official Community rule
+        final alreadyJoined = communities.any((c) => c.type == 'Official' && c.members.contains(currentUserId));
+        if (alreadyJoined) {
+          Get.defaultDialog(
+            title: 'Already Joined',
+            backgroundColor: const Color(0xFF1B1D2A),
+            titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+            middleTextStyle: GoogleFonts.poppins(color: Colors.white70),
+            middleText: 'You have already joined an Official Community. Leave your current Official Community before joining another.',
+            textConfirm: 'OK',
+            confirmTextColor: Colors.white,
+            onConfirm: () => Get.back(),
+          );
+          return;
+        }
+
+        // 2. Cooldown check
+        try {
+          final res = await Supabase.instance.client
+              .from('profiles')
+              .select('official_community_cooldown_until')
+              .eq('id', currentUserId)
+              .maybeSingle();
+          if (res != null && res['official_community_cooldown_until'] != null) {
+            final cooldownStr = res['official_community_cooldown_until'] as String;
+            final cooldownDate = DateTime.parse(cooldownStr);
+            if (cooldownDate.isAfter(DateTime.now())) {
+              Get.defaultDialog(
+                title: 'Join Unavailable',
+                backgroundColor: const Color(0xFF1B1D2A),
+                titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+                middleTextStyle: GoogleFonts.poppins(color: Colors.white70),
+                middleText: 'You recently left an Official Community. You can join another Official Community after 24 hours.',
+                textConfirm: 'OK',
+                confirmTextColor: Colors.white,
+                onConfirm: () => Get.back(),
+              );
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
       if (!comm.members.contains(currentUserId)) {
         final updatedMembers = [...comm.members, currentUserId];
         final updatedCount = comm.memberCount + 1;
@@ -260,6 +445,7 @@ class CommunityController extends GetxController {
               .eq('id', communityId);
           
           await _loadCommunitiesFromDatabase();
+          await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
 
           if (comm.owner == currentUserId) {
             await updateTaskProgress(communityId, 't1', updatedCount);
@@ -291,6 +477,7 @@ class CommunityController extends GetxController {
             .eq('id', communityId);
         
         await _loadCommunitiesFromDatabase();
+        await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
       } catch (_) {}
     }
   }

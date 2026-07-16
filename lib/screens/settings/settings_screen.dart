@@ -9,6 +9,7 @@ import '../novel/novel_purchase_screen.dart';
 import '../store/store_home_screen.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../../services/theme_controller.dart';
+import '../../services/community_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -144,6 +145,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Select display language (English)',
               icon: Icons.language_rounded,
               onTap: () => _showComingSoon('Language Settings'),
+            ),
+
+            Divider(color: context.borderColor, height: 32, thickness: 0.5),
+
+            // Community Settings
+            _buildSectionHeader('Community Settings'),
+            _buildSettingsTile(
+              context,
+              'Leave Official Community',
+              'Leave your currently joined Creania Official Community',
+              icon: Icons.group_remove_outlined,
+              onTap: () => _showLeaveCommunityConfirm(),
             ),
 
             Divider(color: context.borderColor, height: 32, thickness: 0.5),
@@ -592,6 +605,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLeaveCommunityConfirm() async {
+    final commCtrl = Get.find<CommunityController>();
+    final myId = UserProfileCacheManager.currentUserId;
+    if (myId.isEmpty) return;
+
+    final joined = commCtrl.communities.firstWhereOrNull((c) =>
+        c.type == 'Official' && c.members.contains(myId));
+
+    if (joined == null) {
+      Get.snackbar(
+        'Not In Any Official Community',
+        'You are not currently a member of any Official Community.',
+        backgroundColor: context.primaryColor.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    Get.defaultDialog(
+      title: 'Leave Official Community?',
+      backgroundColor: context.secondaryBackgroundColor,
+      titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.errorColor),
+      middleTextStyle: GoogleFonts.poppins(color: context.textSecondary),
+      middleText: 'Are you sure you want to leave this Official Community?\n\nAfter leaving, you must wait 24 hours before joining another Official Community.\n\nYour Community TagLight will be removed immediately.',
+      confirm: ElevatedButton(
+        onPressed: () async {
+          Get.back();
+          try {
+            await commCtrl.leaveCommunity(joined.id);
+
+            final cooldownUntil = DateTime.now().add(const Duration(hours: 24)).toUtc().toIso8601String();
+            await Supabase.instance.client
+                .from('profiles')
+                .update({'official_community_cooldown_until': cooldownUntil})
+                .eq('id', myId);
+
+            Get.snackbar(
+              'Left Community',
+              'You have left ${joined.name}. Cooldown activated.',
+              backgroundColor: const Color(0xFF10B981),
+              colorText: Colors.white,
+              snackPosition: SnackPosition.BOTTOM,
+            );
+          } catch (e) {
+            Get.snackbar('Error', 'Failed to leave community: $e');
+          }
+        },
+        style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
+        child: const Text('Leave Community'),
+      ),
+      cancel: OutlinedButton(
+        onPressed: () => Get.back(),
+        child: const Text('Cancel'),
       ),
     );
   }

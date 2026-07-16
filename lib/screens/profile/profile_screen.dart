@@ -15,6 +15,7 @@ import '../../models/post_model.dart';
 import '../../models/question_model.dart';
 import '../settings/settings_screen.dart';
 import '../../widgets/post_attachments_widget.dart';
+import '../../widgets/custom_avatar_frame.dart';
 
 import '../../services/store_controller.dart';
 import '../../services/vip_controller.dart';
@@ -142,6 +143,11 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
       setState(() {
         _user = User.fromJson(mergedData);
+        if (_isMe) {
+          UserProfileCacheManager.setCurrentUser(_user);
+        } else {
+          UserProfileCacheManager.rxCache[_user.id] = _user;
+        }
         _isLoadingProfile = false;
       });
     } catch (e) {
@@ -373,59 +379,51 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                     ],
                   ),
                 ),
-                // Avatar + User Info (Overlapped)
+                // Centered Avatar Stack
                 Positioned(
-                  bottom: -60,
-                  left: 16,
-                  right: 16,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Avatar Container
-                      Stack(
-                        children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            padding: const EdgeInsets.all(3),
-                            decoration: const BoxDecoration(
+                  bottom: -55,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CustomAvatarFrame(
+                          userId: _user.id,
+                          username: _user.username,
+                          size: (_user.avatarFrame != null && _user.avatarFrame!.isNotEmpty && _user.avatarFrame != 'none' && _user.avatarFrame != 'normal') || _user.vipLevel > 0 || _user.novelLevel > 0 ? 112 : 96,
+                          defaultVipLevel: _user.vipLevel,
+                          defaultNovelLevel: _user.novelLevel,
+                          showBadges: false,
+                          child: CircleAvatar(
+                            radius: 48,
+                            backgroundColor: const Color(0xFF11131C),
+                            child: OptimizedImage(
+                              imageUrl: _user.avatar != null && _user.avatar!.isNotEmpty
+                                  ? _user.avatar!
+                                  : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCybH5Mu5-PZ_dMHWuWFu9UFqwNpHtc79GaJ1SCz5v_bdFVOBIBr6-Cbgapb6sfnES7omhgh6mLz1FBQpMfCdnTcBsYtqmihxZELjY4zaJAwKYf6bU-AtUsm-WZRdG9uAznurNgCeHKjz02JXnJcB3olfo16_NN_dQPu_losBj6pac8-KtnTIXZREq6hInG6VPAEfdXysXJ11taDrh7Te-i-xDA02rAOPFka-22raXdTq9vSpH1pBr5u3Wsl9JF1x6b8CiVtPwIoSmu',
+                              quality: ImageQuality.thumbnail,
+                              borderRadius: BorderRadius.circular(48),
+                              width: 96,
+                              height: 96,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.green,
                               shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [Color(0xFFA855F7), Color(0xFFFFD700)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child: CircleAvatar(
-                              radius: 46,
-                              backgroundColor: const Color(0xFF11131C),
-                              child: OptimizedImage(
-                                imageUrl: _user.avatar != null && _user.avatar!.isNotEmpty
-                                    ? _user.avatar!
-                                    : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCybH5Mu5-PZ_dMHWuWFu9UFqwNpHtc79GaJ1SCz5v_bdFVOBIBr6-Cbgapb6sfnES7omhgh6mLz1FBQpMfCdnTcBsYtqmihxZELjY4zaJAwKYf6bU-AtUsm-WZRdG9uAznurNgCeHKjz02JXnJcB3olfo16_NN_dQPu_losBj6pac8-KtnTIXZREq6hInG6VPAEfdXysXJ11taDrh7Te-i-xDA02rAOPFka-22raXdTq9vSpH1pBr5u3Wsl9JF1x6b8CiVtPwIoSmu',
-                                quality: ImageQuality.thumbnail,
-                                borderRadius: BorderRadius.circular(46),
-                                width: 90,
-                                height: 90,
-                              ),
+                              border: Border.all(color: const Color(0xFF11131C), width: 2),
                             ),
                           ),
-                          Positioned(
-                            bottom: 4,
-                            right: 4,
-                            child: Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: const Color(0xFF11131C), width: 2),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -436,83 +434,94 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // First Row: Username, VTag (first), and TagLights
+                  // First Row: Username (Bold, Primary Focus, 18 px)
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
                         _user.displayName,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: -0.4,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // VTag shown first with breathing pulse animation
-                      _BreathingVTag(
-                        level: getVTagLevel(_user),
-                        onTap: () {
-                          Get.snackbar('Verification Info', 'This user is verified at the ${getVTagLevel(_user).toUpperCase()} tier.');
-                        },
-                      ),
                       const SizedBox(width: 6),
-                      // TagLights list (Dynamic level tags + DB custom tags with +N overflow)
-                      ...buildTagLightsWidget(generateDynamicTagLights(_user), context),
+                      Icon(
+                        _user.gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
+                        color: _user.gender == 'female' ? const Color(0xFFF472B6) : const Color(0xFF60A5FA),
+                        size: 16,
+                      ),
+                      if (_isMe) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => Get.to(() => const ProfileCustomizationScreen()),
+                          child: const Icon(Icons.edit_rounded, color: Colors.white70, size: 14),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 6),
 
-                  // Second Row: ID
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Clipboard.setData(ClipboardData(text: _user.sid));
-                          Get.snackbar('Copied', 'ID copied to clipboard.');
-                        },
-                        onLongPress: () {
-                          Get.snackbar('Share ID', 'Profile ID: ${_user.sid}');
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'ID : ${_user.sid}',
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFF9CA3AF),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Icon(
-                              Icons.content_copy_rounded,
-                              color: Color(0xFF9CA3AF),
-                              size: 14,
-                            ),
-                          ],
-                        ),
+                  // Second Row: User ID (Smaller, 13 px, Secondary text)
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: _user.sid));
+                      Get.snackbar('Copied', 'ID copied to clipboard.');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
                       ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _user.gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
-                        color: const Color(0xFFBEC2FF),
-                        size: 14,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'ID: ${_user.sid}',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.content_copy_rounded,
+                            color: Colors.white54,
+                            size: 11,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
 
-                  // Third Row: RTag
-                  buildRTagWidget(_user.rTags, context),
+                  // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: buildTagLightsWidget(generateDynamicTagLights(_user), context),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
 
-                  // Fourth Row: Badge Showcase
+                  // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
+                  buildOfficialStatusRow(_user, context),
+                  const SizedBox(height: 6),
+
+                  // Fifth Row: Badge Showcase (with mockup container styling)
                   buildBadgesShowcaseWidget(_user.showcasedBadges, context),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
 
                   // Action Buttons row
                   Row(
@@ -1009,52 +1018,141 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   List<Map<String, dynamic>> generateDynamicTagLights(User user) {
     final List<Map<String, dynamic>> tags = [];
+    final tagSystem = user.tagSystem;
 
-    // 1. VIP tag (V7)
-    if (user.vipLevel > 0) {
-      tags.add({'label': 'V${user.vipLevel}', 'color': const Color(0xFF8B5CFF)});
+    if (tagSystem != null) {
+      for (var t in tagSystem.identityTagBar) {
+        final label = t.value;
+        final type = t.type;
+        Color color = const Color(0xFFBEC2FF);
+        Gradient? gradient;
+        IconData? icon;
+
+        if (type == 'id_level') {
+          color = const Color(0xFF3B82F6);
+          gradient = const LinearGradient(
+            colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+          icon = Icons.star_rounded;
+        } else if (type == 'community') {
+          color = const Color(0xFFEC4899);
+          gradient = const LinearGradient(
+            colors: [Color(0xFFF472B6), Color(0xFFEC4899)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+          icon = Icons.favorite_rounded;
+        } else if (type == 'vip') {
+          color = const Color(0xFF3B82F6);
+          gradient = const LinearGradient(
+            colors: [Color(0xFF60A5FA), Color(0xFF2563EB)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+          icon = Icons.diamond_rounded;
+        } else if (type == 'noble') {
+          color = const Color(0xFFD97706);
+          gradient = const LinearGradient(
+            colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+          icon = Icons.workspace_premium_rounded;
+        } else if (type == 'special') {
+          color = const Color(0xFF8B5CF6);
+          gradient = const LinearGradient(
+            colors: [Color(0xFFA78BFA), Color(0xFF7C3AED)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+          icon = Icons.star_border_rounded;
+        }
+
+        tags.add({
+          'label': label,
+          'color': color,
+          'gradient': gradient,
+          'icon': icon,
+        });
+      }
+      return tags;
     }
 
-    // 2. Novel tag (N5)
-    if (user.novelLevel > 0) {
-      tags.add({'label': 'N${user.novelLevel}', 'color': const Color(0xFFFF4D8D)});
-    }
+    final tagList = user.tagLights.isEmpty ? ['ID Level ${user.level}'] : user.tagLights;
 
-    // 3. ID Level tag (L42)
-    if (user.level > 0) {
-      tags.add({'label': 'L${user.level}', 'color': const Color(0xFFFFB020)});
-    }
-
-    // 4. Community Level tag (C20)
-    tags.add({'label': 'C${user.communities.length}', 'color': const Color(0xFF22C55E)});
-
-    // 5. DB custom tags (e.g. TOP, DEV, MOD, EMP, BOT, STAR, 🔥)
-    final tagList = user.tagLights.isEmpty ? ['V5', 'N3', 'L42', 'C12', '🔥'] : user.tagLights;
     for (var t in tagList) {
       t = t.trim();
-      if (t == 'Verified' || t == '✓') continue;
-      if (t.startsWith('VIP Level ') || t.startsWith('V')) continue;
-      if (t.startsWith('Novel ') || t.startsWith('N')) continue;
-      if (t.startsWith('ID Level ') || t.startsWith('L')) continue;
-      if (t.startsWith('Community Level ') || t.startsWith('C')) continue;
-
       Color color = const Color(0xFFBEC2FF);
-      if (t.toUpperCase() == 'DEV' || t.toUpperCase() == 'DEVELOPER') {
-        color = const Color(0xFF00C2FF);
-      } else if (t.toUpperCase() == 'MOD' || t.toUpperCase() == 'MODERATOR') {
-        color = const Color(0xFFEF4444);
-      } else if (t.toUpperCase() == 'EMP' || t.toUpperCase() == 'EMPLOYEE') {
-        color = const Color(0xFFFF7A09);
-      } else if (t.toUpperCase() == 'BOT') {
-        color = const Color(0xFFBEC2FF);
-      } else if (t.toUpperCase() == 'TOP') {
+      Gradient? gradient;
+      IconData? icon;
+
+      if (t.startsWith('ID Level ')) {
         color = const Color(0xFFFFB020);
-      } else if (t.toUpperCase() == 'STAR') {
-        color = const Color(0xFFDDB7FF);
-      } else if (t == '🔥') {
-        color = const Color(0xFFFF4D8D);
+        icon = Icons.star_rounded;
+      } else if (t.startsWith('VIP Level ')) {
+        gradient = const LinearGradient(
+          colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFFFFA751);
+        icon = Icons.diamond_rounded;
+      } else if (t.startsWith('Novel ')) {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF8A2387), Color(0xFFE94057)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFFE94057);
+        icon = Icons.workspace_premium_rounded;
+      } else if (t == 'Origin') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFFFFD700), Color(0xFFB45309)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFFFFD700);
+        icon = Icons.favorite_rounded;
+      } else if (t == 'Studio') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF8B5CFF), Color(0xFF6D28D9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFF8B5CFF);
+        icon = Icons.favorite_rounded;
+      } else if (t == 'ArenaX') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFF3B82F6);
+        icon = Icons.favorite_rounded;
+      } else if (t == 'Campus') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF10B981), Color(0xFF047857)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFF10B981);
+        icon = Icons.favorite_rounded;
+      } else if (t == 'Connect') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF06B6D4), Color(0xFF0891B2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFF06B6D4);
+        icon = Icons.favorite_rounded;
+      } else if (t == 'Official') {
+        color = const Color(0xFF8B5CFF);
+        icon = Icons.star_border_rounded;
       }
-      tags.add({'label': t, 'color': color});
+
+      tags.add({'label': t, 'color': color, 'gradient': gradient, 'icon': icon});
     }
 
     return tags;
@@ -1076,51 +1174,27 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     final List<Widget> widgets = displayTags.map((tag) {
       final label = tag['label'] as String;
       final color = tag['color'] as Color;
+      final gradient = tag['gradient'] as Gradient?;
+      final icon = tag['icon'] as IconData?;
 
-      Gradient? gradient;
       Color bg = color.withOpacity(0.12);
       Color borderCol = color.withOpacity(0.4);
       Color textCol = color;
 
-      if (label.startsWith('V') && RegExp(r'^\d+$').hasMatch(label.substring(1))) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        borderCol = const Color(0xFFFFA751);
+      if (gradient != null) {
+        borderCol = color;
         textCol = Colors.white;
-      } else if (label.startsWith('N') && RegExp(r'^\d+$').hasMatch(label.substring(1))) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFF8A2387), Color(0xFFE94057)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        borderCol = const Color(0xFFE94057);
-        textCol = Colors.white;
-      } else if (label == 'TOP') {
-        bg = const Color(0xFFFF7A09).withOpacity(0.2);
-        borderCol = const Color(0xFFFF7A09);
-        textCol = const Color(0xFFFF9F43);
-      } else if (label == 'DEV') {
-        bg = const Color(0xFF00C2FF).withOpacity(0.2);
-        borderCol = const Color(0xFF00C2FF);
-        textCol = const Color(0xFF8CF3FF);
-      } else if (label == 'MOD') {
-        bg = const Color(0xFFEF4444).withOpacity(0.2);
-        borderCol = const Color(0xFFEF4444);
-        textCol = const Color(0xFFFF8E8E);
       }
 
       return Tooltip(
-        message: 'Tap to see details about $label',
+        message: 'Identity Tag: $label',
         child: GestureDetector(
           onTap: () {
             Get.snackbar('Tag Info', 'Details page for $label tag (coming soon).');
           },
           child: Container(
-            height: 22,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            height: 19,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
               gradient: gradient,
@@ -1134,16 +1208,25 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 )
               ],
             ),
-            child: Center(
-              child: Text(
-                label,
-                style: GoogleFonts.poppins(
-                  color: textCol,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, color: textCol, size: 9),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    color: textCol,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -1198,173 +1281,188 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     return null;
   }
 
-  Widget buildRTagWidget(List<String> rawRoles, BuildContext context) {
-    final rolesToUse = rawRoles.isEmpty ? ['Founder'] : rawRoles;
-    final role = getHighestRTag(rolesToUse);
-    if (role == null) return const SizedBox.shrink();
 
-    Gradient gradient;
-    Color textColor = Colors.white;
-    Color borderColor;
-
-    switch (role.toLowerCase()) {
-      case 'founder':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF1E1E24), Color(0xFF0F0F12)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        borderColor = const Color(0xFFFFB020);
-        textColor = const Color(0xFFFFB020);
-        break;
-      case 'developer':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF00C2FF), Color(0xFF0EA5E9)],
-        );
-        borderColor = const Color(0xFF00C2FF).withOpacity(0.5);
-        break;
-      case 'official':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
-        );
-        borderColor = const Color(0xFF3B82F6).withOpacity(0.5);
-        break;
-      case 'employee':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF8B5CFF), Color(0xFF6366F1)],
-        );
-        borderColor = const Color(0xFF8B5CFF).withOpacity(0.5);
-        break;
-      case 'admin':
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFF7A09), Color(0xFFFFB020)],
-        );
-        borderColor = const Color(0xFFFFB020).withOpacity(0.5);
-        break;
-      case 'moderator':
-        gradient = const LinearGradient(
-          colors: [Color(0xFFEF4444), Color(0xFF991B1B)],
-        );
-        borderColor = const Color(0xFFEF4444).withOpacity(0.5);
-        break;
-      case 'support':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF22C55E), Color(0xFF15803D)],
-        );
-        borderColor = const Color(0xFF22C55E).withOpacity(0.5);
-        break;
-      case 'partner':
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFF4D8D), Color(0xFFBE185D)],
-        );
-        borderColor = const Color(0xFFFF4D8D).withOpacity(0.5);
-        break;
-      case 'tester':
-      default:
-        gradient = const LinearGradient(
-          colors: [Color(0xFF6B7280), Color(0xFF374151)],
-        );
-        borderColor = const Color(0xFF6B7280).withOpacity(0.5);
-        break;
+  Widget buildOfficialStatusRow(User user, BuildContext context) {
+    final status = user.tagSystem?.officialStatus;
+    
+    // Fallback if tagSystem is not loaded yet
+    if (status == null) {
+      final identity = PremiumIdentityController.getIdentity(user.id, user.displayName);
+      final officialTag = identity.officialStatusTag;
+      if (officialTag == null) return const SizedBox.shrink();
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildSingleStatusBadge(officialTag.name, isRole: officialTag.name.toLowerCase() != 'verified'),
+        ],
+      );
     }
 
-    return Tooltip(
-      message: 'Official Role: $role. Tap for role details.',
-      child: GestureDetector(
-        onTap: () {
-          Get.snackbar('Role Info', 'Details about the official $role role (coming soon).');
-        },
-        child: Container(
-          height: 30,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            gradient: gradient,
-            border: Border.all(color: borderColor, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              )
-            ],
+    final List<Widget> widgets = [];
+
+    if (status.verifiedTag != null && status.verifiedTag!.isNotEmpty) {
+      widgets.add(_buildSingleStatusBadge(status.verifiedTag!, isRole: false));
+    }
+
+    if (status.roleTag != null && status.roleTag!.isNotEmpty) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(width: 8));
+      widgets.add(_buildSingleStatusBadge(status.roleTag!, isRole: true));
+    }
+
+    if (widgets.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: widgets,
+    );
+  }
+
+  Widget _buildSingleStatusBadge(String label, {required bool isRole}) {
+    Gradient gradient;
+    Color borderColor;
+    IconData icon;
+
+    if (!isRole) {
+      // Verified Tag
+      gradient = const LinearGradient(
+        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+      );
+      borderColor = const Color(0xFF3B82F6).withOpacity(0.5);
+      icon = Icons.verified_user_rounded;
+    } else {
+      // Role Tag
+      gradient = const LinearGradient(
+        colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+      );
+      borderColor = const Color(0xFF8B5CF6).withOpacity(0.5);
+      icon = Icons.shield_rounded;
+    }
+
+    return Container(
+      height: 19,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        gradient: gradient,
+        border: Border.all(color: borderColor, width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white, size: 10),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.shield_rounded, color: Colors.white, size: 13),
-              const SizedBox(width: 6),
-              Text(
-                role,
-                style: GoogleFonts.poppins(
-                  color: textColor,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
 
   Widget buildBadgesShowcaseWidget(List<String> activeBadgesList, BuildContext context) {
     final custCtrl = Get.find<CustomizationController>();
-    final badgesToUse = activeBadgesList.isEmpty ? ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester'] : activeBadgesList;
+    final badgesToUse = activeBadgesList.isEmpty ? ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester', 'Champion'] : activeBadgesList;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 48,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            shrinkWrap: true,
-            physics: const BouncingScrollPhysics(),
-            itemCount: badgesToUse.take(4).length,
-            itemBuilder: (context, index) {
-              final bName = badgesToUse[index];
-              final meta = custCtrl.badgeMetadata[bName] ?? {'icon': '🏅', 'rarity': 'Common'};
-              final iconStr = meta['icon'] as String? ?? '🏅';
-              
-              return Tooltip(
-                message: '$bName badge. Long press for info.',
-                child: GestureDetector(
-                  onTap: () {
-                    Get.snackbar('Badge Info', '$bName details (coming soon).');
-                  },
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                        )
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        iconStr,
-                        style: const TextStyle(fontSize: 22),
-                      ),
+    final displayList = badgesToUse.length > 6 
+        ? badgesToUse.take(5).toList() 
+        : badgesToUse;
+    final extraCount = badgesToUse.length > 6 ? badgesToUse.length - 5 : 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.0),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ...displayList.map((bName) {
+            final meta = custCtrl.badgeMetadata[bName] ?? {'icon': '🏅', 'rarity': 'Common'};
+            final iconStr = meta['icon'] as String? ?? '🏅';
+            final rarity = meta['rarity'] as String? ?? 'Common';
+            
+            Color glowColor = const Color(0xFFFFB020);
+            if (rarity == 'Legendary') {
+              glowColor = const Color(0xFFFFD700);
+            } else if (rarity == 'Mythic') {
+              glowColor = const Color(0xFFEF4444);
+            } else if (rarity == 'Epic') {
+              glowColor = const Color(0xFF8B5CFF);
+            } else if (rarity == 'Rare') {
+              glowColor = const Color(0xFF3B82F6);
+            }
+
+            return Tooltip(
+              message: '$bName Badge ($rarity)',
+              child: Container(
+                width: 36,
+                height: 36,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.04),
+                  border: Border.all(color: glowColor, width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: glowColor.withOpacity(0.15),
+                      blurRadius: 4,
+                      spreadRadius: 0.5,
+                    )
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    iconStr,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+          if (extraCount > 0) ...[
+            Tooltip(
+              message: '$extraCount more badges',
+              child: Container(
+                width: 36,
+                height: 36,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06),
+                  border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.0),
+                ),
+                child: Center(
+                  child: Text(
+                    '+$extraCount',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-      ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

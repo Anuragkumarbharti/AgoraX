@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme.dart';
 import '../../models/index.dart';
 import '../../models/event_model.dart' as model;
 import '../../services/event_controller.dart';
+import '../../services/community_controller.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/community_card.dart';
 import '../communities/communities_screen.dart';
@@ -30,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late ScrollController _scrollController;
   bool _showFloatingButton = true;
   final EventController _eventController = Get.find<EventController>();
+  final CommunityController _communityCtrl = Get.find<CommunityController>();
   List<Post> _posts = [];
   bool _isLoadingPosts = true;
 
@@ -348,35 +351,38 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildTrendingStudyVault(context),
               const SizedBox(height: 32),
 
-              // Trending Communities
-              _buildSectionHeader(context, 'Trending Communities'),
+              // Official Communities
+              _buildSectionHeader(
+                context,
+                'Official Communities',
+                onViewAll: () => Get.to(() => const CommunitiesScreen()),
+              ),
               const SizedBox(height: 12),
               SizedBox(
                 height: 180,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 5,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: CommunityCard(
-                        community: Community(
-                          id: '$index',
-                          name: ['Flutter', 'AI', 'Web Dev', 'UPSC', 'Gaming'][index],
-                          description: 'Discussion on ${['Flutter', 'AI', 'Web Dev', 'UPSC', 'Gaming'][index]}',
-                          category: 'Technology',
-                          type: 'public',
-                          owner: 'admin',
-                          admins: [],
-                          members: [],
-                          memberCount: 1000 + (index * 500),
-                          isVerified: index % 2 == 0,
-                          createdAt: DateTime.now(),
-                        ),
+                child: Obx(() {
+                  final officialComms = _communityCtrl.communities
+                      .where((c) => c.type == 'Official')
+                      .toList();
+
+                  if (officialComms.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'Loading communities...',
+                        style: GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
                       ),
                     );
-                  },
-                ),
+                  }
+
+                  return ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: officialComms.length,
+                    itemBuilder: (context, index) {
+                      final comm = officialComms[index];
+                      return _buildOfficialCommunityCard(context, comm, _communityCtrl);
+                    },
+                  );
+                }),
               ),
               const SizedBox(height: 32),
 
@@ -437,7 +443,7 @@ class _HomeScreenState extends State<HomeScreen> {
           : null,
     );
 
-  Widget _buildSectionHeader(BuildContext context, String title) => Row(
+  Widget _buildSectionHeader(BuildContext context, String title, {VoidCallback? onViewAll}) => Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
@@ -448,7 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: onViewAll ?? () {},
           child: Text(
             'View All',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -458,6 +464,160 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
+
+  Widget _buildOfficialCommunityCard(BuildContext context, Community comm, CommunityController ctrl) {
+    final isJoined = comm.members.contains(CommunityController.currentUserId);
+    return Container(
+      width: 240,
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Banner Image
+            Stack(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: comm.banner ?? 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809',
+                  height: 80,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(color: Colors.white10),
+                  errorWidget: (context, url, error) => Container(color: Colors.white10),
+                ),
+                Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.transparent, const Color(0xFF1E293B).withOpacity(0.8), const Color(0xFF1E293B)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+                // Floating Avatar/Emoji
+                Positioned(
+                  bottom: 4,
+                  left: 12,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF334155),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF1E293B), width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        comm.image ?? comm.name.substring(0, 1),
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            // Content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                comm.name,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.verified,
+                              color: Color(0xFF60A5FA),
+                              size: 13,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          '${comm.memberCount} members',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white54,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    // Join Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 28,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (isJoined) {
+                            ctrl.leaveCommunity(comm.id);
+                          } else {
+                            ctrl.joinCommunity(comm.id);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isJoined ? Colors.transparent : const Color(0xFF6366F1),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            side: BorderSide(
+                              color: isJoined ? Colors.white24 : Colors.transparent,
+                              width: 1,
+                            ),
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: Text(
+                          isJoined ? 'Joined' : 'Join',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildQuestionCard(BuildContext context, int index) => Container(
       decoration: BoxDecoration(

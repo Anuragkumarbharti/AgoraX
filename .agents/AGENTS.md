@@ -169,3 +169,31 @@ For scaling audio rooms up to 1M+ users:
 4. **Chat Controller Refactoring:** Introduce E2EE key exchanges and swap local mock streams with Supabase Realtime Channels.
 5. **Ledger Bindings:** Bind purchase, gift, and withdraw actions to database transactions.
 6. **LiveKit Integration:** Hook up LiveKit WebRTC client.
+
+---
+
+## 7. Profile Tag & Showcase System (Technical Logs & Rules)
+
+We implemented a completely backend-driven Profile Tag & Showcase System. Below is a detailed description of the implementation:
+
+### 🌟 DB Schema & Migrations (`supabase/migrations/`)
+* **[202607230001_backend_driven_tag_system.sql](file:///c:/Users/MSI/Downloads/AgoraX/supabase/migrations/202607230001_backend_driven_tag_system.sql)**:
+  - Adds `tag_system` JSONB column to `profiles`.
+  - Attaches `check_profile_tag_system` trigger to prevent direct client updates to this column.
+  - Implements trigger function `rebuild_user_tag_system(p_user_id uuid)` to rebuild user tags dynamically.
+  - Configures triggers to auto-update on profile changes and community membership joins/leaves.
+
+### ⚙️ Services & Controllers (`lib/services/` & `lib/models/`)
+* **[user_model.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/models/user_model.dart)**: Defines structures: `TagSystem`, `IdentityTag`, and `OfficialStatus`. Integrates mapping into `User.fromJson`, `User.toJson`, and `copyWith`.
+* **[user_profile_cache_manager.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/services/user_profile_cache_manager.dart)**: Implements `rebuildAndSyncCurrentUserTagSystem` to dynamically construct and cache structures for instant client-side updates.
+* **[vip_controller.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/services/vip_controller.dart)**, **[novel_controller.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/services/novel_controller.dart)**, and **[community_controller.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/services/community_controller.dart)**: Trigger sync on updates.
+
+### 🖥️ Design Layout Tokens & Rules
+The profile identity section is centered horizontally with a consistent **6 px vertical gap** between components:
+- **Avatar Frame**: `112 × 112` px (if equipped)
+- **Avatar Image**: `96 × 96` px (radius `48`), centered inside frame with equal padding.
+- **Username**: `18` px, SemiBold (`w600`).
+- **User ID Pill**: `13` px, Medium (`w500`), copyable container.
+- **Identity Tags & Status Tags**: Height `19` px, fully rounded (`999` px), text size `10` px, constrained in `320` px width to wrap into multiple centered rows.
+- **Showcase Badges**: `36 × 36` px, maximum `6` visible, showing `+N` badge for extra count.
+- **Screens Integrated**: [profile_screen.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/screens/profile/profile_screen.dart), [voice_room_call_screen.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/screens/rooms/voice_room_call_screen.dart), and [mini_profile_widget.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/widgets/mini_profile_widget.dart).

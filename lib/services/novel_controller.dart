@@ -204,10 +204,24 @@ class NovelController extends GetxController {
 
   Future<void> _syncNovelToDatabase(int level, DateTime? expiry) async {
     try {
+      String frameName = 'Normal';
+      if (level > 0) {
+        if (level == 2) frameName = 'Galaxy Orbit (Animated)';
+        else if (level == 3) frameName = 'Royal Gold Palace';
+        else if (level == 4) frameName = 'Dragon Fire Frame';
+        else if (level == 5) frameName = 'Phoenix Flame (Animated)';
+        else if (level == 6) frameName = 'Celestial Sky Frame';
+        else if (level == 7) frameName = 'Cosmic Emperor (Animated)';
+      }
+
       await Supabase.instance.client.from('profiles').update({
         'novel_level': level,
         'novel_expiry': expiry?.toIso8601String(),
+        'avatar_frame': frameName,
       }).eq('id', currentUserId);
+
+      await UserProfileCacheManager.fetchUserProfile(currentUserId, forceRefresh: true);
+      await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
     } catch (_) {}
   }
 

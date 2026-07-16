@@ -20,6 +20,7 @@ class CustomAvatarFrame extends StatefulWidget {
   final int? vipLevel;
   final int? novelLevel;
   final int? level;
+  final bool showBadges;
 
   const CustomAvatarFrame({
     Key? key,
@@ -34,6 +35,7 @@ class CustomAvatarFrame extends StatefulWidget {
     this.vipLevel,
     this.novelLevel,
     this.level,
+    this.showBadges = true,
   }) : super(key: key);
 
   @override
@@ -184,7 +186,7 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
           ),
 
         // Badges overlays (only if size is reasonable, e.g. >= 40)
-        if (widget.size >= 40) ...[
+        if (widget.showBadges && widget.size >= 40) ...[
           // Role Badge (Top Center)
           if (widget.role != null && widget.role != 'Guest' && widget.role != 'Listener' && widget.role != 'Audience')
             Positioned(
@@ -258,15 +260,11 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
   }
 
   Widget _buildFrameWidget(String frame, Widget avatarChild) {
-    if (frame == 'Normal' || frame == 'None') {
-      return Container(
+    final String lowerFrame = frame.toLowerCase().trim();
+    if (lowerFrame == 'normal' || lowerFrame == 'none' || lowerFrame.isEmpty) {
+      return SizedBox(
         width: widget.size,
         height: widget.size,
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white24, width: 1.5),
-        ),
         child: ClipOval(child: avatarChild),
       );
     }

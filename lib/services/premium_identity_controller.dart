@@ -68,6 +68,7 @@ class PremiumIdentity {
   final OfficialTag? officialTag;
   final String? achievementTag;
   final int trustScore;
+  final List<String> rTags;
 
   PremiumIdentity({
     required this.vipLevel,
@@ -79,7 +80,61 @@ class PremiumIdentity {
     this.officialTag,
     this.achievementTag,
     required this.trustScore,
+    this.rTags = const [],
   });
+
+  OfficialTag? get officialStatusTag {
+    // 1. Founder
+    if (rTags.any((r) => r.trim().toLowerCase() == 'founder')) {
+      return OfficialTag(name: 'Founder', icon: '👑', color: const Color(0xFFFFB020), benefit: 'Founding Member of Creania');
+    }
+    // 2. Developer
+    if (rTags.any((r) => r.trim().toLowerCase() == 'developer')) {
+      return OfficialTag(name: 'Developer', icon: '💻', color: const Color(0xFF00C2FF), benefit: 'Creania Platform Engineer');
+    }
+    // 3. Official
+    if (rTags.any((r) => r.trim().toLowerCase() == 'official')) {
+      return OfficialTag(name: 'Official', icon: '👑', color: const Color(0xFFFFD700), benefit: 'Official Platform Account');
+    }
+    // 4. Employee
+    if (rTags.any((r) => r.trim().toLowerCase() == 'employee')) {
+      return OfficialTag(name: 'Employee', icon: '🛠️', color: const Color(0xFFEC4899), benefit: 'Creania Company Employee');
+    }
+    // 5. Admin
+    if (rTags.any((r) => r.trim().toLowerCase() == 'admin')) {
+      return OfficialTag(name: 'Admin', icon: '👑', color: const Color(0xFFFF7A09), benefit: 'Platform Administrator');
+    }
+    // 6. Moderator
+    if (rTags.any((r) => r.trim().toLowerCase() == 'moderator')) {
+      return OfficialTag(name: 'Moderator', icon: '🛡️', color: const Color(0xFF10B981), benefit: 'Global room moderation power');
+    }
+    // 7. Party Guru
+    if (rTags.any((r) => r.trim().toLowerCase() == 'party guru')) {
+      return OfficialTag(name: 'Party Guru', icon: '🎉', color: const Color(0xFFFF4D8D), benefit: 'Arena celebration specialist');
+    }
+    // 8. Host
+    if (rTags.any((r) => r.trim().toLowerCase() == 'host')) {
+      return OfficialTag(name: 'Host', icon: '🎤', color: const Color(0xFF8B5CF6), benefit: 'Verified speaker/host for events');
+    }
+    // 9. Partner
+    if (rTags.any((r) => r.trim().toLowerCase() == 'partner')) {
+      return OfficialTag(name: 'Partner', icon: '🤝', color: const Color(0xFF06B6D4), benefit: 'Authorized enterprise partner');
+    }
+    // 10. Verified (if user is verified, show Verified)
+    if (verification != null) {
+      return OfficialTag(
+        name: verification!.title,
+        icon: verification!.icon,
+        color: verification!.color,
+        benefit: verification!.requirement,
+      );
+    }
+    // 11. Tester
+    if (rTags.any((r) => r.trim().toLowerCase() == 'tester')) {
+      return OfficialTag(name: 'Tester', icon: '🧪', color: const Color(0xFF6B7280), benefit: 'Beta testing volunteer');
+    }
+    return null;
+  }
 
   void showBadgeInfoDialog(
     BuildContext context, {
@@ -180,14 +235,9 @@ class PremiumIdentity {
             description: 'Premium VIP status.',
             color: const Color(0xFFFFD700),
             icon: '👑',
-            requirement: 'Accumulate purchases to raise VIP membership tier.',
-            benefits: [
-              'Rotating sweep name border',
-              'Glowing name styles',
-              'Special premium entry banner announcements',
-            ],
+            requirement: 'Purchase VIP status tier.',
+            benefits: ['VIP profile badge styling', 'Premium avatar framing', 'Priority room seating features'],
             status: 'Active',
-            date: 'Subscribed',
           ),
           child: VipBadgeWidget(level: vipLevel, fontSize: fontSize),
         ),
@@ -200,18 +250,13 @@ class PremiumIdentity {
         GestureDetector(
           onTap: () => showBadgeInfoDialog(
             context,
-            title: 'Novel Tier $novelLevel',
-            description: 'Collectible high-value Novel status.',
+            title: 'Novel Level $novelLevel',
+            description: 'Novel reader badge level.',
             color: const Color(0xFFEA580C),
             icon: '📖',
-            requirement: 'Obtain designated Novel artifacts from events or store.',
-            benefits: [
-              'Custom magical sparkles names',
-              'Magical entry wings animation',
-              'Unique Novel border styling',
-            ],
+            requirement: 'Earn levels from novel reading.',
+            benefits: ['Novel badge display', 'Special reading progress tracker animations'],
             status: 'Active',
-            date: 'Unlocked',
           ),
           child: NovelBadgeWidget(level: novelLevel, fontSize: fontSize),
         ),
@@ -503,7 +548,7 @@ class PremiumIdentityController extends GetxController {
   final RxString currentVerification = 'Verified'.obs;
   final RxString currentOfficialTag = 'None'.obs;
   final RxString currentAchievementTag = '🔥 Top Contributor'.obs;
-  final RxInt currentTrustScore = 95.obs;
+  final RxInt currentTrustScore = 100.obs;
 
   static PremiumIdentity getIdentity(
     String userId,
@@ -514,169 +559,118 @@ class PremiumIdentityController extends GetxController {
     int? careerLevel,
     List<String>? badgesList,
   }) {
-    final isUuid = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(userId);
-    final isCurrentUser = userId == 'me' || username == 'me' || userId == (Supabase.instance.client.auth.currentUser?.id ?? '');
+    // Import user cache manager dynamically to avoid circular dependencies if any
+    dynamic u;
+    try {
+      final currentUid = Supabase.instance.client.auth.currentUser?.id;
+      final resolvedId = (userId == 'me' || userId == 'uid_anurag_101' || userId == currentUid)
+          ? (currentUid ?? userId)
+          : userId;
+      u = rxCacheGet(resolvedId);
+    } catch (_) {}
 
-    // 1. VIP Level
-    int vip = 0;
-    if (vipLevel != null) {
-      vip = vipLevel;
-    } else if (isCurrentUser) {
-      try {
-        vip = Get.find<VipController>().vipLevel.value;
-      } catch (_) {}
-    } else if (!isUuid) {
-      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
-      vip = hash % 8;
+    int vip = vipLevel ?? u?.vipLevel ?? 0;
+    int novel = novelLevel ?? u?.novelLevel ?? 0;
+    int idLvl = idLevel ?? u?.level ?? 1;
+    int careerLvl = careerLevel ?? u?.careerLevel ?? 1;
+    List<String> userBadges = badgesList ?? u?.badges ?? [];
+    List<String> tagLights = u?.tagLights ?? [];
+    List<String> rTags = u?.rTags ?? [];
+
+    // Check if VIP or Novel has expired
+    final now = DateTime.now();
+    if (u != null) {
+      if (u.vipExpiry != null && u.vipExpiry!.isBefore(now)) {
+        vip = 0;
+      }
+      if (u.novelExpiry != null && u.novelExpiry!.isBefore(now)) {
+        novel = 0;
+      }
     }
 
-    // 2. Novel Level
-    int novel = 0;
-    if (novelLevel != null) {
-      novel = novelLevel;
-    } else if (isCurrentUser) {
-      try {
-        novel = Get.find<NovelController>().novelLevel.value;
-      } catch (_) {}
-    } else if (!isUuid) {
-      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
-      novel = hash % 6;
-    }
-
-    // 3. ID Level
-    int idLvl = 1;
-    if (idLevel != null) {
-      idLvl = idLevel;
-    } else if (isCurrentUser) {
-      try {
-        idLvl = Get.find<CareerProgressionController>().idLevel.value;
-      } catch (_) {}
-    } else if (!isUuid) {
-      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
-      idLvl = (hash % 60) + 1;
-    }
-
-    // 4. Career Level
-    int careerLvl = 1;
-    if (careerLevel != null) {
-      careerLvl = careerLevel;
-    } else if (isCurrentUser) {
-      try {
-        careerLvl = Get.find<CareerProgressionController>().careerLevel.value;
-      } catch (_) {}
-    } else if (!isUuid) {
-      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
-      careerLvl = (hash % 10) + 1;
-    }
-
+    // Community Tag
     CommunityTag? commTag;
-    UserVerification? verification;
-    OfficialTag? officialTag;
-    String? achievementTag;
+    String? activeCommTag;
+    for (final tag in tagLights) {
+      if (tag == 'Origin' || tag == 'Studio' || tag == 'ArenaX' || tag == 'Campus') {
+        activeCommTag = tag;
+        break;
+      }
+    }
 
-    if (!isUuid) {
-      // Mock Hash-based fallback for simulated/mock room participants
-      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
+    if (activeCommTag != null) {
+      String commName = '';
+      List<Color> colors = [Colors.grey, Colors.grey.shade600];
+      bool isAnimated = false;
       
-      if (hash % 3 != 0) {
-        final roles = ['Owner', 'Co-Owner', 'Admin', 'Moderator', 'Mentor', 'Champion', 'Member'];
-        final role = roles[hash % roles.length];
-        final level = (hash % 60) + 1;
-        List<Color> colors = [Colors.grey, Colors.grey.shade600];
-        bool isAnimated = false;
-        if (level >= 11 && level <= 20) {
-          colors = [Colors.blue, Colors.blue.shade800];
-        } else if (level >= 21 && level <= 30) {
-          colors = [Colors.purple, Colors.purple.shade800];
-        } else if (level >= 31 && level <= 40) {
-          colors = [const Color(0xFFFFD700), const Color(0xFFB45309)];
-        } else if (level >= 41 && level <= 50) {
-          colors = [const Color(0xFFFFD700), Colors.amber, const Color(0xFFFFD700)];
-          isAnimated = true;
-        } else if (level >= 51) {
-          colors = [const Color(0xFFFF007F), const Color(0xFF00F0FF), const Color(0xFFFF007F)];
-          isAnimated = true;
-        }
-        commTag = CommunityTag(
-          name: 'Creania Devs',
-          role: role,
-          level: level,
-          gradientColors: colors,
-          isAnimated: isAnimated,
-        );
+      if (activeCommTag == 'Origin') {
+        commName = 'Creania Official';
+        colors = [const Color(0xFFFFD700), const Color(0xFFB45309)];
+        isAnimated = true;
+      } else if (activeCommTag == 'Studio') {
+        commName = 'Creania Creators';
+        colors = [Colors.purple, Colors.purple.shade800];
+      } else if (activeCommTag == 'ArenaX') {
+        commName = 'Creania Gamers';
+        colors = [Colors.blue, Colors.blue.shade800];
+      } else if (activeCommTag == 'Campus') {
+        commName = 'Creania Campus';
+        colors = [const Color(0xFF10B981), const Color(0xFF047857)];
       }
 
-      final verType = hash % 7;
-      String resolvedVer = '';
-      if (isCurrentUser) {
-        try {
-          resolvedVer = Get.find<PremiumIdentityController>().currentVerification.value;
-        } catch (_) {}
-      }
-      if (resolvedVer.isNotEmpty && resolvedVer != 'None') {
-        verification = _mapVerification(resolvedVer);
-      } else {
-        verification = _mapVerificationByIndex(verType);
-      }
+      commTag = CommunityTag(
+        name: commName,
+        role: activeCommTag,
+        level: idLvl,
+        gradientColors: colors,
+        isAnimated: isAnimated,
+      );
+    }
 
-      String resolvedOfficial = '';
-      if (isCurrentUser) {
-        try {
-          resolvedOfficial = Get.find<PremiumIdentityController>().currentOfficialTag.value;
-        } catch (_) {}
-      }
-      if (resolvedOfficial.isNotEmpty && resolvedOfficial != 'None') {
-        officialTag = _mapOfficialTag(resolvedOfficial);
-      } else if (hash % 6 == 0) {
-        officialTag = _mapOfficialTagByIndex(hash % 7);
-      }
-
-      if (isCurrentUser) {
-        try {
-          final val = Get.find<PremiumIdentityController>().currentAchievementTag.value;
-          achievementTag = val == 'None' ? null : val;
-        } catch (_) {}
-      } else if (hash % 5 != 0) {
-        final achievements = [
-          '🏆 Season Champion',
-          '🔥 Top Contributor',
-          '⭐ Top Supporter',
-          '💯 365 Day Streak',
-          '🚀 Pioneer Member',
-          '👑 Hall of Fame',
-          '🏅 Career Master',
-          '🎯 Community Champion'
-        ];
-        achievementTag = achievements[hash % achievements.length];
-      }
-    } else {
-      // Map from real database profile badges list
-      if (badgesList != null) {
-        for (final b in badgesList) {
-          final mappedVer = _mapVerification(b);
-          if (mappedVer != null) {
-            verification = mappedVer;
-          }
-          final mappedOf = _mapOfficialTag(b);
-          if (mappedOf != null) {
-            officialTag = mappedOf;
-          }
-          if (b.startsWith('🔥') || b.startsWith('🏆') || b.startsWith('⭐') || b.startsWith('💎') || b.startsWith('💡') || b.startsWith('🚀') || b.startsWith('👑') || b.startsWith('🏅') || b.startsWith('🎯') || b.contains('Top')) {
-            achievementTag = b;
-          }
-        }
+    // Verification Badge
+    UserVerification? verification;
+    for (final b in userBadges) {
+      final mappedVer = _mapVerification(b);
+      if (mappedVer != null) {
+        verification = mappedVer;
+        break;
       }
     }
 
-    int trust = 100;
-    if (!isUuid) {
-      final int hash = (userId.isEmpty ? username : userId).hashCode.abs();
-      trust = 80 + (hash % 21);
-    } else if (isCurrentUser) {
-      try {
-        trust = Get.find<PremiumIdentityController>().currentTrustScore.value;
-      } catch (_) {}
+    // Official Tag
+    OfficialTag? officialTag;
+    final priorityRoles = [
+      'Founder',
+      'Developer',
+      'Official',
+      'Employee',
+      'Admin',
+      'Moderator',
+      'Partner',
+      'Verified',
+      'Tester'
+    ];
+    String? highestRTag;
+    for (final role in priorityRoles) {
+      if (rTags.any((rt) => rt.trim().toLowerCase() == role.toLowerCase())) {
+        highestRTag = role;
+        break;
+      }
     }
+    if (highestRTag != null) {
+      officialTag = _mapOfficialTag(highestRTag);
+    }
+
+    // Achievement Tag
+    String? achievementTag;
+    for (final b in userBadges) {
+      if (b.startsWith('🔥') || b.startsWith('🏆') || b.startsWith('⭐') || b.startsWith('💎') || b.startsWith('💡') || b.startsWith('🚀') || b.startsWith('👑') || b.startsWith('🏅') || b.contains('Top') || b.startsWith('🎯')) {
+        achievementTag = b;
+        break;
+      }
+    }
+
+    int trust = u?.reputation ?? 100;
 
     return PremiumIdentity(
       vipLevel: vip,
@@ -689,6 +683,19 @@ class PremiumIdentityController extends GetxController {
       achievementTag: achievementTag,
       trustScore: trust,
     );
+  }
+
+  // Dynamic helper to resolve User from Cache Manager
+  static dynamic rxCacheGet(String key) {
+    try {
+      return Get.find<dynamic>(tag: key); 
+    } catch (_) {
+      try {
+        final cacheMap = Get.find<Map<String, dynamic>>(tag: 'user_profile_cache');
+        return cacheMap[key];
+      } catch (_) {}
+    }
+    return null;
   }
 
   static UserVerification? _mapVerification(String key) {

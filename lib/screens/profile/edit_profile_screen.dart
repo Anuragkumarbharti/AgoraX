@@ -25,7 +25,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = false;
 
   // Controllers
-  final _displayNameCtrl = TextEditingController();
   final _usernameCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
   final _countryCtrl = TextEditingController();
@@ -84,7 +83,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _initializeFields() {
-    _displayNameCtrl.text = _user.displayName;
     _usernameCtrl.text = _user.username;
     _bioCtrl.text = _user.bio ?? '';
     _countryCtrl.text = _user.country ?? '';
@@ -111,7 +109,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
-    _displayNameCtrl.dispose();
     _usernameCtrl.dispose();
     _bioCtrl.dispose();
     _countryCtrl.dispose();
@@ -132,10 +129,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   int _calculateCompletion() {
     int percentage = 20; // 20% -> Account Created
 
-    // 40% -> Username + Display Name
+    // 40% -> Username
     final hasUsername = _usernameCtrl.text.trim().isNotEmpty && !_usernameCtrl.text.trim().startsWith('user_');
-    final hasDisplayName = _displayNameCtrl.text.trim().isNotEmpty && _displayNameCtrl.text.trim() != 'Creania Student';
-    if (hasUsername && hasDisplayName) {
+    if (hasUsername) {
       percentage += 20;
     }
 
@@ -179,7 +175,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (cleanVal.length < 3 || cleanVal.length > 20) {
       setState(() {
         _usernameError = 'Length must be between 3 and 20 characters';
-        _usernameChecked = false;
+        _usernameChecked = true;
+        _usernameAvailable = false;
       });
       return;
     }
@@ -188,7 +185,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!validCharacters.hasMatch(cleanVal)) {
       setState(() {
         _usernameError = 'Only letters, numbers, and underscores allowed';
-        _usernameChecked = false;
+        _usernameChecked = true;
+        _usernameAvailable = false;
       });
       return;
     }
@@ -198,7 +196,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (profanities.contains(cleanVal)) {
       setState(() {
         _usernameError = 'Reserved username cannot be used';
-        _usernameChecked = false;
+        _usernameChecked = true;
+        _usernameAvailable = false;
       });
       return;
     }
@@ -332,8 +331,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // 3. Update profiles
       final Map<String, dynamic> updatePayload = {
-        'display_name': _displayNameCtrl.text.trim(),
-        'full_name': _displayNameCtrl.text.trim(),
         'username': _usernameCtrl.text.trim().toLowerCase(),
         'bio': _bioCtrl.text.trim(),
         'profile_photo': avatarUrl,
@@ -362,7 +359,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       bool didComplete100 = false;
       if (prevPercent == 100 && !_user.badges.contains('Early Explorer')) {
         didComplete100 = true;
-        updatePayload['badges'] = [..._user.badges, 'Early Explorer'];
         updatePayload['avatar_frame'] = 'Early Explorer Frame';
       }
 
@@ -513,14 +509,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   SizedBox(height: 24),
 
                   _sectionHeader('Basic Identity'),
-                  _buildInputField(
-                    'Display Name', 
-                    _displayNameCtrl, 
-                    hint: 'John Doe',
-                    textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  SizedBox(height: 12),
                   _buildUsernameInput(),
                   SizedBox(height: 12),
                   _buildInputField(

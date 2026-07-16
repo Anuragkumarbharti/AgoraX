@@ -5,7 +5,6 @@ class User {
     required this.username,
     required this.email,
     this.phone,
-    required this.displayName,
     this.fullName,
     this.avatar,
     this.coverPhoto,
@@ -61,6 +60,12 @@ class User {
     this.verificationTimestamp,
     this.verificationMethod,
     this.lastVerificationDate,
+    this.totalStarsReceived = 0,
+    this.totalStarsGifted = 0,
+    this.vipExpiry,
+    this.novelExpiry,
+    this.tagSystem,
+    String? displayName,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -74,7 +79,6 @@ class User {
       username: json['username'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'],
-      displayName: json['displayName'] ?? json['display_name'] ?? json['username'] ?? 'User',
       fullName: json['fullName'] ?? json['full_name'],
       avatar: json['avatar'] ?? json['profile_photo'] ?? json['avatar_url'],
       coverPhoto: json['coverPhoto'] ?? json['cover_photo'],
@@ -86,12 +90,12 @@ class User {
       state: json['state'],
       city: json['city'],
       language: json['language'] ?? 'en',
-      profession: json['profession'] ?? json['occupation'],
-      education: json['education'] ?? json['school'] ?? json['college'] ?? json['company'],
+      profession: json['profession'],
+      education: json['education'],
       website: json['website'],
       instagram: json['instagram'],
       youtube: json['youtube'],
-      twitter: json['twitter'] ?? json['x'],
+      twitter: json['twitter'],
       interests: List<String>.from(json['interests'] ?? []),
       communities: List<String>.from(json['communities'] ?? []),
       followers: json['followers_count'] ?? json['followers'] ?? 0,
@@ -132,6 +136,11 @@ class User {
       verificationTimestamp: json['verification_timestamp'] != null ? DateTime.tryParse(json['verification_timestamp'].toString()) : null,
       verificationMethod: json['verification_method'] ?? json['verificationMethod'],
       lastVerificationDate: json['last_verification_date'] != null ? DateTime.tryParse(json['last_verification_date'].toString()) : null,
+      totalStarsReceived: json['total_stars_received'] ?? json['totalStarsReceived'] ?? 0,
+      totalStarsGifted: json['total_stars_gifted'] ?? json['totalStarsGifted'] ?? 0,
+      vipExpiry: json['vip_expiry'] != null ? DateTime.tryParse(json['vip_expiry'].toString()) : null,
+      novelExpiry: json['novel_expiry'] != null ? DateTime.tryParse(json['novel_expiry'].toString()) : null,
+      tagSystem: json['tag_system'] != null ? TagSystem.fromJson(json['tag_system'] as Map<String, dynamic>) : null,
     );
   }
 
@@ -140,7 +149,7 @@ class User {
   final String username;
   final String email;
   final String? phone;
-  final String displayName;
+  String get displayName => username;
   final String? fullName;
   final String? avatar;
   final String? coverPhoto;
@@ -202,6 +211,11 @@ class User {
   final DateTime? verificationTimestamp;
   final String? verificationMethod;
   final DateTime? lastVerificationDate;
+  final int totalStarsReceived;
+  final int totalStarsGifted;
+  final DateTime? vipExpiry;
+  final DateTime? novelExpiry;
+  final TagSystem? tagSystem;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -274,5 +288,215 @@ class User {
         'verification_timestamp': verificationTimestamp?.toIso8601String(),
         'verification_method': verificationMethod,
         'last_verification_date': lastVerificationDate?.toIso8601String(),
+        'total_stars_received': totalStarsReceived,
+        'total_stars_gifted': totalStarsGifted,
+        'vip_expiry': vipExpiry?.toIso8601String(),
+        'novel_expiry': novelExpiry?.toIso8601String(),
+        'tag_system': tagSystem?.toJson(),
       };
+
+  User copyWith({
+    String? id,
+    String? uid,
+    String? username,
+    String? email,
+    String? phone,
+    String? displayName,
+    String? fullName,
+    String? avatar,
+    String? coverPhoto,
+    String? bio,
+    DateTime? dob,
+    int? age,
+    String? gender,
+    String? country,
+    String? state,
+    String? city,
+    String? language,
+    String? profession,
+    String? education,
+    String? website,
+    String? instagram,
+    String? youtube,
+    String? twitter,
+    List<String>? interests,
+    List<String>? communities,
+    int? followers,
+    int? following,
+    bool? isVerified,
+    bool? isPremium,
+    int? reputation,
+    String? sid,
+    int? level,
+    int? xp,
+    int? totalXp,
+    int? totalPosts,
+    int? totalQuestions,
+    List<String>? badges,
+    List<String>? tagLights,
+    List<String>? rTags,
+    List<String>? showcasedBadges,
+    String? levelTitle,
+    String? selectedStudyCategory,
+    DateTime? categoryLockExpiry,
+    int? silverCoins,
+    int? learningStreak,
+    int? vipLevel,
+    int? novelLevel,
+    int? careerLevel,
+    String? avatarFrame,
+    int? diamonds,
+    int? friendsCount,
+    int? roomsJoined,
+    int? eventsJoined,
+    bool? onlineStatus,
+    DateTime? lastSeen,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? emailVerified,
+    DateTime? verificationTimestamp,
+    String? verificationMethod,
+    DateTime? lastVerificationDate,
+    int? totalStarsReceived,
+    int? totalStarsGifted,
+    DateTime? vipExpiry,
+    DateTime? novelExpiry,
+    TagSystem? tagSystem,
+  }) {
+    return User(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      fullName: fullName ?? this.fullName,
+      avatar: avatar ?? this.avatar,
+      coverPhoto: coverPhoto ?? this.coverPhoto,
+      bio: bio ?? this.bio,
+      dob: dob ?? this.dob,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
+      country: country ?? this.country,
+      state: state ?? this.state,
+      city: city ?? this.city,
+      language: language ?? this.language,
+      profession: profession ?? this.profession,
+      education: education ?? this.education,
+      website: website ?? this.website,
+      instagram: instagram ?? this.instagram,
+      youtube: youtube ?? this.youtube,
+      twitter: twitter ?? this.twitter,
+      interests: interests ?? this.interests,
+      communities: communities ?? this.communities,
+      followers: followers ?? this.followers,
+      following: following ?? this.following,
+      isVerified: isVerified ?? this.isVerified,
+      isPremium: isPremium ?? this.isPremium,
+      reputation: reputation ?? this.reputation,
+      sid: sid ?? this.sid,
+      level: level ?? this.level,
+      xp: xp ?? this.xp,
+      totalXp: totalXp ?? this.totalXp,
+      totalPosts: totalPosts ?? this.totalPosts,
+      totalQuestions: totalQuestions ?? this.totalQuestions,
+      badges: badges ?? this.badges,
+      tagLights: tagLights ?? this.tagLights,
+      rTags: rTags ?? this.rTags,
+      showcasedBadges: showcasedBadges ?? this.showcasedBadges,
+      levelTitle: levelTitle ?? this.levelTitle,
+      selectedStudyCategory: selectedStudyCategory ?? this.selectedStudyCategory,
+      categoryLockExpiry: categoryLockExpiry ?? this.categoryLockExpiry,
+      silverCoins: silverCoins ?? this.silverCoins,
+      learningStreak: learningStreak ?? this.learningStreak,
+      vipLevel: vipLevel ?? this.vipLevel,
+      novelLevel: novelLevel ?? this.novelLevel,
+      careerLevel: careerLevel ?? this.careerLevel,
+      avatarFrame: avatarFrame ?? this.avatarFrame,
+      diamonds: diamonds ?? this.diamonds,
+      friendsCount: friendsCount ?? this.friendsCount,
+      roomsJoined: roomsJoined ?? this.roomsJoined,
+      eventsJoined: eventsJoined ?? this.eventsJoined,
+      onlineStatus: onlineStatus ?? this.onlineStatus,
+      lastSeen: lastSeen ?? this.lastSeen,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      emailVerified: emailVerified ?? this.emailVerified,
+      verificationTimestamp: verificationTimestamp ?? this.verificationTimestamp,
+      verificationMethod: verificationMethod ?? this.verificationMethod,
+      lastVerificationDate: lastVerificationDate ?? this.lastVerificationDate,
+      totalStarsReceived: totalStarsReceived ?? this.totalStarsReceived,
+      totalStarsGifted: totalStarsGifted ?? this.totalStarsGifted,
+      vipExpiry: vipExpiry ?? this.vipExpiry,
+      novelExpiry: novelExpiry ?? this.novelExpiry,
+      tagSystem: tagSystem ?? this.tagSystem,
+    );
+  }
+}
+
+class TagSystem {
+  final List<IdentityTag> identityTagBar;
+  final OfficialStatus officialStatus;
+  final List<String> profileShowcase;
+
+  TagSystem({
+    required this.identityTagBar,
+    required this.officialStatus,
+    required this.profileShowcase,
+  });
+
+  factory TagSystem.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> tagBarList = json['identityTagBar'] ?? [];
+    final Map<String, dynamic> statusMap = json['officialStatus'] ?? {};
+    final List<dynamic> showcaseList = json['profileShowcase'] ?? [];
+
+    return TagSystem(
+      identityTagBar: tagBarList.map((e) => IdentityTag.fromJson(Map<String, dynamic>.from(e))).toList(),
+      officialStatus: OfficialStatus.fromJson(statusMap),
+      profileShowcase: List<String>.from(showcaseList),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'identityTagBar': identityTagBar.map((e) => e.toJson()).toList(),
+    'officialStatus': officialStatus.toJson(),
+    'profileShowcase': profileShowcase,
+  };
+}
+
+class IdentityTag {
+  final String type;
+  final String value;
+
+  IdentityTag({required this.type, required this.value});
+
+  factory IdentityTag.fromJson(Map<String, dynamic> json) {
+    return IdentityTag(
+      type: json['type'] ?? '',
+      value: json['value'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'value': value,
+  };
+}
+
+class OfficialStatus {
+  final String? verifiedTag;
+  final String? roleTag;
+
+  OfficialStatus({this.verifiedTag, this.roleTag});
+
+  factory OfficialStatus.fromJson(Map<String, dynamic> json) {
+    return OfficialStatus(
+      verifiedTag: json['verifiedTag'],
+      roleTag: json['roleTag'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'verifiedTag': verifiedTag,
+    'roleTag': roleTag,
+  };
 }

@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:creania/core/theme.dart';
 import '../../models/user_model.dart';
 import 'profile_screen.dart';
@@ -11,8 +10,16 @@ import '../../widgets/custom_avatar_frame.dart';
 import '../../services/user_profile_cache_manager.dart';
 
 class ConnectionsScreen extends StatefulWidget {
-  final int initialTabIndex; // 0 for Following, 1 for Followers
-  const ConnectionsScreen({Key? key, this.initialTabIndex = 0}) : super(key: key);
+  final int initialTabIndex; // 0 for Following, 1 for Followers, 2 for Friends
+  final String? targetUserId;
+  final String? targetUserName;
+
+  const ConnectionsScreen({
+    Key? key,
+    this.initialTabIndex = 0,
+    this.targetUserId,
+    this.targetUserName,
+  }) : super(key: key);
 
   @override
   State<ConnectionsScreen> createState() => _ConnectionsScreenState();
@@ -26,55 +33,109 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
 
   final RxList<User> _followingList = <User>[].obs;
   final RxList<User> _followersList = <User>[].obs;
+  final RxList<User> _friendsList = <User>[].obs;
+  RealtimeChannel? _screenRealtimeChannel;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 2,
+      length: 3,
       vsync: this,
-      initialIndex: widget.initialTabIndex,
+      initialIndex: widget.initialTabIndex.clamp(0, 2),
     );
     _loadConnections();
-  }
-
-  void _loadConnections() async {
-    try {
-      final currentUserId = UserProfileCacheManager.currentUserId;
-      final prefs = await SharedPreferences.getInstance();
-      final followedIds = prefs.getStringList('followed_user_ids') ?? [];
-      
-      if (followedIds.isEmpty) {
-        _followingList.clear();
-        _followersList.clear();
-        return;
-      }
-      
-      final response = await Supabase.instance.client
-          .from('profiles')
-          .select()
-          .inFilter('id', followedIds);
-      
-      final List<User> loadedFollowing = [];
-      if (response != null) {
-        for (final item in response) {
-          loadedFollowing.add(User.fromJson(item));
-        }
-      }
-      
-      _followingList.assignAll(loadedFollowing);
-      _followersList.clear(); // Empty state by default since no real follower rows exist locally
-    } catch (_) {
-      _followersList.clear();
-      _followingList.clear();
-    }
+    _setupRealtimeSubscription();
   }
 
   @override
   void dispose() {
+    _screenRealtimeChannel?.unsubscribe();
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _setupRealtimeSubscription() {
+    try {
+      _screenRealtimeChannel = Supabase.instance.client
+          .channel('public:connections_screen_realtime')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'connections',
+            callback: (payload) {
+              _loadConnections();
+            },
+          );
+      _screenRealtimeChannel?.subscribe();
+    } catch (e) {
+      debugPrint('[ConnectionsScreen] Realtime setup failed: $e');
+    }
+  }
+
+  void _loadConnections() async {
+    final String tid = widget.targetUserId ?? UserProfileCacheManager.currentUserId;
+    if (tid.isEmpty) return;
+
+    try {
+      if (_followingList.isEmpty && _followersList.isEmpty) {
+        setState(() => _isLoading = true);
+      }
+
+      // Query database connections
+      final followingRes = await Supabase.instance.client
+          .from('connections')
+          .select('profiles:following_id (*)')
+          .eq('follower_id', tid);
+
+      final followersRes = await Supabase.instance.client
+          .from('connections')
+          .select('profiles:follower_id (*)')
+          .eq('following_id', tid);
+
+      final friendsRes = await Supabase.instance.client
+          .from('connections')
+          .select('profiles:following_id (*)')
+          .eq('follower_id', tid)
+          .eq('status', 'friends');
+
+      final List<User> loadedFollowing = [];
+      if (followingRes != null) {
+        for (final item in followingRes as List) {
+          if (item['profiles'] != null) {
+            loadedFollowing.add(User.fromJson(item['profiles']));
+          }
+        }
+      }
+
+      final List<User> loadedFollowers = [];
+      if (followersRes != null) {
+        for (final item in followersRes as List) {
+          if (item['profiles'] != null) {
+            loadedFollowers.add(User.fromJson(item['profiles']));
+          }
+        }
+      }
+
+      final List<User> loadedFriends = [];
+      if (friendsRes != null) {
+        for (final item in friendsRes as List) {
+          if (item['profiles'] != null) {
+            loadedFriends.add(User.fromJson(item['profiles']));
+          }
+        }
+      }
+
+      _followingList.assignAll(loadedFollowing);
+      _followersList.assignAll(loadedFollowers);
+      _friendsList.assignAll(loadedFriends);
+    } catch (e) {
+      debugPrint('[ConnectionsScreen] Error loading connections: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   void _unfollowUser(User user) {
@@ -102,9 +163,10 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                 backgroundColor: context.errorColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              onPressed: () {
-                _followingList.removeWhere((item) => item.id == user.id);
+              onPressed: () async {
                 Navigator.pop(ctx);
+                await UserProfileCacheManager.unfollowUser(user.id);
+                _loadConnections();
                 Get.snackbar(
                   'Unfollowed 💔',
                   'You unfollowed ${user.displayName}',
@@ -146,9 +208,17 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                 backgroundColor: context.errorColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              onPressed: () {
-                _followersList.removeWhere((item) => item.id == user.id);
+              onPressed: () async {
                 Navigator.pop(ctx);
+                try {
+                  // Removing a follower means deleting their follow to us
+                  await Supabase.instance.client
+                      .from('connections')
+                      .delete()
+                      .eq('follower_id', user.id)
+                      .eq('following_id', UserProfileCacheManager.currentUserId);
+                  _loadConnections();
+                } catch (_) {}
                 Get.snackbar(
                   'Follower Removed 👤',
                   'Removed ${user.displayName} from followers.',
@@ -167,13 +237,14 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final title = widget.targetUserName != null ? "${widget.targetUserName}'s Connections" : 'Connections';
     return Scaffold(
       backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'Connections',
+          title,
           style: GoogleFonts.outfit(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -185,65 +256,69 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
           indicatorColor: context.primaryColor,
           labelColor: Colors.white,
           unselectedLabelColor: context.caption,
-          labelStyle: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.poppins(fontSize: 14),
+          labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13),
           tabs: [
             Obx(() => Tab(text: 'Following (${_followingList.length})')),
             Obx(() => Tab(text: 'Followers (${_followersList.length})')),
+            Obx(() => Tab(text: 'Friends (${_friendsList.length})')),
           ],
         ),
       ),
-      body: Column(
-        children: [
-          // Search Box
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) {
-                setState(() {
-                  _searchQuery = val.trim().toLowerCase();
-                });
-              },
-              style: TextStyle(color: Colors.white, fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'Search by name or SID...',
-                hintStyle: TextStyle(color: context.caption),
-                prefixIcon: Icon(Icons.search, color: context.caption, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear, color: Colors.white54, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: context.secondaryBackgroundColor.withOpacity(0.5),
-                contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-
-          // Lists View
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: context.primaryColor))
+          : Column(
               children: [
-                _buildFollowingTab(),
-                _buildFollowersTab(),
+                // Search Box
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val.trim().toLowerCase();
+                      });
+                    },
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Search by name or SID...',
+                      hintStyle: TextStyle(color: context.caption),
+                      prefixIcon: Icon(Icons.search, color: context.caption, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear, color: Colors.white54, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: context.secondaryBackgroundColor.withOpacity(0.5),
+                      contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Lists View
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildFollowingTab(),
+                      _buildFollowersTab(),
+                      _buildFriendsTab(),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -264,21 +339,24 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
         separatorBuilder: (c, idx) => Divider(color: Colors.white10, height: 16),
         itemBuilder: (c, idx) {
           final u = filtered[idx];
+          final isMe = u.id == UserProfileCacheManager.currentUserId;
           return _buildUserTile(
             user: u,
-            actionButton: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: context.borderColor),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                minimumSize: const Size(80, 32),
-                padding: EdgeInsets.symmetric(horizontal: 10),
-              ),
-              onPressed: () => _unfollowUser(u),
-              child: Text(
-                'Following',
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-            ),
+            actionButton: isMe
+                ? const SizedBox.shrink()
+                : OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: context.borderColor),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      minimumSize: const Size(80, 32),
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    onPressed: () => _unfollowUser(u),
+                    child: Text(
+                      'Following',
+                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
           );
         },
       );
@@ -302,41 +380,88 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
         separatorBuilder: (c, idx) => Divider(color: Colors.white10, height: 16),
         itemBuilder: (c, idx) {
           final u = filtered[idx];
-          final isFollowingBack = _followingList.any((item) => item.id == u.id);
+          final isMe = u.id == UserProfileCacheManager.currentUserId;
 
+          return Obx(() {
+            final isFollowingBack = UserProfileCacheManager.followedUserIds.contains(u.id);
+            return _buildUserTile(
+              user: u,
+              actionButton: isMe
+                  ? const SizedBox.shrink()
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!isFollowingBack)
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: context.primaryColor,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              minimumSize: const Size(80, 32),
+                              padding: EdgeInsets.symmetric(horizontal: 10),
+                            ),
+                            onPressed: () async {
+                              await UserProfileCacheManager.followUser(u.id);
+                              _loadConnections();
+                            },
+                            child: Text(
+                              'Follow Back',
+                              style: GoogleFonts.poppins(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          )
+                        else
+                          Text(
+                            'Follows You',
+                            style: GoogleFonts.poppins(color: context.caption, fontSize: 10),
+                          ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(Icons.more_vert_rounded, color: context.caption),
+                          onPressed: () => _removeFollower(u),
+                        ),
+                      ],
+                    ),
+            );
+          });
+        },
+      );
+    });
+  }
+
+  Widget _buildFriendsTab() {
+    return Obx(() {
+      final filtered = _friendsList.where((u) {
+        return u.displayName.toLowerCase().contains(_searchQuery) ||
+            u.sid.contains(_searchQuery);
+      }).toList();
+
+      if (filtered.isEmpty) {
+        return _buildEmptyState('No mutual friends found');
+      }
+
+      return ListView.separated(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: filtered.length,
+        separatorBuilder: (c, idx) => Divider(color: Colors.white10, height: 16),
+        itemBuilder: (c, idx) {
+          final u = filtered[idx];
+          final isMe = u.id == UserProfileCacheManager.currentUserId;
           return _buildUserTile(
             user: u,
-            actionButton: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!isFollowingBack)
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.primaryColor,
+            actionButton: isMe
+                ? const SizedBox.shrink()
+                : OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: context.borderColor),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       minimumSize: const Size(80, 32),
                       padding: EdgeInsets.symmetric(horizontal: 10),
                     ),
-                    onPressed: () {
-                      _followingList.add(u);
-                      Get.snackbar(
-                        'Followed! 💖',
-                        'You followed ${u.displayName}',
-                        snackPosition: SnackPosition.BOTTOM,
-                      );
-                    },
+                    onPressed: () => _unfollowUser(u),
                     child: Text(
-                      'Follow Back',
-                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      'Unfollow',
+                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
-                SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(Icons.more_vert_rounded, color: context.caption),
-                  onPressed: () => _removeFollower(u),
-                ),
-              ],
-            ),
           );
         },
       );
@@ -344,104 +469,112 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
   }
 
   Widget _buildUserTile({required User user, required Widget actionButton}) {
-    // Determine if mutual
-    final isMutual = _followingList.any((item) => item.id == user.id) &&
-        _followersList.any((item) => item.id == user.id);
+    return Obx(() {
+      final isMutual = UserProfileCacheManager.followedUserIds.contains(user.id) &&
+          UserProfileCacheManager.followerUserIds.contains(user.id);
 
-    return InkWell(
-      onTap: () => Get.to(() => ProfileScreen(visitorUser: user)),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-        child: Row(
-          children: [
-            // Avatar
-            CustomAvatarFrame(
-              userId: user.id,
-              username: user.displayName,
-              size: 48,
-              child: SizedBox(
-                width: 48,
-                height: 48,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: user.avatar != null && user.avatar!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: user.avatar!,
-                          fit: BoxFit.cover,
-                        )
-                      : Container(
-                          color: context.primaryColor.withOpacity(0.1),
-                          child: Center(
-                            child: Text(
-                              user.displayName.isNotEmpty ? user.displayName[0] : 'U',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      return InkWell(
+        onTap: () {
+          final isMe = user.id == UserProfileCacheManager.currentUserId;
+          if (isMe) {
+            Get.to(() => const ProfileScreen());
+          } else {
+            Get.to(() => ProfileScreen(visitorUser: user));
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          child: Row(
+            children: [
+              // Avatar
+              CustomAvatarFrame(
+                userId: user.id,
+                username: user.displayName,
+                size: 48,
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: user.avatar != null && user.avatar!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: user.avatar!,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            color: context.primaryColor.withOpacity(0.1),
+                            child: Center(
+                              child: Text(
+                                user.displayName.isNotEmpty ? user.displayName[0] : 'U',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
-                        ),
+                  ),
                 ),
               ),
-            ),
-            SizedBox(width: 12),
+              SizedBox(width: 12),
 
-            // User Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        user.displayName,
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (user.isVerified) ...[
-                        SizedBox(width: 4),
-                        Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
-                      ],
-                    ],
-                  ),
-                  SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text(
-                        'ID: ${user.sid}',
-                        style: GoogleFonts.poppins(
-                          color: context.caption,
-                          fontSize: 11,
-                        ),
-                      ),
-                      if (isMutual) ...[
-                        SizedBox(width: 6),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Color(0xFF10B981).withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Color(0xFF10B981).withOpacity(0.3), width: 0.5),
-                          ),
-                          child: Text(
-                            'Mutual',
-                            style: GoogleFonts.poppins(color: Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.bold),
+              // User Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          user.displayName,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
+                        if (user.isVerified) ...[
+                          SizedBox(width: 4),
+                          Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
+                        ],
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                    SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          'ID: ${user.sid}',
+                          style: GoogleFonts.poppins(
+                            color: context.caption,
+                            fontSize: 11,
+                          ),
+                        ),
+                        if (isMutual) ...[
+                          SizedBox(width: 6),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF10B981).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Color(0xFF10B981).withOpacity(0.3), width: 0.5),
+                            ),
+                            child: Text(
+                              'Mutual',
+                              style: GoogleFonts.poppins(color: Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            // Action Button
-            actionButton,
-          ],
+              // Action Button
+              actionButton,
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildEmptyState(String message) {

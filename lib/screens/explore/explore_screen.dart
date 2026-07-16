@@ -10,6 +10,7 @@ import '../../models/question_model.dart';
 import '../../models/community_model.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/post_attachments_widget.dart';
+import '../../widgets/custom_avatar_frame.dart';
 import '../../services/study_vault_controller.dart';
 import '../study_vault/study_vault_home_screen.dart';
 import '../study_vault/book_details_screen.dart';
@@ -1445,45 +1446,23 @@ class _ExploreScreenState extends State<ExploreScreen>
         child: Row(
           children: [
             // Avatar with level ring
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(26),
-                  child: u.avatar != null && u.avatar!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: u.avatar!,
-                          width: 52,
-                          height: 52,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: AppTheme.primaryColor.withOpacity(0.1),
-                          ),
-                          errorWidget: (context, url, error) =>
-                              _buildInitialsAvatar(u, radius: 26),
-                        )
-                      : _buildInitialsAvatar(u, radius: 26),
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.bgDark, width: 1.5),
-                    ),
-                    child: Center(
-                      child: Text('${u.level}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                  ),
-                ),
-              ],
+            CustomAvatarFrame(
+              userId: u.id,
+              username: u.username,
+              size: 52,
+              child: u.avatar != null && u.avatar!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: u.avatar!,
+                      width: 52,
+                      height: 52,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: AppTheme.primaryColor.withOpacity(0.1),
+                      ),
+                      errorWidget: (context, url, error) =>
+                          _buildInitialsAvatar(u, radius: 26),
+                    )
+                  : _buildInitialsAvatar(u, radius: 26),
             ),
             const SizedBox(width: 12),
             Expanded(

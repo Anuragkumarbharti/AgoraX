@@ -568,43 +568,73 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     final List<Widget> list = [];
     final double fs = 8.0;
 
-    final bool showVip = identity.vipLevel > 0;
-    final bool showNovel = identity.novelLevel > 0;
-    final bool showId = true;
-    final bool showCareer = true;
-    final bool showComm = identity.communityTag != null;
-    final bool showVerif = identity.verification != null;
-    final bool showOfficial = identity.officialTag != null;
+    final tagSystem = _user.tagSystem;
+    if (tagSystem != null) {
+      // 1. Official status
+      final status = tagSystem.officialStatus;
+      if (status.roleTag != null && status.roleTag!.isNotEmpty) {
+        list.add(_tagItem(
+          label: status.roleTag!,
+          icon: '🛡️',
+          bgColor: const Color(0xFF7C3AED).withOpacity(0.12),
+          borderColor: const Color(0xFF8B5CF6).withOpacity(0.6),
+          textColor: const Color(0xFFC084FC),
+        ));
+      } else if (status.verifiedTag != null && status.verifiedTag!.isNotEmpty) {
+        list.add(_tagItem(
+          label: status.verifiedTag!,
+          icon: '✓',
+          bgColor: const Color(0xFF2563EB).withOpacity(0.12),
+          borderColor: const Color(0xFF3B82F6).withOpacity(0.6),
+          textColor: const Color(0xFF60A5FA),
+        ));
+      }
 
-    switch (widget.variant) {
-      case MiniProfileVariant.followersList:
-      case MiniProfileVariant.searchResult:
-        if (showVip) list.add(_vipBadge(identity.vipLevel, fs));
-        if (showNovel) list.add(_novelBadge(identity.novelLevel, fs));
-        if (showVerif) list.add(_verifBadge(identity.verification!, fs));
-        if (showComm) list.add(_commBadge(identity.communityTag!, fs));
-        break;
+      // 2. Identity Tag Bar
+      for (var t in tagSystem.identityTagBar) {
+        final label = t.value;
+        final type = t.type;
+        Color color = const Color(0xFFBEC2FF);
+        String icon = '🏷️';
 
-      case MiniProfileVariant.chatMessage:
-        if (showVip) list.add(_vipBadge(identity.vipLevel, fs));
-        if (showNovel) list.add(_novelBadge(identity.novelLevel, fs));
-        if (showVerif) list.add(_verifBadge(identity.verification!, fs));
-        if (showOfficial) list.add(_officialBadge(identity.officialTag!, fs));
-        if (showComm) list.add(_commBadge(identity.communityTag!, fs));
-        if (showId) list.add(_idBadge(identity.idLevel, fs));
-        if (showCareer) list.add(_careerBadge(identity.careerLevel, fs));
-        break;
+        if (type == 'id_level') {
+          color = const Color(0xFF60A5FA);
+          icon = '⭐';
+        } else if (type == 'community') {
+          color = const Color(0xFFF472B6);
+          icon = '💖';
+        } else if (type == 'vip') {
+          color = const Color(0xFF60A5FA);
+          icon = '💎';
+        } else if (type == 'noble') {
+          color = const Color(0xFFF59E0B);
+          icon = '👑';
+        } else if (type == 'special') {
+          color = const Color(0xFFA78BFA);
+          icon = '✨';
+        }
 
-      case MiniProfileVariant.inRoom:
-      default:
-        if (showVip) list.add(_vipBadge(identity.vipLevel, fs));
-        if (showNovel) list.add(_novelBadge(identity.novelLevel, fs));
-        if (showId) list.add(_idBadge(identity.idLevel, fs));
-        if (showCareer) list.add(_careerBadge(identity.careerLevel, fs));
-        if (showComm) list.add(_commBadge(identity.communityTag!, fs));
-        if (showVerif) list.add(_verifBadge(identity.verification!, fs));
-        if (showOfficial) list.add(_officialBadge(identity.officialTag!, fs));
-        break;
+        list.add(_tagItem(
+          label: label,
+          icon: icon,
+          bgColor: color.withOpacity(0.12),
+          borderColor: color.withOpacity(0.6),
+          textColor: color,
+        ));
+      }
+    } else {
+      // Fallback to old property rendering
+      final bool showVip = identity.vipLevel > 0;
+      final bool showNovel = identity.novelLevel > 0;
+      final bool showId = true;
+      final bool showComm = identity.communityTag != null;
+      final officialStatusTag = identity.officialStatusTag;
+
+      if (officialStatusTag != null) list.add(_officialStatusBadge(officialStatusTag, fs));
+      if (showVip) list.add(_vipBadge(identity.vipLevel, fs));
+      if (showNovel) list.add(_novelBadge(identity.novelLevel, fs));
+      if (showComm) list.add(_commBadge(identity.communityTag!, fs));
+      if (showId) list.add(_idBadge(identity.idLevel, fs));
     }
 
     final limited = list.length > 8 ? list.sublist(0, 8) : list;
@@ -699,6 +729,28 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
         padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
         decoration: BoxDecoration(
           color: ot.color.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(3),
+          border: Border.all(color: ot.color.withOpacity(0.6), width: 0.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(ot.icon, style: TextStyle(color: ot.color, fontSize: fs - 2)),
+            SizedBox(width: 2),
+            Text(ot.name.split(' ').last, style: GoogleFonts.poppins(color: ot.color, fontSize: fs - 1, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _officialStatusBadge(OfficialTag ot, double fs) {
+    return GestureDetector(
+      onTap: () => _showBadgeInfo(ot.name, 'Official status.', ot.color, ot.icon, 'System assigned', [ot.benefit]),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+        decoration: BoxDecoration(
+          color: ot.color.withOpacity(0.12),
           borderRadius: BorderRadius.circular(3),
           border: Border.all(color: ot.color.withOpacity(0.6), width: 0.5),
         ),

@@ -26,7 +26,7 @@ class CustomizationController extends GetxController {
   final RxString customAvatarPath = ''.obs;
   final RxString activeEmojiPack = 'Classic Emojis'.obs;
 
-  final RxList<String> activeBadges = <String>[].obs; // Max 4 showcase badges
+  final RxList<String> activeBadges = <String>[].obs; // Max 5 showcase badges
   final Map<String, Map<String, dynamic>> badgeMetadata = {
     'Anniversary': {'icon': '🏆', 'rarity': 'Legendary', 'req': '1 Year Anniversary'},
     'Founder Badge': {'icon': '⭐', 'rarity': 'Mythic', 'req': 'Founding Member of Creania'},
@@ -166,15 +166,8 @@ class CustomizationController extends GetxController {
           activeBadges.assignAll(List<String>.from(data['showcased_badges']));
         }
       }
-      if (activeBadges.isEmpty) {
-        activeBadges.assignAll(['Anniversary', 'Founder Badge']);
-      }
-
       activeTags.assignAll(equipped.where((m) => m['type'] == 'Tag').map((m) => m['name'] as String).toList());
-      if (activeTags.isEmpty) activeTags.assignAll(['Scholar']);
-
       activeGifts.assignAll(equipped.where((m) => m['type'] == 'Gift').map((m) => m['name'] as String).toList());
-      if (activeGifts.isEmpty) activeGifts.assignAll(['Love Castle']);
 
     } catch (e) {
       debugPrint('Supabase Customizations Load failed: $e');
@@ -365,10 +358,10 @@ class CustomizationController extends GetxController {
       if (isShowcased) {
         showcasedList.remove(badgeName);
       } else {
-        if (showcasedList.length >= 4) { // Max 4 showcase badges
+        if (showcasedList.length >= 5) { // Max 5 showcase badges
           Get.snackbar(
             '⚠️ Maximum Showcase Reached',
-            'You can showcase a maximum of 4 badges simultaneously.',
+            'You can showcase a maximum of 5 badges simultaneously.',
             snackPosition: SnackPosition.BOTTOM,
             backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
             colorText: Colors.white,

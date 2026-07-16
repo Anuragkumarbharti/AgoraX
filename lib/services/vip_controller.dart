@@ -154,10 +154,25 @@ class VipController extends GetxController {
 
   Future<void> _syncVipToDatabase(int level, DateTime? expiry) async {
     try {
+      String frameName = 'Normal';
+      if (level > 0) {
+        if (level == 1) frameName = 'Royal Frame';
+        else if (level == 2) frameName = 'Neon Frame (Animated)';
+        else if (level == 3) frameName = 'Gold Glow Frame';
+        else if (level == 4) frameName = 'Diamond Frame';
+        else if (level == 5) frameName = 'Crystal Cyan Frame';
+        else if (level == 6) frameName = 'Rainbow Frame (Animated)';
+        else if (level == 7) frameName = 'Royal Crown (Animated)';
+      }
+
       await Supabase.instance.client.from('profiles').update({
         'vip_level': level,
         'vip_expiry': expiry?.toIso8601String(),
+        'avatar_frame': frameName,
       }).eq('id', currentUserId);
+
+      await UserProfileCacheManager.fetchUserProfile(currentUserId, forceRefresh: true);
+      await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
     } catch (_) {}
   }
 

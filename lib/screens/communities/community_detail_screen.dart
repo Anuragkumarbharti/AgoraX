@@ -20,7 +20,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    final comm = _controller.communities.firstWhereOrNull((c) => c.id == widget.communityId);
+    final length = (comm != null && comm.type == 'Official') ? 2 : 3;
+    _tabController = TabController(length: length, vsync: this);
   }
 
   @override
@@ -107,22 +109,32 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   indicatorWeight: 3,
                   labelColor: context.primaryColor,
                   unselectedLabelColor: context.caption,
-                  tabs: const [
-                    Tab(text: 'Home'),
-                    Tab(text: 'Members'),
-                    Tab(text: 'Tasks / Logo'),
-                  ],
+                  tabs: comm.type == 'Official'
+                      ? const [
+                          Tab(text: 'Home'),
+                          Tab(text: 'Members'),
+                        ]
+                      : const [
+                          Tab(text: 'Home'),
+                          Tab(text: 'Members'),
+                          Tab(text: 'Tasks / Logo'),
+                        ],
                 ),
               ),
             ),
           ],
           body: TabBarView(
             controller: _tabController,
-            children: [
-              _buildHomeTab(comm),
-              _buildMembersTab(comm),
-              _buildTasksTab(comm),
-            ],
+            children: comm.type == 'Official'
+                ? [
+                    _buildHomeTab(comm),
+                    _buildMembersTab(comm),
+                  ]
+                : [
+                    _buildHomeTab(comm),
+                    _buildMembersTab(comm),
+                    _buildTasksTab(comm),
+                  ],
           ),
         ),
       );

@@ -40,13 +40,24 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
     {'name': 'Entry Effect', 'icon': '⚡', 'desc': 'One-time room entrance effect'},
     {'name': 'Gift Effect', 'icon': '🎁', 'desc': 'Premium animated gifts'},
     {'name': 'Chat Bubble', 'icon': '💬', 'desc': 'Premium chat styling'},
-    {'name': 'Badge', 'icon': '🏅', 'desc': 'Profile-only premium badges'},
+    {'name': 'Showcase Badges', 'icon': '🏅', 'desc': 'Select and reorder your showcased badges'},
     {'name': 'Tag Light', 'icon': '🏷️', 'desc': 'Animated tags beside usernames'},
     {'name': 'VIP Membership', 'icon': '💎', 'desc': 'Unlock VIP cosmetics'},
     {'name': 'Novel Membership', 'icon': '📖', 'desc': 'Unlock Novel cosmetics'},
     {'name': 'Community Tag Light', 'icon': '👥', 'desc': 'Owner and moderator tags'},
     {'name': 'Emoji Effects', 'icon': '😊', 'desc': 'Premium animated emoji packs'},
   ];
+
+  List<Map<String, dynamic>> _getFilteredCategories() {
+    final user = UserProfileCacheManager.currentUser;
+    final hasBadges = user != null && user.badges.isNotEmpty;
+    return _categories.where((cat) {
+      if (cat['name'] == 'Showcase Badges') {
+        return hasBadges;
+      }
+      return true;
+    }).toList();
+  }
 
   // List of all customization items in the system with metadata from controller
   List<Map<String, dynamic>> get _customizationDb => _custCtrl.customizationDb;
@@ -159,9 +170,9 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         mainAxisSpacing: 12,
         childAspectRatio: 1.5,
       ),
-      itemCount: _categories.length,
+      itemCount: _getFilteredCategories().length,
       itemBuilder: (context, index) {
-        final cat = _categories[index];
+        final cat = _getFilteredCategories()[index];
         return GestureDetector(
           onTap: () {
             if (cat['name'] == 'VIP') {
@@ -234,7 +245,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
     }
     
     // special layouts
-    if (catName == 'Badge') {
+    if (catName == 'Showcase Badges') {
       return _buildBadgesReorderPanel();
     } else if (catName == 'Tag Light' || catName == 'Community Tag Light') {
       return _buildTagsReorderPanel();
@@ -371,7 +382,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
     switch (category) {
       case 'Avatar Background':
         return 'Background';
-      case 'Badge':
+      case 'Showcase Badges':
         return 'Badges';
       case 'Tag Light':
       case 'Community Tag Light':
@@ -1253,8 +1264,7 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
   // --- SPECIAL SCREEN: BADGES LIST REORDERING ---
   Widget _buildBadgesReorderPanel() {
     final user = UserProfileCacheManager.currentUser;
-    // List of unlocked badges from user model, or default sample achievements
-    final unlockedBadges = user?.badges ?? ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester', 'Event Winner', 'Top Gifter'];
+    final unlockedBadges = user?.badges ?? [];
 
     return Obx(() {
       final activeList = _custCtrl.activeBadges.toList();
@@ -1266,9 +1276,9 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Active Badges Row showing Max 4 Ordering
+              // Active Badges Row showing Max 5 Ordering
               Text(
-                'SHOWCASE BADGE ORDER (DRAG TO SORT - MAX 4)',
+                'SHOWCASE BADGE ORDER (DRAG TO SORT - MAX 5)',
                 style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
               const SizedBox(height: 12),

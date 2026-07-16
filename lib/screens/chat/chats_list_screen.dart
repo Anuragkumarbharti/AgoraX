@@ -12,6 +12,7 @@ import '../../services/room_controller.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../../models/room_model.dart';
 import '../../models/user_model.dart';
+import '../../widgets/custom_avatar_frame.dart';
 import '../rooms/voice_room_call_screen.dart';
 import '../profile/profile_screen.dart';
 import 'chat_screen.dart';
@@ -628,18 +629,14 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                     )),
                 child: Stack(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(2.5),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: conv.level > 0 ? AppTheme.accentColor : Colors.transparent,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: CircleAvatar(
-                        radius: 26,
-                        backgroundImage: NetworkImage(conv.otherUserAvatar),
+                    CustomAvatarFrame(
+                      userId: conv.otherUserId,
+                      username: conv.otherUserName,
+                      size: 52,
+                      child: Image.network(
+                        UserProfileCacheManager.rxCache[conv.otherUserId]?.avatar ?? conv.otherUserAvatar,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white30),
                       ),
                     ),
                     if (conv.otherUserOnline)
@@ -689,7 +686,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                       children: [
                         GestureDetector(
                           onTap: () => Get.to(() => ProfileScreen(
-                                visitorUser: UserProfileCacheManager.getCachedUser(conv.otherUserId) ?? User.fromJson({
+                                visitorUser: UserProfileCacheManager.rxCache[conv.otherUserId] ?? User.fromJson({
                                   'id': conv.otherUserId,
                                   'username': conv.otherUserName,
                                   'displayName': conv.otherUserName,
@@ -697,7 +694,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                                 }),
                               )),
                           child: Text(
-                            conv.otherUserName,
+                            UserProfileCacheManager.rxCache[conv.otherUserId]?.displayName ?? conv.otherUserName,
                             style: GoogleFonts.outfit(
                               color: AppTheme.textPrimary,
                               fontWeight: conv.unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
@@ -709,7 +706,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                           const SizedBox(width: 4),
                           const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
                         ],
-                        if (UserProfileCacheManager.getCachedUser(conv.otherUserId)?.vipLevel != null && UserProfileCacheManager.getCachedUser(conv.otherUserId)!.vipLevel > 0) ...[
+                        if (UserProfileCacheManager.rxCache[conv.otherUserId]?.vipLevel != null && UserProfileCacheManager.rxCache[conv.otherUserId]!.vipLevel > 0) ...[
                           const SizedBox(width: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -719,7 +716,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                               border: Border.all(color: AppTheme.accentColor, width: 0.5),
                             ),
                             child: Text(
-                              'VIP ${UserProfileCacheManager.getCachedUser(conv.otherUserId)!.vipLevel}',
+                              'VIP ${UserProfileCacheManager.rxCache[conv.otherUserId]!.vipLevel}',
                               style: const TextStyle(color: AppTheme.accentColor, fontSize: 8, fontWeight: FontWeight.bold),
                             ),
                           ),

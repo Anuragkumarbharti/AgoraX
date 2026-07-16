@@ -1,192 +1,140 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:creania/models/user_model.dart';
-
-// Standalone TagLight parsing logic matching profile/mini-profile views for unit verification
-List<Map<String, dynamic>> parseTagLights(List<String> rawTags) {
-  String? verifiedTag;
-  int? highestVip;
-  int? highestNovel;
-  int? highestIdLevel;
-  int? highestCommLevel;
-  bool isDev = false;
-  bool isMod = false;
-  bool isEmp = false;
-  bool isBot = false;
-  bool isTop = false;
-  bool isStar = false;
-  List<String> others = [];
-
-  for (var t in rawTags) {
-    t = t.trim();
-    if (t == 'Verified' || t == '✓') {
-      verifiedTag = '✓';
-    } else if (t.startsWith('VIP Level ') || (t.startsWith('V') && RegExp(r'^\d+$').hasMatch(t.substring(1)))) {
-      final numStr = t.startsWith('VIP Level ') ? t.substring(10) : t.substring(1);
-      final val = int.tryParse(numStr);
-      if (val != null) {
-        if (highestVip == null || val > highestVip) highestVip = val;
-      }
-    } else if (t.startsWith('Novel ') || (t.startsWith('N') && RegExp(r'^\d+$').hasMatch(t.substring(1)))) {
-      final numStr = t.startsWith('Novel ') ? t.substring(6) : t.substring(1);
-      final val = int.tryParse(numStr);
-      if (val != null) {
-        if (highestNovel == null || val > highestNovel) highestNovel = val;
-      }
-    } else if (t.startsWith('ID Level ') || (t.startsWith('L') && RegExp(r'^\d+$').hasMatch(t.substring(1)))) {
-      final numStr = t.startsWith('ID Level ') ? t.substring(9) : t.substring(1);
-      final val = int.tryParse(numStr);
-      if (val != null) {
-        if (highestIdLevel == null || val > highestIdLevel) highestIdLevel = val;
-      }
-    } else if (t.startsWith('Community Level ') || (t.startsWith('C') && RegExp(r'^\d+$').hasMatch(t.substring(1)))) {
-      final numStr = t.startsWith('Community Level ') ? t.substring(16) : t.substring(1);
-      final val = int.tryParse(numStr);
-      if (val != null) {
-        if (highestCommLevel == null || val > highestCommLevel) highestCommLevel = val;
-      }
-    } else if (t.toUpperCase() == 'DEVELOPER' || t.toUpperCase() == 'DEV') {
-      isDev = true;
-    } else if (t.toUpperCase() == 'MODERATOR' || t.toUpperCase() == 'MOD') {
-      isMod = true;
-    } else if (t.toUpperCase() == 'EMPLOYEE' || t.toUpperCase() == 'EMP') {
-      isEmp = true;
-    } else if (t.toUpperCase() == 'OFFICIAL BOT' || t.toUpperCase() == 'BOT') {
-      isBot = true;
-    } else if (t.toUpperCase() == 'TOP CREATOR' || t.toUpperCase() == 'TOP') {
-      isTop = true;
-    } else if (t.toUpperCase() == 'STAR CREATOR' || t.toUpperCase() == 'STAR') {
-      isStar = true;
-    } else {
-      others.add(t);
-    }
-  }
-
-  final List<Map<String, dynamic>> tags = [];
-  if (verifiedTag != null) tags.add({'label': '✓', 'color': 'blue'});
-  if (highestVip != null) tags.add({'label': 'V$highestVip', 'color': 'purple'});
-  if (highestNovel != null) tags.add({'label': 'N$highestNovel', 'color': 'pink'});
-  if (highestIdLevel != null) tags.add({'label': 'L$highestIdLevel', 'color': 'gold'});
-  if (highestCommLevel != null) tags.add({'label': 'C$highestCommLevel', 'color': 'green'});
-  if (isDev) tags.add({'label': 'DEV', 'color': 'red'});
-  if (isMod) tags.add({'label': 'MOD', 'color': 'cyan'});
-  if (isEmp) tags.add({'label': 'EMP', 'color': 'orange'});
-  if (isBot) tags.add({'label': 'BOT', 'color': 'grey'});
-  if (isTop) tags.add({'label': 'TOP', 'color': 'amber'});
-  if (isStar) tags.add({'label': 'STAR', 'color': 'violet'});
-  for (var o in others) {
-    tags.add({'label': o, 'color': 'grey'});
-  }
-
-  return tags.take(6).toList();
-}
-
-// Standalone RTag priority logic matching profile/mini-profile views for unit verification
-String? getHighestRTag(List<String> rawRoles) {
-  final priority = [
-    'Founder',
-    'Developer',
-    'Official',
-    'Employee',
-    'Admin',
-    'Moderator',
-    'Partner',
-    'Verified',
-    'Tester'
-  ];
-
-  final rolesSet = rawRoles.map((r) => r.trim().toLowerCase()).toSet();
-
-  for (var role in priority) {
-    if (rolesSet.contains(role.toLowerCase())) {
-      return role;
-    }
-  }
-  return null;
-}
+import 'package:creania/services/premium_identity_controller.dart';
 
 void main() {
-  group('TagLight Clamping & Priority Tests', () {
-    test('Should filter lower level VIP/Novel tiers and keep highest', () {
-      final tags = ['VIP Level 1', 'VIP Level 5', 'Novel 2', 'Novel 4', 'Verified'];
-      final parsed = parseTagLights(tags);
-
-      // Expected output order: Verified (✓), VIP 5 (V5), Novel 4 (N4)
-      expect(parsed.length, 3);
-      expect(parsed[0]['label'], '✓');
-      expect(parsed[1]['label'], 'V5');
-      expect(parsed[2]['label'], 'N4');
-    });
-
-    test('Should clamp to max 6 tags according to priority', () {
-      final tags = [
-        'Verified',
-        'VIP Level 7',
-        'Novel 3',
-        'ID Level 45',
-        'Community Level 12',
-        'Developer',
-        'Moderator',
-        'Star Creator',
-        '🔥'
-      ];
-      final parsed = parseTagLights(tags);
-
-      // Max 6 tags: Verified, V7, N3, L45, C12, DEV
-      expect(parsed.length, 6);
-      expect(parsed[0]['label'], '✓');
-      expect(parsed[1]['label'], 'V7');
-      expect(parsed[2]['label'], 'N3');
-      expect(parsed[3]['label'], 'L45');
-      expect(parsed[4]['label'], 'C12');
-      expect(parsed[5]['label'], 'DEV');
-    });
-  });
-
-  group('RTag (Official Roles) Priority Tests', () {
-    test('Developer should hide Employee and Official roles', () {
-      final roles = ['Employee', 'Developer', 'Official'];
-      final highest = getHighestRTag(roles);
-
-      expect(highest, 'Developer');
-    });
-
-    test('Founder should hide Developer and Admin roles', () {
-      final roles = ['Developer', 'Founder', 'Admin'];
-      final highest = getHighestRTag(roles);
-
-      expect(highest, 'Founder');
-    });
-
-    test('Official should hide Verified role', () {
-      final roles = ['Official', 'Verified'];
-      final highest = getHighestRTag(roles);
-
-      expect(highest, 'Official');
-    });
-  });
-
-  group('User Model Serialization Tests', () {
-    test('Should parse tag_lights, r_tags, and showcased_badges from JSON', () {
+  group('Backend-Driven Tag System Model Serialization Tests', () {
+    test('Should parse tag_system and its components from JSON correctly', () {
       final json = {
         'id': 'test-uuid-123',
         'username': 'tester_bob',
         'email': 'bob@creania.com',
-        'tag_lights': ['Verified', 'V2'],
+        'tag_lights': ['ID Level 42', 'Origin', 'VIP Level 3'],
         'r_tags': ['Developer'],
-        'showcased_badges': ['Anniversary'],
+        'showcased_badges': ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester', 'Champion'],
         'interests': [],
         'communities': [],
-        'followers_count': 100,
-        'following_count': 50,
         'verified': true,
         'reputation': 500,
+        'followers': 100,
+        'following': 50,
+        'tag_system': {
+          'identityTagBar': [
+            {'type': 'id_level', 'value': 'Lv.26'},
+            {'type': 'community', 'value': 'Silver Couple'},
+            {'type': 'vip', 'value': 'VIP 2'},
+            {'type': 'noble', 'value': 'King'},
+            {'type': 'special', 'value': 'Forever Friends'}
+          ],
+          'officialStatus': {
+            'verifiedTag': 'Verified',
+            'roleTag': 'Party Guru'
+          },
+          'profileShowcase': [
+            'badge_01',
+            'badge_05',
+            'badge_09',
+            'badge_12',
+            'badge_18'
+          ]
+        }
       };
 
       final user = User.fromJson(json);
 
-      expect(user.tagLights, containsAll(['Verified', 'V2']));
-      expect(user.rTags, contains('Developer'));
-      expect(user.showcasedBadges, contains('Anniversary'));
+      expect(user.tagSystem, isNotNull);
+      
+      final tagSystem = user.tagSystem!;
+      
+      // Assert Identity Tag Bar
+      expect(tagSystem.identityTagBar.length, 5);
+      expect(tagSystem.identityTagBar[0].type, 'id_level');
+      expect(tagSystem.identityTagBar[0].value, 'Lv.26');
+      expect(tagSystem.identityTagBar[1].type, 'community');
+      expect(tagSystem.identityTagBar[1].value, 'Silver Couple');
+      expect(tagSystem.identityTagBar[2].type, 'vip');
+      expect(tagSystem.identityTagBar[2].value, 'VIP 2');
+      expect(tagSystem.identityTagBar[3].type, 'noble');
+      expect(tagSystem.identityTagBar[3].value, 'King');
+      expect(tagSystem.identityTagBar[4].type, 'special');
+      expect(tagSystem.identityTagBar[4].value, 'Forever Friends');
+
+      // Assert Official Status
+      expect(tagSystem.officialStatus.verifiedTag, 'Verified');
+      expect(tagSystem.officialStatus.roleTag, 'Party Guru');
+
+      // Assert Showcase
+      expect(tagSystem.profileShowcase.length, 5);
+      expect(tagSystem.profileShowcase, containsAll(['badge_01', 'badge_05', 'badge_09', 'badge_12', 'badge_18']));
+    });
+  });
+
+  group('PremiumIdentity Status Priority Fallback Tests', () {
+    test('Founder role should hide Developer, Admin, Moderator, and Verified status', () {
+      final identity = PremiumIdentity(
+        vipLevel: 0,
+        novelLevel: 0,
+        idLevel: 1,
+        careerLevel: 1,
+        trustScore: 100,
+        rTags: ['Developer', 'Founder', 'Admin', 'Moderator'],
+        verification: UserVerification(
+          title: 'Verified',
+          icon: '✓',
+          color: const Color(0xFF00C2FF),
+          requirement: 'Verified Identity',
+          benefits: [],
+          date: '2026-07-16',
+          status: 'Approved',
+        ),
+      );
+
+      expect(identity.officialStatusTag?.name, 'Founder');
+    });
+
+    test('Developer role should hide Admin, Moderator, and Verified status', () {
+      final identity = PremiumIdentity(
+        vipLevel: 0,
+        novelLevel: 0,
+        idLevel: 1,
+        careerLevel: 1,
+        trustScore: 100,
+        rTags: ['Developer', 'Admin', 'Moderator'],
+        verification: UserVerification(
+          title: 'Verified',
+          icon: '✓',
+          color: const Color(0xFF00C2FF),
+          requirement: 'Verified Identity',
+          benefits: [],
+          date: '2026-07-16',
+          status: 'Approved',
+        ),
+      );
+
+      expect(identity.officialStatusTag?.name, 'Developer');
+    });
+
+    test('Admin role should hide Moderator and Verified status', () {
+      final identity = PremiumIdentity(
+        vipLevel: 0,
+        novelLevel: 0,
+        idLevel: 1,
+        careerLevel: 1,
+        trustScore: 100,
+        rTags: ['Admin', 'Moderator'],
+        verification: UserVerification(
+          title: 'Verified',
+          icon: '✓',
+          color: const Color(0xFF00C2FF),
+          requirement: 'Verified Identity',
+          benefits: [],
+          date: '2026-07-16',
+          status: 'Approved',
+        ),
+      );
+
+      expect(identity.officialStatusTag?.name, 'Admin');
     });
   });
 }

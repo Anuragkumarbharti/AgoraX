@@ -61,9 +61,13 @@ class _VipAvatarDecoratorState extends State<VipAvatarDecorator> with TickerProv
       );
     }
 
-    Widget mainAvatar = ClipRRect(
-      borderRadius: BorderRadius.circular(widget.size),
-      child: widget.child,
+    Widget mainAvatar = SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(widget.size),
+        child: widget.child,
+      ),
     );
 
     // Apply specific level styling

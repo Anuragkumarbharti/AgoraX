@@ -57,7 +57,6 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
   String? _usernameError;
 
   // Step 3 Controllers
-  final _displayNameCtrl = TextEditingController();
   DateTime? _dob;
   int _calculatedAge = 0;
   String? _selectedCountry = 'India';
@@ -109,7 +108,6 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     _passwordCtrl.dispose();
     _confirmPasswordCtrl.dispose();
     _usernameCtrl.dispose();
-    _displayNameCtrl.dispose();
     _bioCtrl.dispose();
     super.dispose();
   }
@@ -500,8 +498,6 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       await Supabase.instance.client.from('profiles').upsert({
         'id': userIdToUse,
         'username': _usernameCtrl.text.trim().toLowerCase(),
-        'display_name': _displayNameCtrl.text.trim(),
-        'full_name': _displayNameCtrl.text.trim(),
         'avatar_url': uploadedUrl ?? 'https://api.dicebear.com/7.x/bottts/png?seed=${_usernameCtrl.text.trim()}',
         'profile_photo': uploadedUrl ?? 'https://api.dicebear.com/7.x/bottts/png?seed=${_usernameCtrl.text.trim()}',
         'bio': _bioCtrl.text.trim().isNotEmpty ? _bioCtrl.text.trim() : 'Learning every day 🚀',
@@ -511,7 +507,6 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         'country': _selectedCountry,
         'interests': _selectedInterests.toList(),
         'verified': false,
-        'badges': ['Early Explorer'],
         'avatar_frame': 'Early Explorer Frame',
         'email_verified': !_isPhoneAuth,
         'verification_timestamp': DateTime.now().toIso8601String(),
@@ -986,14 +981,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         Text('Tell us a bit about yourself. Only display name is visible to others.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
         SizedBox(height: 32),
 
-        Text('Display Name *', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
-        SizedBox(height: 8),
-        TextField(
-          controller: _displayNameCtrl,
-          style: TextStyle(color: context.textPrimary),
-          decoration: const InputDecoration(hintText: 'John Doe'),
-        ),
-        SizedBox(height: 20),
+
 
         Text('Date of Birth *', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
         SizedBox(height: 8),
@@ -1092,10 +1080,6 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
         SizedBox(height: 40),
         _buildActionButton('Continue', () {
-          if (_displayNameCtrl.text.trim().isEmpty) {
-            Get.snackbar('Error', 'Display Name is required');
-            return;
-          }
           if (_dob == null) {
             Get.snackbar('Error', 'Date of Birth is required');
             return;

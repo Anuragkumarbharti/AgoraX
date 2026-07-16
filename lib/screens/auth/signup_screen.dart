@@ -18,7 +18,6 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen>
     with TickerProviderStateMixin {
-  final _nameCtrl = TextEditingController();
   final _usernameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
@@ -55,7 +54,6 @@ class _SignupScreenState extends State<SignupScreen>
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
     _usernameCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
@@ -79,9 +77,21 @@ class _SignupScreenState extends State<SignupScreen>
     }
     setState(() => _isLoading = true);
     try {
-      final username = _usernameCtrl.text.trim().isNotEmpty
-          ? _usernameCtrl.text.trim()
-          : _emailCtrl.text.trim().split('@')[0];
+      final username = _usernameCtrl.text.trim();
+      if (username.isEmpty) {
+        throw 'Username is required';
+      }
+
+      // Check username uniqueness in DB first
+      final checkUser = await Supabase.instance.client
+          .from('profiles')
+          .select('id')
+          .eq('username', username)
+          .maybeSingle();
+      if (checkUser != null) {
+        throw 'Username "$username" is already taken. Please choose another one.';
+      }
+
       final response = await Supabase.instance.client.auth.signUp(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
@@ -226,18 +236,7 @@ class _SignupScreenState extends State<SignupScreen>
                                   _buildDivider('or sign up with email'),
                                   SizedBox(height: 20),
 
-                                  // ── Full Name ───────────────────
-                                  _buildLabel('Full Name'),
-                                  SizedBox(height: 8),
-                                  _buildTextField(
-                                    controller: _nameCtrl,
-                                    hint: 'e.g. Anurag Kumar',
-                                    icon: Icons.person_outline_rounded,
-                                    validator: (v) => v == null || v.isEmpty
-                                        ? 'Enter your name'
-                                        : null,
-                                  ),
-                                  SizedBox(height: 16),
+
 
                                   // ── Username ─────────────────────
                                   _buildLabel('Username'),

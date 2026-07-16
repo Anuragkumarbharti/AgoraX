@@ -6346,58 +6346,97 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
 
   List<Map<String, dynamic>> generateDynamicTagLights(User? user, int fallbackVip, int fallbackNovel, int fallbackLevel) {
     final List<Map<String, dynamic>> tags = [];
-
-    final vip = user?.vipLevel ?? fallbackVip;
-    final novel = user?.novelLevel ?? fallbackNovel;
-    final level = user?.level ?? fallbackLevel;
-    final commCount = user?.communities.length ?? 0;
-
-    // 2. VIP tag (V7)
-    if (vip > 0) {
-      tags.add({'label': 'V$vip', 'color': const Color(0xFF8B5CFF)});
-    }
-
-    // 3. Novel tag (N5)
-    if (novel > 0) {
-      tags.add({'label': 'N$novel', 'color': const Color(0xFFFF4D8D)});
-    }
-
-    // 4. ID Level tag (L42)
-    if (level > 0) {
-      tags.add({'label': 'L$level', 'color': const Color(0xFFFFB020)});
-    }
-
-    // 5. Community Level tag (C20)
-    tags.add({'label': 'C$commCount', 'color': const Color(0xFF22C55E)});
-
-    // 5. DB custom tags (e.g. TOP, DEV, MOD, EMP, BOT, STAR, 🔥)
-    final tagList = user?.tagLights ?? [];
-    final finalTagList = tagList.isEmpty ? ['V5', 'N3', 'L42', 'C12', '🔥'] : tagList;
-    for (var t in finalTagList) {
-      t = t.trim();
-      if (t == 'Verified' || t == '✓') continue;
-      if (t.startsWith('VIP Level ') || t.startsWith('V')) continue;
-      if (t.startsWith('Novel ') || t.startsWith('N')) continue;
-      if (t.startsWith('ID Level ') || t.startsWith('L')) continue;
-      if (t.startsWith('Community Level ') || t.startsWith('C')) continue;
-
-      Color color = const Color(0xFFBEC2FF);
-      if (t.toUpperCase() == 'DEV' || t.toUpperCase() == 'DEVELOPER') {
-        color = const Color(0xFF00C2FF);
-      } else if (t.toUpperCase() == 'MOD' || t.toUpperCase() == 'MODERATOR') {
-        color = const Color(0xFFEF4444);
-      } else if (t.toUpperCase() == 'EMP' || t.toUpperCase() == 'EMPLOYEE') {
-        color = const Color(0xFFFF7A09);
-      } else if (t.toUpperCase() == 'BOT') {
-        color = const Color(0xFFBEC2FF);
-      } else if (t.toUpperCase() == 'TOP') {
-        color = const Color(0xFFFFB020);
-      } else if (t.toUpperCase() == 'STAR') {
-        color = const Color(0xFFDDB7FF);
-      } else if (t == '🔥') {
-        color = const Color(0xFFFF4D8D);
+    if (user == null) {
+      // Fallback tags if user is null
+      tags.add({'label': 'ID Level $fallbackLevel', 'color': const Color(0xFFFFB020)});
+      if (fallbackVip > 0) {
+        tags.add({
+          'label': 'VIP Level $fallbackVip',
+          'color': const Color(0xFFFFA751),
+          'gradient': const LinearGradient(
+            colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        });
       }
-      tags.add({'label': t, 'color': color});
+      if (fallbackNovel > 0) {
+        tags.add({
+          'label': 'Novel $fallbackNovel',
+          'color': const Color(0xFFE94057),
+          'gradient': const LinearGradient(
+            colors: [Color(0xFF8A2387), Color(0xFFE94057)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        });
+      }
+      return tags;
+    }
+
+    final tagList = user.tagLights.isEmpty ? ['ID Level ${user.level}'] : user.tagLights;
+
+    for (var t in tagList) {
+      t = t.trim();
+      Color color = const Color(0xFFBEC2FF);
+      Gradient? gradient;
+
+      if (t.startsWith('ID Level ')) {
+        color = const Color(0xFFFFB020);
+      } else if (t.startsWith('VIP Level ')) {
+        gradient = const LinearGradient(
+          colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFFFFA751);
+      } else if (t.startsWith('Novel ')) {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF8A2387), Color(0xFFE94057)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFFE94057);
+      } else if (t == 'Origin') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFFFFD700), Color(0xFFB45309)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFFFFD700);
+      } else if (t == 'Studio') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF8B5CFF), Color(0xFF6D28D9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFF8B5CFF);
+      } else if (t == 'ArenaX') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFF3B82F6);
+      } else if (t == 'Campus') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF10B981), Color(0xFF047857)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFF10B981);
+      } else if (t == 'Connect') {
+        gradient = const LinearGradient(
+          colors: [Color(0xFF06B6D4), Color(0xFF0891B2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+        color = const Color(0xFF06B6D4);
+      } else if (t == 'Official') {
+        color = const Color(0xFF8B5CFF);
+      }
+
+      tags.add({'label': t, 'color': color, 'gradient': gradient});
     }
 
     return tags;
@@ -6419,44 +6458,19 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     final List<Widget> widgets = displayTags.map((tag) {
       final label = tag['label'] as String;
       final color = tag['color'] as Color;
+      final gradient = tag['gradient'] as Gradient?;
 
-      Gradient? gradient;
       Color bg = color.withOpacity(0.12);
       Color borderCol = color.withOpacity(0.4);
       Color textCol = color;
 
-      if (label.startsWith('V') && RegExp(r'^\d+$').hasMatch(label.substring(1))) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        borderCol = const Color(0xFFFFA751);
+      if (gradient != null) {
+        borderCol = color;
         textCol = Colors.white;
-      } else if (label.startsWith('N') && RegExp(r'^\d+$').hasMatch(label.substring(1))) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFF8A2387), Color(0xFFE94057)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        borderCol = const Color(0xFFE94057);
-        textCol = Colors.white;
-      } else if (label == 'TOP') {
-        bg = const Color(0xFFFF7A09).withOpacity(0.2);
-        borderCol = const Color(0xFFFF7A09);
-        textCol = const Color(0xFFFF9F43);
-      } else if (label == 'DEV') {
-        bg = const Color(0xFF00C2FF).withOpacity(0.2);
-        borderCol = const Color(0xFF00C2FF);
-        textCol = const Color(0xFF8CF3FF);
-      } else if (label == 'MOD') {
-        bg = const Color(0xFFEF4444).withOpacity(0.2);
-        borderCol = const Color(0xFFEF4444);
-        textCol = const Color(0xFFFF8E8E);
       }
 
       return Tooltip(
-        message: 'Tap to see details about $label',
+        message: 'Identity Tag: $label',
         child: GestureDetector(
           onTap: () {
             Get.snackbar('Tag Info', 'Details page for $label tag (coming soon).');
@@ -6541,173 +6555,169 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     return null;
   }
 
-  Widget buildRTagWidget(List<String> rawRoles, BuildContext context) {
-    final rolesToUse = rawRoles.isEmpty ? ['Founder'] : rawRoles;
-    final role = getHighestRTag(rolesToUse);
-    if (role == null) return const SizedBox.shrink();
-
-    Gradient gradient;
-    Color textColor = Colors.white;
-    Color borderColor;
-
-    switch (role.toLowerCase()) {
-      case 'founder':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF1E1E24), Color(0xFF0F0F12)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-        borderColor = const Color(0xFFFFB020);
-        textColor = const Color(0xFFFFB020);
-        break;
-      case 'developer':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF00C2FF), Color(0xFF0EA5E9)],
-        );
-        borderColor = const Color(0xFF00C2FF).withOpacity(0.5);
-        break;
-      case 'official':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
-        );
-        borderColor = const Color(0xFF3B82F6).withOpacity(0.5);
-        break;
-      case 'employee':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF8B5CFF), Color(0xFF6366F1)],
-        );
-        borderColor = const Color(0xFF8B5CFF).withOpacity(0.5);
-        break;
-      case 'admin':
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFF7A09), Color(0xFFFFB020)],
-        );
-        borderColor = const Color(0xFFFFB020).withOpacity(0.5);
-        break;
-      case 'moderator':
-        gradient = const LinearGradient(
-          colors: [Color(0xFFEF4444), Color(0xFF991B1B)],
-        );
-        borderColor = const Color(0xFFEF4444).withOpacity(0.5);
-        break;
-      case 'support':
-        gradient = const LinearGradient(
-          colors: [Color(0xFF22C55E), Color(0xFF15803D)],
-        );
-        borderColor = const Color(0xFF22C55E).withOpacity(0.5);
-        break;
-      case 'partner':
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFF4D8D), Color(0xFFBE185D)],
-        );
-        borderColor = const Color(0xFFFF4D8D).withOpacity(0.5);
-        break;
-      case 'tester':
-      default:
-        gradient = const LinearGradient(
-          colors: [Color(0xFF6B7280), Color(0xFF374151)],
-        );
-        borderColor = const Color(0xFF6B7280).withOpacity(0.5);
-        break;
+  Widget buildOfficialStatusRow(User? user, BuildContext context) {
+    if (user == null) return const SizedBox.shrink();
+    final status = user.tagSystem?.officialStatus;
+    
+    // Fallback if tagSystem is not loaded yet
+    if (status == null) {
+      final identity = PremiumIdentityController.getIdentity(user.id, user.displayName);
+      final officialTag = identity.officialStatusTag;
+      if (officialTag == null) return const SizedBox.shrink();
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildSingleStatusBadge(officialTag.name, isRole: officialTag.name.toLowerCase() != 'verified'),
+        ],
+      );
     }
 
-    return Tooltip(
-      message: 'Official Role: $role. Tap for role details.',
-      child: GestureDetector(
-        onTap: () {
-          Get.snackbar('Role Info', 'Details about the official $role role (coming soon).');
-        },
-        child: Container(
-          height: 30,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            gradient: gradient,
-            border: Border.all(color: borderColor, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              )
-            ],
+    final List<Widget> widgets = [];
+
+    if (status.verifiedTag != null && status.verifiedTag!.isNotEmpty) {
+      widgets.add(_buildSingleStatusBadge(status.verifiedTag!, isRole: false));
+    }
+
+    if (status.roleTag != null && status.roleTag!.isNotEmpty) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(width: 8));
+      widgets.add(_buildSingleStatusBadge(status.roleTag!, isRole: true));
+    }
+
+    if (widgets.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: widgets,
+    );
+  }
+
+  Widget _buildSingleStatusBadge(String label, {required bool isRole}) {
+    Gradient gradient;
+    Color borderColor;
+    IconData icon;
+
+    if (!isRole) {
+      // Verified Tag
+      gradient = const LinearGradient(
+        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+      );
+      borderColor = const Color(0xFF3B82F6).withOpacity(0.5);
+      icon = Icons.verified_user_rounded;
+    } else {
+      // Role Tag
+      gradient = const LinearGradient(
+        colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+      );
+      borderColor = const Color(0xFF8B5CF6).withOpacity(0.5);
+      icon = Icons.shield_rounded;
+    }
+
+    return Container(
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        gradient: gradient,
+        border: Border.all(color: borderColor, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white, size: 13),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.shield_rounded, color: Colors.white, size: 13),
-              const SizedBox(width: 6),
-              Text(
-                role,
-                style: GoogleFonts.poppins(
-                  color: textColor,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
 
   Widget buildBadgesShowcaseWidget(List<String> activeBadgesList, BuildContext context) {
     final custCtrl = Get.find<CustomizationController>();
-    final badgesToUse = activeBadgesList.isEmpty ? ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester'] : activeBadgesList;
+    final badgesToUse = activeBadgesList.isEmpty ? ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester', 'Champion'] : activeBadgesList;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 38,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            shrinkWrap: true,
-            physics: const BouncingScrollPhysics(),
-            itemCount: badgesToUse.take(4).length,
-            itemBuilder: (context, index) {
-              final bName = badgesToUse[index];
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.0),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: badgesToUse.take(5).map((bName) {
               final meta = custCtrl.badgeMetadata[bName] ?? {'icon': '🏅', 'rarity': 'Common'};
               final iconStr = meta['icon'] as String? ?? '🏅';
+              final rarity = meta['rarity'] as String? ?? 'Common';
               
+              Color glowColor = const Color(0xFFFFB020);
+              if (rarity == 'Legendary') {
+                glowColor = const Color(0xFFFFD700);
+              } else if (rarity == 'Mythic') {
+                glowColor = const Color(0xFFEF4444);
+              } else if (rarity == 'Epic') {
+                glowColor = const Color(0xFF8B5CFF);
+              } else if (rarity == 'Rare') {
+                glowColor = const Color(0xFF3B82F6);
+              }
+
               return Tooltip(
-                message: '$bName badge. Long press for info.',
-                child: GestureDetector(
-                  onTap: () {
-                    Get.snackbar('Badge Info', '$bName details (coming soon).');
-                  },
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                        )
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        iconStr,
-                        style: const TextStyle(fontSize: 16),
-                      ),
+                message: '$bName Badge ($rarity)',
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.04),
+                    border: Border.all(color: glowColor, width: 2.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: glowColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      iconStr,
+                      style: const TextStyle(fontSize: 24),
                     ),
                   ),
                 ),
               );
-            },
+            }).toList(),
           ),
-        ),
-      ],
+          const SizedBox(height: 10),
+          Text(
+            'User can equip up to 5 badges. Drag to change order.',
+            style: GoogleFonts.poppins(
+              color: Colors.white38,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -6822,8 +6832,9 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                           const SizedBox(width: 48, height: 48),
                       ],
                     ),
+                    const SizedBox(height: 12),
 
-                    // Avatar centered with slightly overlap style
+                    // 1. Centered Avatar Stack
                     Stack(
                       alignment: Alignment.center,
                       clipBehavior: Clip.none,
@@ -6831,11 +6842,11 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                         CustomAvatarFrame(
                           userId: widget.targetUserId,
                           username: uName,
-                          size: 80,
+                          size: (vipLevel > 0 || novelLevel > 0 || (u?.avatarFrame != null && u!.avatarFrame!.isNotEmpty && u.avatarFrame != 'none' && u.avatarFrame != 'normal')) ? 112 : 96,
                           defaultVipLevel: vipLevel,
                           defaultNovelLevel: novelLevel,
                           child: CircleAvatar(
-                            radius: 40,
+                            radius: 48,
                             backgroundImage: uAvatar.isNotEmpty ? CachedNetworkImageProvider(uAvatar) : null,
                             child: uAvatar.isEmpty ? const Icon(Icons.person, size: 36, color: Colors.white54) : null,
                           ),
@@ -6847,9 +6858,9 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
 
-                    // First Row: Username, VTag (first), and TagLights
+                    // 2. Username (Bold, primary focus, 18 px)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -6859,66 +6870,76 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             letterSpacing: -0.4,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        // VTag shown first with breathing animation
-                        _BreathingVTag(
-                          level: getVTagLevel(u),
-                          onTap: () {
-                            Get.snackbar('Verification Info', 'This user is verified at the ${getVTagLevel(u).toUpperCase()} tier.');
-                          },
-                        ),
                         const SizedBox(width: 6),
-                        ...buildTagLightsWidget(generateDynamicTagLights(u, vipLevel, novelLevel, uLevel), context),
+                        Icon(
+                          u?.gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
+                          color: u?.gender == 'female' ? const Color(0xFFF472B6) : const Color(0xFF60A5FA),
+                          size: 16,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 6),
 
-                    // Second Row: ID
+                    // 3. User ID (ID Pill)
                     GestureDetector(
                       onTap: () {
                         Clipboard.setData(ClipboardData(text: numericId));
                         Get.snackbar('Copied', 'ID copied to clipboard.');
                       },
-                      onLongPress: () {
-                        Get.snackbar('Share ID', 'Profile ID: $numericId');
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'ID : $numericId',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF9CA3AF),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'ID: $numericId',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white70,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.content_copy_rounded,
-                            color: Color(0xFF9CA3AF),
-                            size: 14,
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            u?.gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
-                            color: const Color(0xFFBEC2FF),
-                            size: 14,
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.content_copy_rounded,
+                              color: Colors.white54,
+                              size: 11,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
 
-                    // Third Row: RTag
-                    buildRTagWidget(u?.rTags ?? [], context),
-                    // Fourth Row: Badge Showcase
+                    // 4. Identity Tags (Wrap, centered, max width 320)
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: buildTagLightsWidget(generateDynamicTagLights(u, vipLevel, novelLevel, uLevel), context),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // 5. Official Status Tag
+                    buildOfficialStatusRow(u, context),
+                    const SizedBox(height: 6),
+
+                    // 6. Showcase Badges
                     buildBadgesShowcaseWidget(u?.showcasedBadges ?? [], context),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
 
                     // Bio
                     Padding(

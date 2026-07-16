@@ -25,8 +25,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   await Supabase.initialize(
-    url: const String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://eqjvjcfrwgchmelkfjlr.supabase.co'),
-    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxanZqY2Zyd2djaG1lbGtmamxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NzMxMzMsImV4cCI6MjA5OTQ0OTEzM30.04HdJ2WT-0AnfTZZpueEF7oJv4wu55N3-5e4fiX19ps'),
+    url: const String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://zccrgiplrbeslgpcezul.supabase.co'),
+    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjY3JnaXBscmJlc2xncGNlenVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDQyNDAsImV4cCI6MjA5OTc4MDI0MH0.iYRR8y7Z_S0z_ROVzVyvj1M4rv6sWK2q7Z6K7vRwD4g'),
   );
 
   // Initialize Local Isar Storage Service
