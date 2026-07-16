@@ -353,9 +353,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
     return Scaffold(
       backgroundColor: const Color(0xFF11131C),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _loadUserProfile();
+          _checkFollowingStatus();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
             // 1. Cover Photo & Header Section
             Stack(
               clipBehavior: Clip.none,
@@ -1039,6 +1045,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           ],
         ),
       ),
+    ),
     );
   }
 

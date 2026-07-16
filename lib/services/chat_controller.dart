@@ -42,6 +42,8 @@ class ChatController extends GetxController {
     _loadConversationsFromIsar();
   }
 
+  Future<void> refreshConversations() => _loadConversationsFromIsar();
+
   Future<void> _loadConversationsFromIsar() async {
     try {
       final isarConvs = await IsarStorageService.to.getAllConversations();

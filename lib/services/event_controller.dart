@@ -72,6 +72,8 @@ class EventController extends GetxController {
     } catch (_) {}
   }
 
+  Future<void> syncFromSupabase() => _loadEventsFromDatabase();
+
   Future<void> _loadEventsFromDatabase() async {
     try {
       final List<dynamic> list = await Supabase.instance.client

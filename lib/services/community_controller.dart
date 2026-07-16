@@ -38,6 +38,8 @@ class CommunityController extends GetxController {
     super.onClose();
   }
 
+  Future<void> syncFromSupabase() => _loadCommunitiesFromDatabase();
+
   Future<void> _loadCommunitiesFromDatabase() async {
     try {
       final List<dynamic> list = await Supabase.instance.client

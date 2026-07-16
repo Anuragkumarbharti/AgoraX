@@ -582,9 +582,20 @@ class _ExploreScreenState extends State<ExploreScreen>
     return Scaffold(
       backgroundColor: AppTheme.bgDark,
       body: SafeArea(
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
+        child: RefreshIndicator(
+          onRefresh: () async {
+            try {
+              if (Get.isRegistered<StudyVaultController>()) {
+                await Get.find<StudyVaultController>().loadCatalogFromDatabase();
+                await Get.find<StudyVaultController>().loadPurchasedBooks();
+              }
+            } catch (_) {}
+            setState(() {});
+          },
+          child: NestedScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
               SliverAppBar(
                 pinned: true,
                 floating: false,
@@ -688,6 +699,7 @@ class _ExploreScreenState extends State<ExploreScreen>
           ),
         ),
       ),
+    ),
     );
   }
 

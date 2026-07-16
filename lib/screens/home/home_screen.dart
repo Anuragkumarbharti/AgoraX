@@ -260,9 +260,20 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        child: Padding(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _fetchRecentPosts();
+          try {
+            await _eventController.syncFromSupabase();
+          } catch (_) {}
+          try {
+            await _communityCtrl.syncFromSupabase();
+          } catch (_) {}
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          controller: _scrollController,
+          child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,6 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    ),
       floatingActionButton: _showFloatingButton
           ? FloatingActionButton(
               onPressed: _createNewPost,

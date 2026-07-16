@@ -509,29 +509,40 @@ class _ChatsListScreenState extends State<ChatsListScreen>
             c.lastMessage.toLowerCase().contains(query);
       }).toList();
 
-      if (filtered.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.chat_bubble_outline_rounded, size: 48, color: AppTheme.textTertiary.withOpacity(0.5)),
-              const SizedBox(height: 12),
-              Text(
-                'No conversations found',
-                style: GoogleFonts.outfit(color: AppTheme.textTertiary, fontSize: 15),
-              ),
-            ],
-          ),
-        );
-      }
+      final listWidget = filtered.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.chat_bubble_outline_rounded, size: 48, color: AppTheme.textTertiary.withOpacity(0.5)),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No conversations found',
+                        style: GoogleFonts.outfit(color: AppTheme.textTertiary, fontSize: 15),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : ListView.builder(
+              itemCount: filtered.length,
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemBuilder: (context, idx) {
+                final conv = filtered[idx];
+                return _buildSwipeableConversationTile(conv);
+              },
+            );
 
-      return ListView.builder(
-        itemCount: filtered.length,
-        physics: const BouncingScrollPhysics(),
-        itemBuilder: (context, idx) {
-          final conv = filtered[idx];
-          return _buildSwipeableConversationTile(conv);
+      return RefreshIndicator(
+        onRefresh: () async {
+          await _ctrl.refreshConversations();
         },
+        child: listWidget,
       );
     });
   }

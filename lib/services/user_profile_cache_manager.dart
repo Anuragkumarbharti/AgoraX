@@ -94,7 +94,7 @@ class UserProfileCacheManager {
     }
 
     try {
-      final data = await Supabase.instance.client
+      var data = await Supabase.instance.client
           .from('profiles')
           .select()
           .eq('id', idToQuery)
@@ -102,8 +102,40 @@ class UserProfileCacheManager {
 
       if (idToQuery == currentId) {
         if (data == null) {
-          await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
-          throw Exception("Profile row missing");
+          final currentUser = Supabase.instance.client.auth.currentUser;
+          if (currentUser == null) {
+            await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+            throw Exception("Profile row missing and auth user is null");
+          }
+          try {
+            final newUsername = 'user_${currentUser.id.replaceAll('-', '').substring(0, 8)}';
+            await Supabase.instance.client.from('profiles').insert({
+              'id': currentUser.id,
+              'username': newUsername,
+              'email': currentUser.email,
+              'phone': currentUser.phone,
+              'level': 1,
+              'experience': 0,
+              'vip_level': 0,
+              'novel_level': 0,
+              'verified': false,
+            });
+            final refetched = await Supabase.instance.client
+                .from('profiles')
+                .select()
+                .eq('id', currentUser.id)
+                .maybeSingle();
+            if (refetched != null) {
+              data = refetched;
+            } else {
+              await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+              throw Exception("Recreation succeeded but refetch returned null");
+            }
+          } catch (recreateError) {
+            debugPrint('[CacheManager] Missing profile recreation failed: $recreateError');
+            await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+            throw Exception("Profile row missing and recreation failed: $recreateError");
+          }
         }
         final status = data['status'] as String?;
         final isBanned = data['is_banned'] as bool? ?? false;
