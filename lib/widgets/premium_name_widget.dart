@@ -147,7 +147,10 @@ class _PremiumNameWidgetState extends State<PremiumNameWidget>
       final novelLevel = u?.novelLevel ?? PremiumEffectsResolver.getNovelLevel(widget.userId, widget.name);
       final vipLevel = u?.vipLevel ?? PremiumEffectsResolver.getVipLevel(widget.userId, widget.name);
 
-      if (novelLevel <= 0 && vipLevel <= 0) {
+      final String? nameGlowHex = u?.membershipAssets['name_glow'];
+      final bool hasGlow = nameGlowHex != null && nameGlowHex.isNotEmpty;
+
+      if (novelLevel <= 0 && vipLevel <= 0 && !hasGlow) {
         return Text(
           u?.username ?? widget.name,
           style: baseStyle,
@@ -162,7 +165,17 @@ class _PremiumNameWidgetState extends State<PremiumNameWidget>
       Color textColor = baseStyle.color ?? Colors.white;
       List<Color>? gradientColors;
 
-      if (novelLevel > 0) {
+      if (hasGlow) {
+        try {
+          final colorStr = nameGlowHex.replaceAll('#', '');
+          final glowColor = Color(int.parse('FF$colorStr', radix: 16));
+          textColor = glowColor;
+          shadows = [
+            Shadow(color: glowColor.withOpacity(0.8), blurRadius: 8),
+            Shadow(color: glowColor.withOpacity(0.5), blurRadius: 15),
+          ];
+        } catch (_) {}
+      } else if (novelLevel > 0) {
         switch (novelLevel) {
           case 1:
             textColor = const Color(0xFF60A5FA);

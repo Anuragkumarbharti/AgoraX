@@ -6428,15 +6428,31 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
             imageUrl.replaceAll('asset://', ''),
             height: 22,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
           );
         } else {
-          imgWidget = Image.network(
-            imageUrl,
-            height: 22,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-          );
+          String? localAsset;
+          if (imageUrl.contains('vip_1_tag.png')) {
+            localAsset = 'assets/identity_tags/vip_level_1.png';
+          } else if (imageUrl.contains('vip_2_tag.png')) {
+            localAsset = 'assets/identity_tags/vip_level_2.png';
+          }
+
+          if (localAsset != null) {
+            imgWidget = Image.asset(
+              localAsset,
+              height: 22,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
+            );
+          } else {
+            imgWidget = Image.network(
+              imageUrl,
+              height: 22,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
+            );
+          }
         }
         return Tooltip(
           message: 'Identity Tag: $label',
@@ -6517,6 +6533,57 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     }
 
     return widgets;
+  }
+
+  Widget _buildTextTagFallback(String label, Map<String, dynamic> tag) {
+    final color = tag['color'] as Color? ?? const Color(0xFFBEC2FF);
+    final gradient = tag['gradient'] as Gradient?;
+
+    Color bg = color.withOpacity(0.12);
+    Color borderCol = color.withOpacity(0.4);
+    Color textCol = color;
+
+    if (gradient != null) {
+      borderCol = color;
+      textCol = Colors.white;
+    }
+
+    return Tooltip(
+      message: 'Identity Tag: $label',
+      child: GestureDetector(
+        onTap: () {
+          Get.snackbar('Tag Info', 'Details page for $label tag (coming soon).');
+        },
+        child: Container(
+          height: 22,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: gradient,
+            color: gradient == null ? bg : null,
+            border: Border.all(color: borderCol, width: 1.0),
+            boxShadow: [
+              BoxShadow(
+                color: borderCol.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              )
+            ],
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                color: textCol,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   String? getHighestRTag(List<String> rawRoles) {

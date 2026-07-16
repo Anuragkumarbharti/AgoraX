@@ -565,71 +565,46 @@ class StoreController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     } else {
-      // Apply locally to active user
-      if (category == 'VIP') {
-        final vipLvl = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-        final vipCtrl = Get.find<VipController>();
-        vipCtrl.vipLevel.value = vipLvl;
-        vipCtrl.activeFrame.value = 'VIP$vipLvl';
-        int days = 30;
-        switch (duration) {
-          case '3 Days': days = 3; break;
-          case '3 Day': days = 3; break;
-          case '7 Days': days = 7; break;
-          case '7 Day': days = 7; break;
-          case '15 Days': days = 15; break;
-          case '15 Day': days = 15; break;
-          case '1 Month': days = 30; break;
-          case '6 Months': days = 180; break;
-          case '6 Month': days = 180; break;
-          case 'Yearly': days = 365; break;
-        }
-        final expiry = DateTime.now().add(Duration(days: days));
-        vipCtrl.expiryDate.value = expiry;
-        vipCtrl.isAutoRenewEnabled.value = true;
-
-        try {
-          final client = Supabase.instance.client;
-          if (client.auth.currentUser != null) {
-            client.from('profiles').update({
-              'vip_level': vipLvl,
-              'vip_expiry': expiry.toIso8601String(),
-            }).eq('id', client.auth.currentUser!.id).then((_) {});
+      // ── Backend-first purchase (NO optimistic local state mutations) ──────
+      // The backend is the single source of truth. After the RPC succeeds:
+      //   subscriptions table INSERT/UPDATE fires tr_on_subscription_change
+      //   → recompute_user_entitlements → inventory → auto-equip
+      //   → rebuild_user_tag_system → profiles.membership_assets + tag_system
+      // We then force-refresh the profile cache from Supabase so the UI
+      // reflects exactly what the backend computed.
+      if (category == 'VIP' || category == 'Novel') {
+        final client = Supabase.instance.client;
+        final uid = client.auth.currentUser?.id;
+        if (uid != null) {
+          try {
+            await client.rpc('record_membership_purchase', params: {
+              'p_user_id': uid,
+              'p_product_name': name,
+              'p_category': category,
+              'p_amount': (basePrice * 0.50).roundToDouble(),
+              'p_final_amount': (finalAmount * 0.50).roundToDouble(),
+              'p_payment_method': 'Gold Coins Wallet',
+              'p_duration': duration,
+            });
+            // Force-refresh profile → UI reads membership_assets + tag_system from DB
+            await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
+            // Also refresh membership controllers from DB (not from local vars)
+            if (category == 'VIP') {
+              try { Get.find<VipController>().loadVipFromDatabase(); } catch (_) {}
+            } else {
+              try { Get.find<NovelController>().loadNovelFromDatabase(); } catch (_) {}
+            }
+            debugPrint('[StoreController] $category purchase successful, profile refreshed from backend.');
+          } catch (e) {
+            debugPrint('[StoreController] record_membership_purchase RPC failed: $e');
+            Get.snackbar(
+              'Purchase Failed',
+              'Could not complete purchase. Please try again.',
+              snackPosition: SnackPosition.BOTTOM,
+            );
+            return false;
           }
-        } catch (_) {}
-      } else if (category == 'Novel') {
-        final novelLvl = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-        final novelCtrl = Get.find<NovelController>();
-        novelCtrl.novelLevel.value = novelLvl;
-        if (!novelCtrl.ownedNovels.contains(novelLvl)) {
-          novelCtrl.ownedNovels.add(novelLvl);
         }
-        novelCtrl.activeNovelStyle.value = novelLvl;
-        int days = 30;
-        switch (duration) {
-          case '3 Days': days = 3; break;
-          case '3 Day': days = 3; break;
-          case '7 Days': days = 7; break;
-          case '7 Day': days = 7; break;
-          case '15 Days': days = 15; break;
-          case '15 Day': days = 15; break;
-          case '1 Month': days = 30; break;
-          case '6 Months': days = 180; break;
-          case '6 Month': days = 180; break;
-          case 'Yearly': days = 365; break;
-        }
-        final expiry = DateTime.now().add(Duration(days: days));
-        novelCtrl.expiryDate.value = expiry;
-
-        try {
-          final client = Supabase.instance.client;
-          if (client.auth.currentUser != null) {
-            client.from('profiles').update({
-              'novel_level': novelLvl,
-              'novel_expiry': expiry.toIso8601String(),
-            }).eq('id', client.auth.currentUser!.id).then((_) {});
-          }
-        } catch (_) {}
       } else if (category == 'Coins') {
         final coinMatch = RegExp(r'(\d+,?\d*) Coins').firstMatch(name);
         if (coinMatch != null) {

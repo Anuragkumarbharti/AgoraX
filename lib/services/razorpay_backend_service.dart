@@ -9,6 +9,8 @@ import 'vip_controller.dart';
 import 'novel_controller.dart';
 import 'customization_controller.dart';
 import 'store_controller.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'user_profile_cache_manager.dart';
 
 class RazorpayOrder {
   final String orderId;
@@ -395,17 +397,48 @@ class RazorpayBackendService extends GetxController {
       }
     } else if (name.contains('VIP')) {
       final vipLvl = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-      final vipCtrl = Get.find<VipController>();
-      vipCtrl.vipLevel.value = vipLvl;
-      vipCtrl.expiryDate.value = DateTime.now().add(const Duration(days: 30));
-      vipCtrl.isAutoRenewEnabled.value = true;
-      _log('Product Delivery', 'VIP Level $vipLvl activated.');
+      final currentUid = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUid != null) {
+        Supabase.instance.client.rpc('record_membership_purchase', params: {
+          'p_user_id': currentUid,
+          'p_product_name': name,
+          'p_category': 'VIP',
+          'p_amount': 99.0,
+          'p_final_amount': 99.0,
+          'p_payment_method': 'Razorpay Gateway',
+          'p_duration': duration,
+        }).then((_) {
+          UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
+          try {
+            Get.find<VipController>().loadVipFromDatabase();
+          } catch (_) {}
+        }).catchError((e) {
+          debugPrint('Error recording VIP purchase: $e');
+        });
+      }
+      _log('Product Delivery', 'VIP Level $vipLvl purchase recorded.');
     } else if (name.contains('Novel')) {
       final novelLvl = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-      final novelCtrl = Get.find<NovelController>();
-      novelCtrl.novelLevel.value = novelLvl;
-      novelCtrl.expiryDate.value = DateTime.now().add(const Duration(days: 30));
-      _log('Product Delivery', 'Novel Level $novelLvl activated.');
+      final currentUid = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUid != null) {
+        Supabase.instance.client.rpc('record_membership_purchase', params: {
+          'p_user_id': currentUid,
+          'p_product_name': name,
+          'p_category': 'Novel',
+          'p_amount': 199.0,
+          'p_final_amount': 199.0,
+          'p_payment_method': 'Razorpay Gateway',
+          'p_duration': duration,
+        }).then((_) {
+          UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
+          try {
+            Get.find<NovelController>().loadNovelFromDatabase();
+          } catch (_) {}
+        }).catchError((e) {
+          debugPrint('Error recording Novel purchase: $e');
+        });
+      }
+      _log('Product Delivery', 'Novel Level $novelLvl purchase recorded.');
     } else {
       // General custom cosmetics or frames
       final cust = Get.find<CustomizationController>();

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import 'package:creania/core/theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/store_controller.dart';
 import '../../services/vip_controller.dart';
 import '../../services/novel_controller.dart';
@@ -11,6 +12,34 @@ import '../../widgets/novel_badge_widget.dart';
 import '../../widgets/vip_avatar_decorator.dart';
 import '../../widgets/novel_avatar_decorator.dart';
 import 'checkout_screen.dart';
+
+class VipPlan {
+  final int level;
+  final String name;
+  final double basePriceInr;
+  final List<String> benefits;
+  VipPlan({required this.level, required this.name, required this.basePriceInr, required this.benefits});
+  factory VipPlan.fromJson(Map<String, dynamic> json) => VipPlan(
+    level: json['level'] ?? 1,
+    name: json['name'] ?? '',
+    basePriceInr: (json['base_price_inr'] as num?)?.toDouble() ?? 0.0,
+    benefits: List<String>.from(json['benefits'] ?? []),
+  );
+}
+
+class NovelPlan {
+  final int level;
+  final String name;
+  final double basePriceInr;
+  final List<String> benefits;
+  NovelPlan({required this.level, required this.name, required this.basePriceInr, required this.benefits});
+  factory NovelPlan.fromJson(Map<String, dynamic> json) => NovelPlan(
+    level: json['level'] ?? 1,
+    name: json['name'] ?? '',
+    basePriceInr: (json['base_price_inr'] as num?)?.toDouble() ?? 0.0,
+    benefits: List<String>.from(json['benefits'] ?? []),
+  );
+}
 
 class VipNovelStoreTab extends StatefulWidget {
   final int initialIndex;
@@ -34,19 +63,51 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
   final List<double> vipBasePrices = [0, 99, 199, 399, 799, 1999, 3999, 7999];
   final List<double> novelBasePrices = [0, 199, 399, 799, 1499, 2999, 5999, 11999];
 
+  List<VipPlan> _vipPlans = [];
+  List<NovelPlan> _novelPlans = [];
+  bool _isLoadingPlans = true;
+
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this, initialIndex: widget.initialIndex);
-    if (_vipCtrl.vipLevel.value > 2) {
-      _selectedVipLevel = 2;
-    } else {
-      _selectedVipLevel = _vipCtrl.vipLevel.value.clamp(1, 2);
-    }
-    if (_novelCtrl.novelLevel.value > 1) {
-      _selectedNovelLevel = 1;
-    } else {
-      _selectedNovelLevel = _novelCtrl.novelLevel.value.clamp(1, 1);
+    _fetchPlans();
+  }
+
+  Future<void> _fetchPlans() async {
+    try {
+      final vipRes = await Supabase.instance.client
+          .from('vip_plans')
+          .select()
+          .order('level', ascending: true);
+      final novelRes = await Supabase.instance.client
+          .from('novel_plans')
+          .select()
+          .order('level', ascending: true);
+      
+      setState(() {
+        _vipPlans = (vipRes as List).map((e) => VipPlan.fromJson(e)).toList();
+        _novelPlans = (novelRes as List).map((e) => NovelPlan.fromJson(e)).toList();
+        
+        if (_vipPlans.isNotEmpty) {
+          if (_vipCtrl.vipLevel.value > _vipPlans.length) {
+            _selectedVipLevel = _vipPlans.length;
+          } else {
+            _selectedVipLevel = _vipCtrl.vipLevel.value.clamp(1, _vipPlans.length);
+          }
+        }
+        if (_novelPlans.isNotEmpty) {
+          if (_novelCtrl.novelLevel.value > _novelPlans.length) {
+            _selectedNovelLevel = _novelPlans.length;
+          } else {
+            _selectedNovelLevel = _novelCtrl.novelLevel.value.clamp(1, _novelPlans.length);
+          }
+        }
+        _isLoadingPlans = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching plans: $e');
+      setState(() => _isLoadingPlans = false);
     }
   }
 
@@ -199,6 +260,9 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
   }
 
   Widget _buildVipTab() {
+    if (_isLoadingPlans) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final theme = _getVipTheme(_selectedVipLevel);
     final Color color = theme['color'] as Color;
 
@@ -224,6 +288,9 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
   }
 
   Widget _buildNovelTab() {
+    if (_isLoadingPlans) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final theme = _getNovelTheme(_selectedNovelLevel);
     final Color color = theme['color'] as Color;
 
@@ -261,7 +328,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
           height: 60,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: 2,
+            itemCount: _vipPlans.isNotEmpty ? _vipPlans.length : 2,
             itemBuilder: (context, index) {
               final lvl = index + 1;
               final isSel = _selectedVipLevel == lvl;
@@ -311,7 +378,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
           height: 60,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: 1,
+            itemCount: _novelPlans.isNotEmpty ? _novelPlans.length : 1,
             itemBuilder: (context, index) {
               final lvl = index + 1;
               final isSel = _selectedNovelLevel == lvl;
@@ -428,13 +495,18 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
   }
 
   Widget _buildVipBenefitsCard(Color color) {
-    final benefits = [
-      'Animated Avatar Frame with real-time sync',
-      'Premium Chat Bubble for rooms and chats',
-      'Profile Avatar Background for your profile page',
-      'One-time Entry Effect for room joins',
-      'Badge and Tag Light identity for profile and chats',
-    ];
+    final List<String> benefits;
+    if (_vipPlans.isNotEmpty && _selectedVipLevel <= _vipPlans.length) {
+      benefits = _vipPlans[_selectedVipLevel - 1].benefits;
+    } else {
+      benefits = [
+        'Animated Avatar Frame with real-time sync',
+        'Premium Chat Bubble for rooms and chats',
+        'Profile Avatar Background for your profile page',
+        'One-time Entry Effect for room joins',
+        'Badge and Tag Light identity for profile and chats',
+      ];
+    }
 
     return Container(
       padding: EdgeInsets.all(18),
@@ -467,13 +539,18 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
   }
 
   Widget _buildNovelSpecsCard(Color color) {
-    final specs = [
-      'Exclusive Avatar Frame with premium loop animation',
-      'Unique Avatar Background for the profile page',
-      'Novel Entry Effect for one-time room entrance animation',
-      'Novel Gift Effect and animated chat styling',
-      'Tag Light and Emoji Effects for premium identity',
-    ];
+    final List<String> specs;
+    if (_novelPlans.isNotEmpty && _selectedNovelLevel <= _novelPlans.length) {
+      specs = _novelPlans[_selectedNovelLevel - 1].benefits;
+    } else {
+      specs = [
+        'Exclusive Avatar Frame with premium loop animation',
+        'Unique Avatar Background for the profile page',
+        'Novel Entry Effect for one-time room entrance animation',
+        'Novel Gift Effect and animated chat styling',
+        'Tag Light and Emoji Effects for premium identity',
+      ];
+    }
 
     return Container(
       padding: EdgeInsets.all(18),
@@ -559,7 +636,17 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
   Widget _buildPurchaseButtonCard(Color color, {required bool isVip}) {
     final int selectedLvl = isVip ? _selectedVipLevel : _selectedNovelLevel;
     final String duration = isVip ? _vipDuration : _novelDuration;
-    final double rawBasePrice = isVip ? vipBasePrices[selectedLvl] : novelBasePrices[selectedLvl];
+    
+    final double rawBasePrice;
+    if (isVip) {
+      rawBasePrice = _vipPlans.isNotEmpty && selectedLvl <= _vipPlans.length
+          ? _vipPlans[selectedLvl - 1].basePriceInr
+          : (selectedLvl <= 1 ? 99.0 : 199.0);
+    } else {
+      rawBasePrice = _novelPlans.isNotEmpty && selectedLvl <= _novelPlans.length
+          ? _novelPlans[selectedLvl - 1].basePriceInr
+          : 199.0;
+    }
 
     double multiplier = 1.0;
     if (duration == '90 Days') multiplier = 2.6; // Save ~10%

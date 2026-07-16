@@ -443,18 +443,29 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildMessageBubble(ChatMessage msg, bool isMe) {
+    final senderUser = UserProfileCacheManager.getCachedUser(msg.senderId);
+    final String? bubbleUrl = senderUser?.membershipAssets['chat_bubble'];
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.76),
         decoration: BoxDecoration(
-          color: isMe ? null : AppTheme.bgLight,
-          gradient: isMe
-              ? const LinearGradient(
-                  colors: [AppTheme.primaryColor, AppTheme.accentColor],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          color: bubbleUrl != null ? null : (isMe ? null : AppTheme.bgLight),
+          gradient: bubbleUrl != null
+              ? null
+              : (isMe
+                  ? const LinearGradient(
+                      colors: [AppTheme.primaryColor, AppTheme.accentColor],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null),
+          image: bubbleUrl != null && bubbleUrl.isNotEmpty
+              ? DecorationImage(
+                  image: NetworkImage(bubbleUrl),
+                  fit: BoxFit.fill,
                 )
               : null,
           borderRadius: BorderRadius.only(

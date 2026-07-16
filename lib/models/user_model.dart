@@ -65,6 +65,7 @@ class User {
     this.vipExpiry,
     this.novelExpiry,
     this.tagSystem,
+    this.membershipAssets = const {},
     String? displayName,
   });
 
@@ -141,6 +142,10 @@ class User {
       vipExpiry: json['vip_expiry'] != null ? DateTime.tryParse(json['vip_expiry'].toString()) : null,
       novelExpiry: json['novel_expiry'] != null ? DateTime.tryParse(json['novel_expiry'].toString()) : null,
       tagSystem: json['tag_system'] != null ? TagSystem.fromJson(json['tag_system'] as Map<String, dynamic>) : null,
+      membershipAssets: json['membership_assets'] != null
+          ? Map<String, String>.from((json['membership_assets'] as Map).map(
+              (key, value) => MapEntry(key.toString(), value.toString())))
+          : const {},
     );
   }
 
@@ -216,6 +221,7 @@ class User {
   final DateTime? vipExpiry;
   final DateTime? novelExpiry;
   final TagSystem? tagSystem;
+  final Map<String, String> membershipAssets;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -293,6 +299,7 @@ class User {
         'vip_expiry': vipExpiry?.toIso8601String(),
         'novel_expiry': novelExpiry?.toIso8601String(),
         'tag_system': tagSystem?.toJson(),
+        'membership_assets': membershipAssets,
       };
 
   User copyWith({
@@ -362,6 +369,7 @@ class User {
     DateTime? vipExpiry,
     DateTime? novelExpiry,
     TagSystem? tagSystem,
+    Map<String, String>? membershipAssets,
   }) {
     return User(
       id: id ?? this.id,
@@ -429,6 +437,7 @@ class User {
       vipExpiry: vipExpiry ?? this.vipExpiry,
       novelExpiry: novelExpiry ?? this.novelExpiry,
       tagSystem: tagSystem ?? this.tagSystem,
+      membershipAssets: membershipAssets ?? this.membershipAssets,
     );
   }
 }

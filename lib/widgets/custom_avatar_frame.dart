@@ -105,6 +105,29 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
         reactiveAvatarChild = widget.child;
       }
 
+      final String? dynamicFrameUrl = u?.membershipAssets['avatar_frame'];
+      if (dynamicFrameUrl != null && dynamicFrameUrl.isNotEmpty) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: widget.size * 0.85,
+              height: widget.size * 0.85,
+              child: ClipOval(child: reactiveAvatarChild),
+            ),
+            IgnorePointer(
+              child: Image.network(
+                dynamicFrameUrl,
+                width: widget.size,
+                height: widget.size,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+        );
+      }
+
       final frame = u?.avatarFrame ?? UserProfileCacheManager.getCachedUser(resolvedId)?.avatarFrame;
       if (frame != null) {
         return _buildFrameWidget(frame, reactiveAvatarChild);

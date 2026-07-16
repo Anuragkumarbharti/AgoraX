@@ -128,6 +128,18 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     } catch (_) {}
   }
 
+  Color _resolveProfileBackgroundColor() {
+    final theme = _user.membershipAssets['profile_theme'];
+    if (theme == 'royal_blue') {
+      return const Color(0xFF0F1E36);
+    } else if (theme == 'amethyst_purple') {
+      return const Color(0xFF1B0F36);
+    } else if (theme == 'astral_blue') {
+      return const Color(0xFF0E1A2F);
+    }
+    return const Color(0xFF11131C);
+  }
+
   Future<void> _loadUserProfile() async {
     if (!mounted) return;
     setState(() {
@@ -351,14 +363,26 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       );
     }
 
+    final String? bgEffectUrl = _user.membershipAssets['background_effect'];
+
     return Scaffold(
-      backgroundColor: const Color(0xFF11131C),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await _loadUserProfile();
-          _checkFollowingStatus();
-        },
-        child: SingleChildScrollView(
+      backgroundColor: _resolveProfileBackgroundColor(),
+      body: Container(
+        decoration: BoxDecoration(
+          image: bgEffectUrl != null && bgEffectUrl.isNotEmpty
+              ? DecorationImage(
+                  image: NetworkImage(bgEffectUrl),
+                  fit: BoxFit.cover,
+                  opacity: 0.15,
+                )
+              : null,
+        ),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await _loadUserProfile();
+            _checkFollowingStatus();
+          },
+          child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
@@ -1046,6 +1070,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         ),
       ),
     ),
+    ),
     );
   }
 
@@ -1153,15 +1178,31 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             imageUrl.replaceAll('asset://', ''),
             height: 19,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
           );
         } else {
-          imgWidget = Image.network(
-            imageUrl,
-            height: 19,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-          );
+          String? localAsset;
+          if (imageUrl.contains('vip_1_tag.png')) {
+            localAsset = 'assets/identity_tags/vip_level_1.png';
+          } else if (imageUrl.contains('vip_2_tag.png')) {
+            localAsset = 'assets/identity_tags/vip_level_2.png';
+          }
+
+          if (localAsset != null) {
+            imgWidget = Image.asset(
+              localAsset,
+              height: 19,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
+            );
+          } else {
+            imgWidget = Image.network(
+              imageUrl,
+              height: 19,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
+            );
+          }
         }
         return Tooltip(
           message: 'Identity Tag: $label',
@@ -1252,6 +1293,67 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     }
 
     return widgets;
+  }
+
+  Widget _buildTextTagFallback(String label, Map<String, dynamic> tag) {
+    final color = tag['color'] as Color? ?? const Color(0xFFBEC2FF);
+    final gradient = tag['gradient'] as Gradient?;
+    final icon = tag['icon'] as IconData?;
+
+    Color bg = color.withOpacity(0.12);
+    Color borderCol = color.withOpacity(0.4);
+    Color textCol = color;
+
+    if (gradient != null) {
+      borderCol = color;
+      textCol = Colors.white;
+    }
+
+    return Tooltip(
+      message: 'Identity Tag: $label',
+      child: GestureDetector(
+        onTap: () {
+          Get.snackbar('Tag Info', 'Details page for $label tag (coming soon).');
+        },
+        child: Container(
+          height: 19,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: gradient,
+            color: gradient == null ? bg : null,
+            border: Border.all(color: borderCol, width: 1.0),
+            boxShadow: [
+              BoxShadow(
+                color: borderCol.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              )
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: textCol, size: 9),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  color: textCol,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   String? getHighestRTag(List<String> rawRoles) {

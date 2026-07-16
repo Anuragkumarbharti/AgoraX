@@ -94,6 +94,13 @@ class UserProfileCacheManager {
     }
 
     try {
+      // Deactivate expired memberships on the backend if looking up own profile
+      if (idToQuery == currentId) {
+        try {
+          await Supabase.instance.client.rpc('check_and_clean_expired_memberships');
+        } catch (_) {}
+      }
+
       var data = await Supabase.instance.client
           .from('profiles')
           .select()
@@ -210,6 +217,13 @@ class UserProfileCacheManager {
     }
 
     try {
+      // Deactivate expired memberships on the backend
+      try {
+        await client.rpc('check_and_clean_expired_memberships');
+      } catch (e) {
+        debugPrint('[CacheManager] Error running expiry cleanup: $e');
+      }
+
       final currentUser = client.auth.currentUser;
       if (currentUser == null) {
         await forceLogout(message: "Your session is invalid. Please sign in again.");
@@ -217,15 +231,44 @@ class UserProfileCacheManager {
       }
 
       // Check if matching row exists in profiles
-      final data = await client
+      Map<String, dynamic>? data = await client
           .from('profiles')
           .select('status, is_banned, ban_reason')
           .eq('id', currentUser.id)
           .maybeSingle();
 
       if (data == null) {
-        await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
-        return false;
+        // Attempt to auto-recreate the profiles row if missing
+        try {
+          final newUsername = 'user_${currentUser.id.replaceAll('-', '').substring(0, 8)}';
+          await client.from('profiles').insert({
+            'id': currentUser.id,
+            'username': newUsername,
+            'email': currentUser.email,
+            'phone': currentUser.phone,
+            'level': 1,
+            'experience': 0,
+            'vip_level': 0,
+            'novel_level': 0,
+            'verified': false,
+          });
+          // Verify it was created successfully
+          final refetched = await client
+              .from('profiles')
+              .select('status, is_banned, ban_reason')
+              .eq('id', currentUser.id)
+              .maybeSingle();
+          if (refetched != null) {
+            data = refetched;
+          } else {
+            await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+            return false;
+          }
+        } catch (e) {
+          debugPrint('[CacheManager] Auto-recreation of profiles row failed during session validation: $e');
+          await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+          return false;
+        }
       }
 
       // Check if suspended or banned
@@ -646,99 +689,12 @@ class UserProfileCacheManager {
   }
 
   static Future<void> rebuildAndSyncCurrentUserTagSystem() async {
-    final user = currentUser;
-    if (user == null) return;
-
-    // 1. Identity Tag Bar
-    final List<Map<String, dynamic>> identityTags = [];
-    identityTags.add({'type': 'id_level', 'value': 'Lv.${user.level}'});
-
-    // Resolve community tag
-    String? commTag;
+    final myId = currentUserId;
+    if (myId.isEmpty) return;
     try {
-      final List<dynamic>? comms = await Supabase.instance.client
-          .from('communities')
-          .select('id')
-          .eq('type', 'Official')
-          .contains('members', [user.id]);
-      if (comms != null && comms.isNotEmpty) {
-        final commId = comms.first['id'] as String;
-        if (commId == 'comm-connect-005') commTag = 'Connect';
-        else if (commId == 'comm-creators-002') commTag = 'Studio';
-        else if (commId == 'comm-gamers-003') commTag = 'ArenaX';
-        else if (commId == 'comm-campus-004') commTag = 'Campus';
-        else if (commId == 'comm-official-001') commTag = 'Origin';
-      }
-    } catch (_) {}
-
-    if (commTag != null) {
-      identityTags.add({'type': 'community', 'value': commTag});
+      await fetchUserProfile(myId, forceRefresh: true);
+    } catch (e) {
+      debugPrint('[CacheManager] rebuildAndSyncCurrentUserTagSystem failed: $e');
     }
-
-    if (user.vipLevel > 0) {
-      identityTags.add({'type': 'vip', 'value': 'VIP ${user.vipLevel}'});
-    }
-
-    if (user.novelLevel > 0) {
-      identityTags.add({'type': 'noble', 'value': 'Novel ${user.novelLevel}'});
-    }
-
-    // Special tag
-    final rolesSet = user.rTags.map((r) => r.trim().toLowerCase()).toSet();
-    String? specialTag;
-    if (rolesSet.contains('anniversary')) {
-      specialTag = 'Anniversary';
-    } else if (rolesSet.contains('champion')) {
-      specialTag = 'Champion';
-    } else if (rolesSet.contains('creator') || rolesSet.contains('star creator')) {
-      specialTag = 'Creator';
-    } else if (rolesSet.contains('official') || rolesSet.contains('creania official')) {
-      specialTag = 'Official';
-    }
-
-    if (specialTag != null) {
-      identityTags.add({'type': 'special', 'value': specialTag});
-    }
-
-    // 2. Official Status
-    String? verifiedTag;
-    for (final v in ['celebrity', 'partner', 'official', 'verified', 'verified tester']) {
-      if (rolesSet.contains(v)) {
-        verifiedTag = v[0].toUpperCase() + v.substring(1);
-        break;
-      }
-    }
-    if (verifiedTag == null && user.isVerified) {
-      verifiedTag = 'Verified';
-    }
-
-    String? roleTag;
-    for (final r in ['developer', 'administrator', 'admin', 'official staff', 'employee', 'moderator', 'host']) {
-      if (rolesSet.contains(r)) {
-        if (r == 'admin') {
-          roleTag = 'Administrator';
-        } else if (r == 'employee') {
-          roleTag = 'Official Staff';
-        } else {
-          roleTag = r.split(' ').map((word) => word[0].toUpperCase() + word.substring(1)).join(' ');
-        }
-        break;
-      }
-    }
-
-    final localTagSystem = TagSystem(
-      identityTagBar: identityTags.map((e) => IdentityTag.fromJson(e)).toList(),
-      officialStatus: OfficialStatus(verifiedTag: verifiedTag, roleTag: roleTag),
-      profileShowcase: user.showcasedBadges,
-    );
-
-    final List<String> tagLights = identityTags.map((e) => e['value'] as String).toList();
-
-    // Update cache in-memory instantly to avoid infinite recursion
-    final updatedUser = user.copyWith(tagSystem: localTagSystem, tagLights: tagLights);
-    _currentUser = updatedUser;
-    rxCache[user.id] = updatedUser;
-    _cache[user.id] = updatedUser;
-    _notifyListeners();
   }
 }
