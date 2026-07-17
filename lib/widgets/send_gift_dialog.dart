@@ -1,6 +1,7 @@
 // lib/widgets/send_gift_dialog.dart
 
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/room_controller.dart';
@@ -50,27 +51,33 @@ class SendGiftDialog extends StatefulWidget {
 
 class _SendGiftDialogState extends State<SendGiftDialog> {
   int _selectedTabIndex = 0; // 0 = Stars, 1 = Silver, 2 = Vault
+  int _selectedComboMultiplier = 1; // Combo trigger: 1x, 5x, 10x, 99x, etc.
 
   final List<GiftItem> _starGifts = [
-    GiftItem(id: 'rose', name: 'Rose', icon: '🌹', cost: 2, color: Colors.redAccent, currency: 'gold', stars: 2),
-    GiftItem(id: 'heart', name: 'Heart', icon: '❤️', cost: 10, color: Colors.pinkAccent, currency: 'gold', stars: 10),
-    GiftItem(id: 'crown', name: 'Crown', icon: '👑', cost: 500, color: Colors.amber, currency: 'gold', stars: 500),
-    GiftItem(id: 'car', name: 'Car', icon: '🚗', cost: 1000, color: Colors.blueAccent, currency: 'gold', stars: 1000),
-    GiftItem(id: 'castle', name: 'Castle', icon: '🏰', cost: 5000, color: Colors.deepPurpleAccent, currency: 'gold', stars: 5000),
-    GiftItem(id: 'rocket', name: 'Rocket', icon: '🚀', cost: 10000, color: Colors.cyanAccent, currency: 'gold', stars: 10000),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000001', name: 'Rose', icon: '🌹', cost: 2, color: Colors.redAccent, currency: 'gold', stars: 2),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000002', name: 'Heart', icon: '❤️', cost: 10, color: Colors.pinkAccent, currency: 'gold', stars: 10),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000003', name: 'Crown', icon: '👑', cost: 500, color: Colors.amber, currency: 'gold', stars: 500),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000004', name: 'Sports Car', icon: '🏎️', cost: 1000, color: Colors.blueAccent, currency: 'gold', stars: 1000),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000005', name: 'Castle', icon: '🏰', cost: 5000, color: Colors.deepPurpleAccent, currency: 'gold', stars: 5000),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000006', name: 'Rocket', icon: '🚀', cost: 10000, color: Colors.cyanAccent, currency: 'gold', stars: 10000),
   ];
 
   final List<GiftItem> _silverGifts = [
-    GiftItem(id: 'like', name: 'Like', icon: '👍', cost: 50, color: Colors.blue, currency: 'silver'),
-    GiftItem(id: 'coffee', name: 'Coffee', icon: '☕', cost: 100, color: Colors.brown, currency: 'silver'),
-    GiftItem(id: 'chocolate', name: 'Chocolate', icon: '🍫', cost: 200, color: Colors.amber, currency: 'silver'),
-    GiftItem(id: 'flower', name: 'Flower', icon: '🌼', cost: 500, color: Colors.orange, currency: 'silver'),
-    GiftItem(id: 'cake', name: 'Cake', icon: '🎂', cost: 1000, color: Colors.pink, currency: 'silver'),
-    GiftItem(id: 'small_heart', name: 'Small Heart', icon: '❤️', cost: 2000, color: Colors.red, currency: 'silver'),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000011', name: 'Like', icon: '👍', cost: 50, color: Colors.blue, currency: 'silver'),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000012', name: 'Coffee', icon: '☕', cost: 100, color: Colors.brown, currency: 'silver'),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000013', name: 'Chocolate', icon: '🍫', cost: 200, color: Colors.amber, currency: 'silver'),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000014', name: 'Flower', icon: '🌼', cost: 500, color: Colors.orange, currency: 'silver'),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000015', name: 'Cake', icon: '🎂', cost: 1000, color: Colors.pink, currency: 'silver'),
+    GiftItem(id: 'g1000000-0000-0000-0000-000000000016', name: 'Small Heart', icon: '❤️', cost: 2000, color: Colors.red, currency: 'silver'),
   ];
 
   GiftItem? _selectedStandardGift;
   VaultItem? _selectedVaultItem;
+
+  // Selected multi-seat targeting tracking lists
+  final List<String> _selectedRecipients = [];
+  final List<String> _selectedRecipientNames = [];
+  final List<int> _selectedSeatIndices = [];
 
   final RoomController _controller = RoomController.to;
   final StoreController _storeCtrl = Get.find<StoreController>();
@@ -82,6 +89,35 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     super.initState();
     _vaultCtrl = Get.put(VaultController());
     _selectedStandardGift = _starGifts[0]; // default select
+    _initDefaultRecipients();
+  }
+
+  void _initDefaultRecipients() {
+    _selectedRecipients.clear();
+    _selectedRecipientNames.clear();
+    _selectedSeatIndices.clear();
+
+    if (widget.targetUserId != null) {
+      _selectedRecipients.add(widget.targetUserId!);
+      _selectedRecipientNames.add(widget.targetUserName ?? 'User');
+      final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
+      final seat = seats.firstWhereOrNull((s) => s['userId'] == widget.targetUserId);
+      if (seat != null) {
+        _selectedSeatIndices.add(seat['seatIndex'] as int);
+      }
+    } else {
+      // Default to host if targetUserId is null
+      final hostId = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId)?.hostId;
+      if (hostId != null) {
+        _selectedRecipients.add(hostId);
+        _selectedRecipientNames.add('Host');
+        final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
+        final seat = seats.firstWhereOrNull((s) => s['userId'] == hostId);
+        if (seat != null) {
+          _selectedSeatIndices.add(seat['seatIndex'] as int);
+        }
+      }
+    }
   }
 
   List<VaultItem> get _giftableVaultItems {
@@ -93,6 +129,12 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   }
 
   void _sendGift() async {
+    if (_selectedRecipients.isEmpty) {
+      Get.snackbar('No Recipient', 'Please select at least one recipient seat.',
+          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
+      return;
+    }
+
     if (_selectedTabIndex == 2) {
       // Send Vault Gift
       final item = _selectedVaultItem;
@@ -102,16 +144,12 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         return;
       }
 
-      final String dbReceiverId = widget.targetUserId ?? _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId)?.hostId ?? '';
-      if (dbReceiverId.isEmpty) {
-        Get.snackbar('No Recipient', 'Please select a recipient seat.',
-            snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
-        return;
-      }
+      // Vault gifts are sent to single recipient
+      final recipientId = _selectedRecipients[0];
+      final recipientName = _selectedRecipientNames[0];
 
-      final res = await _vaultCtrl.giftItem(item, dbReceiverId);
+      final res = await _vaultCtrl.giftItem(item, recipientId);
       if (res['success'] == true) {
-        // Publish visual room animation & notification
         if (widget.roomId.isNotEmpty) {
           _controller.sendGiftToRoom(
             widget.roomId,
@@ -119,8 +157,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             giftName: 'Vault: ${item.displayName}',
             fromUserName: 'Anurag Kumar',
             count: 1,
-            targetUserId: dbReceiverId,
-            targetUserName: widget.targetUserName ?? 'Host',
+            targetUserId: recipientId,
+            targetUserName: recipientName,
             deductCoins: false,
           );
         }
@@ -152,60 +190,133 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       return;
     }
 
-    // Standard Gift sending logic (Stars / Silver)
+    // Standard Gifting Logic (Stars / Silver)
     final gift = _selectedStandardGift;
     if (gift == null) return;
 
-    final countMultiplier = _giftAll ? widget.occupiedSeatsCount : 1;
-    final totalCostVal = gift.cost * countMultiplier;
+    final receiversList = _giftAll 
+        ? (_controller.roomSeatsInfo[widget.roomId] ?? [])
+            .where((s) => s['userId'] != null)
+            .map((s) => s['userId'] as String)
+            .toList()
+        : _selectedRecipients;
 
-    // Check balance
-    if (gift.currency == 'gold') {
-      if (_storeCtrl.coinsBalance.value < totalCostVal) {
-        Get.snackbar('Insufficient Gold 🪙', 'You need $totalCostVal Gold Coins.',
-            snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.withOpacity(0.9), colorText: Colors.white);
-        return;
+    final receiverNamesList = _giftAll
+        ? (_controller.roomSeatsInfo[widget.roomId] ?? [])
+            .where((s) => s['userId'] != null)
+            .map((s) => (s['name'] as String? ?? 'User'))
+            .toList()
+        : _selectedRecipientNames;
+
+    final seatIndicesList = _giftAll
+        ? (_controller.roomSeatsInfo[widget.roomId] ?? [])
+            .where((s) => s['userId'] != null)
+            .map((s) => s['seatIndex'] as int)
+            .toList()
+        : _selectedSeatIndices;
+
+    if (receiversList.isEmpty) {
+      Get.snackbar('No Occupants', 'No occupied seats to gift to.',
+          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
+      return;
+    }
+
+    final totalQuantity = _selectedComboMultiplier;
+    
+    final success = await _controller.sendStarGiftToRoom(
+      roomId: widget.roomId,
+      giftId: gift.id,
+      giftName: gift.name,
+      giftCost: gift.cost,
+      currency: gift.currency,
+      targetUserIds: receiversList,
+      targetUserNames: receiverNamesList,
+      seatIndices: seatIndicesList,
+      count: totalQuantity,
+      comboCount: _selectedComboMultiplier,
+    );
+
+    if (success) {
+      if (widget.onGiftSent != null) {
+        widget.onGiftSent!(
+          gift.name,
+          gift.icon,
+          gift.cost * totalQuantity,
+          gift.currency,
+        );
       }
-      _storeCtrl.coinsBalance.value -= totalCostVal;
-    } else {
-      if (_storeCtrl.silverCoinsBalance.value < totalCostVal) {
-        Get.snackbar('Insufficient Silver 🥈', 'You need $totalCostVal Silver Coins.',
-            snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.withOpacity(0.9), colorText: Colors.white);
-        return;
-      }
-      _storeCtrl.silverCoinsBalance.value -= totalCostVal;
+      Get.back();
     }
+  }
 
-    if (widget.roomId.isNotEmpty) {
-      _controller.sendGiftToRoom(
-        widget.roomId,
-        giftCost: gift.cost,
-        giftName: gift.name,
-        fromUserName: 'Anurag Kumar',
-        count: countMultiplier,
-        targetUserId: widget.targetUserId,
-        targetUserName: widget.targetUserName,
-        deductCoins: false,
-      );
-    }
-
-    if (widget.onGiftSent != null) {
-      widget.onGiftSent!(
-        gift.name,
-        gift.icon,
-        gift.cost,
-        gift.currency,
-      );
-    }
-
-    Get.back();
+  void _showAnimationPreview(GiftItem gift) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E2E).withOpacity(0.95),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white12, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.purple.withOpacity(0.2),
+                blurRadius: 20,
+              )
+            ]
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${gift.icon} ${gift.name} Preview',
+                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 120,
+                width: 120,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: _PreviewParticlesWidget(),
+                    ),
+                    Center(
+                      child: Text(gift.icon, style: const TextStyle(fontSize: 48)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Long Press plays cinematic 60 FPS Bezier path preview on live room.',
+                style: GoogleFonts.inter(color: Colors.white54, fontSize: 10),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Get.back(),
+                child: Text('Close', style: GoogleFonts.poppins(color: const Color(0xFF8B5CF6), fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final finalCost = _selectedStandardGift != null
-        ? _selectedStandardGift!.cost * (_giftAll ? widget.occupiedSeatsCount : 1)
-        : 0;
+    final activeReceiversCount = _giftAll 
+        ? (_controller.roomSeatsInfo[widget.roomId] ?? []).where((s) => s['userId'] != null).length
+        : _selectedRecipients.length;
+
+    final double singleStarCost = _selectedStandardGift != null
+        ? (_selectedStandardGift!.currency == 'gold' ? _selectedStandardGift!.cost.toDouble() : _selectedStandardGift!.cost / 100.0)
+        : 0.0;
+    
+    final finalStars = singleStarCost * _selectedComboMultiplier * (activeReceiversCount > 0 ? activeReceiversCount : 1);
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -240,28 +351,34 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         'Send Gift 🎁',
                         style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                       ),
-                      if (widget.targetUserName != null) ...[
+                      if (activeReceiversCount > 0) ...[
                         const SizedBox(height: 2),
                         Text(
                           _selectedTabIndex == 2
-                              ? 'To: ${widget.targetUserName}'
-                              : (_giftAll ? 'To: All Seats' : 'To: ${widget.targetUserName}'),
+                              ? 'To: ${_selectedRecipientNames.join(', ')}'
+                              : (_giftAll ? 'To: All Seats' : 'To: ${_selectedRecipientNames.join(', ')}'),
                           style: GoogleFonts.poppins(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ]
                     ],
                   ),
                   
-                  // Dynamic Tab Balance
                   _buildBalanceIndicator(),
                 ],
               ),
             ),
             const Divider(color: Colors.white10, height: 1),
 
+            // Multi-seat checkbox targeting
+            const SizedBox(height: 8),
+            _buildMultiSeatSelector(),
+            const SizedBox(height: 4),
+
             // Tab Selector
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
                 children: [
                   _tabButton(0, '⭐ Stars'),
@@ -273,13 +390,16 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               ),
             ),
 
-            // Gift selection view
+            // Gift Grid
             Flexible(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
                 child: _buildTabContentView(),
               ),
             ),
+
+            // Combo selection multipliers
+            _buildComboSelector(),
 
             // "Gift All Seats" Toggle (Only visible for Star & Silver tabs)
             if (_selectedTabIndex != 2 && widget.occupiedSeatsCount > 1)
@@ -305,7 +425,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           const SizedBox(height: 2),
                           Text(
                             _selectedStandardGift != null
-                                ? '${_selectedStandardGift!.cost} Coins × ${widget.occupiedSeatsCount} occupied seats = $finalCost Coins'
+                                ? '${singleStarCost} ★ × ${_selectedComboMultiplier}x combo × ${activeReceiversCount} seats = ${finalStars.toStringAsFixed(1)} ★'
                                 : 'Send to all occupied seats',
                             style: GoogleFonts.inter(color: Colors.white38, fontSize: 10),
                           ),
@@ -357,8 +477,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         _selectedTabIndex == 2
                             ? '🎁 Send Vault Gift'
                             : (_selectedTabIndex == 0
-                                ? '⭐ Send Star Gift ($finalCost)'
-                                : '🪙 Send Silver Gift ($finalCost)'),
+                                ? '⭐ Send Star Gift (${finalStars.toStringAsFixed(0)} ★)'
+                                : '🪙 Send Silver Gift (${finalStars.toStringAsFixed(1)} ★)'),
                         style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
                       ),
                     ),
@@ -372,6 +492,141 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     );
   }
 
+  Widget _buildMultiSeatSelector() {
+    final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
+    final occupiedSeats = seats.where((s) => s['userId'] != null).toList();
+    
+    if (occupiedSeats.isEmpty || _giftAll) return const SizedBox.shrink();
+    
+    return Container(
+      height: 62,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: occupiedSeats.length,
+        itemBuilder: (context, index) {
+          final seat = occupiedSeats[index];
+          final uId = seat['userId'] as String;
+          final uName = seat['name'] as String? ?? 'User';
+          final avatar = seat['avatar'] as String?;
+          final seatIdx = seat['seatIndex'] as int;
+          
+          final isSelected = _selectedRecipients.contains(uId);
+          
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                if (isSelected) {
+                  if (_selectedRecipients.length > 1) {
+                    _selectedRecipients.remove(uId);
+                    _selectedRecipientNames.remove(uName);
+                    _selectedSeatIndices.remove(seatIdx);
+                  }
+                } else {
+                  // Max 10 recipients targeting support
+                  if (_selectedRecipients.length < 10) {
+                    _selectedRecipients.add(uId);
+                    _selectedRecipientNames.add(uName);
+                    _selectedSeatIndices.add(seatIdx);
+                  }
+                }
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(right: 14.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF8B5CF6) : Colors.white24,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundImage: avatar != null && avatar.isNotEmpty
+                              ? NetworkImage(avatar)
+                              : const AssetImage('assets/images/placeholder.png') as ImageProvider,
+                        ),
+                      ),
+                      if (isSelected)
+                        Positioned(
+                          right: -3,
+                          bottom: -3,
+                          child: Container(
+                            padding: const EdgeInsets.all(1.5),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.check, size: 7, color: Colors.white),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    uName,
+                    style: GoogleFonts.inter(color: isSelected ? Colors.white : Colors.white38, fontSize: 8, fontWeight: FontWeight.w500),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildComboSelector() {
+    if (_selectedTabIndex == 2) return const SizedBox.shrink(); // No combos for Vault
+    
+    final combos = [1, 5, 10, 99, 520, 999];
+    return Container(
+      height: 30,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: combos.length,
+        itemBuilder: (context, index) {
+          final val = combos[index];
+          final isSelected = _selectedComboMultiplier == val;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedComboMultiplier = val;
+              });
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFF8B5CF6) : Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: isSelected ? const Color(0xFFA78BFA) : Colors.white.withOpacity(0.08)),
+              ),
+              child: Center(
+                child: Text(
+                  '${val}x',
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _tabButton(int index, String label) {
     final isSelected = _selectedTabIndex == index;
     return Expanded(
@@ -379,7 +634,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         onTap: () {
           setState(() {
             _selectedTabIndex = index;
-            _giftAll = false; // Reset gift all on tab switch
+            _giftAll = false; // Reset gift all
+            _selectedComboMultiplier = 1; // Reset combos
           });
         },
         child: AnimatedContainer(
@@ -408,63 +664,35 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   }
 
   Widget _buildBalanceIndicator() {
-    String label = '';
-    IconData icon = Icons.stars_rounded;
-    Color iconColor = Colors.amber;
-    String balance = '0';
-
-    if (_selectedTabIndex == 0) {
-      label = 'Balance';
-      icon = Icons.stars_rounded;
-      iconColor = const Color(0xFFFFDB3C);
-      balance = '${_storeCtrl.coinsBalance.value}';
-    } else if (_selectedTabIndex == 1) {
-      label = 'Balance';
-      icon = Icons.monetization_on_rounded;
-      iconColor = Colors.grey;
-      balance = '${_storeCtrl.silverCoinsBalance.value}';
-    } else {
-      // Vault tab has no dynamic coin balance - show Vault icon
-      label = 'Vault Items';
-      icon = Icons.backpack_outlined;
-      iconColor = const Color(0xFFFBBF24);
-      balance = '${_giftableVaultItems.length}';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: iconColor, size: 14),
-          const SizedBox(width: 4),
-          Obx(() {
-            // Force reactive listen
-            final val = _selectedTabIndex == 0 
-                ? '${_storeCtrl.coinsBalance.value}' 
-                : (_selectedTabIndex == 1 ? '${_storeCtrl.silverCoinsBalance.value}' : '${_giftableVaultItems.length}');
-            return Text(
-              '$label: $val',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-              ),
-            );
-          }),
-        ],
-      ),
-    );
+    return Obx(() {
+      final val = _selectedTabIndex == 0 
+          ? '${_storeCtrl.coinsBalance.value}' 
+          : (_selectedTabIndex == 1 ? '${_storeCtrl.silverCoinsBalance.value}' : '${_giftableVaultItems.length}');
+      
+      final label = _selectedTabIndex == 2 ? 'Vault Items' : 'Balance';
+      final symbol = _selectedTabIndex == 0 ? '⭐' : (_selectedTabIndex == 1 ? '🪙' : '🎒');
+      
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: Text(
+          '$symbol $label : $val',
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildTabContentView() {
     if (_selectedTabIndex == 2) {
-      // Vault content
       return Obx(() {
         final vaultItemsList = _giftableVaultItems;
         if (vaultItemsList.isEmpty) {
@@ -491,7 +719,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           itemBuilder: (context, index) {
             final item = vaultItemsList[index];
             final isSelected = _selectedVaultItem?.id == item.id;
-            final rColor = isSelected ? const Color(0xFF8B5CF6) : Colors.white10;
 
             return GestureDetector(
               onTap: () {
@@ -534,7 +761,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         ],
                       ),
                     ),
-                    // Giftable Badge
                     Positioned(
                       top: 6,
                       left: 6,
@@ -550,7 +776,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         ),
                       ),
                     ),
-                    // Quantity Badge
                     Positioned(
                       bottom: 6,
                       right: 6,
@@ -575,7 +800,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       });
     }
 
-    // Stars or Silver Content
     final giftsList = _selectedTabIndex == 0 ? _starGifts : _silverGifts;
 
     return GridView.builder(
@@ -598,6 +822,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             setState(() {
               _selectedStandardGift = gift;
             });
+          },
+          onLongPress: () {
+            _showAnimationPreview(gift);
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
@@ -629,14 +856,16 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      gift.currency == 'gold' ? Icons.stars_rounded : Icons.monetization_on_rounded,
-                      color: gift.currency == 'gold' ? const Color(0xFFFFDB3C) : Colors.grey,
+                    const Icon(
+                      Icons.star_rounded,
+                      color: Color(0xFFFFDB3C),
                       size: 11,
                     ),
                     const SizedBox(width: 2),
                     Text(
-                      '${gift.cost}',
+                      gift.currency == 'gold' 
+                          ? '${gift.cost} ★' 
+                          : '${(gift.cost / 100).toStringAsFixed(gift.cost % 100 == 0 ? 0 : 1)} ★',
                       style: GoogleFonts.inter(
                         fontSize: 10,
                         color: Colors.white70,
@@ -652,4 +881,61 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       },
     );
   }
+}
+
+class _PreviewParticlesWidget extends StatefulWidget {
+  @override
+  State<_PreviewParticlesWidget> createState() => _PreviewParticlesWidgetState();
+}
+
+class _PreviewParticlesWidgetState extends State<_PreviewParticlesWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: _PreviewParticlesPainter(_ctrl.value),
+        );
+      },
+    );
+  }
+}
+
+class _PreviewParticlesPainter extends CustomPainter {
+  final double progress;
+  _PreviewParticlesPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()..color = const Color(0xFFFFDB3C).withOpacity(0.8);
+    final count = 8;
+    final maxRadius = size.width / 2.5;
+
+    for (int i = 0; i < count; i++) {
+      final angle = (i * (2 * 3.14159 / count)) + (progress * 2 * 3.14159);
+      final r = maxRadius * (0.6 + 0.4 * sin(progress * 2 * 3.14159 + i));
+      final x = center.dx + r * cos(angle);
+      final y = center.dy + r * sin(angle);
+      canvas.drawCircle(Offset(x, y), 3.0 * (1 - (r / maxRadius) * 0.3), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

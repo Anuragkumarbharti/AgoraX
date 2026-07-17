@@ -2088,6 +2088,105 @@ class RoomController extends GetxController {
         r.id.toLowerCase().contains(query.toLowerCase())).toList();
   }
 
+  Future<bool> sendStarGiftToRoom({
+    required String roomId,
+    required String giftId,
+    required String giftName,
+    required int giftCost,
+    required String currency,
+    required List<String> targetUserIds,
+    required List<String> targetUserNames,
+    required List<int> seatIndices,
+    int count = 1,
+    int comboCount = 1,
+  }) async {
+    try {
+      final room = rooms.firstWhereOrNull((r) => r.id == roomId);
+      if (room == null) return false;
+
+      // 1. Database RPC
+      final response = await Supabase.instance.client.rpc('send_star_gift', params: {
+        'p_room_id': roomId,
+        'p_receiver_ids': targetUserIds,
+        'p_gift_id': giftId,
+        'p_quantity': count,
+        'p_combo_count': comboCount,
+        'p_seat_indices': seatIndices,
+      });
+
+      if (response != null && response['success'] == true) {
+        // Update local wallet balances in StoreController and RoomController
+        final remaining = (response['remaining_balance'] as num).toInt();
+        walletBalance.value = remaining;
+        try {
+          final StoreController storeCtrl = Get.find<StoreController>();
+          if (currency == 'gold') {
+            storeCtrl.coinsBalance.value = remaining;
+          } else {
+            storeCtrl.silverCoinsBalance.value = remaining;
+          }
+        } catch (_) {}
+
+        // Resolve sender profile info
+        final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
+        final uName = profile?.username ?? 'Creania Student';
+
+        // Formulate chat/banner message body matching required structure
+        String messageBody;
+        if (targetUserIds.length == 1) {
+          final targetName = targetUserNames[0];
+          messageBody = count > 1 
+              ? '$uName sent $count× 🌹 $giftName to $targetName' 
+              : '$uName sent 🌹 $giftName to $targetName';
+        } else if (targetUserIds.length >= 10) {
+          messageBody = '$uName gifted everyone with $giftName';
+        } else {
+          messageBody = '$uName sent $giftName to ${targetUserIds.length} selected users';
+        }
+
+        // 2. Broadcast event to update other users real-time UI/Animations
+        await emitRoomActivityEvent(
+          roomId: roomId,
+          eventType: 'gift_sent',
+          userId: currentUserId,
+          username: uName,
+          targetUserId: targetUserIds.join(','),
+          targetUsername: targetUserNames.join(','),
+          message: messageBody,
+          metadata: {
+            'gift_id': giftId,
+            'gift_name': giftName,
+            'amount': count,
+            'currency': currency,
+            'stars': giftCost,
+            'combo_count': comboCount,
+            'receiver_ids': targetUserIds,
+            'receiver_names': targetUserNames,
+            'seat_indices': seatIndices,
+            'sender_avatar': profile?.avatar,
+            'is_gold': currency == 'gold',
+          },
+        );
+
+        // Sync progression tag systems
+        await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error sending star gift: $e');
+      Get.snackbar(
+        'Gift Failed',
+        e.toString().replaceAll('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+      return false;
+    }
+  }
+
   Future<bool> sendGiftToRoom(
     String roomId, {
     required int giftCost,
@@ -2102,55 +2201,60 @@ class RoomController extends GetxController {
       final room = rooms.firstWhereOrNull((r) => r.id == roomId);
       if (room == null) return false;
 
-      String dbReceiverId = targetUserId ?? room.hostId;
-      
-      final RegExp uuidExp = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
-      if (!uuidExp.hasMatch(dbReceiverId)) {
-        dbReceiverId = room.hostId;
+      String receiverId = targetUserId ?? room.hostId;
+      String receiverName = targetUserName ?? 'Host';
+
+      // Find target seat index
+      int seatIdx = -1;
+      final seats = roomSeatsInfo[roomId] ?? [];
+      final seat = seats.firstWhereOrNull((s) => s['userId'] == receiverId);
+      if (seat != null) {
+        seatIdx = seat['seatIndex'] as int? ?? -1;
       }
 
-      if (!uuidExp.hasMatch(dbReceiverId)) {
-        debugPrint('Host ID is not a valid UUID, mocking gift success');
-        walletBalance.value = (walletBalance.value - (giftCost * count)).clamp(0, 999999);
-        Get.snackbar(
-          'Gift Sent! 🎁',
-          '$fromUserName sent $giftName to ${targetUserName ?? 'Host'}!',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withOpacity(0.8),
-          colorText: Colors.white,
-        );
-        return true;
+      // Catalog UUID mapping
+      String matchedGiftId = 'g1000000-0000-0000-0000-000000000001'; // Default Rose
+      if (giftName.contains('Heart')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000002';
+      } else if (giftName.contains('Crown')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000003';
+      } else if (giftName.contains('Car') || giftName.contains('Sports Car')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000004';
+      } else if (giftName.contains('Castle')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000005';
+      } else if (giftName.contains('Rocket')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000006';
+      } else if (giftName.contains('Like')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000011';
+      } else if (giftName.contains('Coffee')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000012';
+      } else if (giftName.contains('Chocolate')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000013';
+      } else if (giftName.contains('Flower')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000014';
+      } else if (giftName.contains('Cake')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000015';
+      } else if (giftName.contains('Small Heart')) {
+        matchedGiftId = 'g1000000-0000-0000-0000-000000000016';
       }
-      
-      final response = await Supabase.instance.client.rpc('send_room_gift', params: {
-        'p_room_id': roomId,
-        'p_receiver_id': dbReceiverId,
-        'p_gift_name': giftName,
-        'p_coins_value': giftCost,
-        'p_quantity': count,
-      });
 
-      if (response != null && response['success'] == true) {
-        walletBalance.value = (response['remaining_balance'] as num).toInt();
-        Get.snackbar(
-          'Gift Sent! 🎁',
-          '$fromUserName sent $giftName to ${targetUserName ?? 'Host'}!',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withOpacity(0.8),
-          colorText: Colors.white,
-        );
-        return true;
-      }
-      return false;
-    } catch (e) {
-      debugPrint('Error sending gift: $e');
-      Get.snackbar(
-        'Gift Failed',
-        e.toString().replaceAll('Exception: ', ''),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.8),
-        colorText: Colors.white,
+      String currencyType = giftName.startsWith('Vault:') ? 'vault' : 
+          ((giftName.contains('Like') || giftName.contains('Coffee') || giftName.contains('Chocolate') || giftName.contains('Flower') || giftName.contains('Cake') || giftName.contains('Small Heart')) ? 'silver' : 'gold');
+
+      return await sendStarGiftToRoom(
+        roomId: roomId,
+        giftId: matchedGiftId,
+        giftName: giftName,
+        giftCost: giftCost,
+        currency: currencyType,
+        targetUserIds: [receiverId],
+        targetUserNames: [receiverName],
+        seatIndices: seatIdx != -1 ? [seatIdx] : [],
+        count: count,
+        comboCount: 1,
       );
+    } catch (e) {
+      debugPrint('Error wrapping legacy sendGiftToRoom: $e');
       return false;
     }
   }
