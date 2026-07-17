@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/chat_model.dart';
@@ -8,44 +10,79 @@ import '../models/isar_chat_model.dart';
 import '../core/chat_crypto.dart';
 import 'isar_storage_service.dart';
 import 'chat_controller.dart';
+import 'room_controller.dart';
+import 'voice/room_voice_manager.dart';
+import 'user_profile_cache_manager.dart';
 
-class ChatSocketService extends GetxService {
+class ChatSocketService extends GetxService with WidgetsBindingObserver {
   static ChatSocketService get to => Get.find();
 
   late IO.Socket _socket;
   final RxBool isConnected = false.obs;
 
   // Production Northflank service endpoint
-  static const String _serverUrl = 'https://site--creania-chat-service--h2dn6lgrlrxc.code.run'; 
+  static const String _serverUrl = String.fromEnvironment('CHAT_SERVER_URL', defaultValue: 'http://localhost:3000'); 
 
   final Map<String, Timer?> _pendingMessageTimers = {};
   final Map<String, int> _messageRetryAttempts = {};
   final List<int> _retryBackoffDelays = [2, 5, 10, 20, 30];
 
+  StreamSubscription<AuthState>? _authStateSubscription;
+  Timer? _heartbeatTimer;
+  Timer? _backgroundMuteTimer;
+  Timer? _backgroundDisconnectTimer;
+  String? _deviceId;
+  String? _sessionId;
+
   void init() {
-    final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
+    WidgetsBinding.instance.addObserver(this);
 
     _socket = IO.io(
       _serverUrl,
       IO.OptionBuilder()
           .setTransports(['websocket'])
-          .enableAutoConnect()
-          .setQuery({'userId': currentUserId})
-          .setReconnectionDelay(1500)
-          .setReconnectionDelayMax(5000)
-          .setReconnectionAttempts(99999) // Resilient reconnection during network/VPN swaps
-          .setTimeout(4000) // Detect dead links immediately during transitions
+          .disableAutoConnect()
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(30000)
+          .setReconnectionAttempts(99999)
+          .setTimeout(4000)
           .setExtraHeaders({'connection': 'keep-alive'})
           .build(),
     );
 
     _socket.onConnect((_) {
       isConnected.value = true;
+      _startHeartbeatTimer();
       _onConnected();
     });
 
     _socket.onDisconnect((_) {
       isConnected.value = false;
+      _stopHeartbeatTimer();
+    });
+
+    _socket.on('force_logout', (data) async {
+      final payload = Map<String, dynamic>.from(data);
+      final String msg = payload['message'] ?? 'Logged in from another device.';
+      await UserProfileCacheManager.forceLogout(message: msg);
+    });
+
+    _loadDeviceAndSession().then((_) {
+      _authStateSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        final session = data.session;
+        final event = data.event;
+
+        if (session != null) {
+          _connectWithSession(session, event);
+        } else {
+          disconnect();
+        }
+      });
+
+      final currentSession = Supabase.instance.client.auth.currentSession;
+      if (currentSession != null) {
+        _connectWithSession(currentSession, AuthChangeEvent.signedIn);
+      }
     });
 
     // ─── Event Observers ───
@@ -320,5 +357,107 @@ class ChatSocketService extends GetxService {
         }
       }
     } catch (_) {}
+  }
+
+  Future<void> _loadDeviceAndSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    _deviceId = prefs.getString('device_id');
+    if (_deviceId == null) {
+      _deviceId = 'dev_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(100000)}';
+      await prefs.setString('device_id', _deviceId!);
+    }
+    _sessionId = prefs.getString('session_id');
+  }
+
+  Future<void> _connectWithSession(Session session, AuthChangeEvent event) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (event == AuthChangeEvent.signedIn || _sessionId == null) {
+      _sessionId = 'sess_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(100000)}';
+      await prefs.setString('session_id', _sessionId!);
+    }
+
+    final String userId = session.user.id;
+    final String token = session.accessToken;
+
+    if (_socket.io.options != null) {
+      _socket.io.options!['query'] = {
+        'userId': userId,
+        'sessionId': _sessionId,
+        'deviceId': _deviceId,
+        'token': token,
+      };
+    }
+
+    if (_socket.connected) {
+      _socket.disconnect();
+    }
+    _socket.connect();
+  }
+
+  void _startHeartbeatTimer() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (_socket.connected) {
+        _socket.emit('heartbeat');
+      }
+    });
+  }
+
+  void _stopHeartbeatTimer() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
+
+  void emitRoomJoinStatus(String roomId) {
+    if (isConnected.value) {
+      _socket.emit('join_room_status', {'roomId': roomId});
+    }
+  }
+
+  void emitRoomLeaveStatus(String roomId) {
+    if (isConnected.value) {
+      _socket.emit('logout_room', {'roomId': roomId});
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _backgroundMuteTimer = Timer(const Duration(seconds: 60), () {
+        debugPrint('[SocketService] 60s background limit: muting microphone.');
+        _socket.emit('background_state', {'state': 'background_60s'});
+        try {
+          RoomVoiceManager().toggleMic(false);
+        } catch (_) {}
+      });
+
+      _backgroundDisconnectTimer = Timer(const Duration(minutes: 5), () {
+        debugPrint('[SocketService] 5m background limit: disconnecting socket.');
+        _socket.emit('background_state', {'state': 'background_5m'});
+        disconnect();
+      });
+    } else if (state == AppLifecycleState.resumed) {
+      _backgroundMuteTimer?.cancel();
+      _backgroundDisconnectTimer?.cancel();
+      if (!_socket.connected && Supabase.instance.client.auth.currentSession != null) {
+        connect();
+      }
+    } else if (state == AppLifecycleState.detached) {
+      debugPrint('[SocketService] Detached state detected: leaving room.');
+      _socket.emit('logout_room', {
+        'roomId': RoomController.to.activeRoomId
+      });
+      disconnect();
+    }
+  }
+
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _authStateSubscription?.cancel();
+    _stopHeartbeatTimer();
+    _backgroundMuteTimer?.cancel();
+    _backgroundDisconnectTimer?.cancel();
+    super.onClose();
   }
 }

@@ -17,6 +17,7 @@ import 'store_controller.dart';
 import 'user_progress_sync_service.dart';
 import 'user_profile_cache_manager.dart';
 import 'progression_controller.dart';
+import 'chat_socket_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../models/user_model.dart';
 
@@ -722,6 +723,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       subscribeToRoomRealtime(roomId);
       await fetchRoomProgression(roomId);
       startProgressionTimer(roomId);
+
+      try {
+        ChatSocketService.to.emitRoomJoinStatus(roomId);
+      } catch (err) {
+        debugPrint('Socket join status notify failed: $err');
+      }
     } catch (e) {
       debugPrint('Error entering room: $e');
       Get.snackbar(
@@ -749,6 +756,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
             'p_seat_index': seatIdx,
           });
         }
+      }
+
+      try {
+        ChatSocketService.to.emitRoomLeaveStatus(roomId);
+      } catch (err) {
+        debugPrint('Socket leave status notify failed: $err');
       }
 
       activeRoomId = null;
