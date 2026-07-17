@@ -1,5 +1,7 @@
--- 202607170009_fix_wallet_transaction_schema_for_community_and_arena.sql
--- Fix check constraint violations and column mismatches in wallet_transactions insertions.
+-- Ensure public.communities.identity_tag column exists and is unique
+alter table public.communities add column if not exists identity_tag text;
+alter table public.communities drop constraint if exists unique_community_identity_tag;
+alter table public.communities add constraint unique_community_identity_tag unique (identity_tag);
 
 -- 1. Redefine create_arena to use correct columns: currency, type, status, details and correct value: 'Gold Coins'
 create or replace function public.create_arena(
@@ -148,7 +150,7 @@ begin
 
   -- ── Log creation event ────────────────────────────────────────────────────
   insert into public.arena_creation_logs (
-    room_id, creator_id, creation_method, coins_spent, ticket_id
+    arena_id, user_id, creation_method, coins_spent, ticket_id
   ) values (
     v_room_id,
     v_user_id,
