@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:creania/core/theme.dart';
 import 'package:intl/intl.dart';
 import '../../models/community_model.dart';
@@ -234,11 +235,25 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                     ),
                   ],
                 ),
-                child: Center(
-                  child: Text(
-                    comm.image ?? comm.name.substring(0, 1),
-                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
+                child: ClipOval(
+                  child: (comm.image != null && (comm.image!.startsWith('http://') || comm.image!.startsWith('https://')))
+                      ? CachedNetworkImage(
+                          imageUrl: comm.image!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                          errorWidget: (context, url, error) => Center(
+                            child: Text(
+                              comm.name.substring(0, 1).toUpperCase(),
+                              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            comm.image ?? comm.name.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                 ),
               ),
               SizedBox(width: 16),
@@ -1525,6 +1540,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     final nameController = TextEditingController(text: comm.name);
     final descController = TextEditingController(text: comm.description);
     final rulesController = TextEditingController(text: comm.rules);
+    final imageController = TextEditingController(text: comm.image);
     String selectedJoinMode = comm.joinMode;
 
     Get.dialog(
@@ -1552,6 +1568,12 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(labelText: 'Rules', labelStyle: TextStyle(color: Colors.white70)),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: imageController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Cover Image URL', labelStyle: TextStyle(color: Colors.white70)),
+              ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: selectedJoinMode,
@@ -1578,8 +1600,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               Get.back();
               final success = await _controller.updateCommunitySettings(comm.id, {
                 'name': nameController.text,
-                'banner': comm.banner,
-                'image': comm.image,
+                'banner': imageController.text,
+                'image': imageController.text,
                 'description': descController.text,
                 'rules': rulesController.text,
                 'join_mode': selectedJoinMode,

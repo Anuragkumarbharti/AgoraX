@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../services/isar_storage_service.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:cached_network_image/cached_network_image.dart';
@@ -50,6 +52,10 @@ import 'account_center_screen.dart';
 import 'connections_screen.dart';
 import 'edit_profile_screen.dart';
 import '../chat/chat_screen.dart';
+import '../../models/room_model.dart';
+import '../../models/community_model.dart';
+import '../rooms/voice_room_call_screen.dart';
+import '../communities/community_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key, this.visitorUser}) : super(key: key);
@@ -81,6 +87,23 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   final List<Question> _questions = [];
   final List<Map<String, dynamic>> _communities = [];
 
+  // Reactive state lists for offline-first caching
+  final RxList<VoiceRoom> _myArenas = <VoiceRoom>[].obs;
+  final RxList<Map<String, dynamic>> _joinedCommunities = <Map<String, dynamic>>[].obs;
+  final RxBool _isLoadingArenas = true.obs;
+  final RxBool _isLoadingJoinedCommunities = true.obs;
+
+  // Gift stats reactive variables
+  final RxDouble _giftLifetimeReceived = 0.0.obs;
+  final RxDouble _giftLifetimeSent = 0.0.obs;
+  final RxDouble _giftMonthlyReceived = 0.0.obs;
+  final RxDouble _giftMonthlySent = 0.0.obs;
+  final RxList<String> _giftRecentReceivedAvatars = <String>[].obs;
+  final RxList<String> _giftRecentSentAvatars = <String>[].obs;
+  final RxBool _isLoadingGiftStats = true.obs;
+
+  late final Worker _giftStatsWorker;
+
   bool get _isMe => widget.visitorUser == null || widget.visitorUser!.id == UserProfileCacheManager.currentUserId;
 
   @override
@@ -89,26 +112,204 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     _tabController = TabController(length: 4, vsync: this);
     UserProfileCacheManager.addListener(_onProfileCacheChanged);
     _loadUserProfile();
+
+    // Trigger offline-first cached fetches immediately, fresh in background
+    _fetchUserArenasBackground();
+    _fetchUserJoinedCommunitiesBackground();
+    _fetchGiftStatsBackground();
+
     if (!_isMe) {
       _checkFollowingStatus();
     }
+
+    // Reactively refresh gift stats on new realtime transactions
+    _giftStatsWorker = ever(UserProfileCacheManager.giftTransactionsTrigger, (_) {
+      debugPrint('[ProfileScreen] Realtime gift transaction event triggered cache refresh.');
+      _fetchGiftStatsBackground();
+      _loadUserProfile();
+    });
   }
 
   @override
   void dispose() {
     UserProfileCacheManager.removeListener(_onProfileCacheChanged);
+    _giftStatsWorker.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  // Offline-First Smart Data Fetchers
+
+  Future<void> _fetchUserArenasBackground() async {
+    final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
+    if (profileId.isEmpty) return;
+    
+    // 1. Load from Isar Cache
+    try {
+      final cachedList = await IsarStorageService.to.getCacheList<VoiceRoom>(
+        'my_arenas_cache:$profileId',
+        (json) => VoiceRoom.fromJson(json),
+      );
+      if (cachedList != null) {
+        _myArenas.assignAll(cachedList);
+        _isLoadingArenas.value = false;
+      }
+    } catch (e) {
+      debugPrint('Error loading cached arenas: $e');
+    }
+
+    // 2. Fetch fresh background
+    try {
+      final response = await Supabase.instance.client
+          .from('rooms')
+          .select()
+          .eq('host_id', profileId)
+          .neq('status', 'ended');
+      
+      final List<VoiceRoom> loaded = [];
+      if (response != null) {
+        for (final item in response as List) {
+          loaded.add(VoiceRoom.fromJson(item));
+        }
+      }
+      
+      _myArenas.assignAll(loaded);
+      _isLoadingArenas.value = false;
+      
+      // Save cache
+      await IsarStorageService.to.saveCacheList<VoiceRoom>(
+        'my_arenas_cache:$profileId',
+        loaded,
+        (room) => room.toJson(),
+      );
+    } catch (e) {
+      debugPrint('Error background fetching user arenas: $e');
+      _isLoadingArenas.value = false;
+    }
+  }
+
+  Future<void> _fetchUserJoinedCommunitiesBackground() async {
+    final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
+    if (profileId.isEmpty) return;
+
+    // 1. Load from Isar Cache
+    try {
+      final cachedPayload = await IsarStorageService.to.getCacheEntryPayload('joined_communities_cache:$profileId');
+      if (cachedPayload != null && cachedPayload.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(cachedPayload);
+        final List<Map<String, dynamic>> results = [];
+        for (final row in decoded) {
+          final role = row['role'] as String;
+          final community = Community.fromJson(row['community'] as Map<String, dynamic>);
+          results.add({
+            'role': role,
+            'community': community,
+          });
+        }
+        _joinedCommunities.assignAll(results);
+        _isLoadingJoinedCommunities.value = false;
+      }
+    } catch (e) {
+      debugPrint('Error loading cached communities: $e');
+    }
+
+    // 2. Fetch fresh background
+    try {
+      final response = await Supabase.instance.client
+          .from('community_memberships')
+          .select('role, communities(*)')
+          .eq('user_id', profileId);
+      
+      if (response != null) {
+        final List<Map<String, dynamic>> results = [];
+        final List<Map<String, dynamic>> cacheList = [];
+        for (final row in response as List<dynamic>) {
+          final role = row['role'] as String? ?? 'member';
+          final communityData = row['communities'];
+          if (communityData != null) {
+            final community = Community.fromJson(communityData as Map<String, dynamic>);
+            results.add({
+              'role': role,
+              'community': community,
+            });
+            cacheList.add({
+              'role': role,
+              'community': community.toJson(),
+            });
+          }
+        }
+        _joinedCommunities.assignAll(results);
+        _isLoadingJoinedCommunities.value = false;
+
+        // Save cache
+        await IsarStorageService.to.saveCacheEntry(
+          'joined_communities_cache:$profileId',
+          jsonEncode(cacheList),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error background fetching user joined communities: $e');
+      _isLoadingJoinedCommunities.value = false;
+    }
+  }
+
+  Future<void> _fetchGiftStatsBackground() async {
+    final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
+    if (profileId.isEmpty) return;
+
+    // 1. Load from Isar Cache
+    try {
+      final cachedPayload = await IsarStorageService.to.getCacheEntryPayload('gift_stats_cache:$profileId');
+      if (cachedPayload != null && cachedPayload.isNotEmpty) {
+        final Map<String, dynamic> decoded = jsonDecode(cachedPayload);
+        _giftLifetimeReceived.value = (decoded['lifetime_received'] as num?)?.toDouble() ?? 0.0;
+        _giftLifetimeSent.value = (decoded['lifetime_sent'] as num?)?.toDouble() ?? 0.0;
+        _giftMonthlyReceived.value = (decoded['monthly_received'] as num?)?.toDouble() ?? 0.0;
+        _giftMonthlySent.value = (decoded['monthly_sent'] as num?)?.toDouble() ?? 0.0;
+        _giftRecentReceivedAvatars.assignAll(List<String>.from(decoded['recent_received_avatars'] ?? []));
+        _giftRecentSentAvatars.assignAll(List<String>.from(decoded['recent_sent_avatars'] ?? []));
+        _isLoadingGiftStats.value = false;
+      }
+    } catch (e) {
+      debugPrint('Error loading cached gift stats: $e');
+    }
+
+    // 2. Fetch fresh background
+    try {
+      final response = await Supabase.instance.client
+          .rpc('get_user_gift_stats_v2', params: {'p_user_id': profileId});
+      
+      if (response != null) {
+        final Map<String, dynamic> stats = Map<String, dynamic>.from(response);
+        _giftLifetimeReceived.value = (stats['lifetime_received'] as num?)?.toDouble() ?? 0.0;
+        _giftLifetimeSent.value = (stats['lifetime_sent'] as num?)?.toDouble() ?? 0.0;
+        _giftMonthlyReceived.value = (stats['monthly_received'] as num?)?.toDouble() ?? 0.0;
+        _giftMonthlySent.value = (stats['monthly_sent'] as num?)?.toDouble() ?? 0.0;
+        _giftRecentReceivedAvatars.assignAll(List<String>.from(stats['recent_received_avatars'] ?? []));
+        _giftRecentSentAvatars.assignAll(List<String>.from(stats['recent_sent_avatars'] ?? []));
+        _isLoadingGiftStats.value = false;
+
+        // Save cache
+        await IsarStorageService.to.saveCacheEntry('gift_stats_cache:$profileId', jsonEncode(stats));
+      }
+    } catch (e) {
+      debugPrint('Error background fetching gift stats RPC: $e');
+      _isLoadingGiftStats.value = false;
+    }
   }
 
   void _onProfileCacheChanged() {
     if (!mounted) return;
     final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
-    final updatedUser = UserProfileCacheManager.getCachedUser(profileId);
-    if (updatedUser != null) {
+    final updated = UserProfileCacheManager.rxCache[profileId];
+    if (updated != null) {
       setState(() {
-        _user = updatedUser;
+        _user = updated;
       });
+      // Re-trigger background updates silently
+      _fetchUserArenasBackground();
+      _fetchUserJoinedCommunitiesBackground();
+      _fetchGiftStatsBackground();
     }
   }
 
@@ -210,6 +411,92 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         _errorMessage = 'Failed to load profile: $e';
       });
     }
+  }
+
+  Future<List<VoiceRoom>> _fetchUserArenas() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('rooms')
+          .select()
+          .eq('host_id', _user.id)
+          .neq('status', 'ended');
+      
+      if (response == null) return [];
+      final list = response as List<dynamic>;
+      return list.map((item) => VoiceRoom.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (e) {
+      debugPrint('Error fetching user arenas: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchUserJoinedCommunities() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('community_memberships')
+          .select('role, communities(*)')
+          .eq('user_id', _user.id);
+      
+      if (response == null) return [];
+      final List<Map<String, dynamic>> results = [];
+      for (final row in response as List<dynamic>) {
+        final role = row['role'] as String? ?? 'member';
+        final communityData = row['communities'];
+        if (communityData != null) {
+          final community = Community.fromJson(communityData as Map<String, dynamic>);
+          results.add({
+            'role': role,
+            'community': community,
+          });
+        }
+      }
+      return results;
+    } catch (e) {
+      debugPrint('Error fetching user joined communities: $e');
+      return [];
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'technology':
+      case 'tech':
+      case 'code':
+        return Icons.code_rounded;
+      case 'architecture':
+        return Icons.architecture_rounded;
+      case 'education':
+      case 'study':
+        return Icons.menu_book_rounded;
+      case 'gaming':
+        return Icons.sports_esports_rounded;
+      case 'music':
+        return Icons.music_note_rounded;
+      default:
+        return Icons.group_work_rounded;
+    }
+  }
+
+  Color _getCategoryColor(int index) {
+    final colors = [
+      const Color(0xFFBEC2FF),
+      const Color(0xFFDDB7FF),
+      const Color(0xFFFBBF24),
+      const Color(0xFF10B981),
+      const Color(0xFFEF4444),
+    ];
+    return colors[index % colors.length];
+  }
+
+  String _formatCount(num count) {
+    if (count >= 1000000) {
+      double value = count / 1000000;
+      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) + 'M';
+    } else if (count >= 1000) {
+      double value = count / 1000;
+      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) + 'K';
+    }
+    return count.toString();
   }
 
   Future<void> _loadUserPosts() async {
@@ -639,16 +926,37 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                           ]
                         : [
                             Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF5865F2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  elevation: 0,
-                                ),
-                                onPressed: _toggleFollow,
-                                child: Text(_isFollowing ? 'Following' : 'Follow', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                              ),
+                              child: Obx(() {
+                                final otherId = _user.id;
+                                final isFollowed = UserProfileCacheManager.followedUserIds.contains(otherId);
+                                final isFollower = UserProfileCacheManager.followerUserIds.contains(otherId);
+
+                                String buttonText = 'Follow';
+                                if (isFollowed && isFollower) {
+                                  buttonText = 'Mutual';
+                                } else if (isFollowed) {
+                                  buttonText = 'Following';
+                                } else if (isFollower) {
+                                  buttonText = 'Follow Back';
+                                }
+
+                                return ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF5865F2),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    elevation: 0,
+                                  ),
+                                  onPressed: () {
+                                    if (buttonText == 'Follow' || buttonText == 'Follow Back') {
+                                      UserProfileCacheManager.followUser(otherId);
+                                    } else {
+                                      UserProfileCacheManager.unfollowUser(otherId);
+                                    }
+                                  },
+                                  child: Text(buttonText, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                );
+                              }),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -693,62 +1001,143 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   ),
                   const SizedBox(height: 24),
                   // 3. Social Stats Section
-                  Row(
-                    children: [
-                      Expanded(child: _statCard('${_user.followers}', 'Followers')),
-                      const SizedBox(width: 8),
-                      Expanded(child: _statCard('${_user.following}', 'Following')),
-                      const SizedBox(width: 8),
-                      if (_isMe) ...[
-                        Expanded(child: _statCard('89', 'Friends')),
+                  Obx(() {
+                    final u = UserProfileCacheManager.rxCache[_user.id] ?? _user;
+                    final followersCount = u.followers;
+                    final followingCount = u.following;
+                    final friendsCount = u.friendsCount;
+                    final giftsCount = u.totalStarsReceived;
+                    final contributeCount = u.totalStarsGifted;
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _statCard(
+                            _formatCount(followersCount),
+                            'Followers',
+                            onTap: () => Get.to(() => ConnectionsScreen(
+                                  initialTabIndex: 1,
+                                  targetUserId: u.id,
+                                  targetUserName: u.displayName,
+                                )),
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        Expanded(child: _statCard('123.5K', 'Gifts')),
-                      ] else ...[
-                        Expanded(child: _statCard('123.5K', 'Gifts')),
+                        Expanded(
+                          child: _statCard(
+                            _formatCount(followingCount),
+                            'Following',
+                            onTap: () => Get.to(() => ConnectionsScreen(
+                                  initialTabIndex: 0,
+                                  targetUserId: u.id,
+                                  targetUserName: u.displayName,
+                                )),
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        Expanded(child: _statCard('450K', 'Contribute')),
+                        if (_isMe) ...[
+                          Expanded(
+                            child: _statCard(
+                              _formatCount(friendsCount),
+                              'Friends',
+                              onTap: () => Get.to(() => ConnectionsScreen(
+                                    initialTabIndex: 2,
+                                    targetUserId: u.id,
+                                    targetUserName: u.displayName,
+                                  )),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _statCard(
+                              _formatCount(giftsCount),
+                              'Gifts',
+                              onTap: () => Get.to(() => GiftingContributionScreen(
+                                    userId: u.id,
+                                    username: u.displayName,
+                                  )),
+                            ),
+                          ),
+                        ] else ...[
+                          Expanded(
+                            child: _statCard(
+                              _formatCount(giftsCount),
+                              'Gifts',
+                              onTap: () => Get.to(() => GiftingContributionScreen(
+                                    userId: u.id,
+                                    username: u.displayName,
+                                  )),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _statCard(
+                              _formatCount(contributeCount),
+                              'Contribute',
+                              onTap: () => Get.to(() => GiftingContributionScreen(
+                                    userId: u.id,
+                                    username: u.displayName,
+                                  )),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    );
+                  }),
                   const SizedBox(height: 12),
 
                   // 4. Bio & Links Section
                   _glassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Building digital experiences. Exploring the intersection of design and code. Coffee enthusiast. ☕',
-                          style: GoogleFonts.inter(color: const Color(0xFFE1E1EF), fontSize: 13, height: 1.4),
-                        ),
-                        const SizedBox(height: 12),
-                        _bioDetailRow(Icons.location_on_outlined, 'Tokyo, JP'),
-                        const SizedBox(height: 6),
-                        _bioDetailRow(Icons.language_rounded, 'EN, JP'),
-                        const SizedBox(height: 6),
-                        _bioDetailRow(Icons.link_rounded, 'alexmercer.dev'),
-                      ],
-                    ),
+                    child: Obx(() {
+                      final u = UserProfileCacheManager.rxCache[_user.id] ?? _user;
+                      final bioText = u.bio != null && u.bio!.isNotEmpty 
+                          ? u.bio! 
+                          : 'No bio written yet.';
+                      final locationText = (u.city != null && u.city!.isNotEmpty)
+                          ? '${u.city}, ${u.country ?? ""}'
+                          : (u.country ?? 'N/A');
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            bioText,
+                            style: GoogleFonts.inter(color: const Color(0xFFE1E1EF), fontSize: 13, height: 1.4),
+                          ),
+                          const SizedBox(height: 12),
+                          _bioDetailRow(Icons.location_on_outlined, locationText),
+                          const SizedBox(height: 6),
+                          _bioDetailRow(Icons.language_rounded, u.language.toUpperCase()),
+                          const SizedBox(height: 6),
+                          _bioDetailRow(Icons.link_rounded, u.website != null && u.website!.isNotEmpty ? u.website! : 'N/A'),
+                        ],
+                      );
+                    }),
                   ),
                   const SizedBox(height: 12),
 
                   // 5. Personal Info Section
                   _glassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Personal Info', style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontWeight: FontWeight.bold, fontSize: 12)),
-                        const SizedBox(height: 12),
-                        _infoTableRow('Gender', 'Male'),
-                        _infoTableRow('Age', '17 years'),
-                        _infoTableRow('Birthday', '17 Jul 2008'),
-                        _infoTableRow('Country', 'India'),
-                        _infoTableRow('Language', 'en'),
-                        _infoTableRow('Profession', 'Biotechnology'),
-                        _infoTableRow('Education', 'Maharaja'),
-                        _infoTableRow('Website', '.com', isLast: true),
-                      ],
-                    ),
+                    child: Obx(() {
+                      final u = UserProfileCacheManager.rxCache[_user.id] ?? _user;
+                      final dobStr = u.dob != null ? DateFormat('dd MMM yyyy').format(u.dob!) : 'N/A';
+                      final ageStr = u.age > 0 ? '${u.age} years' : 'N/A';
+                      
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Personal Info', style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontWeight: FontWeight.bold, fontSize: 12)),
+                          const SizedBox(height: 12),
+                          _infoTableRow('Gender', u.gender != null && u.gender!.isNotEmpty ? u.gender!.capitalizeFirst! : 'N/A'),
+                          _infoTableRow('Age', ageStr),
+                          _infoTableRow('Birthday', dobStr),
+                          _infoTableRow('Country', u.country != null && u.country!.isNotEmpty ? u.country! : 'N/A'),
+                          _infoTableRow('Language', u.language.isNotEmpty ? u.language.toUpperCase() : 'N/A'),
+                          _infoTableRow('Profession', u.profession != null && u.profession!.isNotEmpty ? u.profession! : 'N/A'),
+                          _infoTableRow('Education', u.education != null && u.education!.isNotEmpty ? u.education! : 'N/A'),
+                          _infoTableRow('Website', u.website != null && u.website!.isNotEmpty ? u.website! : 'N/A', isLast: true),
+                        ],
+                      );
+                    }),
                   ),
                   const SizedBox(height: 12),
 
@@ -759,62 +1148,119 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       children: [
                         Text('My Arenas', style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontWeight: FontWeight.bold, fontSize: 12)),
                         const SizedBox(height: 12),
-                        Container(
-                          height: 100,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            image: const DecorationImage(
-                              image: NetworkImage(
-                                'https://lh3.googleusercontent.com/aida-public/AB6AXuB9yUadsJtCT-c_Cf9DLuryOK7_kcxgFsWq3XYDuuAcOjeu0DU36SQktoT_33IHojANOTZRGphogVbNnt1hD2Ovqm4SCE548pGnq6uQHZfztL4iVKpghOFEWQ7Ov-7r8pafl__pxJEgSmpqr15CHy_-BA7Hvi9xef0yTDe14EK7IZemFJM6GzFEeyjDx4We_umfQ6zZyowKDytt8EOc9t-cbqYlFFyypbutljnn1TGY9eL_q_r6ULwsr8UW0MCnTEFyRnxW-DQTqZ4B',
+                        Obx(() {
+                          if (_isLoadingArenas.value) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(strokeWidth: 2),
                               ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              gradient: const LinearGradient(
-                                colors: [Colors.black87, Colors.transparent],
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
+                            );
+                          }
+                          if (_myArenas.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                child: Text(
+                                  'Not Created Any Arena Yet',
+                                  style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 13),
+                                ),
                               ),
-                            ),
-                            padding: const EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.redAccent.withOpacity(0.2),
-                                        border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: const Text('OWNER', style: TextStyle(color: Colors.redAccent, fontSize: 8, fontWeight: FontWeight.bold)),
+                            );
+                          }
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _myArenas.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final room = _myArenas[index];
+                              final coverUrl = (room.banner != null && room.banner!.isNotEmpty)
+                                  ? room.banner!
+                                  : (room.roomCoverUrl != null && room.roomCoverUrl!.isNotEmpty)
+                                      ? room.roomCoverUrl!
+                                      : 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809';
+
+                              return GestureDetector(
+                                onTap: () {
+                                  final currentUid = UserProfileCacheManager.currentUserId;
+                                  final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+                                  Get.to(
+                                    () => VoiceRoomCallScreen(
+                                      roomId: room.id,
+                                      roomName: room.name,
+                                      userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
+                                      userName: currentUsername != 'Creania Student' ? currentUsername : 'anurag_kumar',
+                                      isHost: room.hostId == currentUid,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text('Cybernetic Arena', style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  );
+                                },
+                                child: Container(
+                                  height: 100,
+                                  width: double.infinity,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFDDB7FF).withOpacity(0.2),
-                                    border: Border.all(color: const Color(0xFFDDB7FF).withOpacity(0.5)),
-                                    borderRadius: BorderRadius.circular(6),
+                                    borderRadius: BorderRadius.circular(10),
+                                    image: DecorationImage(
+                                      image: NetworkImage(coverUrl),
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
-                                  child: const Text('lvl 2', style: TextStyle(color: Color(0xFFDDB7FF), fontSize: 10)),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      gradient: const LinearGradient(
+                                        colors: [Colors.black87, Colors.transparent],
+                                        begin: Alignment.bottomCenter,
+                                        end: Alignment.topCenter,
+                                      ),
+                                    ),
+                                    padding: const EdgeInsets.all(10),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.redAccent.withOpacity(0.2),
+                                                border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                room.hostId == UserProfileCacheManager.currentUserId ? 'OWNER' : 'CO-OWNER',
+                                                style: const TextStyle(color: Colors.redAccent, fontSize: 8, fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(room.name, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${room.totalMembers} members' + (room.isLive ? '  •  ${room.participantCount} online' : ''),
+                                              style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                            ),
+                                          ],
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFDDB7FF).withOpacity(0.2),
+                                            border: Border.all(color: const Color(0xFFDDB7FF).withOpacity(0.5)),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text('lvl ${room.level}', style: const TextStyle(color: Color(0xFFDDB7FF), fontSize: 10)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
+                              );
+                            },
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -829,13 +1275,54 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('Joined Communities', style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontWeight: FontWeight.bold, fontSize: 12)),
-                            const Text('5l', style: TextStyle(color: Color(0xFFBEC2FF), fontSize: 12)),
+                            Obx(() => Text(
+                              '${_joinedCommunities.length}',
+                              style: const TextStyle(color: Color(0xFFBEC2FF), fontSize: 12),
+                            )),
                           ],
                         ),
                         const SizedBox(height: 12),
-                        _communityRow('Neo-Tokyo Architects', 'Admin', 'Lvl 24', Icons.architecture_rounded, const Color(0xFFBEC2FF)),
-                        const SizedBox(height: 8),
-                        _communityRow('Rust Devs Global', 'Member', 'Lvl 15', Icons.code_rounded, const Color(0xFFDDB7FF)),
+                        Obx(() {
+                          if (_isLoadingJoinedCommunities.value) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          }
+                          if (_joinedCommunities.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                child: Text(
+                                  'Not Joined Any Community Yet',
+                                  style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 13),
+                                ),
+                              ),
+                            );
+                          }
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _joinedCommunities.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final entry = _joinedCommunities[index];
+                              final Community c = entry['community'];
+                              final String role = entry['role'];
+                              
+                              return _communityRow(
+                                c.name,
+                                role,
+                                'Lvl ${c.level}',
+                                c.image,
+                                c.memberCount,
+                                onTap: () => Get.to(() => CommunityDetailScreen(communityId: c.id)),
+                              );
+                            },
+                          );
+                        }),
                         const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
@@ -845,13 +1332,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                               elevation: 0,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            onPressed: () {},
+                            onPressed: () {
+                              Get.snackbar('Explore', 'Browse more communities in Explore tab.');
+                            },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text('More Communities', style: GoogleFonts.inter(color: const Color(0xFFBEC2FF), fontSize: 11, fontWeight: FontWeight.bold)),
                                 const SizedBox(width: 4),
-                                  const Icon(Icons.arrow_forward_rounded, color: Color(0xFFBEC2FF), size: 14),
+                                const Icon(Icons.arrow_forward_rounded, color: Color(0xFFBEC2FF), size: 14),
                               ],
                             ),
                           ),
@@ -910,133 +1399,166 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   const SizedBox(height: 12),
 
                   // 10. Gift Stats Section (Replaces Arena Stats & Old Gift Stats)
-                  GestureDetector(
-                    onTap: () {
-                      Get.to(() => GiftingContributionScreen(
-                            userId: _user.id,
-                            username: _user.displayName ?? 'Student',
-                          ));
-                    },
-                    child: _glassCard(
+                  Obx(() {
+                    final monthlyReceivedStr = _formatCount(_giftMonthlyReceived.value.toInt());
+                    final monthlySentStr = _formatCount(_giftMonthlySent.value.toInt());
+                    final lifetimeReceivedStr = _formatCount(_giftLifetimeReceived.value.toInt());
+                    final lifetimeSentStr = _formatCount(_giftLifetimeSent.value.toInt());
+
+                    return _glassCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.featured_play_list_rounded, color: Color(0xFFFBBF24), size: 18),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Gift Stats',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Monthly received gifts',
-                              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
-                            ),
-                            Text(
-                              '12.5K',
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFFFBBF24),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'monthly contribute',
-                              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
-                            ),
-                            Text(
-                              '450K',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Gifts',
-                              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
-                            ),
-                            Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Get.to(() => GiftingContributionScreen(
+                                    userId: _user.id,
+                                    username: _user.displayName ?? 'Student',
+                                  ));
+                            },
+                            child: Row(
                               children: [
-                                _buildOverlappingAvatars([
-                                  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80',
-                                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
-                                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
-                                  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
-                                ]),
-                                const SizedBox(width: 6),
+                                const Icon(Icons.featured_play_list_rounded, color: Color(0xFFFBBF24), size: 18),
+                                const SizedBox(width: 8),
                                 Text(
-                                  '123.5K',
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFF8B5CFF),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14.5,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 16),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Contributors',
-                              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
-                            ),
-                            Row(
-                              children: [
-                                _buildOverlappingAvatars([
-                                  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80',
-                                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
-                                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
-                                  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
-                                ]),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '842k',
+                                  'Gift Stats',
                                   style: GoogleFonts.poppins(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 14.5,
+                                    fontSize: 13,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 16),
                               ],
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Monthly received gifts',
+                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
+                              ),
+                              Text(
+                                monthlyReceivedStr,
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFFBBF24),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'monthly contribute',
+                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
+                              ),
+                              Text(
+                                monthlySentStr,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              Get.to(() => GiftingContributionScreen(
+                                    userId: _user.id,
+                                    username: _user.displayName ?? 'Student',
+                                    initialTabIndex: 0,
+                                  ));
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Gifts',
+                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
+                                ),
+                                Row(
+                                  children: [
+                                    if (_giftRecentReceivedAvatars.isNotEmpty)
+                                      _buildOverlappingAvatars(_giftRecentReceivedAvatars.toList())
+                                    else
+                                      _buildOverlappingAvatars([
+                                        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80',
+                                        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
+                                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
+                                        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
+                                      ]),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      lifetimeReceivedStr,
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF8B5CFF),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14.5,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 16),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              Get.to(() => GiftingContributionScreen(
+                                    userId: _user.id,
+                                    username: _user.displayName ?? 'Student',
+                                    initialTabIndex: 1,
+                                  ));
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Contributors',
+                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
+                                ),
+                                Row(
+                                  children: [
+                                    if (_giftRecentSentAvatars.isNotEmpty)
+                                      _buildOverlappingAvatars(_giftRecentSentAvatars.toList())
+                                    else
+                                      _buildOverlappingAvatars([
+                                        'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80',
+                                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
+                                        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
+                                        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
+                                      ]),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      lifetimeSentStr,
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14.5,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 16),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
                   const SizedBox(height: 24),
 
                   // 11. Activity Feed & Tabs
@@ -1605,21 +2127,24 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Widget _statCard(String value, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1D1F29).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(value, style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(label, style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 10)),
-        ],
+  Widget _statCard(String value, String label, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1D1F29).withOpacity(0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(value, style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 2),
+            Text(label, style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 10)),
+          ],
+        ),
       ),
     );
   }
@@ -1663,50 +2188,86 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Widget _communityRow(String name, String role, String level, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1D1F29).withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(role.toUpperCase(), style: GoogleFonts.inter(color: const Color(0xFFFFDB3C), fontSize: 9, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(4),
+  Widget _communityRow(String name, String role, String level, String? coverImage, int memberCount, {VoidCallback? onTap}) {
+    final bool hasUrl = coverImage != null && (coverImage.startsWith('http://') || coverImage.startsWith('https://'));
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1D1F29).withOpacity(0.3),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white12,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: hasUrl
+                    ? CachedNetworkImage(
+                        imageUrl: coverImage,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                        errorWidget: (context, url, error) => Center(
+                          child: Text(
+                            name.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          coverImage ?? name.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      child: Text(level, style: const TextStyle(color: Colors.white70, fontSize: 8)),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFFC6C5D7), size: 16),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(role.toUpperCase(), style: GoogleFonts.inter(color: const Color(0xFFFFDB3C), fontSize: 9, fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(level, style: const TextStyle(color: Colors.white70, fontSize: 8)),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('$memberCount members', style: const TextStyle(color: Colors.white70, fontSize: 8)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFFC6C5D7), size: 16),
+          ],
+        ),
       ),
     );
   }

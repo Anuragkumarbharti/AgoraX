@@ -489,35 +489,57 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
         );
 
       case MiniProfileVariant.followersList:
-        // stylized + Follow button
-        return SizedBox(
-          height: 28,
-          child: ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _isFollowing = !_isFollowing;
-              });
-              if (widget.onFollowTap != null) widget.onFollowTap!();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isFollowing ? context.secondaryBackgroundColor : Color(0xFFEF408B),
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: _isFollowing ? BorderSide(color: context.borderColor) : BorderSide.none,
+        final myId = UserProfileCacheManager.currentUserId;
+        if (_user.id == myId) {
+          return const SizedBox.shrink();
+        }
+        return Obx(() {
+          final otherId = _user.id;
+          final isFollowed = UserProfileCacheManager.followedUserIds.contains(otherId);
+          final isFollower = UserProfileCacheManager.followerUserIds.contains(otherId);
+
+          String buttonText = '+ Follow';
+          if (isFollowed && isFollower) {
+            buttonText = 'Mutual';
+          } else if (isFollowed) {
+            buttonText = 'Following';
+          } else if (isFollower) {
+            buttonText = 'Follow Back';
+          }
+
+          final isF = isFollowed;
+
+          return SizedBox(
+            height: 28,
+            child: ElevatedButton(
+              onPressed: () {
+                if (buttonText == '+ Follow' || buttonText == 'Follow Back') {
+                  UserProfileCacheManager.followUser(otherId);
+                } else {
+                  UserProfileCacheManager.unfollowUser(otherId);
+                }
+                if (widget.onFollowTap != null) widget.onFollowTap!();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isF ? context.secondaryBackgroundColor : Color(0xFFEF408B),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: isF ? BorderSide(color: context.borderColor) : BorderSide.none,
+                ),
+                elevation: 0,
               ),
-              elevation: 0,
-            ),
-            child: Text(
-              _isFollowing ? 'Following' : '+ Follow',
-              style: GoogleFonts.poppins(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+              child: Text(
+                buttonText,
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-        );
+          );
+        });
 
       case MiniProfileVariant.searchResult:
         // Arrow to visit
@@ -557,11 +579,21 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     );
   }
 
+  String _formatCount(num count) {
+    if (count >= 1000000) {
+      double value = count / 1000000;
+      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) + 'M';
+    } else if (count >= 1000) {
+      double value = count / 1000;
+      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) + 'K';
+    }
+    return count.toString();
+  }
+
   Widget _buildStatsRow() {
-    final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    final isMe = widget.user.id == 'me' || widget.user.id == 'uid_anurag_101' || (currentUid != null && widget.user.id == currentUid);
-    final gifts = isMe ? '65.6K' : '14.2K';
-    final points = isMe ? '9.2K' : '4.5K';
+    final u = _user;
+    final gifts = _formatCount(u.totalStarsReceived);
+    final points = _formatCount(u.totalStarsGifted);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

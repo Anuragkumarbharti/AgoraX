@@ -22,6 +22,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   final _usernameController = TextEditingController();
   final _descController = TextEditingController();
   final _identityTagController = TextEditingController();
+  final _imageController = TextEditingController();
 
   bool _isCheckingUsername = false;
   bool? _isUsernameUnique;
@@ -171,6 +172,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
     _usernameController.dispose();
     _descController.dispose();
     _identityTagController.dispose();
+    _imageController.dispose();
     _usernameDebounce?.cancel();
     _identityTagDebounce?.cancel();
     super.dispose();
@@ -326,8 +328,8 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       preferredInterests: const [],
       tags: const [],
       visibility: 'public',
-      logo: displayName.substring(0, 1).toUpperCase(),
-      banner: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809',
+      logo: _imageController.text.trim().isNotEmpty ? _imageController.text.trim() : displayName.substring(0, 1).toUpperCase(),
+      banner: _imageController.text.trim().isNotEmpty ? _imageController.text.trim() : 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809',
       creationMethod: _creationType,
       identityTag: identityTag,
     );
@@ -542,6 +544,27 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               style: TextStyle(color: context.textPrimary),
               decoration: InputDecoration(
                 hintText: 'What is this community about?',
+                hintStyle: TextStyle(color: context.caption),
+                filled: true,
+                fillColor: context.secondaryBackgroundColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            Text(
+              'Family Image/Logo URL',
+              style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _imageController,
+              style: TextStyle(color: context.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'https://example.com/logo.png (Optional)',
                 hintStyle: TextStyle(color: context.caption),
                 filled: true,
                 fillColor: context.secondaryBackgroundColor,

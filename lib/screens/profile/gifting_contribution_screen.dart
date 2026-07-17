@@ -9,11 +9,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class GiftingContributionScreen extends StatefulWidget {
   final String userId;
   final String username;
+  final int initialTabIndex;
   
   const GiftingContributionScreen({
     Key? key,
     required this.userId,
     required this.username,
+    this.initialTabIndex = 0,
   }) : super(key: key);
 
   @override
@@ -39,7 +41,7 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this, initialIndex: widget.initialTabIndex);
     _loadAllData();
   }
 
@@ -239,12 +241,15 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
                     final double stars = (item['stars_value'] as num?)?.toDouble() ?? 0.0;
                     final DateTime date = DateTime.parse(item['created_at']);
 
+                    final String? roomId = item['room_id'] as String?;
+
                     return _buildGiftListTile(
                       title: 'From $sender',
                       subtitle: '$qty× $icon $gift',
                       stars: stars,
                       date: date,
                       avatar: avatar,
+                      roomId: roomId,
                     );
                   },
                 ),
@@ -312,12 +317,15 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
                     final double stars = (item['stars_value'] as num?)?.toDouble() ?? 0.0;
                     final DateTime date = DateTime.parse(item['created_at']);
 
+                    final String? roomId = item['room_id'] as String?;
+
                     return _buildGiftListTile(
                       title: 'Sent to $receiver',
                       subtitle: '$qty× $icon $gift',
                       stars: stars,
                       date: date,
                       avatar: avatar,
+                      roomId: roomId,
                     );
                   },
                 ),
@@ -476,6 +484,7 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
     required double stars,
     required DateTime date,
     required String avatar,
+    String? roomId,
   }) {
     final dateStr = DateFormat('dd MMM yyyy, hh:mm a').format(date);
     return Container(
@@ -503,7 +512,17 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
                 const SizedBox(height: 3),
                 Text(subtitle, style: GoogleFonts.inter(color: Colors.white70, fontSize: 10.5)),
                 const SizedBox(height: 2),
-                Text(dateStr, style: GoogleFonts.inter(color: Colors.white30, fontSize: 8)),
+                Row(
+                  children: [
+                    Text(dateStr, style: GoogleFonts.inter(color: Colors.white30, fontSize: 8)),
+                    if (roomId != null && roomId.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text('•', style: GoogleFonts.inter(color: Colors.white30, fontSize: 8)),
+                      const SizedBox(width: 8),
+                      Text('Room: $roomId', style: GoogleFonts.inter(color: Colors.white30, fontSize: 8)),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),

@@ -24,6 +24,8 @@ class UserProfileCacheManager {
   static final List<VoidCallback> _listeners = [];
   static RealtimeChannel? _realtimeChannel;
   static RealtimeChannel? _connectionsRealtimeChannel;
+  static RealtimeChannel? _giftRealtimeChannel;
+  static final RxInt giftTransactionsTrigger = 0.obs;
 
   // Connection RxSets
   static final RxSet<String> followedUserIds = <String>{}.obs;
@@ -393,6 +395,19 @@ class UserProfileCacheManager {
       followerUserIds.assignAll(followers);
       connectionStatuses.assignAll(statuses);
       debugPrint('[CacheManager] Connections loaded. Following: ${followed.length}, Followers: ${followers.length}');
+
+      // Save to Isar offline cache
+      try {
+        final isar = IsarStorageService.to;
+        final connData = {
+          'followed': followed.toList(),
+          'followers': followers.toList(),
+          'statuses': statuses,
+        };
+        await isar.saveCacheEntry('offline_connections_cache', jsonEncode(connData));
+      } catch (e) {
+        debugPrint('[CacheManager] Error saving connections cache to Isar: $e');
+      }
     } catch (e) {
       debugPrint('[CacheManager] Error loading connections: $e');
     }
@@ -620,6 +635,34 @@ class UserProfileCacheManager {
     } catch (e) {
       debugPrint('[UserProfileCacheManager] Wallets realtime subscription failed: $e');
     }
+
+    // Subscribe to gift_transactions table to refresh stats in real-time
+    try {
+      _giftRealtimeChannel = Supabase.instance.client
+          .channel('public:gift_transactions_realtime')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'gift_transactions',
+            callback: (payload) {
+              final newRecord = payload.newRecord;
+              if (newRecord != null) {
+                final senderId = newRecord['sender_id'] as String?;
+                final receiverId = newRecord['receiver_id'] as String?;
+                final currentId = currentUserId;
+                if (currentId.isNotEmpty && (senderId == currentId || receiverId == currentId)) {
+                  debugPrint('[UserProfileCacheManager] Realtime gift transaction involving user detected.');
+                  giftTransactionsTrigger.value++;
+                  _notifyListeners();
+                }
+              }
+            },
+          );
+      _giftRealtimeChannel?.subscribe();
+      debugPrint('[UserProfileCacheManager] Subscribed to gift_transactions table Realtime updates.');
+    } catch (e) {
+      debugPrint('[UserProfileCacheManager] Gift transactions realtime subscription failed: $e');
+    }
   }
 
   static Future<void> initOfflineCache() async {
@@ -638,6 +681,21 @@ class UserProfileCacheManager {
         });
         _notifyListeners();
         debugPrint('[CacheManager] Loaded ${_cache.length} profiles from Isar offline cache.');
+      }
+
+      // Load cached connections
+      final connPayload = await isar.getCacheEntryPayload('offline_connections_cache');
+      if (connPayload != null && connPayload.isNotEmpty) {
+        final Map<String, dynamic> decoded = jsonDecode(connPayload);
+        final followed = List<String>.from(decoded['followed'] ?? []);
+        final followers = List<String>.from(decoded['followers'] ?? []);
+        final Map<String, dynamic> rawStatuses = decoded['statuses'] ?? {};
+        final statuses = rawStatuses.map((k, v) => MapEntry(k, v.toString()));
+
+        followedUserIds.assignAll(followed);
+        followerUserIds.assignAll(followers);
+        connectionStatuses.assignAll(statuses);
+        debugPrint('[CacheManager] Connections loaded from Isar offline cache.');
       }
     } catch (e) {
       debugPrint('[CacheManager] Error loading Isar offline cache: $e');

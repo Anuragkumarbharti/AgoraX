@@ -393,6 +393,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // Sync and reload cache
       UserProfileCacheManager.invalidateCache(userId);
+      await UserProfileCacheManager.fetchUserProfile(userId, forceRefresh: true);
       await UserProgressSyncService.syncFromSupabase();
 
       setState(() => _isLoading = false);

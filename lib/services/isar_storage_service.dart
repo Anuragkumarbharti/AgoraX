@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -161,5 +163,57 @@ class IsarStorageService extends GetxService {
   Future<String?> getCacheEntryPayload(String key) async {
     final entry = await _isar.isarConversations.filter().uuidEqualTo(key).findFirst();
     return entry?.lastMessage;
+  }
+
+  Future<void> saveCache<T>(String key, T data, Map<String, dynamic> Function(T) toJson) async {
+    try {
+      final jsonStr = jsonEncode(toJson(data));
+      await saveCacheEntry(key, jsonStr);
+    } catch (e) {
+      debugPrint('Isar saveCache error for $key: $e');
+    }
+  }
+
+  Future<T?> getCache<T>(String key, T Function(Map<String, dynamic>) fromJson) async {
+    try {
+      final jsonStr = await getCacheEntryPayload(key);
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final Map<String, dynamic> map = jsonDecode(jsonStr);
+        return fromJson(map);
+      }
+    } catch (e) {
+      debugPrint('Isar getCache error for $key: $e');
+    }
+    return null;
+  }
+
+  Future<void> saveCacheList<T>(String key, List<T> list, Map<String, dynamic> Function(T) toJson) async {
+    try {
+      final jsonStr = jsonEncode(list.map((item) => toJson(item)).toList());
+      await saveCacheEntry(key, jsonStr);
+    } catch (e) {
+      debugPrint('Isar saveCacheList error for $key: $e');
+    }
+  }
+
+  Future<List<T>?> getCacheList<T>(String key, T Function(Map<String, dynamic>) fromJson) async {
+    try {
+      final jsonStr = await getCacheEntryPayload(key);
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(jsonStr);
+        return list.map((item) => fromJson(item as Map<String, dynamic>)).toList();
+      }
+    } catch (e) {
+      debugPrint('Isar getCacheList error for $key: $e');
+    }
+    return null;
+  }
+
+  Stream<String?> watchCacheEntry(String key) {
+    return _isar.isarConversations
+        .filter()
+        .uuidEqualTo(key)
+        .watch(fireImmediately: true)
+        .map((results) => results.isNotEmpty ? results.first.lastMessage : null);
   }
 }

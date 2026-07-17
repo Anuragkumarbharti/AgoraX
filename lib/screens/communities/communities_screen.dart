@@ -466,11 +466,25 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> with SingleTicker
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.indigoAccent, width: 2),
                 ),
-                child: Center(
-                  child: Text(
-                    comm.image ?? comm.name.substring(0, 1),
-                    style: const TextStyle(fontSize: 28),
-                  ),
+                child: ClipOval(
+                  child: (comm.image != null && (comm.image!.startsWith('http://') || comm.image!.startsWith('https://')))
+                      ? CachedNetworkImage(
+                          imageUrl: comm.image!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                          errorWidget: (context, url, error) => Center(
+                            child: Text(
+                              comm.name.substring(0, 1).toUpperCase(),
+                              style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            comm.image ?? comm.name.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -655,11 +669,25 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> with SingleTicker
                         shape: BoxShape.circle,
                         border: Border.all(color: const Color(0xFF0F172A), width: 2),
                       ),
-                      child: Center(
-                        child: Text(
-                          comm.image ?? comm.name.substring(0, 1),
-                          style: const TextStyle(fontSize: 24),
-                        ),
+                      child: ClipOval(
+                        child: (comm.image != null && (comm.image!.startsWith('http://') || comm.image!.startsWith('https://')))
+                            ? CachedNetworkImage(
+                                imageUrl: comm.image!,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                                errorWidget: (context, url, error) => Center(
+                                  child: Text(
+                                    comm.name.substring(0, 1).toUpperCase(),
+                                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  comm.image ?? comm.name.substring(0, 1).toUpperCase(),
+                                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -1005,7 +1033,26 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> with SingleTicker
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(color: const Color(0xFF1E293B), shape: BoxShape.circle, border: Border.all(color: Colors.white24, width: 2)),
-                        child: Center(child: Text(comm.image ?? comm.name.substring(0, 1), style: const TextStyle(fontSize: 32))),
+                        child: ClipOval(
+                          child: (comm.image != null && (comm.image!.startsWith('http://') || comm.image!.startsWith('https://')))
+                              ? CachedNetworkImage(
+                                  imageUrl: comm.image!,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                                  errorWidget: (context, url, error) => Center(
+                                    child: Text(
+                                      comm.name.substring(0, 1).toUpperCase(),
+                                      style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                )
+                              : Center(
+                                  child: Text(
+                                    comm.image ?? comm.name.substring(0, 1).toUpperCase(),
+                                    style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Column(
