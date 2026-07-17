@@ -66,7 +66,7 @@ class EventController extends GetxController {
           'amount': isCoins ? '${amountVal.toInt()} Coins' : '₹${amountVal.toDouble()}',
           'currency': isCoins ? 'coins' : 'cash',
           'date': m['created_at'].toString().split('T').first,
-          'isCredit': m['transaction_type'] == 'Credit',
+          'isCredit': (m['type'] == 'Refund' || m['type'] == 'Bonus' || m['type'] == 'Recharge'),
         };
       }).toList());
     } catch (_) {}
@@ -264,7 +264,6 @@ class EventController extends GetxController {
         'type': 'Withdrawal',
         'status': 'Completed',
         'details': 'Withdrawal to $upiId',
-        'transaction_type': 'Debit',
       });
       await _loadTransactions();
       return true;
@@ -285,10 +284,9 @@ class EventController extends GetxController {
         'wallet_id': currentUserId,
         'amount': amount,
         'currency': 'INR',
-        'type': 'Deposit',
+        'type': 'Recharge',
         'status': 'Completed',
         'details': 'Deposit Cash',
-        'transaction_type': 'Credit',
       });
       await _loadTransactions();
     } catch (_) {}
@@ -316,11 +314,10 @@ class EventController extends GetxController {
       await Supabase.instance.client.from('wallet_transactions').insert({
         'wallet_id': currentUserId,
         'amount': 59.00,
-        'currency': 'Coins',
-        'type': 'Commission',
+        'currency': 'Gold Coins',
+        'type': 'Spend',
         'status': 'Completed',
         'details': 'Event Creation: ${newEvent.title}',
-        'transaction_type': 'Debit',
       });
     } catch (_) {}
 
@@ -436,11 +433,10 @@ class EventController extends GetxController {
         await Supabase.instance.client.from('wallet_transactions').insert({
           'wallet_id': currentUserId,
           'amount': 59.00,
-          'currency': 'Coins',
+          'currency': 'Gold Coins',
           'type': 'Refund',
           'status': 'Completed',
           'details': 'Refund: Event Creation Failed',
-          'transaction_type': 'Credit',
         });
       } catch (_) {}
 
@@ -510,10 +506,9 @@ class EventController extends GetxController {
             'wallet_id': currentUserId,
             'amount': e.entryFeeAmount.toDouble(),
             'currency': 'INR',
-            'type': 'Payout',
+            'type': 'Spend',
             'status': 'Completed',
             'details': 'Event Entry: ${e.title}',
-            'transaction_type': 'Debit',
           });
         } catch (_) {}
       } else if (e.entryFeeType == EntryFeeType.coins) {
@@ -532,11 +527,10 @@ class EventController extends GetxController {
           await Supabase.instance.client.from('wallet_transactions').insert({
             'wallet_id': currentUserId,
             'amount': e.entryFeeAmount.toDouble(),
-            'currency': 'Coins',
-            'type': 'Commission',
+            'currency': 'Gold Coins',
+            'type': 'Spend',
             'status': 'Completed',
             'details': 'Event Entry: ${e.title}',
-            'transaction_type': 'Debit',
           });
         } catch (_) {}
       }
@@ -684,7 +678,6 @@ class EventController extends GetxController {
           'type': 'Refund',
           'status': 'Completed',
           'details': 'Refund: Entry fee returned for ${e.title}',
-          'transaction_type': 'Credit',
         });
       } catch (_) {}
     }

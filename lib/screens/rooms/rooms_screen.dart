@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:creania/core/theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../models/room_model.dart';
 import '../../services/room_controller.dart';
 import '../../services/user_profile_cache_manager.dart';
@@ -616,7 +617,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           SizedBox(width: 12),
           // Create Arena button (plus)
           IconButton(
-            onPressed: () => Get.to(() => const CreateRoomScreen()),
+            onPressed: () => _checkCreationAndNavigate(context),
             icon: Icon(Icons.add_circle, color: Color(0xFF8B5CF6), size: 28),
             tooltip: 'Create Arena',
             constraints: const BoxConstraints(),
@@ -1130,7 +1131,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           ),
           SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => Get.to(() => const CreateRoomScreen()),
+            onPressed: () => _checkCreationAndNavigate(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: context.primaryColor,
               foregroundColor: Colors.white,
@@ -1376,7 +1377,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           ),
           SizedBox(height: 14),
           ElevatedButton(
-            onPressed: () => Get.to(() => const CreateRoomScreen()),
+            onPressed: () => _checkCreationAndNavigate(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFFF72585),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -2297,6 +2298,107 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                 );
               },
             ),
+    );
+  }
+
+  Future<void> _checkCreationAndNavigate(BuildContext context) async {
+    final user = UserProfileCacheManager.getCachedUser(UserProfileCacheManager.currentUserId);
+    final userLevel = user?.level ?? 1;
+    final userCoins = _controller.walletBalance.value;
+
+    int ticketCount = 0;
+    try {
+      final res = await Supabase.instance.client
+          .from('arena_tickets')
+          .select('id')
+          .eq('user_id', UserProfileCacheManager.currentUserId)
+          .eq('is_consumed', false);
+      if (res != null && res is List) {
+        ticketCount = res.length;
+      }
+    } catch (_) {}
+
+    final hasLevel = userLevel >= 15;
+    final hasCoins = userCoins >= 499;
+    final hasTicket = ticketCount > 0;
+
+    if (hasLevel || hasCoins || hasTicket) {
+      Get.to(() => const CreateRoomScreen());
+    } else {
+      _showRequirementsDialog(context, userLevel, userCoins, ticketCount);
+    }
+  }
+
+  void _showRequirementsDialog(BuildContext context, int currentLevel, int currentCoins, int currentTickets) {
+    final hasLevel = currentLevel >= 15;
+    final hasCoins = currentCoins >= 499;
+    final hasTicket = currentTickets > 0;
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: const Color(0xFF1B1D2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Requirements Unmet',
+          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'To create an Arena, you must meet at least ONE of the following criteria:',
+              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            _requirementItem(context, 'User Level 15 or above', hasLevel, 'Current: Lv.$currentLevel'),
+            const SizedBox(height: 12),
+            _requirementItem(context, '499 Gold Coins', hasCoins, 'Current: $currentCoins Coins'),
+            const SizedBox(height: 12),
+            _requirementItem(context, 'Arena Creation Ticket', hasTicket, 'Current: $currentTickets Tickets'),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Get.back(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _requirementItem(BuildContext context, String label, bool isMet, String detail) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          isMet ? Icons.check_circle_rounded : Icons.cancel_rounded,
+          color: isMet ? Colors.green : Colors.redAccent,
+          size: 20,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                detail,
+                style: const TextStyle(color: Colors.white60, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -4,22 +4,36 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/community_model.dart';
+import '../models/community_event_model.dart';
 import 'store_controller.dart';
 import 'user_profile_cache_manager.dart';
 
 class CommunityController extends GetxController {
   static String get currentUserId => UserProfileCacheManager.currentUserId;
 
-  // User Coins State
+  // User Coins State (representing gold coins)
   RxInt get userCoins => Get.find<StoreController>().coinsBalance;
 
   // Communities State
   final RxList<Community> communities = <Community>[].obs;
 
+  // Current User's Community Membership
+  final Rxn<CommunityMembership> userMembership = Rxn<CommunityMembership>();
+
+  // Current User's Pending Applications
+  final RxList<CommunityApplication> pendingApplications = <CommunityApplication>[].obs;
+
   // Showcased Community ID for Profile Badge
   final RxString showcasedCommunityId = ''.obs;
 
+  // StarMaker Additions State
+  final RxList<CommunityAnnouncement> communityAnnouncements = <CommunityAnnouncement>[].obs;
+  final RxList<CommunityEvent> communityEvents = <CommunityEvent>[].obs;
+  final RxList<CommunityLog> communityLogs = <CommunityLog>[].obs;
+
   RealtimeChannel? _communitiesSubscription;
+  RealtimeChannel? _membershipsSubscription;
+  RealtimeChannel? _applicationsSubscription;
 
   void setShowcasedCommunity(String communityId) {
     showcasedCommunityId.value = communityId;
@@ -35,6 +49,8 @@ class CommunityController extends GetxController {
   @override
   void onClose() {
     _communitiesSubscription?.unsubscribe();
+    _membershipsSubscription?.unsubscribe();
+    _applicationsSubscription?.unsubscribe();
     super.onClose();
   }
 
@@ -46,7 +62,6 @@ class CommunityController extends GetxController {
           .from('communities')
           .select()
           .order('created_at', ascending: false);
-
       final loaded = list.map((m) => Community.fromJson({
         'id': m['id'],
         'name': m['name'],
@@ -54,172 +69,93 @@ class CommunityController extends GetxController {
         'image': m['image'],
         'banner': m['banner'],
         'category': m['category'],
-        'type': m['type'],
+        'type': m['type'] ?? 'public',
         'owner': m['owner'],
-        'coOwnerIds': m['co_owner_ids'] ?? [],
+        'co_owner_ids': m['co_owner_ids'] ?? [],
         'admins': m['admins'] ?? [],
         'members': m['members'] ?? [],
-        'memberCount': m['member_count'] ?? 1,
-        'isVerified': m['is_verified'] ?? false,
-        'createdAt': m['created_at'] ?? DateTime.now().toIso8601String(),
+        'member_count': m['member_count'] ?? 0,
+        'is_verified': m['is_verified'] ?? false,
+        'created_at': m['created_at'] ?? DateTime.now().toIso8601String(),
         'level': m['level'] ?? 1,
         'xp': m['xp'] ?? 0,
-        'creationType': m['creation_type'] ?? 'coins',
-        'isApproved': m['is_approved'] ?? true,
-        'isLogoUnlocked': m['is_logo_unlocked'] ?? true,
+        'creation_type': m['creation_type'] ?? 'coins',
+        'is_approved': m['is_approved'] ?? true,
+        'is_logo_unlocked': m['is_logo_unlocked'] ?? true,
         'rules': m['rules'] ?? '',
         'tasks': m['tasks'] ?? [],
+        'is_official': m['is_official'] ?? false,
+        'join_mode': m['join_mode'] ?? 'auto_join',
+        'language': m['language'] ?? 'en',
+        'country': m['country'] ?? 'IN',
+        'min_id_level': m['min_id_level'] ?? 1,
+        'preferred_languages': m['preferred_languages'] ?? [],
+        'preferred_countries': m['preferred_countries'] ?? [],
+        'preferred_interests': m['preferred_interests'] ?? [],
+        'tags': m['tags'] ?? [],
+        'visibility': m['visibility'] ?? 'public',
+        'lifetime_exp': m['lifetime_exp'] ?? 0,
+        'daily_exp': m['daily_exp'] ?? 0,
+        'weekly_exp': m['weekly_exp'] ?? 0,
+        'monthly_exp': m['monthly_exp'] ?? 0,
+        'activity_score': m['activity_score'] ?? 0,
+        'co_owner_limit': m['co_owner_limit'] ?? 2,
+        'admin_limit': m['admin_limit'] ?? 5,
       })).toList();
 
-      final hasOfficial = loaded.any((c) => c.type == 'Official');
-      if (!hasOfficial && currentUserId.isNotEmpty) {
-        debugPrint('[CommunityController] Official communities missing. Auto-creating...');
-        await _createOfficialCommunities();
-        // Reload after creation
-        return _loadCommunitiesFromDatabase();
-      }
-
       communities.assignAll(loaded);
+      await _loadUserMembership();
+      await _loadUserApplications();
     } catch (e) {
       debugPrint('DB Load Error: Fallback to initial communities: $e');
       _loadInitialCommunities();
     }
   }
 
-  Future<void> _createOfficialCommunities() async {
-    final myId = currentUserId;
-    if (myId.isEmpty) return;
-
-    final officialData = [
-      {
-        'id': 'comm-connect-005',
-        'name': 'Creania Connect',
-        'description': 'Meet new people, make friends, chat, voice rooms, and social networking.',
-        'category': 'Social',
-        'type': 'Official',
-        'owner': myId,
-        'image': '🤝',
-        'banner': 'https://images.unsplash.com/photo-1522071820081-009f0129c71c',
-        'is_verified': true,
-        'member_count': 0,
-        'members': [],
-        'co_owner_ids': [],
-        'admins': [],
-        'level': 1,
-        'xp': 0,
-        'creation_type': 'coins',
-        'is_approved': true,
-        'is_logo_unlocked': true,
-        'rules': 'Be respectful. No spamming or self-promotion.',
-        'tasks': [],
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      {
-        'id': 'comm-official-001',
-        'name': 'Creania Official',
-        'description': 'Official announcements, platform events, updates, and verified activities.',
-        'category': 'General',
-        'type': 'Official',
-        'owner': myId,
-        'image': '📢',
-        'banner': 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809',
-        'is_verified': true,
-        'member_count': 0,
-        'members': [],
-        'co_owner_ids': [],
-        'admins': [],
-        'level': 1,
-        'xp': 0,
-        'creation_type': 'coins',
-        'is_approved': true,
-        'is_logo_unlocked': true,
-        'rules': 'Be respectful. No spamming or self-promotion.',
-        'tasks': [],
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      {
-        'id': 'comm-creators-002',
-        'name': 'Creania Creators',
-        'description': 'Content creators, artists, designers, writers, and creators.',
-        'category': 'Education',
-        'type': 'Official',
-        'owner': myId,
-        'image': '🎨',
-        'banner': 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe',
-        'is_verified': true,
-        'member_count': 0,
-        'members': [],
-        'co_owner_ids': [],
-        'admins': [],
-        'level': 1,
-        'xp': 0,
-        'creation_type': 'coins',
-        'is_approved': true,
-        'is_logo_unlocked': true,
-        'rules': 'Be respectful. No spamming or self-promotion.',
-        'tasks': [],
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      {
-        'id': 'comm-gamers-003',
-        'name': 'Creania Gamers',
-        'description': 'Gaming, esports, tournaments, and live gaming rooms.',
-        'category': 'Gaming',
-        'type': 'Official',
-        'owner': myId,
-        'image': '🎮',
-        'banner': 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc',
-        'is_verified': true,
-        'member_count': 0,
-        'members': [],
-        'co_owner_ids': [],
-        'admins': [],
-        'level': 1,
-        'xp': 0,
-        'creation_type': 'coins',
-        'is_approved': true,
-        'is_logo_unlocked': true,
-        'rules': 'Be respectful. No spamming or self-promotion.',
-        'tasks': [],
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      {
-        'id': 'comm-campus-004',
-        'name': 'Creania Campus',
-        'description': 'Students, education, study groups, notes, and discussions.',
-        'category': 'College',
-        'type': 'Official',
-        'owner': myId,
-        'image': '🏫',
-        'banner': 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1',
-        'is_verified': true,
-        'member_count': 0,
-        'members': [],
-        'co_owner_ids': [],
-        'admins': [],
-        'level': 1,
-        'xp': 0,
-        'creation_type': 'coins',
-        'is_approved': true,
-        'is_logo_unlocked': true,
-        'rules': 'Be respectful. No spamming or self-promotion.',
-        'tasks': [],
-        'created_at': DateTime.now().toIso8601String(),
-      },
-    ];
-
-    for (final data in officialData) {
-      try {
-        await Supabase.instance.client.from('communities').upsert(data);
-      } catch (e) {
-        debugPrint('[CommunityController] Failed to create official community ${data['name']}: $e');
+  Future<void> _loadUserMembership() async {
+    if (currentUserId.isEmpty) {
+      userMembership.value = null;
+      return;
+    }
+    try {
+      final res = await Supabase.instance.client
+          .from('community_memberships')
+          .select()
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+      if (res != null) {
+        userMembership.value = CommunityMembership.fromJson(res);
+      } else {
+        userMembership.value = null;
       }
+    } catch (e) {
+      userMembership.value = null;
+      debugPrint('Load User Membership Error: $e');
+    }
+  }
+
+  Future<void> _loadUserApplications() async {
+    if (currentUserId.isEmpty) {
+      pendingApplications.clear();
+      return;
+    }
+    try {
+      final List<dynamic> res = await Supabase.instance.client
+          .from('community_applications')
+          .select()
+          .eq('user_id', currentUserId)
+          .eq('status', 'pending');
+      pendingApplications.assignAll(
+          res.map((r) => CommunityApplication.fromJson(r)).toList());
+    } catch (e) {
+      debugPrint('Load User Applications Error: $e');
     }
   }
 
   void subscribeToRealtime() {
     try {
-      _communitiesSubscription = Supabase.instance.client
+      final client = Supabase.instance.client;
+      _communitiesSubscription = client
           .channel('public:communities')
           .onPostgresChanges(
             event: PostgresChangeEvent.all,
@@ -230,6 +166,30 @@ class CommunityController extends GetxController {
             },
           );
       _communitiesSubscription?.subscribe();
+
+      _membershipsSubscription = client
+          .channel('public:community_memberships')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'community_memberships',
+            callback: (payload) {
+              _loadCommunitiesFromDatabase();
+            },
+          );
+      _membershipsSubscription?.subscribe();
+
+      _applicationsSubscription = client
+          .channel('public:community_applications')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'community_applications',
+            callback: (payload) {
+              _loadCommunitiesFromDatabase();
+            },
+          );
+      _applicationsSubscription?.subscribe();
     } catch (e) {
       debugPrint('Realtime Sub failed: $e');
     }
@@ -285,228 +245,150 @@ class CommunityController extends GetxController {
   }
 
   Future<String?> createCommunity({
+    required String id,
     required String name,
-    required String username,
     required String description,
     required String category,
-    required String creationType,
+    required String language,
+    required String country,
+    required String rules,
+    required String joinMode,
+    required int minIdLevel,
+    required List<String> preferredLanguages,
+    required List<String> preferredCountries,
+    required List<String> preferredInterests,
+    required List<String> tags,
+    required String visibility,
     String? logo,
     String? banner,
+    required String creationMethod,
+    String? identityTag,
   }) async {
-    if (name.trim().isEmpty) return 'Community name cannot be empty';
-
-    if (communities.any((c) => c.owner == currentUserId)) {
-      return 'You can only own one community/family at a time.';
-    }
-
-    final id = 'comm_${DateTime.now().millisecondsSinceEpoch}';
-
-    final tasksList = creationType == 'coins' ? [] : [
-      {
-        'id': 't1',
-        'title': 'Invite 5 Members',
-        'description': 'Get at least 5 members to join your community',
-        'target': 5,
-        'current': 1,
-        'isCompleted': false,
-      },
-      {
-        'id': 't2',
-        'title': 'Host a Community Voice Room',
-        'description': 'Start a voice room linked to this community',
-        'target': 1,
-        'current': 0,
-        'isCompleted': false,
-      },
-      {
-        'id': 't3',
-        'title': 'Publish 3 Posts',
-        'description': 'Share 3 updates or announcements in the community feed',
-        'target': 3,
-        'current': 0,
-        'isCompleted': false,
-      }
-    ];
-
-    if (creationType == 'coins') {
-      if (userCoins.value < 10000) {
-        return 'Insufficient coin balance. You need 10,000 coins.';
-      }
-      userCoins.value -= 10000;
-      try {
-        await Supabase.instance.client
-            .from('wallets')
-            .update({'coins_balance': userCoins.value})
-            .eq('id', currentUserId);
-      } catch (_) {}
-    }
-
     try {
-      final payload = {
-        'id': id,
-        'name': name,
-        'username': username,
-        'description': description,
-        'category': category,
-        'type': 'public',
-        'owner': currentUserId,
-        'co_owner_ids': [],
-        'admins': [],
-        'members': [currentUserId],
-        'member_count': 1,
-        'is_verified': false,
-        'level': 1,
-        'xp': 0,
-        'creation_type': creationType,
-        'is_approved': creationType == 'coins',
-        'is_logo_unlocked': creationType == 'coins',
-        'rules': 'Be respectful. No spamming or self-promotion.',
-        'tasks': tasksList,
-        'image': logo,
-        'banner': banner,
-        'created_at': DateTime.now().toIso8601String(),
-      };
+      final response = await Supabase.instance.client.rpc('create_community_rpc', params: {
+        'p_id': id,
+        'p_name': name,
+        'p_description': description,
+        'p_category': category,
+        'p_language': language,
+        'p_country': country,
+        'p_rules': rules,
+        'p_join_mode': joinMode,
+        'p_min_id_level': minIdLevel,
+        'p_preferred_languages': preferredLanguages,
+        'p_preferred_countries': preferredCountries,
+        'p_preferred_interests': preferredInterests,
+        'p_tags': tags,
+        'p_visibility': visibility,
+        'p_image': logo,
+        'p_banner': banner,
+        'p_creation_method': creationMethod,
+        'p_identity_tag': identityTag,
+      });
 
-      await Supabase.instance.client.from('communities').insert(payload);
+      if (response != null && response is Map && response['success'] == false) {
+        return response['error']?.toString() ?? 'Failed to create community';
+      }
+
+      await _loadCommunitiesFromDatabase();
+      await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String?> joinCommunity(String communityId, {
+    String? introduction,
+    String? reason,
+    String? preferredLanguage,
+    String? optionalMessage,
+  }) async {
+    try {
+      final response = await Supabase.instance.client.rpc('join_community_rpc', params: {
+        'p_community_id': communityId,
+        'p_introduction': introduction,
+        'p_reason': reason,
+        'p_preferred_language': preferredLanguage,
+        'p_optional_message': optionalMessage,
+      });
+
+      if (response != null && response is Map) {
+        if (response['success'] == false) {
+          return response['error']?.toString() ?? 'Failed to join community';
+        }
+        await _loadCommunitiesFromDatabase();
+        await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
+        return null;
+      }
+      return 'Unexpected backend response';
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String?> leaveCommunity(String communityId) async {
+    try {
+      final response = await Supabase.instance.client.rpc('leave_community_rpc', params: {
+        'p_community_id': communityId,
+      });
+
+      if (response != null && response is Map && response['success'] == false) {
+        return response['error']?.toString() ?? 'Failed to leave community';
+      }
+
+      await _loadCommunitiesFromDatabase();
+      await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String?> processApplication(String applicationId, String action) async {
+    try {
+      final response = await Supabase.instance.client.rpc('process_application_rpc', params: {
+        'p_application_id': applicationId,
+        'p_action': action,
+      });
+
+      if (response != null && response is Map && response['success'] == false) {
+        return response['error']?.toString() ?? 'Failed to process application';
+      }
+
       await _loadCommunitiesFromDatabase();
       return null;
     } catch (e) {
-      if (creationType == 'coins') {
-        userCoins.value += 10000;
-        try {
-          await Supabase.instance.client
-              .from('wallets')
-              .update({'coins_balance': userCoins.value})
-              .eq('id', currentUserId);
-        } catch (_) {}
-      }
-      return 'Failed to create community: $e';
+      return e.toString();
     }
   }
 
-  Future<void> joinCommunity(String communityId) async {
-    final idx = communities.indexWhere((c) => c.id == communityId);
-    if (idx != -1) {
-      final comm = communities[idx];
+  Future<String?> manageMemberRole(String communityId, String targetUserId, String role) async {
+    try {
+      final response = await Supabase.instance.client.rpc('manage_member_role_rpc', params: {
+        'p_community_id': communityId,
+        'p_target_user_id': targetUserId,
+        'p_role': role,
+      });
 
-      if (comm.type == 'Official') {
-        // 1. Single Official Community rule
-        final alreadyJoined = communities.any((c) => c.type == 'Official' && c.members.contains(currentUserId));
-        if (alreadyJoined) {
-          Get.defaultDialog(
-            title: 'Already Joined',
-            backgroundColor: const Color(0xFF1B1D2A),
-            titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-            middleTextStyle: GoogleFonts.poppins(color: Colors.white70),
-            middleText: 'You have already joined an Official Community. Leave your current Official Community before joining another.',
-            textConfirm: 'OK',
-            confirmTextColor: Colors.white,
-            onConfirm: () => Get.back(),
-          );
-          return;
-        }
-
-        // 2. Cooldown check
-        try {
-          final res = await Supabase.instance.client
-              .from('profiles')
-              .select('official_community_cooldown_until')
-              .eq('id', currentUserId)
-              .maybeSingle();
-          if (res != null && res['official_community_cooldown_until'] != null) {
-            final cooldownStr = res['official_community_cooldown_until'] as String;
-            final cooldownDate = DateTime.parse(cooldownStr);
-            if (cooldownDate.isAfter(DateTime.now())) {
-              Get.defaultDialog(
-                title: 'Join Unavailable',
-                backgroundColor: const Color(0xFF1B1D2A),
-                titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-                middleTextStyle: GoogleFonts.poppins(color: Colors.white70),
-                middleText: 'You recently left an Official Community. You can join another Official Community after 24 hours.',
-                textConfirm: 'OK',
-                confirmTextColor: Colors.white,
-                onConfirm: () => Get.back(),
-              );
-              return;
-            }
-          }
-        } catch (_) {}
+      if (response != null && response is Map && response['success'] == false) {
+        return response['error']?.toString() ?? 'Failed to manage role';
       }
 
-      if (!comm.members.contains(currentUserId)) {
-        final updatedMembers = [...comm.members, currentUserId];
-        final updatedCount = comm.memberCount + 1;
-        
-        try {
-          await Supabase.instance.client
-              .from('communities')
-              .update({
-                'members': updatedMembers,
-                'member_count': updatedCount,
-              })
-              .eq('id', communityId);
-          
-          await _loadCommunitiesFromDatabase();
-          await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
-
-          if (comm.owner == currentUserId) {
-            await updateTaskProgress(communityId, 't1', updatedCount);
-          }
-        } catch (_) {}
-      }
+      await _loadCommunitiesFromDatabase();
+      return null;
+    } catch (e) {
+      return e.toString();
     }
   }
 
-  Future<void> leaveCommunity(String communityId) async {
-    final idx = communities.indexWhere((c) => c.id == communityId);
-    if (idx != -1) {
-      final comm = communities[idx];
-      if (comm.owner == currentUserId) return;
-
-      final updatedMembers = comm.members.where((id) => id != currentUserId).toList();
-      final updatedAdmins = comm.admins.where((id) => id != currentUserId).toList();
-      final updatedCoOwners = comm.coOwnerIds.where((id) => id != currentUserId).toList();
-
-      try {
-        await Supabase.instance.client
-            .from('communities')
-            .update({
-              'members': updatedMembers,
-              'admins': updatedAdmins,
-              'co_owner_ids': updatedCoOwners,
-              'member_count': comm.memberCount > 1 ? comm.memberCount - 1 : 1,
-            })
-            .eq('id', communityId);
-        
-        await _loadCommunitiesFromDatabase();
-        await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
-      } catch (_) {}
-    }
+  Future<String?> promoteMember(String communityId, String userId, String role) async {
+    final backendRole = role == 'coOwner' ? 'co_owner' : role;
+    return manageMemberRole(communityId, userId, backendRole);
   }
 
-  Future<void> kickMember(String communityId, String userId) async {
-    final idx = communities.indexWhere((c) => c.id == communityId);
-    if (idx != -1) {
-      final comm = communities[idx];
-      
-      final updatedMembers = comm.members.where((id) => id != userId).toList();
-      final updatedAdmins = comm.admins.where((id) => id != userId).toList();
-      final updatedCoOwners = comm.coOwnerIds.where((id) => id != userId).toList();
-
-      try {
-        await Supabase.instance.client
-            .from('communities')
-            .update({
-              'members': updatedMembers,
-              'admins': updatedAdmins,
-              'co_owner_ids': updatedCoOwners,
-              'member_count': comm.memberCount > 1 ? comm.memberCount - 1 : 1,
-            })
-            .eq('id', communityId);
-        
-        await _loadCommunitiesFromDatabase();
-      } catch (_) {}
-    }
+  Future<String?> kickMember(String communityId, String userId) async {
+    return manageMemberRole(communityId, userId, 'kick');
   }
 
   Future<void> updateTaskProgress(String communityId, String taskId, int incrementTo) async {
@@ -539,82 +421,69 @@ class CommunityController extends GetxController {
       } catch (_) {}
     }
   }
-
-  Future<void> approveApplication(String communityId) async {
-    final idx = communities.indexWhere((c) => c.id == communityId);
-    if (idx != -1) {
-      try {
-        await Supabase.instance.client
-            .from('communities')
-            .update({'is_approved': true})
-            .eq('id', communityId);
-        await _loadCommunitiesFromDatabase();
-      } catch (_) {}
+  Future<void> addXp(String communityId, int amount, {String sourceType = 'normal'}) async {
+    try {
+      final res = await Supabase.instance.client.rpc('add_community_exp_rpc', params: {
+        'p_community_id': communityId,
+        'p_user_id': currentUserId,
+        'p_source_type': sourceType,
+        'p_amount': amount,
+      });
+      debugPrint('add_community_exp_rpc response: $res');
+      await _loadCommunitiesFromDatabase();
+    } catch (e) {
+      debugPrint('addXp failed: $e');
     }
   }
 
-  Future<void> promoteMember(String communityId, String userId, String role) async {
-    final idx = communities.indexWhere((c) => c.id == communityId);
-    if (idx != -1) {
-      final comm = communities[idx];
-      List<String> coOwners = List.from(comm.coOwnerIds);
-      List<String> admins = List.from(comm.admins);
-
-      if (role == 'coOwner') {
-        admins.remove(userId);
-        if (!coOwners.contains(userId)) coOwners.add(userId);
-      } else if (role == 'admin') {
-        coOwners.remove(userId);
-        if (!admins.contains(userId)) admins.add(userId);
+  Future<bool> checkIn(String communityId) async {
+    try {
+      final response = await Supabase.instance.client.rpc('check_in_community_rpc', params: {
+        'p_community_id': communityId,
+      });
+      if (response != null && response['success'] == true) {
+        await _loadCommunitiesFromDatabase();
+        return true;
       } else {
-        coOwners.remove(userId);
-        admins.remove(userId);
+        final err = response?['error'] ?? 'Check-in failed.';
+        Get.snackbar('Check-in', err,
+            backgroundColor: const Color(0xFF1E1E2E),
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM);
+        return false;
       }
-
-      try {
-        await Supabase.instance.client
-            .from('communities')
-            .update({
-              'co_owner_ids': coOwners,
-              'admins': admins,
-            })
-            .eq('id', communityId);
-        
-        await _loadCommunitiesFromDatabase();
-      } catch (_) {}
+    } catch (e) {
+      Get.snackbar('Check-in', e.toString(),
+          backgroundColor: const Color(0xFF1E1E2E),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM);
+      return false;
     }
   }
 
-  Future<void> addXp(String communityId, int amount) async {
-    final idx = communities.indexWhere((c) => c.id == communityId);
-    if (idx != -1) {
-      final comm = communities[idx];
-      int newXp = comm.xp + amount;
-      int newLevel = comm.level;
-      
-      if (newXp >= newLevel * 1000) {
-        newXp -= newLevel * 1000;
-        newLevel += 1;
+  Future<List<Map<String, dynamic>>> getLeaderboard(String communityId, String type) async {
+    try {
+      final response = await Supabase.instance.client.rpc('get_community_leaderboard_rpc', params: {
+        'p_community_id': communityId,
+        'p_type': type,
+        'p_limit': 20,
+      });
+      if (response != null && response['success'] == true && response['data'] != null) {
+        return List<Map<String, dynamic>>.from(response['data']);
       }
-
-      try {
-        await Supabase.instance.client
-            .from('communities')
-            .update({
-              'xp': newXp,
-              'level': newLevel,
-            })
-            .eq('id', communityId);
-        await _loadCommunitiesFromDatabase();
-      } catch (_) {}
+    } catch (e) {
+      debugPrint('getLeaderboard failed: $e');
     }
+    return [];
   }
-
   String getUserRole(Community comm) {
-    if (comm.owner == currentUserId) return 'Owner';
-    if (comm.coOwnerIds.contains(currentUserId)) return 'Co-Owner';
-    if (comm.admins.contains(currentUserId)) return 'Admin';
-    if (comm.members.contains(currentUserId)) return 'Member';
+    if (userMembership.value != null && userMembership.value!.communityId == comm.id) {
+      final r = userMembership.value!.role;
+      if (r == 'owner') return 'Owner';
+      if (r == 'co_owner') return 'Co-Owner';
+      if (r == 'admin') return 'Admin';
+      return 'Member';
+    }
     return 'Guest';
   }
 
@@ -645,4 +514,217 @@ class CommunityController extends GetxController {
         c.username.toLowerCase().contains(query.toLowerCase()) ||
         c.id.toLowerCase().contains(query.toLowerCase())).toList();
   }
+
+  Future<void> loadCommunityAdditions(String communityId) async {
+    try {
+      // Announcements
+      final annRes = await Supabase.instance.client
+          .from('community_announcements')
+          .select()
+          .eq('community_id', communityId)
+          .order('is_pinned', ascending: false)
+          .order('created_at', ascending: false);
+      communityAnnouncements.assignAll((annRes as List).map((a) => CommunityAnnouncement.fromJson(a)).toList());
+
+      // Events
+      final evRes = await Supabase.instance.client
+          .from('community_events')
+          .select()
+          .eq('community_id', communityId)
+          .order('start_time', ascending: true);
+      communityEvents.assignAll((evRes as List).map((e) => CommunityEvent.fromJson(e)).toList());
+
+      // Logs
+      if (userMembership.value != null && ['owner', 'co_owner', 'admin'].contains(userMembership.value!.role)) {
+        final logRes = await Supabase.instance.client
+            .from('community_logs')
+            .select()
+            .eq('community_id', communityId)
+            .order('created_at', ascending: false)
+            .limit(30);
+        communityLogs.assignAll((logRes as List).map((l) => CommunityLog.fromJson(l)).toList());
+      } else {
+        communityLogs.clear();
+      }
+    } catch (e) {
+      debugPrint('Load additions failed: $e');
+    }
+  }
+
+  Future<bool> createAnnouncement(String communityId, String title, String content, bool isPinned) async {
+    try {
+      final res = await Supabase.instance.client.rpc('create_announcement_rpc', params: {
+        'p_community_id': communityId,
+        'p_title': title,
+        'p_content': content,
+        'p_is_pinned': isPinned,
+      });
+      if (res != null && res['success'] == true) {
+        await loadCommunityAdditions(communityId);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Create announcement failed: $e');
+    }
+    return false;
+  }
+
+  Future<bool> deleteAnnouncement(String communityId, String announcementId) async {
+    try {
+      final res = await Supabase.instance.client.rpc('delete_announcement_rpc', params: {
+        'p_community_id': communityId,
+        'p_announcement_id': announcementId,
+      });
+      if (res != null && res['success'] == true) {
+        await loadCommunityAdditions(communityId);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Delete announcement failed: $e');
+    }
+    return false;
+  }
+
+  Future<bool> pinAnnouncement(String communityId, String announcementId, bool isPinned) async {
+    try {
+      final res = await Supabase.instance.client.rpc('pin_announcement_rpc', params: {
+        'p_community_id': communityId,
+        'p_announcement_id': announcementId,
+        'p_is_pinned': isPinned,
+      });
+      if (res != null && res['success'] == true) {
+        await loadCommunityAdditions(communityId);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Pin announcement failed: $e');
+    }
+    return false;
+  }
+
+  Future<bool> createCommunityEvent(
+    String communityId,
+    String name,
+    String banner,
+    String description,
+    DateTime startTime,
+    DateTime endTime,
+    String hostId,
+    List<String> coHosts,
+    int maxParticipants,
+    String rewards,
+    String rules,
+  ) async {
+    try {
+      final res = await Supabase.instance.client.rpc('create_community_event_rpc', params: {
+        'p_community_id': communityId,
+        'p_name': name,
+        'p_banner': banner,
+        'p_description': description,
+        'p_start_time': startTime.toIso8601String(),
+        'p_end_time': endTime.toIso8601String(),
+        'p_host_id': hostId,
+        'p_co_hosts': coHosts,
+        'p_max_participants': maxParticipants,
+        'p_rewards': rewards,
+        'p_rules': rules,
+      });
+      if (res != null && res['success'] == true) {
+        await loadCommunityAdditions(communityId);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Create community event failed: $e');
+    }
+    return false;
+  }
+
+  Future<bool> registerForEvent(String communityId, String eventId) async {
+    try {
+      final res = await Supabase.instance.client.rpc('register_for_event_rpc', params: {
+        'p_event_id': eventId,
+      });
+      if (res != null && res['success'] == true) {
+        await loadCommunityAdditions(communityId);
+        return true;
+      } else {
+        final err = res?['error'] ?? 'Registration failed.';
+        Get.snackbar('Registration', err, backgroundColor: Colors.amber, colorText: Colors.black);
+      }
+    } catch (e) {
+      debugPrint('Register for event failed: $e');
+    }
+    return false;
+  }
+
+  Future<bool> cancelEvent(String communityId, String eventId) async {
+    try {
+      final res = await Supabase.instance.client.rpc('cancel_event_rpc', params: {
+        'p_community_id': communityId,
+        'p_event_id': eventId,
+      });
+      if (res != null && res['success'] == true) {
+        await loadCommunityAdditions(communityId);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Cancel event failed: $e');
+    }
+    return false;
+  }
+
+  Future<bool> updateCommunitySettings(String communityId, Map<String, dynamic> s) async {
+    try {
+      final res = await Supabase.instance.client.rpc('update_community_settings_rpc', params: {
+        'p_community_id': communityId,
+        'p_name': s['name'],
+        'p_banner': s['banner'],
+        'p_avatar': s['image'],
+        'p_description': s['description'],
+        'p_rules': s['rules'],
+        'p_join_mode': s['join_mode'],
+        'p_min_id_level': s['min_id_level'],
+        'p_language': s['language'],
+        'p_country': s['country'],
+        'p_category': s['category'],
+        'p_visibility': s['visibility'],
+      });
+      if (res != null && res['success'] == true) {
+        await _loadCommunitiesFromDatabase();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Update settings failed: $e');
+    }
+    return false;
+  }
+
+  Future<Map<String, dynamic>?> getCommunityAnalytics(String communityId) async {
+    try {
+      final res = await Supabase.instance.client.rpc('get_community_analytics_rpc', params: {
+        'p_community_id': communityId,
+      });
+      if (res != null && res['success'] == true) {
+        return Map<String, dynamic>.from(res);
+      }
+    } catch (e) {
+      debugPrint('Get analytics failed: $e');
+    }
+    return null;
+  }
+
+  Future<List<CommunityMembership>> getDetailedMembers(String communityId) async {
+    try {
+      final res = await Supabase.instance.client.rpc('get_community_members_detailed_rpc', params: {
+        'p_community_id': communityId,
+      });
+      if (res != null && res['success'] == true && res['data'] != null) {
+        return (res['data'] as List).map((m) => CommunityMembership.fromJson(Map<String, dynamic>.from(m))).toList();
+      }
+    } catch (e) {
+      debugPrint('Get detailed members failed: $e');
+    }
+    return [];
+  }
 }
+

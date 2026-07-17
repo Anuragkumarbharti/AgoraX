@@ -415,7 +415,7 @@ class StoreController extends GetxController {
           'wallet_id': UserProfileCacheManager.currentUserId,
           'amount': inrAmount,
           'currency': 'INR',
-          'type': 'Deposit',
+          'type': 'Recharge',
           'status': 'Completed',
           'reference_id': paymentId,
           'details': 'Recharged $coinsAdded Coins',
@@ -484,8 +484,8 @@ class StoreController extends GetxController {
           await client.from('wallet_transactions').insert({
             'wallet_id': UserProfileCacheManager.currentUserId,
             'amount': goldPrice.toDouble(),
-            'currency': 'Coins',
-            'type': 'Payout',
+            'currency': 'Gold Coins',
+            'type': 'Purchase',
             'status': 'Completed',
             'details': 'Purchased $name',
           });

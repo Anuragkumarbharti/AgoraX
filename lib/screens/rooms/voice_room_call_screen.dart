@@ -6364,12 +6364,14 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
           end: Alignment.bottomRight,
         );
       } else if (type == 'community') {
-        color = const Color(0xFFEC4899);
-        gradient = const LinearGradient(
-          colors: [Color(0xFFF472B6), Color(0xFFEC4899)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
+        color = t.color != null ? Color(int.parse(t.color!.replaceAll('#', '0xFF'))) : const Color(0xFFEC4899);
+        if (t.color == null) {
+          gradient = const LinearGradient(
+            colors: [Color(0xFFF472B6), Color(0xFFEC4899)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+        }
       } else if (type == 'vip') {
         color = const Color(0xFF3B82F6);
         gradient = const LinearGradient(
@@ -6398,6 +6400,12 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
         'color': color,
         'gradient': gradient,
         'imageUrl': t.imageUrl,
+        'customColor': t.color,
+        'border': t.border,
+        'glow': t.glow,
+        'animation': t.animation,
+        'effects': t.effects,
+        'icon': t.icon,
       });
     }
 
@@ -6462,6 +6470,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
 
       final color = tag['color'] as Color;
       final gradient = tag['gradient'] as Gradient?;
+      final String? glow = tag['glow'] as String?;
+      final String? borderType = tag['border'] as String?;
+      final String? animation = tag['animation'] as String?;
+      final String? icon = tag['icon'] as String?;
 
       Color bg = color.withOpacity(0.12);
       Color borderCol = color.withOpacity(0.4);
@@ -6472,30 +6484,51 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
         textCol = Colors.white;
       }
 
-      return Tooltip(
-        message: 'Identity Tag: $label',
-        child: GestureDetector(
-          onTap: () {
-            Get.snackbar('Tag Info', 'Details page for $label tag (coming soon).');
-          },
-          child: Container(
-            height: 22,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              gradient: gradient,
-              color: gradient == null ? bg : null,
-              border: Border.all(color: borderCol, width: 1.0),
-              boxShadow: [
-                BoxShadow(
-                  color: borderCol.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                )
+      // Dynamic shadows based on glow
+      List<BoxShadow> shadows = [
+        BoxShadow(
+          color: borderCol.withOpacity(0.1),
+          blurRadius: 4,
+          offset: const Offset(0, 1),
+        )
+      ];
+
+      if (glow == 'gold') {
+        shadows.add(BoxShadow(color: const Color(0xFFF59E0B).withOpacity(0.4), blurRadius: 6, spreadRadius: 1));
+      } else if (glow == 'silver') {
+        shadows.add(BoxShadow(color: const Color(0xFFE2E8F0).withOpacity(0.4), blurRadius: 5, spreadRadius: 1));
+      } else if (glow == 'neon') {
+        shadows.add(BoxShadow(color: const Color(0xFF818CF8).withOpacity(0.5), blurRadius: 8, spreadRadius: 1.5));
+      }
+
+      BoxBorder borderStyle = Border.all(color: borderCol, width: 1.0);
+      if (borderType == 'gold_glow') {
+        borderStyle = Border.all(color: const Color(0xFFF59E0B), width: 1.2);
+      } else if (borderType == 'silver_glow') {
+        borderStyle = Border.all(color: const Color(0xFFE2E8F0), width: 1.0);
+      } else if (borderType == 'rainbow_neon') {
+        borderStyle = Border.all(color: const Color(0xFF818CF8), width: 1.5);
+      }
+
+      Widget tagContent = Container(
+        height: 22,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          gradient: gradient,
+          color: gradient == null ? bg : null,
+          border: borderStyle,
+          boxShadow: shadows,
+        ),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Text(icon, style: const TextStyle(fontSize: 10)),
+                const SizedBox(width: 4),
               ],
-            ),
-            child: Center(
-              child: Text(
+              Text(
                 label,
                 style: GoogleFonts.poppins(
                   color: textCol,
@@ -6504,8 +6537,24 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                   letterSpacing: 0.2,
                 ),
               ),
-            ),
+            ],
           ),
+        ),
+      );
+
+      if (animation == 'breathing') {
+        tagContent = _BreathingWidget(child: tagContent);
+      } else if (animation == 'rotating') {
+        tagContent = _PulseWidget(child: tagContent);
+      }
+
+      return Tooltip(
+        message: 'Identity Tag: $label',
+        child: GestureDetector(
+          onTap: () {
+            Get.snackbar('Tag Info', 'Details page for $label tag.');
+          },
+          child: tagContent,
         ),
       );
     }).toList();
@@ -9678,5 +9727,77 @@ class _BreathingVTagState extends State<_BreathingVTag> with SingleTickerProvide
         ),
       ),
     );
+  }
+}
+
+class _BreathingWidget extends StatefulWidget {
+  final Widget child;
+  const _BreathingWidget({Key? key, required this.child}) : super(key: key);
+
+  @override
+  State<_BreathingWidget> createState() => _BreathingWidgetState();
+}
+
+class _BreathingWidgetState extends State<_BreathingWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _scaleAnimation = Tween<double>(begin: 0.96, end: 1.04).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(scale: _scaleAnimation, child: widget.child);
+  }
+}
+
+class _PulseWidget extends StatefulWidget {
+  final Widget child;
+  const _PulseWidget({Key? key, required this.child}) : super(key: key);
+
+  @override
+  State<_PulseWidget> createState() => _PulseWidgetState();
+}
+
+class _PulseWidgetState extends State<_PulseWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _opacityAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(opacity: _opacityAnimation, child: widget.child);
   }
 }

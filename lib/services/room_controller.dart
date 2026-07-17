@@ -1905,6 +1905,50 @@ class RoomController extends GetxController {
     }
   }
 
+  Future<String?> createArenaRoom({
+    required String name,
+    required String username,
+    required String description,
+    required String category,
+    required String country,
+    required String language,
+    required List<String> tags,
+    required List<String> rules,
+    required String entryPermission,
+    String? avatar,
+    String? banner,
+    required String creationMethod,
+  }) async {
+    try {
+      final response = await Supabase.instance.client.rpc('create_arena', params: {
+        'p_name': name,
+        'p_username': username,
+        'p_description': description,
+        'p_category': category,
+        'p_country': country,
+        'p_language': language,
+        'p_tags': tags,
+        'p_rules': rules,
+        'p_entry_permission': entryPermission,
+        'p_avatar': avatar,
+        'p_banner': banner,
+        'p_creation_method': creationMethod,
+      });
+      final String roomId = response.toString();
+      await fetchRooms(); // Refresh the list
+      return roomId;
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        e.toString().replaceAll('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+      return null;
+    }
+  }
+
   Future<String?> createTemporaryRoom({
     required String name,
     required String username,

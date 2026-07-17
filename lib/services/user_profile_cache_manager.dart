@@ -414,10 +414,11 @@ class UserProfileCacheManager {
 
     final me = rxCache[myId];
     if (me != null) {
-      rxCache[myId] = me.copyWith(
+      _currentUser = me.copyWith(
         following: me.following + 1,
         friendsCount: isMutual ? me.friendsCount + 1 : me.friendsCount,
       );
+      rxCache[myId] = _currentUser!;
     }
     final target = rxCache[targetUserId];
     if (target != null) {
@@ -426,6 +427,7 @@ class UserProfileCacheManager {
         friendsCount: isMutual ? target.friendsCount + 1 : target.friendsCount,
       );
     }
+    _notifyListeners();
 
     try {
       await Supabase.instance.client.from('connections').insert({
@@ -458,10 +460,11 @@ class UserProfileCacheManager {
 
     final me = rxCache[myId];
     if (me != null) {
-      rxCache[myId] = me.copyWith(
+      _currentUser = me.copyWith(
         following: me.following - 1 >= 0 ? me.following - 1 : 0,
         friendsCount: wasMutual ? (me.friendsCount - 1 >= 0 ? me.friendsCount - 1 : 0) : me.friendsCount,
       );
+      rxCache[myId] = _currentUser!;
     }
     final target = rxCache[targetUserId];
     if (target != null) {
@@ -470,6 +473,7 @@ class UserProfileCacheManager {
         friendsCount: wasMutual ? (target.friendsCount - 1 >= 0 ? target.friendsCount - 1 : 0) : target.friendsCount,
       );
     }
+    _notifyListeners();
 
     try {
       await Supabase.instance.client

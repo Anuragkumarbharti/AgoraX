@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:io' as io;
 import 'package:image_picker/image_picker.dart';
 import 'package:creania/core/theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../widgets/custom_image_editor.dart';
 import '../../services/room_controller.dart';
 import '../../services/user_profile_cache_manager.dart';
@@ -31,7 +32,8 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   String _selectedCountry = 'India';
   String _selectedLanguage = 'English';
   String _selectedPermission = 'everyone';
-  bool _isPermanent = false;
+  String _creationType = 'level'; // 'level', 'coins', 'ticket'
+  final RxInt _ticketCount = 0.obs;
   String? _selectedCoverPhoto = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'; // Default preset
   io.File? _customCoverFile;
 
@@ -68,6 +70,32 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     super.initState();
     // Default tag for Social Room
     _selectedTags.add('Friendship');
+    _loadTicketCount();
+  }
+
+  Future<void> _loadTicketCount() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('arena_tickets')
+          .select('id')
+          .eq('user_id', UserProfileCacheManager.currentUserId)
+          .eq('is_consumed', false);
+      if (res != null && res is List) {
+        _ticketCount.value = res.length;
+      }
+    } catch (_) {}
+
+    final user = UserProfileCacheManager.currentUser;
+    final userLevel = user?.level ?? 1;
+    final userCoins = _controller.walletBalance.value;
+
+    if (userLevel >= 15) {
+      setState(() => _creationType = 'level');
+    } else if (userCoins >= 499) {
+      setState(() => _creationType = 'coins');
+    } else if (_ticketCount.value >= 1) {
+      setState(() => _creationType = 'ticket');
+    }
   }
 
   @override
@@ -82,6 +110,43 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final user = UserProfileCacheManager.currentUser;
+    final userLevel = user?.level ?? 1;
+    final userCoins = _controller.walletBalance.value;
+
+    if (_creationType == 'level' && userLevel < 15) {
+      Get.snackbar(
+        'Requirement Unmet',
+        'You must be at least ID Level 15 to create an Arena via Level. Your current level is $userLevel.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (_creationType == 'coins' && userCoins < 499) {
+      Get.snackbar(
+        'Insufficient Balance',
+        'You need 499 Gold Coins to create an Arena. Your balance: $userCoins Coins.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (_creationType == 'ticket' && _ticketCount.value < 1) {
+      Get.snackbar(
+        'No Creation Ticket',
+        'You do not have any Arena Creation Ticket in your inventory.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
 
     final name = _nameController.text.trim();
     var username = _usernameController.text.trim().toLowerCase();
@@ -119,37 +184,20 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       );
     }
 
-    String? newRoomId;
-
-    if (_isPermanent) {
-      newRoomId = await _controller.createPermanentRoom(
-        name: name,
-        username: username,
-        description: description,
-        category: _selectedCategory,
-        country: _selectedCountry,
-        language: _selectedLanguage,
-        tags: _selectedTags,
-        rules: rules.isEmpty ? ['Be respectful to others.'] : rules,
-        entryPermission: _selectedCategory == 'Private Arena' ? 'password' : _selectedPermission,
-        avatar: _selectedCoverPhoto,
-        banner: _selectedCoverPhoto,
-      );
-    } else {
-      newRoomId = await _controller.createTemporaryRoom(
-        name: name,
-        username: username,
-        description: description,
-        category: _selectedCategory,
-        country: _selectedCountry,
-        language: _selectedLanguage,
-        tags: _selectedTags,
-        rules: rules.isEmpty ? ['Be respectful to others.'] : rules,
-        entryPermission: _selectedCategory == 'Private Arena' ? 'password' : _selectedPermission,
-        avatar: _selectedCoverPhoto,
-        banner: _selectedCoverPhoto,
-      );
-    }
+    String? newRoomId = await _controller.createArenaRoom(
+      name: name,
+      username: username,
+      description: description,
+      category: _selectedCategory,
+      country: _selectedCountry,
+      language: _selectedLanguage,
+      tags: _selectedTags,
+      rules: rules.isEmpty ? ['Be respectful to others.'] : rules,
+      entryPermission: _selectedCategory == 'Private Arena' ? 'password' : _selectedPermission,
+      avatar: _selectedCoverPhoto,
+      banner: _selectedCoverPhoto,
+      creationMethod: _creationType,
+    );
 
     if (newRoomId != null) {
       if (_customCoverFile != null) {
@@ -180,6 +228,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = UserProfileCacheManager.currentUser;
+    final userLevel = user?.level ?? 1;
+
     return Scaffold(
       backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -229,9 +280,26 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Arena Type Selector Card
-                _buildRoomTypeSelector(),
-                SizedBox(height: 24),
+                // Status Info Row
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: context.secondaryBackgroundColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: context.borderColor.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _statusItem('Your Level', 'Lv.$userLevel', userLevel >= 15 ? Colors.green : Colors.grey),
+                      _verticalDivider(),
+                      Obx(() => _statusItem('Coins', '${_controller.walletBalance.value}', _controller.walletBalance.value >= 499 ? Colors.green : Colors.grey)),
+                      _verticalDivider(),
+                      Obx(() => _statusItem('Tickets', '${_ticketCount.value}', _ticketCount.value >= 1 ? Colors.green : Colors.grey)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
 
                 // Name
                 Text('Arena Name', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
@@ -508,28 +576,67 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                 ),
                 SizedBox(height: 32),
 
+                // Select Creation Type
+                Text(
+                  'Choose Creation Method',
+                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                
+                // Level creation card
+                _buildTypeCard(
+                  type: 'level',
+                  title: 'Free via ID Level 15+',
+                  description: 'Create Arena for free because your ID Level is 15 or above.',
+                  icon: Icons.military_tech_rounded,
+                  color: Colors.cyan,
+                  disabled: userLevel < 15,
+                ),
+                const SizedBox(height: 12),
+
+                // Coin creation card
+                Obx(() => _buildTypeCard(
+                  type: 'coins',
+                  title: 'Use 499 Gold Coins',
+                  description: 'Create using 499 Gold Coins from your wallet balance.',
+                  icon: Icons.monetization_on_rounded,
+                  color: Colors.amber,
+                  disabled: _controller.walletBalance.value < 499,
+                )),
+                const SizedBox(height: 12),
+
+                // Ticket creation card
+                Obx(() => _buildTypeCard(
+                  type: 'ticket',
+                  title: 'Use Arena Ticket (${_ticketCount.value} Available)',
+                  description: 'Deduct 1 Arena Creation Ticket from your inventory.',
+                  icon: Icons.local_activity_rounded,
+                  color: Colors.green,
+                  disabled: _ticketCount.value < 1,
+                )),
+                const SizedBox(height: 40),
+
                 // Submit Button
                 SizedBox(
                   width: double.infinity,
+                  height: 52,
                   child: ElevatedButton(
                     onPressed: _submitForm,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isPermanent ? Colors.amber : context.primaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: context.primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 4,
                     ),
                     child: Text(
-                      _isPermanent ? 'Unlock Permanent Arena (599 Coins)' : 'Launch Free Temporary Arena',
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: _isPermanent ? Colors.black87 : Colors.white,
-                      ),
+                      _creationType == 'level'
+                          ? 'Free Create (Level 15+)'
+                          : (_creationType == 'coins' ? 'Pay 499 Coins & Create' : 'Use Ticket & Create'),
+                      style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -538,115 +645,83 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     );
   }
 
-  Widget _buildRoomTypeSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.borderColor),
-      ),
-      padding: EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Choose Arena Session Duration',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+  Widget _statusItem(String title, String value, Color color) {
+    return Column(
+      children: [
+        Text(title, style: TextStyle(color: context.caption, fontSize: 11)),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _verticalDivider() {
+    return Container(width: 1, height: 24, color: context.borderColor.withOpacity(0.3));
+  }
+
+  Widget _buildTypeCard({
+    required String type,
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color color,
+    bool disabled = false,
+  }) {
+    final isSelected = _creationType == type;
+    return GestureDetector(
+      onTap: disabled ? null : () => setState(() => _creationType = type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? context.secondaryBackgroundColor : context.secondaryBackgroundColor.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? context.primaryColor : context.borderColor,
+            width: isSelected ? 2 : 1,
           ),
-          SizedBox(height: 12),
-          Row(
+        ),
+        child: Opacity(
+          opacity: disabled ? 0.4 : 1.0,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Temporary Room Option
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _isPermanent = false),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: !_isPermanent ? context.secondaryBackgroundColor : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: !_isPermanent ? context.primaryColor : Colors.transparent,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.timer_outlined,
-                          color: !_isPermanent ? context.primaryColor : context.caption,
-                          size: 32,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Temporary',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: !_isPermanent ? Colors.white : context.textSecondary,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Free • Auto-deletes when empty',
-                          style: GoogleFonts.poppins(fontSize: 9, color: context.caption),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  shape: BoxShape.circle,
                 ),
+                child: Icon(icon, color: color, size: 22),
               ),
-              SizedBox(width: 12),
-              // Permanent Room Option
+              const SizedBox(width: 14),
               Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _isPermanent = true),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _isPermanent ? Colors.amber.withOpacity(0.05) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _isPermanent ? Colors.amber : Colors.transparent,
-                        width: 1.5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : context.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.workspace_premium_outlined,
-                          color: _isPermanent ? Colors.amber : context.caption,
-                          size: 32,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Permanent',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: _isPermanent ? Colors.amber : context.textSecondary,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          '599 Coins • Never expires • XP enabled',
-                          style: GoogleFonts.poppins(
-                            fontSize: 9,
-                            color: _isPermanent ? Colors.amber.withOpacity(0.8) : context.caption,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        color: context.caption,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],
-          )
-        ],
+          ),
+        ),
       ),
     );
   }

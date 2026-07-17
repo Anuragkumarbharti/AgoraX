@@ -66,6 +66,8 @@ class User {
     this.novelExpiry,
     this.tagSystem,
     this.membershipAssets = const {},
+    this.communityLeaveTime,
+    this.communityNextJoinTime,
     String? displayName,
   });
 
@@ -141,6 +143,8 @@ class User {
       totalStarsGifted: json['total_stars_gifted'] ?? json['totalStarsGifted'] ?? 0,
       vipExpiry: json['vip_expiry'] != null ? DateTime.tryParse(json['vip_expiry'].toString()) : null,
       novelExpiry: json['novel_expiry'] != null ? DateTime.tryParse(json['novel_expiry'].toString()) : null,
+      communityLeaveTime: json['community_leave_time'] != null ? DateTime.tryParse(json['community_leave_time'].toString()) : null,
+      communityNextJoinTime: json['community_next_join_time'] != null ? DateTime.tryParse(json['community_next_join_time'].toString()) : null,
       tagSystem: json['tag_system'] != null ? TagSystem.fromJson(json['tag_system'] as Map<String, dynamic>) : null,
       membershipAssets: json['membership_assets'] != null
           ? Map<String, String>.from((json['membership_assets'] as Map).map(
@@ -220,6 +224,8 @@ class User {
   final int totalStarsGifted;
   final DateTime? vipExpiry;
   final DateTime? novelExpiry;
+  final DateTime? communityLeaveTime;
+  final DateTime? communityNextJoinTime;
   final TagSystem? tagSystem;
   final Map<String, String> membershipAssets;
 
@@ -298,6 +304,8 @@ class User {
         'total_stars_gifted': totalStarsGifted,
         'vip_expiry': vipExpiry?.toIso8601String(),
         'novel_expiry': novelExpiry?.toIso8601String(),
+        'community_leave_time': communityLeaveTime?.toIso8601String(),
+        'community_next_join_time': communityNextJoinTime?.toIso8601String(),
         'tag_system': tagSystem?.toJson(),
         'membership_assets': membershipAssets,
       };
@@ -370,6 +378,8 @@ class User {
     DateTime? novelExpiry,
     TagSystem? tagSystem,
     Map<String, String>? membershipAssets,
+    DateTime? communityLeaveTime,
+    DateTime? communityNextJoinTime,
   }) {
     return User(
       id: id ?? this.id,
@@ -436,6 +446,8 @@ class User {
       totalStarsGifted: totalStarsGifted ?? this.totalStarsGifted,
       vipExpiry: vipExpiry ?? this.vipExpiry,
       novelExpiry: novelExpiry ?? this.novelExpiry,
+      communityLeaveTime: communityLeaveTime ?? this.communityLeaveTime,
+      communityNextJoinTime: communityNextJoinTime ?? this.communityNextJoinTime,
       tagSystem: tagSystem ?? this.tagSystem,
       membershipAssets: membershipAssets ?? this.membershipAssets,
     );
@@ -476,14 +488,36 @@ class IdentityTag {
   final String type;
   final String value;
   final String? imageUrl;
+  final String? color;
+  final String? border;
+  final String? glow;
+  final String? animation;
+  final String? effects;
+  final String? icon;
 
-  IdentityTag({required this.type, required this.value, this.imageUrl});
+  IdentityTag({
+    required this.type,
+    required this.value,
+    this.imageUrl,
+    this.color,
+    this.border,
+    this.glow,
+    this.animation,
+    this.effects,
+    this.icon,
+  });
 
   factory IdentityTag.fromJson(Map<String, dynamic> json) {
     return IdentityTag(
       type: json['type'] ?? '',
       value: json['value'] ?? '',
       imageUrl: json['image_url'] ?? json['imageUrl'],
+      color: json['color'],
+      border: json['border'],
+      glow: json['glow'],
+      animation: json['animation'],
+      effects: json['effects'],
+      icon: json['icon'],
     );
   }
 
@@ -491,6 +525,12 @@ class IdentityTag {
     'type': type,
     'value': value,
     'image_url': imageUrl,
+    'color': color,
+    'border': border,
+    'glow': glow,
+    'animation': animation,
+    'effects': effects,
+    'icon': icon,
   };
 }
 
