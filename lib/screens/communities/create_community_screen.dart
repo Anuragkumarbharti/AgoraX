@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -199,11 +200,11 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       return;
     }
 
-    final username = _usernameController.text.trim();
+    final rawUsername = _usernameController.text.trim().replaceAll('@', '');
     final identityTag = _identityTagController.text.trim().toUpperCase();
     final desc = _descController.text.trim();
 
-    if (username.isEmpty) {
+    if (rawUsername.isEmpty) {
       Get.snackbar(
         'Validation Error',
         'Please enter a community username',
@@ -214,22 +215,12 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       return;
     }
 
-    if (!username.startsWith('@')) {
-      Get.snackbar(
-        'Validation Error',
-        'Username must start with @',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: context.errorColor.withOpacity(0.9),
-        colorText: Colors.white,
-      );
-      return;
-    }
-
-    final namePart = username.substring(1);
+    final namePart = rawUsername;
+    final username = '@$namePart';
     if (namePart.length < 3) {
       Get.snackbar(
         'Validation Error',
-        'Username must be at least 3 characters after @',
+        'Username must be at least 3 characters',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
@@ -397,8 +388,13 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               controller: _usernameController,
               style: TextStyle(color: context.textPrimary),
               onChanged: _onUsernameChanged,
+              inputFormatters: [
+                FilteringTextInputFormatter.deny(RegExp(r'@')),
+              ],
               decoration: InputDecoration(
-                hintText: 'e.g. @gate2027',
+                prefixText: '@',
+                prefixStyle: TextStyle(color: context.textPrimary, fontWeight: FontWeight.bold),
+                hintText: 'e.g. gate2027',
                 hintStyle: TextStyle(color: context.caption),
                 filled: true,
                 fillColor: context.secondaryBackgroundColor,
