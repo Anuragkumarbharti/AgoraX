@@ -30,6 +30,7 @@ import '../../services/user_progress_sync_service.dart';
 import '../../services/chat_controller.dart';
 import '../store/store_home_screen.dart';
 import '../study_vault/study_vault_home_screen.dart';
+import '../vault/creania_vault_home_screen.dart';
 import '../study_vault/my_library_screen.dart';
 import '../study_vault/seller_dashboard_screen.dart';
 import '../study_vault/admin_vault_panel_screen.dart';
@@ -874,6 +875,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                           _navItem(Icons.storefront_outlined, 'Store', () => Get.to(() => const StoreHomeScreen())),
                           _navItem(Icons.emoji_events_outlined, 'Badges', () => Get.to(() => const BadgesScreen())),
                           _navItem(Icons.settings_outlined, 'Settings', () => Get.to(() => const SettingsScreen())),
+                          _navItem(Icons.more_horiz_rounded, 'More', () => _showMoreOptionsSheet(context)),
                         ],
                       ),
                     ),
@@ -1729,6 +1731,117 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           const SizedBox(height: 4),
           Text(label, style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 9)),
         ],
+      ),
+    );
+  }
+
+  void _showMoreOptionsSheet(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        decoration: const BoxDecoration(
+          color: Color(0xFF11131C),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Colors.white10)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'MORE ACTIONS',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(height: 20),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 3,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
+              children: [
+                _moreOptionItem(
+                  Icons.backpack_outlined,
+                  'Creania Vault',
+                  const Color(0xFFFBBF24),
+                  () {
+                    Get.back();
+                    Get.to(() => const CreaniaVaultHomeScreen());
+                  },
+                ),
+                _moreOptionItem(
+                  Icons.library_books_rounded,
+                  'My Library',
+                  const Color(0xFF3B82F6),
+                  () {
+                    Get.back();
+                    Get.to(() => const MyLibraryScreen());
+                  },
+                ),
+                _moreOptionItem(
+                  Icons.dashboard_rounded,
+                  'Seller Deck',
+                  const Color(0xFF10B981),
+                  () {
+                    Get.back();
+                    Get.to(() => const SellerDashboardScreen());
+                  },
+                ),
+                _moreOptionItem(
+                  Icons.admin_panel_settings_rounded,
+                  'Vault Admin',
+                  const Color(0xFFEF4444),
+                  () {
+                    Get.back();
+                    Get.to(() => const AdminVaultPanelScreen());
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _moreOptionItem(IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

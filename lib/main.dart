@@ -18,11 +18,13 @@ import 'services/theme_controller.dart';
 import 'services/user_profile_cache_manager.dart';
 import 'services/isar_storage_service.dart';
 import 'services/chat_socket_service.dart';
+import 'services/admob_service.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AdmobService.initialize();
   
   await Supabase.initialize(
     url: const String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://zccrgiplrbeslgpcezul.supabase.co'),

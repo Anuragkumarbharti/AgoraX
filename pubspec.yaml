@@ -24,6 +24,7 @@ dependencies:
   # Supabase Backend & Encryption
   supabase_flutter: ^2.5.8
   encrypt: ^5.0.3
+  google_mobile_ads: ^5.1.0
   
   # JSON Serialization
   json_serializable: ^6.7.1

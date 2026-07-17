@@ -14,6 +14,7 @@ import '../screens/rooms/voice_room_call_screen.dart';
 import 'store_controller.dart';
 import 'user_progress_sync_service.dart';
 import 'user_profile_cache_manager.dart';
+import 'progression_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../models/user_model.dart';
 
@@ -172,6 +173,45 @@ class RoomController extends GetxController {
   final RxnString activeSystemNotification = RxnString();
   final RxMap<String, bool> roomActivityQueuesBusy = <String, bool>{}.obs;
   final RxMap<String, List<Map<String, dynamic>>> roomActivityQueues = <String, List<Map<String, dynamic>>>{}.obs;
+
+  Timer? _progressionTimer;
+  int _minutesInRoom = 0;
+
+  void startProgressionTimer(String roomId) {
+    _progressionTimer?.cancel();
+    _minutesInRoom = 0;
+    _progressionTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
+      if (activeRoomId != roomId) {
+        timer.cancel();
+        return;
+      }
+      
+      // Determine if sitting on a seat (hosting/co-hosting)
+      bool isSitting = false;
+      final seats = roomSeatsInfo[roomId];
+      if (seats != null) {
+        isSitting = seats.any((s) => s['userId'] == currentUserId);
+      }
+
+      try {
+        final progCtrl = Get.put(ProgressionController());
+        if (isSitting) {
+          await progCtrl.triggerXpEvent('room_hosted_minute');
+        } else {
+          await progCtrl.triggerXpEvent('room_joined_minute');
+        }
+      } catch (e) {
+        debugPrint('RoomController progression timer error: $e');
+      }
+      
+      _minutesInRoom++;
+    });
+  }
+
+  void stopProgressionTimer() {
+    _progressionTimer?.cancel();
+    _progressionTimer = null;
+  }
 
   @override
   void onInit() {
@@ -663,6 +703,7 @@ class RoomController extends GetxController {
       // Subscribe to real-time updates for this room
       subscribeToRoomRealtime(roomId);
       await fetchRoomProgression(roomId);
+      startProgressionTimer(roomId);
     } catch (e) {
       debugPrint('Error entering room: $e');
       Get.snackbar(
@@ -678,6 +719,7 @@ class RoomController extends GetxController {
 
   Future<void> exitRoom(String roomId) async {
     try {
+      stopProgressionTimer();
       // Gracefully vacate seat in DB if current user is sitting on one
       final seats = roomSeatsInfo[roomId];
       if (seats != null) {

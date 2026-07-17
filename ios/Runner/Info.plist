@@ -73,5 +73,7 @@
 		<string>paytmmp</string>
 		<string>bhim</string>
 	</array>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3942296699404624~1092985153</string>
 </dict>
 </plist>
