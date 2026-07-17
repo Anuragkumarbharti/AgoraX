@@ -137,7 +137,9 @@ begin
     'live',
     p_entry_permission,
     'inactive',
-    0, 0, false,
+    1, -- Fix: level_requirement >= 1 check constraint
+    0,
+    false,
     v_livekit_name,
     p_avatar,
     p_banner,

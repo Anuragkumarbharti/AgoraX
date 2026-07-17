@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -36,6 +37,59 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   final RxInt _ticketCount = 0.obs;
   String? _selectedCoverPhoto = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'; // Default preset
   io.File? _customCoverFile;
+
+  bool _isCheckingUsername = false;
+  bool? _isUsernameUnique;
+  List<String> _usernameSuggestions = [];
+  Timer? _usernameDebounce;
+
+  void _onUsernameChanged(String val) {
+    if (_usernameDebounce?.isActive ?? false) _usernameDebounce!.cancel();
+    final cleanVal = val.trim().toLowerCase().replaceAll('@', '');
+    if (cleanVal.isEmpty) {
+      setState(() {
+        _isUsernameUnique = null;
+        _isCheckingUsername = false;
+        _usernameSuggestions.clear();
+      });
+      return;
+    }
+
+    setState(() {
+      _isCheckingUsername = true;
+      _isUsernameUnique = null;
+    });
+
+    _usernameDebounce = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final res = await Supabase.instance.client
+            .from('rooms')
+            .select('id')
+            .eq('username', '@$cleanVal')
+            .maybeSingle();
+        setState(() {
+          _isUsernameUnique = res == null;
+          _isCheckingUsername = false;
+          if (!_isUsernameUnique!) {
+            _usernameSuggestions = [
+              '${cleanVal}_arena',
+              '${cleanVal}_live',
+              '${cleanVal}123',
+              '${cleanVal}_room'
+            ];
+          } else {
+            _usernameSuggestions.clear();
+          }
+        });
+      } catch (e) {
+        setState(() {
+          _isUsernameUnique = null;
+          _isCheckingUsername = false;
+          _usernameSuggestions.clear();
+        });
+      }
+    });
+  }
 
   // 10 Creania Arena Types
   final List<String> _categories = [
@@ -105,6 +159,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     _descriptionController.dispose();
     _rulesController.dispose();
     _passwordController.dispose();
+    _usernameDebounce?.cancel();
     super.dispose();
   }
 
@@ -149,10 +204,41 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     }
 
     final name = _nameController.text.trim();
-    var username = _usernameController.text.trim().toLowerCase();
-    if (!username.startsWith('@')) {
-      username = '@$username';
+    var rawUsername = _usernameController.text.trim().toLowerCase().replaceAll('@', '');
+    if (rawUsername.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Please enter an Arena Username',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
     }
+
+    if (_isCheckingUsername) {
+      Get.snackbar(
+        'Validation Error',
+        'Still checking Username availability. Please wait.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (_isUsernameUnique == false) {
+      Get.snackbar(
+        'Validation Error',
+        'Arena Username is already taken.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final username = '@$rawUsername';
     final description = _descriptionController.text.trim();
     
     // Parse rules (new line separated or fallback)
@@ -332,6 +418,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                 TextFormField(
                   controller: _usernameController,
                   style: TextStyle(color: Colors.white),
+                  onChanged: _onUsernameChanged,
                   inputFormatters: [
                     TextInputFormatter.withFunction((oldValue, newValue) {
                       if (newValue.text.startsWith('@')) {
@@ -352,6 +439,30 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     fillColor: context.secondaryBackgroundColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    suffixIcon: _isCheckingUsername
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue),
+                            ),
+                          )
+                        : (_isUsernameUnique != null
+                            ? Icon(
+                                _isUsernameUnique! ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                                color: _isUsernameUnique! ? Colors.green : Colors.red,
+                              )
+                            : null),
+                    helperText: _isUsernameUnique == null
+                        ? null
+                        : (_isUsernameUnique! ? 'Username is available!' : 'Username is already taken!'),
+                    helperStyle: TextStyle(
+                      color: _isUsernameUnique == null
+                          ? Colors.white60
+                          : (_isUsernameUnique! ? Colors.green : Colors.red),
+                      fontSize: 11,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -371,6 +482,33 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     return null;
                   },
                 ),
+                if (_usernameSuggestions.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('Suggestions:', style: TextStyle(color: context.textSecondary, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 38,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _usernameSuggestions.length,
+                      itemBuilder: (context, idx) {
+                        final suggestion = _usernameSuggestions[idx];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ActionChip(
+                            backgroundColor: context.secondaryBackgroundColor,
+                            side: BorderSide(color: context.borderColor),
+                            label: Text('@$suggestion', style: TextStyle(color: context.primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                            onPressed: () {
+                              _usernameController.text = suggestion;
+                              _onUsernameChanged(suggestion);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
                 SizedBox(height: 16),
 
                 // Description

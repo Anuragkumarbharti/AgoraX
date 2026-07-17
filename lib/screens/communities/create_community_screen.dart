@@ -29,6 +29,8 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   bool _isCheckingIdentityTag = false;
   bool? _isIdentityTagUnique;
 
+  List<String> _usernameSuggestions = [];
+
   Timer? _usernameDebounce;
   Timer? _identityTagDebounce;
 
@@ -39,6 +41,7 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       setState(() {
         _isUsernameUnique = null;
         _isCheckingUsername = false;
+        _usernameSuggestions.clear();
       });
       return;
     }
@@ -58,11 +61,22 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
         setState(() {
           _isUsernameUnique = res == null;
           _isCheckingUsername = false;
+          if (!_isUsernameUnique!) {
+            _usernameSuggestions = [
+              '${cleanVal}_family',
+              '${cleanVal}_club',
+              '${cleanVal}123',
+              '${cleanVal}_creania'
+            ];
+          } else {
+            _usernameSuggestions.clear();
+          }
         });
       } catch (e) {
         setState(() {
           _isUsernameUnique = null;
           _isCheckingUsername = false;
+          _usernameSuggestions.clear();
         });
       }
     });
@@ -428,6 +442,33 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
                 ),
               ),
             ),
+            if (_usernameSuggestions.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Suggestions:', style: TextStyle(color: context.textSecondary, fontSize: 12)),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 38,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _usernameSuggestions.length,
+                  itemBuilder: (context, idx) {
+                    final suggestion = _usernameSuggestions[idx];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        backgroundColor: context.secondaryBackgroundColor,
+                        side: BorderSide(color: context.borderColor),
+                        label: Text('@$suggestion', style: TextStyle(color: context.primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          _usernameController.text = suggestion;
+                          _onUsernameChanged(suggestion);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
 
             Text(
