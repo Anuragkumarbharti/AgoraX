@@ -634,6 +634,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
     if (leaveApproved == true) {
       try {
+        RoomVoiceManager().leaveRoom();
+        _controller.exitRoom(widget.roomId);
+
         _controller.emitRoomActivity(
             widget.roomId, '👋 ${widget.userName} left the arena.',
             activityKey: 'room-leave');

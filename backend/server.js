@@ -397,12 +397,16 @@ io.on('connection', async (socket) => {
 
   socket.on('logout_room', async (data) => {
     const { roomId } = data;
-    await setPresence(userId, 'online', null);
-    try {
-      await supabase.rpc('leave_room', { p_room_id: roomId });
-    } catch (e) {
-      console.error('Failed to leave room on logout_room:', e);
+    console.log(`User ${userId} requested logout_room for room ${roomId}. Performing instant cleanup.`);
+    
+    // Invalidate reconnect grace window timers if any
+    const pendingRecovery = reconnectWindowTimers.get(userId);
+    if (pendingRecovery) {
+      clearTimeout(pendingRecovery.timeout);
+      reconnectWindowTimers.delete(userId);
     }
+
+    await performDisconnectCleanup(userId, sessionId, roomId);
   });
 
   // 5. App Lifecycle background state updates
