@@ -54,21 +54,33 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   int _selectedComboMultiplier = 1; // Combo trigger: 1x, 5x, 10x, 99x, etc.
 
   final List<GiftItem> _starGifts = [
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000001', name: 'Rose', icon: '🌹', cost: 2, color: Colors.redAccent, currency: 'gold', stars: 2),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000002', name: 'Heart', icon: '❤️', cost: 10, color: Colors.pinkAccent, currency: 'gold', stars: 10),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000003', name: 'Crown', icon: '👑', cost: 500, color: Colors.amber, currency: 'gold', stars: 500),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000004', name: 'Sports Car', icon: '🏎️', cost: 1000, color: Colors.blueAccent, currency: 'gold', stars: 1000),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000005', name: 'Castle', icon: '🏰', cost: 5000, color: Colors.deepPurpleAccent, currency: 'gold', stars: 5000),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000006', name: 'Rocket', icon: '🚀', cost: 10000, color: Colors.cyanAccent, currency: 'gold', stars: 10000),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000001', name: 'Like', icon: '👍', cost: 2, color: Colors.blueAccent, currency: 'gold', stars: 2),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000002', name: 'Flower', icon: '🌼', cost: 5, color: Colors.orange, currency: 'gold', stars: 5),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000003', name: 'Rose', icon: '🌹', cost: 10, color: Colors.red, currency: 'gold', stars: 10),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000004', name: 'Heart', icon: '❤️', cost: 15, color: Colors.pinkAccent, currency: 'gold', stars: 15),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000005', name: 'Coffee', icon: '☕', cost: 20, color: Colors.brown, currency: 'gold', stars: 20),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000006', name: 'Chocolate', icon: '🍫', cost: 25, color: Colors.amber, currency: 'gold', stars: 25),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000007', name: 'Cake', icon: '🎂', cost: 30, color: Colors.pink, currency: 'gold', stars: 30),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000008', name: 'Balloon', icon: '🎈', cost: 35, color: Colors.purpleAccent, currency: 'gold', stars: 35),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000009', name: 'Gift Box', icon: '🎁', cost: 40, color: Colors.redAccent, currency: 'gold', stars: 40),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000010', name: 'Diamond', icon: '💎', cost: 50, color: Colors.cyan, currency: 'gold', stars: 50),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000011', name: 'Crown', icon: '👑', cost: 99, color: Colors.amber, currency: 'gold', stars: 99),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000012', name: 'Butterfly', icon: '🦋', cost: 99, color: Colors.deepPurpleAccent, currency: 'gold', stars: 99),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000013', name: 'Sports Car', icon: '🏎️', cost: 499, color: Colors.blueAccent, currency: 'gold', stars: 499),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000014', name: 'Private Jet', icon: '✈️', cost: 499, color: Colors.tealAccent, currency: 'gold', stars: 499),
   ];
 
   final List<GiftItem> _silverGifts = [
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000011', name: 'Like', icon: '👍', cost: 50, color: Colors.blue, currency: 'silver'),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000012', name: 'Coffee', icon: '☕', cost: 100, color: Colors.brown, currency: 'silver'),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000013', name: 'Chocolate', icon: '🍫', cost: 200, color: Colors.amber, currency: 'silver'),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000014', name: 'Flower', icon: '🌼', cost: 500, color: Colors.orange, currency: 'silver'),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000015', name: 'Cake', icon: '🎂', cost: 1000, color: Colors.pink, currency: 'silver'),
-    GiftItem(id: 'g1000000-0000-0000-0000-000000000016', name: 'Small Heart', icon: '❤️', cost: 2000, color: Colors.red, currency: 'silver'),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000021', name: 'Like', icon: '👍', cost: 200, color: Colors.blueAccent, currency: 'silver', stars: 2),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000022', name: 'Flower', icon: '🌼', cost: 500, color: Colors.orange, currency: 'silver', stars: 5),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000023', name: 'Rose', icon: '🌹', cost: 1000, color: Colors.red, currency: 'silver', stars: 10),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000024', name: 'Heart', icon: '❤️', cost: 1500, color: Colors.pinkAccent, currency: 'silver', stars: 15),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000025', name: 'Coffee', icon: '☕', cost: 2000, color: Colors.brown, currency: 'silver', stars: 20),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000026', name: 'Chocolate', icon: '🍫', cost: 2500, color: Colors.amber, currency: 'silver', stars: 25),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000027', name: 'Cake', icon: '🎂', cost: 3000, color: Colors.pink, currency: 'silver', stars: 30),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000028', name: 'Balloon', icon: '🎈', cost: 3500, color: Colors.purpleAccent, currency: 'silver', stars: 35),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000029', name: 'Gift Box', icon: '🎁', cost: 4000, color: Colors.redAccent, currency: 'silver', stars: 40),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000030', name: 'Diamond', icon: '💎', cost: 5000, color: Colors.cyan, currency: 'silver', stars: 50),
   ];
 
   GiftItem? _selectedStandardGift;
@@ -381,11 +393,11 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
                 children: [
-                  _tabButton(0, '⭐ Stars'),
+                  _tabButton(0, 'Gold', _buildGoldCoinIcon(size: 13)),
                   const SizedBox(width: 8),
-                  _tabButton(1, '🪙 Silver'),
+                  _tabButton(1, 'Silver', _buildSilverCoinIcon(size: 13)),
                   const SizedBox(width: 8),
-                  _tabButton(2, '🎒 Vault'),
+                  _tabButton(2, 'Vault', const Text('🎁', style: TextStyle(fontSize: 11))),
                 ],
               ),
             ),
@@ -473,13 +485,28 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text(
-                        _selectedTabIndex == 2
-                            ? '🎁 Send Vault Gift'
-                            : (_selectedTabIndex == 0
-                                ? '⭐ Send Star Gift (${finalStars.toStringAsFixed(0)} ★)'
-                                : '🪙 Send Silver Gift (${finalStars.toStringAsFixed(1)} ★)'),
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_selectedTabIndex == 0) ...[
+                            _buildGoldCoinIcon(size: 14),
+                            const SizedBox(width: 6),
+                          ] else if (_selectedTabIndex == 1) ...[
+                            _buildSilverCoinIcon(size: 14),
+                            const SizedBox(width: 6),
+                          ] else ...[
+                            const Text('🎁', style: TextStyle(fontSize: 12)),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            _selectedTabIndex == 2
+                                ? 'Send Vault Gift'
+                                : (_selectedTabIndex == 0
+                                    ? 'Send Gold Gift (${finalStars.toStringAsFixed(0)} ★)'
+                                    : 'Send Silver Gift (${finalStars.toStringAsFixed(1)} ★)'),
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -627,7 +654,37 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     );
   }
 
-  Widget _tabButton(int index, String label) {
+  Widget _buildSilverCoinIcon({double size = 12}) {
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [Color(0xFFFFFFFF), Color(0xFFB0B3B8), Color(0xFFFFFFFF)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(bounds),
+      child: Icon(
+        Icons.monetization_on_rounded,
+        color: Colors.white,
+        size: size,
+      ),
+    );
+  }
+
+  Widget _buildGoldCoinIcon({double size = 12}) {
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(bounds),
+      child: Icon(
+        Icons.monetization_on_rounded,
+        color: Colors.white,
+        size: size,
+      ),
+    );
+  }
+
+  Widget _tabButton(int index, String text, Widget icon) {
     final isSelected = _selectedTabIndex == index;
     return Expanded(
       child: GestureDetector(
@@ -648,15 +705,20 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               color: isSelected ? const Color(0xFFA78BFA) : Colors.white.withOpacity(0.06),
             ),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: GoogleFonts.poppins(
-                color: isSelected ? Colors.white : Colors.white60,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              icon,
+              const SizedBox(width: 4),
+              Text(
+                text,
+                style: GoogleFonts.poppins(
+                  color: isSelected ? Colors.white : Colors.white60,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -669,8 +731,16 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           ? '${_storeCtrl.coinsBalance.value}' 
           : (_selectedTabIndex == 1 ? '${_storeCtrl.silverCoinsBalance.value}' : '${_giftableVaultItems.length}');
       
-      final label = _selectedTabIndex == 2 ? 'Vault Items' : 'Balance';
-      final symbol = _selectedTabIndex == 0 ? '⭐' : (_selectedTabIndex == 1 ? '🪙' : '🎒');
+      final label = _selectedTabIndex == 2 ? 'Vault Items' : (_selectedTabIndex == 0 ? 'Gold Balance' : 'Silver Balance');
+      
+      Widget icon;
+      if (_selectedTabIndex == 0) {
+        icon = _buildGoldCoinIcon(size: 12);
+      } else if (_selectedTabIndex == 1) {
+        icon = _buildSilverCoinIcon(size: 12);
+      } else {
+        icon = const Text('🎁', style: TextStyle(fontSize: 11));
+      }
       
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -679,13 +749,20 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white.withOpacity(0.06)),
         ),
-        child: Text(
-          '$symbol $label : $val',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 10,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            icon,
+            const SizedBox(width: 4),
+            Text(
+              '$label : $val',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+              ),
+            ),
+          ],
         ),
       );
     });
@@ -856,16 +933,12 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.star_rounded,
-                      color: Color(0xFFFFDB3C),
-                      size: 11,
-                    ),
-                    const SizedBox(width: 2),
+                    gift.currency == 'gold' 
+                        ? _buildGoldCoinIcon(size: 11)
+                        : _buildSilverCoinIcon(size: 11),
+                    const SizedBox(width: 3),
                     Text(
-                      gift.currency == 'gold' 
-                          ? '${gift.cost} ★' 
-                          : '${(gift.cost / 100).toStringAsFixed(gift.cost % 100 == 0 ? 0 : 1)} ★',
+                      '${gift.cost}',
                       style: GoogleFonts.inter(
                         fontSize: 10,
                         color: Colors.white70,

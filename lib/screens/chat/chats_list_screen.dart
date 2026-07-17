@@ -275,7 +275,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         roomName: room.name,
         userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
         userName: currentUsername != 'Creania Student' ? currentUsername : 'anurag_kumar',
-        isHost: room.hostId == currentUid || room.hostId == 'uid_anurag_101',
+        isHost: room.hostId == currentUid,
       ),
     );
   }

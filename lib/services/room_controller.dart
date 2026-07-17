@@ -10,6 +10,8 @@ import '../models/room_progression_models.dart';
 import '../models/room_activity_event.dart';
 import 'customization_controller.dart';
 import '../screens/rooms/voice_room_call_screen.dart';
+import 'voice/room_voice_manager.dart';
+import 'voice/voice_controller.dart';
 
 import 'store_controller.dart';
 import 'user_progress_sync_service.dart';
@@ -115,7 +117,7 @@ class RoomChatMessage {
   }
 }
 
-class RoomController extends GetxController {
+class RoomController extends GetxController with WidgetsBindingObserver {
   static RoomController get to => Get.find<RoomController>();
   static String get currentUserId => UserProfileCacheManager.currentUserId;
 
@@ -216,8 +218,56 @@ class RoomController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     fetchRooms();
     subscribeToRoomsList();
+  }
+
+
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      if (activeRoomId != null) {
+        _cleanupLocalResources();
+      }
+    }
+  }
+
+  void _cleanupLocalResources() {
+    try {
+      final roomId = activeRoomId;
+      if (roomId != null) {
+        final seats = roomSeatsInfo[roomId];
+        if (seats != null) {
+          final seat = seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
+          if (seat != null) {
+            final seatIdx = seat['seatIndex'] as int;
+            Supabase.instance.client.rpc('leave_room_seat', params: {
+              'p_room_id': roomId,
+              'p_seat_index': seatIdx,
+            }).then((_) => null).catchError((_) => null);
+          }
+        }
+        
+        Supabase.instance.client.rpc('leave_room', params: {
+          'p_room_id': roomId,
+        }).then((_) => null).catchError((_) => null);
+      }
+
+      RoomVoiceManager().leaveRoom();
+
+      activeRoomId = null;
+      unsubscribeRoomRealtime();
+      currentPermissions.clear();
+      activeMembers.clear();
+      activeRequests.clear();
+      activePolls.clear();
+      isMutedByModerator.value = false;
+      stopProgressionTimer();
+    } catch (e) {
+      debugPrint('Error in _cleanupLocalResources: $e');
+    }
   }
 
   void initializeChatForRoom(String roomId) {
@@ -323,16 +373,12 @@ class RoomController extends GetxController {
 
   Future<void> deleteRoomMessage(String roomId, String messageId) async {
     try {
-      await _roomMessagesChannel?.sendBroadcastMessage(
-        event: 'delete_message',
-        payload: {'message_id': messageId},
-      );
-      final messages = roomChats[roomId];
-      if (messages != null) {
-        messages.removeWhere((message) => message.id == messageId);
-      }
+      await Supabase.instance.client
+          .from('room_messages')
+          .delete()
+          .eq('id', messageId);
     } catch (e) {
-      debugPrint('Error broadcasting delete message: $e');
+      debugPrint('Error deleting room message: $e');
     }
   }
 
@@ -403,51 +449,23 @@ class RoomController extends GetxController {
   }) async {
     try {
       final uid = senderId ?? UserProfileCacheManager.currentUserId;
-      final payload = {
-        'id': DateTime.now().microsecondsSinceEpoch.toString(),
-        'sender_id': uid,
-        'sender_name': senderName ?? 'Creania Student',
-        'text': text,
+      final metadata = {
         'sender_role': senderRole ?? 'Listener',
-        'sender_avatar': senderAvatar,
-        'timestamp': DateTime.now().toIso8601String(),
         'reply_to_message_id': replyToMessageId,
-        'sender_level': senderLevel,
-        'vip_label': vipLabel,
-        'novel_label': novelLabel,
         'community_tag': communityTag,
         'role_tag': roleTag,
         'is_active_speaker': isActiveSpeaker,
       };
 
-      await _roomMessagesChannel?.sendBroadcastMessage(
-        event: 'chat_message',
-        payload: payload,
-      );
-
-      final message = RoomChatMessage(
-        id: payload['id'] as String,
-        senderId: payload['sender_id'] as String,
-        senderName: payload['sender_name'] as String,
-        text: payload['text'] as String,
-        senderRole: payload['sender_role'] as String?,
-        senderAvatar: payload['sender_avatar'] as String?,
-        timestamp: DateTime.parse(payload['timestamp'] as String),
-        replyToMessageId: payload['reply_to_message_id'] as String?,
-        senderLevel: payload['sender_level'] as String?,
-        vipLabel: payload['vip_label'] as String?,
-        novelLabel: payload['novel_label'] as String?,
-        communityTag: payload['community_tag'] as String?,
-        roleTag: payload['role_tag'] as String?,
-        isActiveSpeaker: payload['is_active_speaker'] == true,
-      );
-
-      if (roomChats[roomId] == null) {
-        roomChats[roomId] = <RoomChatMessage>[].obs;
-      }
-      roomChats[roomId]!.add(message);
+      await Supabase.instance.client.from('room_messages').insert({
+        'room_id': roomId,
+        'sender_id': uid,
+        'content': text,
+        'message_type': 'text',
+        'metadata': metadata,
+      });
     } catch (e) {
-      debugPrint('Error broadcasting message: $e');
+      debugPrint('Error sending room message: $e');
     }
   }
 
@@ -821,7 +839,53 @@ class RoomController extends GetxController {
   }
 
   Future<void> fetchRoomChatMessages(String roomId) async {
-    roomChats[roomId] = <RoomChatMessage>[].obs;
+    try {
+      final response = await Supabase.instance.client
+          .from('room_messages')
+          .select('*, profiles:sender_id(*)')
+          .eq('room_id', roomId)
+          .order('created_at', ascending: true)
+          .limit(50);
+
+      final List<RoomChatMessage> list = [];
+      for (var row in response) {
+        final profile = row['profiles'] as Map<String, dynamic>?;
+        final senderId = row['sender_id'] as String;
+        final uName = profile?['username'] as String? ?? 'Creania Student';
+        final uAvatar = profile?['avatar'] as String?;
+        final vip = profile?['vip_level'] as int? ?? 0;
+        final novel = profile?['novel_level'] as int? ?? 0;
+        final uLevel = profile?['level'] as int? ?? 1;
+
+        final text = row['content'] as String? ?? '';
+        final msgId = row['id'] as String;
+        final timestamp = DateTime.parse(row['created_at'] as String);
+        final meta = row['metadata'] as Map<String, dynamic>? ?? {};
+
+        list.add(RoomChatMessage(
+          id: msgId,
+          senderId: senderId,
+          senderName: uName,
+          text: text,
+          senderRole: meta['sender_role'] as String? ?? 'Listener',
+          senderAvatar: uAvatar,
+          timestamp: timestamp,
+          replyToMessageId: meta['reply_to_message_id'] as String?,
+          senderLevel: uLevel.toString(),
+          vipLabel: vip > 0 ? 'VIP $vip' : null,
+          novelLabel: novel > 0 ? 'Noble $novel' : null,
+          communityTag: meta['community_tag'] as String?,
+          roleTag: meta['role_tag'] as String?,
+          isActiveSpeaker: meta['is_active_speaker'] == true,
+          avatarFrame: profile?['avatar_frame'] as String?,
+        ));
+      }
+
+      roomChats[roomId] = list.obs;
+    } catch (e) {
+      debugPrint('Error fetching room messages: $e');
+      roomChats[roomId] = <RoomChatMessage>[].obs;
+    }
   }
 
   Future<void> emitRoomActivityEvent({
@@ -1163,46 +1227,108 @@ class RoomController extends GetxController {
               await fetchRoomPermissions(roomId);
             },
           );
-      _roomMembersChannel?.subscribe();
+
+      Timer? reconnectTimer;
+
+      _roomMembersChannel?.subscribe((status, [error]) {
+        debugPrint('[RoomController] Channel status for room $roomId: $status, error: $error');
+        if (status == 'channelError' || status == 'timedOut') {
+          if (reconnectTimer == null) {
+            debugPrint('[RoomController] Connection lost. Reconnection timer started (20s).');
+            reconnectTimer = Timer(const Duration(seconds: 20), () async {
+              if (activeRoomId == roomId) {
+                debugPrint('[RoomController] Reconnection timed out. Exiting room.');
+                _cleanupLocalResources();
+                Get.snackbar(
+                  'Connection Lost 📡',
+                  'You have been disconnected from the room due to network issues.',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.orange.withOpacity(0.9),
+                  colorText: Colors.white,
+                );
+              }
+            });
+          }
+        } else if (status == 'subscribed') {
+          if (reconnectTimer != null) {
+            reconnectTimer!.cancel();
+            reconnectTimer = null;
+            debugPrint('[RoomController] Connection restored successfully within 20s!');
+          }
+          // Re-fetch all room state to ensure synchronization upon reconnection
+          Future.microtask(() async {
+            await fetchRoomPermissions(roomId);
+            await fetchRoomMembers(roomId);
+            await fetchRoomChatMessages(roomId);
+            await fetchRoomRequests(roomId);
+            await fetchRoomPolls(roomId);
+            await fetchRoomProgression(roomId);
+          });
+        }
+      });
 
       _roomMessagesChannel = client
           .channel('room_messages:$roomId')
-          .onBroadcast(
-            event: 'chat_message',
-            callback: (payload) {
-              if (payload['sender_id'] == currentUserId) return; // avoid duplicate optimistic local messages
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'room_messages',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'room_id',
+              value: roomId,
+            ),
+            callback: (payload) async {
+              if (payload.eventType == PostgresChangeEvent.insert) {
+                final newRecord = payload.newRecord;
+                final senderId = newRecord['sender_id'] as String;
+                final msgId = newRecord['id'] as String;
 
-              final Map<String, List<String>> parsedReactions = {};
-              if (payload['reactions'] != null) {
-                final rawReactions = payload['reactions'] as Map<String, dynamic>;
-                rawReactions.forEach((key, val) {
-                  parsedReactions[key] = List<String>.from(val as List);
-                });
-              }
+                // Fetch profile to resolve username & avatar reactively
+                final profile = await UserProfileCacheManager.fetchUserProfile(senderId);
+                final uName = profile?.username ?? 'Creania Student';
+                final uAvatar = profile?.avatar;
+                final vip = profile?.vipLevel ?? 0;
+                final novel = profile?.novelLevel ?? 0;
+                final uLevel = profile?.level ?? 1;
 
-              final message = RoomChatMessage(
-                id: payload['id'] as String,
-                senderId: payload['sender_id'] as String,
-                senderName: payload['sender_name'] as String,
-                text: payload['text'] as String,
-                senderRole: payload['sender_role'] as String?,
-                senderAvatar: payload['sender_avatar'] as String?,
-                timestamp: DateTime.parse(payload['timestamp'] as String),
-                replyToMessageId: payload['reply_to_message_id'] as String?,
-                senderLevel: payload['sender_level']?.toString(),
-                vipLabel: payload['vip_label'] as String?,
-                novelLabel: payload['novel_label'] as String?,
-                communityTag: payload['community_tag'] as String?,
-                roleTag: payload['role_tag'] as String?,
-                isActiveSpeaker: payload['is_active_speaker'] == true,
-                reactions: parsedReactions,
-                avatarFrame: payload['avatar_frame'] as String?,
-                nobleLabel: payload['noble_label'] as String?,
-              );
-              if (roomChats[roomId] == null) {
-                roomChats[roomId] = <RoomChatMessage>[].obs;
+                final text = newRecord['content'] as String? ?? '';
+                final timestamp = DateTime.parse(newRecord['created_at'] as String);
+                final meta = newRecord['metadata'] as Map<String, dynamic>? ?? {};
+
+                final message = RoomChatMessage(
+                  id: msgId,
+                  senderId: senderId,
+                  senderName: uName,
+                  text: text,
+                  senderRole: meta['sender_role'] as String? ?? 'Listener',
+                  senderAvatar: uAvatar,
+                  timestamp: timestamp,
+                  replyToMessageId: meta['reply_to_message_id'] as String?,
+                  senderLevel: uLevel.toString(),
+                  vipLabel: vip > 0 ? 'VIP $vip' : null,
+                  novelLabel: novel > 0 ? 'Noble $novel' : null,
+                  communityTag: meta['community_tag'] as String?,
+                  roleTag: meta['role_tag'] as String?,
+                  isActiveSpeaker: meta['is_active_speaker'] == true,
+                  avatarFrame: profile?.avatarFrame,
+                );
+
+                if (roomChats[roomId] == null) {
+                  roomChats[roomId] = <RoomChatMessage>[].obs;
+                }
+                
+                // Avoid duplicates
+                if (!roomChats[roomId]!.any((m) => m.id == msgId)) {
+                  roomChats[roomId]!.add(message);
+                }
+              } else if (payload.eventType == PostgresChangeEvent.delete) {
+                final oldRecord = payload.oldRecord;
+                final msgId = oldRecord['id'] as String?;
+                if (msgId != null) {
+                  roomChats[roomId]?.removeWhere((msg) => msg.id == msgId);
+                }
               }
-              roomChats[roomId]!.add(message);
             },
           )
           .onBroadcast(
@@ -1418,6 +1544,8 @@ class RoomController extends GetxController {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    stopProgressionTimer();
     unsubscribeRoomRealtime();
     if (_roomsListChannel != null) {
       Supabase.instance.client.removeChannel(_roomsListChannel!);
@@ -2127,6 +2255,33 @@ class RoomController extends GetxController {
           }
         } catch (_) {}
 
+        // Handle Magic Gift lottery outcomes
+        final magicResult = response['magic_result'];
+        if (magicResult != null && magicResult['payout_type'] != null && magicResult['payout_type'] != 'nothing') {
+          final String type = magicResult['payout_type'];
+          final int coinsBack = magicResult['coins_back'] ?? 0;
+          final int silverAmount = magicResult['silver_reward'] ?? 0;
+          final String vaultName = magicResult['vault_item_name'] ?? '';
+          
+          String outcomeText = '';
+          if (type == 'coin_back') {
+            outcomeText = '🔮 Lucky Draw! You got $coinsBack Gold Coins Back!';
+          } else if (type == 'silver_reward') {
+            outcomeText = '🔮 Lucky Draw! You won $silverAmount Silver Coins!';
+          } else if (type == 'vault_reward') {
+            outcomeText = '🔮 Lucky Draw! You won a $vaultName!';
+          }
+          
+          Get.snackbar(
+            'Magic Gift Reward! 🔮',
+            outcomeText,
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: const Color(0xFFF59E0B),
+            colorText: Colors.black,
+            duration: const Duration(seconds: 4),
+          );
+        }
+
         // Resolve sender profile info
         final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
         final uName = profile?.username ?? 'Creania Student';
@@ -2213,29 +2368,29 @@ class RoomController extends GetxController {
       }
 
       // Catalog UUID mapping
-      String matchedGiftId = 'g1000000-0000-0000-0000-000000000001'; // Default Rose
+      String matchedGiftId = 'a1000000-0000-0000-0000-000000000001'; // Default Rose
       if (giftName.contains('Heart')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000002';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000002';
       } else if (giftName.contains('Crown')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000003';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000003';
       } else if (giftName.contains('Car') || giftName.contains('Sports Car')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000004';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000004';
       } else if (giftName.contains('Castle')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000005';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000005';
       } else if (giftName.contains('Rocket')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000006';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000006';
       } else if (giftName.contains('Like')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000011';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000011';
       } else if (giftName.contains('Coffee')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000012';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000012';
       } else if (giftName.contains('Chocolate')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000013';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000013';
       } else if (giftName.contains('Flower')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000014';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000014';
       } else if (giftName.contains('Cake')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000015';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000015';
       } else if (giftName.contains('Small Heart')) {
-        matchedGiftId = 'g1000000-0000-0000-0000-000000000016';
+        matchedGiftId = 'a1000000-0000-0000-0000-000000000016';
       }
 
       String currencyType = giftName.startsWith('Vault:') ? 'vault' : 

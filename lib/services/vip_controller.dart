@@ -26,6 +26,20 @@ class VipController extends GetxController {
   final RxBool isAutoRenewEnabled = false.obs;
   final RxString activeFrame = 'Normal'.obs;
 
+  // Customization fields missing in old database schema but required by VIP screens
+  final RxBool isGracePeriodActive = false.obs;
+  final RxInt gracePeriodDaysLeft = 0.obs;
+  final RxList<dynamic> purchaseHistory = <dynamic>[].obs;
+  final RxString activeAvatarRing = 'Normal'.obs;
+  final RxString activeNameColor = 'Normal'.obs;
+  final RxString activeChatBubble = 'Normal'.obs;
+  final RxString activeTheme = 'Normal'.obs;
+  final RxString activeWallpaper = 'Normal'.obs;
+
+  void setCustomization(String key, String itemId) {
+    debugPrint('[VipController] setCustomization: $key -> $itemId');
+  }
+
   // Daily claims tracking
   final Rxn<DateTime> lastClaimTime = Rxn<DateTime>();
   final Map<int, int> dailyCoinRewards = {

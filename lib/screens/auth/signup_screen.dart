@@ -158,8 +158,6 @@ class _SignupScreenState extends State<SignupScreen>
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
-
     return Scaffold(
       backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(

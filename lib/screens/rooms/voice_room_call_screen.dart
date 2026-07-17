@@ -18,8 +18,8 @@ import '../../models/user_model.dart';
 import '../../models/chat_model.dart';
 import '../chat/chat_screen.dart';
 import '../../services/chat_controller.dart';
-import '../../services/zego_cloud_service.dart';
-import '../../services/zego_room_service.dart';
+import '../../services/voice/room_voice_manager.dart';
+import '../../services/voice/voice_controller.dart';
 import '../../services/permission_service.dart';
 import '../../services/room_controller.dart';
 import '../../widgets/send_gift_dialog.dart';
@@ -73,7 +73,7 @@ class VoiceRoomCallScreen extends StatefulWidget {
 
 class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     with TickerProviderStateMixin {
-  late ZegoCloudService _zegoService;
+  // _zegoService removed in favor of clean voice architecture
   late PermissionService _permissionService;
   late RoomController _controller;
   bool _isMicOn = false;
@@ -188,7 +188,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   @override
   void initState() {
     super.initState();
-    _zegoService = ZegoCloudService();
+    Get.put(VoiceController());
     _permissionService = PermissionService();
     _controller = RoomController.to;
     _controller.activeRoomId = widget.roomId;
@@ -281,12 +281,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
     _initializeRoom();
     _chatScrollController.addListener(_handleChatScroll);
-    _startSpeakingSimulation();
-    _startMarqueeSimulation();
+    // _startSpeakingSimulation();
+    // _startMarqueeSimulation();
 
     // Start secure heartbeat reporting
     _controller.heartbeatRoomMember(widget.roomId, _isMicOn);
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (mounted) {
         _controller.heartbeatRoomMember(widget.roomId, _isMicOn);
       }
@@ -361,13 +361,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       }
 
       // Initialize and join ZEGOCLOUD room securely using Token Authentication
-      final zegoRoomService = CustomZegoRoomService();
-      await zegoRoomService.joinVoiceRoom(
+      final roomVoiceManager = RoomVoiceManager();
+      await roomVoiceManager.joinRoom(
         roomId: widget.roomId,
         userId: widget.userId,
         userName: widget.userName,
         enableMic: widget.isHost,
-        enableCamera: false,
       );
 
       // Call enterRoom to synchronize Supabase membership, events, and setup realtime subscriptions
@@ -382,7 +381,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         final mySeat = seatsList.firstWhereOrNull((s) => s['userId'] == widget.userId);
         if (mySeat != null) {
           final micStatus = mySeat['micStatus'] ?? 'unmuted';
-          _zegoService.toggleMic(micStatus == 'unmuted');
+          await roomVoiceManager.toggleMic(micStatus == 'unmuted');
         }
       }
 
@@ -406,7 +405,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
       _controller.initializeChatForRoom(widget.roomId);
       onUserJoin(widget.userId, widget.userName);
-      _startSimulatedUsersTimer();
+      // _startSimulatedUsersTimer();
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -462,7 +461,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
     try {
       final newState = !_isMicOn;
-      _zegoService.toggleMic(newState);
+      await RoomVoiceManager().toggleMic(newState);
       setState(() => _isMicOn = newState);
 
       final index = _seats.indexWhere((s) => s['userId'] == widget.userId);
@@ -490,7 +489,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
     try {
       final newState = !_isCameraOn;
-      _zegoService.toggleCamera(newState);
+      VoiceController.to.isCameraEnabled.value = newState;
       setState(() => _isCameraOn = newState);
     } catch (e) {
       Get.snackbar('Error', 'Failed to toggle camera',
@@ -509,7 +508,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     try {
       await _controller.joinRoomSeat(widget.roomId, seatIndex);
 
-      _zegoService.toggleMic(true);
+      await RoomVoiceManager().toggleMic(true);
       setState(() => _isMicOn = true);
 
       Get.snackbar(
@@ -528,7 +527,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     try {
       await _controller.leaveRoomSeat(widget.roomId, seatIndex);
 
-      _zegoService.toggleMic(false);
+      await RoomVoiceManager().toggleMic(false);
       setState(() {
         _isMicOn = false;
         _isCameraOn = false;
@@ -590,12 +589,59 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   }
 
   Future<void> _leaveRoom() async {
-    try {
-      _controller.emitRoomActivity(widget.roomId, '👋 ${widget.userName} left the arena.', activityKey: 'room-leave');
-      Get.back();
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to leave arena',
-          snackPosition: SnackPosition.BOTTOM);
+    final bool? leaveApproved = await Get.dialog<bool>(
+      AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Leave Room? 🚪',
+          style: GoogleFonts.outfit(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to leave this Arena room?',
+          style: GoogleFonts.poppins(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: Colors.white54),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Get.back(result: true),
+            child: Text(
+              'Leave',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (leaveApproved == true) {
+      try {
+        _controller.emitRoomActivity(
+            widget.roomId, '👋 ${widget.userName} left the arena.',
+            activityKey: 'room-leave');
+        Get.back();
+      } catch (e) {
+        Get.snackbar('Error', 'Failed to leave arena',
+            snackPosition: SnackPosition.BOTTOM);
+      }
     }
   }
 
@@ -1657,7 +1703,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     _marqueeDelayTimer?.cancel();
     _heartbeatTimer?.cancel();
     _controller.exitRoom(widget.roomId);
-    CustomZegoRoomService().leaveVoiceRoom();
+    RoomVoiceManager().leaveRoom();
     _speakingSimulationTimer?.cancel();
     _debateTimer?.cancel();
     _marqueeTimer?.cancel();
@@ -1694,9 +1740,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       );
     }
 
-    return Scaffold(
-      backgroundColor: context.scaffoldBackgroundColor,
-      body: SafeArea(
+    return WillPopScope(
+      onWillPop: () async {
+        await _leaveRoom();
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: context.scaffoldBackgroundColor,
+        body: SafeArea(
         child: Obx(() => Transform.translate(
           offset: _shakeOffset.value,
           child: Stack(
@@ -1947,8 +1998,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           ],
         ))),
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _triggerGiftingAnimations(List<int> targets, String giftIcon, String giftName, int count) {
     final List<Offset> targetPositions = [];
@@ -2052,7 +2104,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       final userId = seat?['userId'] as String?;
       final isOccupied = userId != null;
       final isLocked = seat?['isLocked'] == true;
-      final isSpeaking = seat?['isSpeaking'] == true;
+      final micStatus = seat?['micStatus'] as String? ?? 'unmuted';
+      final soundLevel = isOccupied ? (VoiceController.to.userSoundLevels[userId] ?? 0.0) : 0.0;
+      final isSpeaking = isOccupied && soundLevel > 3.0 && micStatus != 'muted';
       final role = seat?['role'] ?? (index == 0 ? 'Host' : (index == 1 ? 'Co-Host' : 'Listener'));
 
       // Resolve user properties reactively
@@ -2064,7 +2118,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       final userLevel = u?.level ?? seat?['level'] as int? ?? 1;
       final nobleLevel = u?.novelLevel ?? seat?['nobleLevel'] as int? ?? 0;
       final vipLevel = u?.vipLevel ?? seat?['vipLevel'] as int? ?? 0;
-      final micStatus = seat?['micStatus'] as String? ?? 'unmuted';
       final totalGifts = seat?['seatTotalGifts'] as int? ?? 0;
       final totalStars = seat?['seatTotalStars'] as int? ?? 0;
 
@@ -4129,16 +4182,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       icon: const Icon(Icons.arrow_back_ios,
                           color: Colors.white, size: 20),
                       onPressed: () {
-                        Get.back();
-                        _controller.showPipBubble(
-                          widget.roomId,
-                          widget.roomName,
-                          _controller.rooms
-                                  .firstWhereOrNull(
-                                      (r) => r.id == widget.roomId)
-                                  ?.avatar ??
-                              '',
-                        );
+                        _leaveRoom();
                       },
                       constraints: const BoxConstraints(),
                       padding: EdgeInsets.zero,
@@ -4194,7 +4238,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               Row(
                 children: [
                   Obx(() {
-                    final users = ZegoCloudService().roomUsers;
+                    final users = VoiceController.to.roomUsers;
                     final count = users.length;
 
                     return GestureDetector(
@@ -7739,7 +7783,7 @@ class MemberListDialog extends StatelessWidget {
               ),
               Expanded(
                 child: Obx(() {
-                  final onlineUsers = ZegoCloudService().roomUsers;
+                  final onlineUsers = VoiceController.to.roomUsers;
                   final onlineUserIds = onlineUsers.map((u) => u.userID).toSet();
 
                   return TabBarView(
@@ -9071,13 +9115,9 @@ class SeatVoiceEffect extends StatelessWidget {
       );
     }
 
-    final soundStream = Stream.periodic(const Duration(milliseconds: 150), (count) {
-      final roomId = RoomController.to.activeRoomId;
-      final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
-      final seatIndex = seatsList.indexWhere((s) => s['userId'] == userId);
-      final isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
-      if (!isSpeaking) return 0.0;
-      return 15.0 + Random().nextDouble() * 65.0;
+    final soundStream = Stream.periodic(const Duration(milliseconds: 100), (count) {
+      if (isMuted) return 0.0;
+      return VoiceController.to.userSoundLevels[userId] ?? 0.0;
     }).asBroadcastStream();
 
     return StreamBuilder<double>(
@@ -9154,13 +9194,9 @@ class VoiceWaveformWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isMuted) return const SizedBox.shrink();
 
-    final soundStream = Stream.periodic(const Duration(milliseconds: 150), (count) {
-      final roomId = RoomController.to.activeRoomId;
-      final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
-      final seatIndex = seatsList.indexWhere((s) => s['userId'] == userId);
-      final isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
-      if (!isSpeaking) return 0.0;
-      return 15.0 + Random().nextDouble() * 65.0;
+    final soundStream = Stream.periodic(const Duration(milliseconds: 100), (count) {
+      if (isMuted) return 0.0;
+      return VoiceController.to.userSoundLevels[userId] ?? 0.0;
     }).asBroadcastStream();
 
     return StreamBuilder<double>(
@@ -9256,7 +9292,7 @@ class OnlineMembersDialog extends StatelessWidget {
             const SizedBox(height: 12),
             Expanded(
               child: Obx(() {
-                final users = ZegoCloudService().roomUsers;
+                final users = VoiceController.to.roomUsers;
                 if (users.isEmpty) {
                   return Center(
                     child: Text('No users online',

@@ -193,7 +193,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         roomName: room.name,
         userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
         userName: currentUsername != 'Creania Student' ? currentUsername : 'anurag_kumar',
-        isHost: room.hostId == currentUid || room.hostId == 'uid_anurag_101',
+        isHost: room.hostId == currentUid,
       ),
     );
   }
@@ -201,19 +201,19 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   // Check role of current user in a room
   String? _getUserRoleInArena(VoiceRoom room) {
     final userId = UserProfileCacheManager.currentUserId;
-    if (room.hostId == userId || room.ownerName == 'Current User' || room.hostId == 'uid_anurag_101') {
+    if (room.hostId == userId || room.ownerName == 'Current User') {
       return 'Owner';
     }
-    if (room.coOwnerIds.contains(userId) || room.coOwnerIds.contains('uid_anurag_101')) {
+    if (room.coOwnerIds.contains(userId)) {
       return 'Co-owner';
     }
-    if (room.adminIds.contains(userId) || room.adminIds.contains('uid_anurag_101')) {
+    if (room.adminIds.contains(userId)) {
       return 'Admin';
     }
-    if (room.hostId == userId || room.hostId == 'uid_anurag_101') {
+    if (room.hostId == userId) {
       return 'Host';
     }
-    if (room.starMemberIds.contains(userId) || room.starMemberIds.contains('uid_anurag_101')) {
+    if (room.starMemberIds.contains(userId)) {
       return 'Star Member';
     }
     return null;

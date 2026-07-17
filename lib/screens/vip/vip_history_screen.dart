@@ -239,7 +239,7 @@ class VipHistoryScreen extends StatelessWidget {
                       style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(width: 8),
-                    VipBadgeWidget(level: level, fontSize: 9, showIcon: false),
+                    VipBadgeWidget(level: level, fontSize: 9),
                   ],
                 ),
                 subtitle: Column(

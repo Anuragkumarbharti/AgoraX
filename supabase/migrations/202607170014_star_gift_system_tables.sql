@@ -95,6 +95,8 @@ create table if not exists public.gift_history (
   room_id text,
   created_at timestamptz default now()
 );
+alter table public.gift_history add column if not exists stars_value numeric;
+alter table public.gift_history add column if not exists room_id text;
 
 -- 9. Create Gift Notifications Table
 create table if not exists public.gift_notifications (
@@ -203,20 +205,20 @@ on conflict (name) do nothing;
 -- Seed Catalog
 insert into public.gift_catalog (id, category_id, name, icon, cost_stars, currency, rarity, is_active) values
 -- Stars gifts (cost_stars represents stars, matches gold coins 1-to-1)
-('g1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'Rose', '🌹', 2, 'gold', 'Common', true),
-('g1000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000001', 'Heart', '❤️', 10, 'gold', 'Common', true),
-('g1000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000001', 'Crown', '👑', 500, 'gold', 'Epic', true),
-('g1000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000001', 'Sports Car', '🏎️', 1000, 'gold', 'Legendary', true),
-('g1000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000001', 'Castle', '🏰', 5000, 'gold', 'Mythic', true),
-('g1000000-0000-0000-0000-000000000006', 'c1000000-0000-0000-0000-000000000001', 'Rocket', '🚀', 10000, 'gold', 'Mythic', true),
+('a1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'Rose', '🌹', 2, 'gold', 'Common', true),
+('a1000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000001', 'Heart', '❤️', 10, 'gold', 'Common', true),
+('a1000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000001', 'Crown', '👑', 500, 'gold', 'Epic', true),
+('a1000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000001', 'Sports Car', '🏎️', 1000, 'gold', 'Legendary', true),
+('a1000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000001', 'Castle', '🏰', 5000, 'gold', 'Mythic', true),
+('a1000000-0000-0000-0000-000000000006', 'c1000000-0000-0000-0000-000000000001', 'Rocket', '🚀', 10000, 'gold', 'Mythic', true),
 
 -- Silver gifts (cost_stars represents converted stars: 100 silver = 1 star. E.g. Like is 50 silver = 0.5 stars)
-('g1000000-0000-0000-0000-000000000011', 'c1000000-0000-0000-0000-000000000002', 'Like', '👍', 0.5, 'silver', 'Common', true),
-('g1000000-0000-0000-0000-000000000012', 'c1000000-0000-0000-0000-000000000002', 'Coffee', '☕', 1.0, 'silver', 'Common', true),
-('g1000000-0000-0000-0000-000000000013', 'c1000000-0000-0000-0000-000000000002', 'Chocolate', '🍫', 2.0, 'silver', 'Common', true),
-('g1000000-0000-0000-0000-000000000014', 'c1000000-0000-0000-0000-000000000002', 'Flower', '🌼', 5.0, 'silver', 'Common', true),
-('g1000000-0000-0000-0000-000000000015', 'c1000000-0000-0000-0000-000000000002', 'Cake', '🎂', 10.0, 'silver', 'Rare', true),
-('g1000000-0000-0000-0000-000000000016', 'c1000000-0000-0000-0000-000000000002', 'Small Heart', '❤️', 20.0, 'silver', 'Rare', true)
+('a1000000-0000-0000-0000-000000000011', 'c1000000-0000-0000-0000-000000000002', 'Like', '👍', 0.5, 'silver', 'Common', true),
+('a1000000-0000-0000-0000-000000000012', 'c1000000-0000-0000-0000-000000000002', 'Coffee', '☕', 1.0, 'silver', 'Common', true),
+('a1000000-0000-0000-0000-000000000013', 'c1000000-0000-0000-0000-000000000002', 'Chocolate', '🍫', 2.0, 'silver', 'Common', true),
+('a1000000-0000-0000-0000-000000000014', 'c1000000-0000-0000-0000-000000000002', 'Flower', '🌼', 5.0, 'silver', 'Common', true),
+('a1000000-0000-0000-0000-000000000015', 'c1000000-0000-0000-0000-000000000002', 'Cake', '🎂', 10.0, 'silver', 'Rare', true),
+('a1000000-0000-0000-0000-000000000016', 'c1000000-0000-0000-0000-000000000002', 'Small Heart', '❤️', 20.0, 'silver', 'Rare', true)
 on conflict (id) do nothing;
 
 

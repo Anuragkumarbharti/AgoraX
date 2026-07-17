@@ -87,11 +87,12 @@ class PermissionService {
   }
 
   /// Open app settings
-  Future<void> openAppSettings() async {
+  Future<bool> openSystemSettings() async {
     try {
-      await openAppSettings();
+      return await openAppSettings();
     } catch (e) {
       print('❌ Error opening app settings: $e');
+      return false;
     }
   }
 }

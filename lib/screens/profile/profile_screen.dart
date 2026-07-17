@@ -14,6 +14,7 @@ import '../../models/user_model.dart';
 import '../../models/post_model.dart';
 import '../../models/question_model.dart';
 import '../settings/settings_screen.dart';
+import 'gifting_contribution_screen.dart';
 import '../../widgets/post_attachments_widget.dart';
 import '../../widgets/custom_avatar_frame.dart';
 
@@ -909,9 +910,16 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   const SizedBox(height: 12),
 
                   // 10. Gift Stats Section (Replaces Arena Stats & Old Gift Stats)
-                  _glassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  GestureDetector(
+                    onTap: () {
+                      Get.to(() => GiftingContributionScreen(
+                            userId: _user.id,
+                            username: _user.displayName ?? 'Student',
+                          ));
+                    },
+                    child: _glassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
@@ -1028,6 +1036,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       ],
                     ),
                   ),
+                ),
                   const SizedBox(height: 24),
 
                   // 11. Activity Feed & Tabs

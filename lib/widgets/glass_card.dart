@@ -15,7 +15,7 @@ class GlassCard extends StatelessWidget {
     Key? key,
     required this.child,
     this.borderRadius = 24.0, // Enforces WWDC 24px card radius
-    this.padding = EdgeInsets.all(16.0),
+    this.padding = const EdgeInsets.all(16.0),
     this.margin,
     this.blur, // Dynamic based on theme if null
     this.borderWidth = 1.0,
@@ -69,8 +69,8 @@ class GlassCard extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   isDark 
-                      ? AppTheme.darkReflection 
-                      : AppTheme.lightReflection,
+                      ? Colors.white.withOpacity(0.05) 
+                      : Colors.white.withOpacity(0.2),
                   Colors.transparent,
                 ],
                 stops: const [0.0, 1.0],

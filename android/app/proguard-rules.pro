@@ -1,2 +1,4 @@
 -keep class com.razorpay.** {*;}
 -dontwarn com.razorpay.**
+-keep class **.zego.** { *; }
+-dontwarn **.zego.**

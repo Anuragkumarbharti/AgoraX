@@ -324,7 +324,6 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
     final size = MediaQuery.of(context).size;
 
     return Scaffold(

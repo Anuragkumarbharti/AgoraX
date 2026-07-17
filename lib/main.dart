@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'core/theme.dart';
 import 'screens/index.dart';
@@ -24,6 +25,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await AdmobService.initialize();
   
   await Supabase.initialize(
@@ -70,14 +72,28 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeCtrl = ThemeController.to;
-    return Obx(() => GetMaterialApp(
-          title: 'Creania',
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: themeCtrl.activeThemeMode,
-          debugShowCheckedModeBanner: false,
-          home: const SplashScreen(),
-          getPages: [
+    return Obx(() {
+      final pref = themeCtrl.currentThemePreference.value;
+      final Brightness brightness = MediaQuery.platformBrightnessOf(context);
+      final bool isDark = pref == 'dark' || (pref == 'system' && brightness == Brightness.dark);
+
+      SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ));
+
+      return GetMaterialApp(
+        title: 'Creania',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeCtrl.activeThemeMode,
+        debugShowCheckedModeBanner: false,
+        home: const SplashScreen(),
+        getPages: [
             GetPage(
               name: '/',
               page: () => const SplashScreen(),
@@ -95,6 +111,7 @@ class MyApp extends StatelessWidget {
               page: () => const MembershipCenterScreen(),
             ),
           ],
-        ));
+        );
+      });
   }
 }
