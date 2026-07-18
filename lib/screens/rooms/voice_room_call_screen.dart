@@ -6570,6 +6570,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
         'animation': t.animation,
         'effects': t.effects,
         'icon': t.icon,
+        'type': type,
       });
     }
 
@@ -6592,6 +6593,34 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     final List<Widget> widgets = displayTags.map((tag) {
       final label = tag['label'] as String;
       final imageUrl = tag['imageUrl'] as String?;
+      final type = tag['type'] as String?;
+
+      String? localAsset;
+      final String cleanLabel = label.trim().toLowerCase();
+      final String cleanUrl = (imageUrl ?? '').trim().toLowerCase();
+      final String cleanType = (type ?? '').trim().toLowerCase();
+
+      if (cleanUrl.contains('vip_1_tag.png') || cleanUrl.contains('vip_level_1.png') || cleanLabel == 'vip 1' || cleanLabel == 'vip1') {
+        localAsset = 'assets/identity_tags/vip_level_1.png';
+      } else if (cleanUrl.contains('vip_2_tag.png') || cleanUrl.contains('vip_level_2.png') || cleanLabel == 'vip 2' || cleanLabel == 'vip2') {
+        localAsset = 'assets/identity_tags/vip_level_2.png';
+      } else if (cleanUrl.contains('id_level_1.png') || (cleanType == 'id_level' && (cleanLabel.contains('1') || cleanLabel.contains('level 1') || cleanLabel.contains('lv.1') || cleanLabel.contains('lv. 1')))) {
+        localAsset = 'assets/identity_tags/id_level_1.png';
+      } else if (cleanUrl.contains('id_level_2.png') || (cleanType == 'id_level' && (cleanLabel.contains('2') || cleanLabel.contains('level 2') || cleanLabel.contains('lv.2') || cleanLabel.contains('lv. 2')))) {
+        localAsset = 'assets/identity_tags/id_level_2.png';
+      }
+
+      if (localAsset != null) {
+        return Tooltip(
+          message: 'Identity Tag: $label',
+          child: Image.asset(
+            localAsset,
+            height: 22,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
+          ),
+        );
+      }
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
         Widget imgWidget;
@@ -6603,28 +6632,12 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
             errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
           );
         } else {
-          String? localAsset;
-          if (imageUrl.contains('vip_1_tag.png')) {
-            localAsset = 'assets/identity_tags/vip_level_1.png';
-          } else if (imageUrl.contains('vip_2_tag.png')) {
-            localAsset = 'assets/identity_tags/vip_level_2.png';
-          }
-
-          if (localAsset != null) {
-            imgWidget = Image.asset(
-              localAsset,
-              height: 22,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
-            );
-          } else {
-            imgWidget = Image.network(
-              imageUrl,
-              height: 22,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
-            );
-          }
+          imgWidget = Image.network(
+            imageUrl,
+            height: 22,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
+          );
         }
         return Tooltip(
           message: 'Identity Tag: $label',

@@ -281,8 +281,47 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       
       if (response != null) {
         final Map<String, dynamic> stats = Map<String, dynamic>.from(response);
-        _giftLifetimeReceived.value = (stats['lifetime_received'] as num?)?.toDouble() ?? 0.0;
-        _giftLifetimeSent.value = (stats['lifetime_sent'] as num?)?.toDouble() ?? 0.0;
+
+        // Calculate actual stars received from transactions
+        double actualReceived = 0.0;
+        try {
+          final receivedData = await Supabase.instance.client
+              .from('gift_transactions')
+              .select('stars_value')
+              .eq('receiver_id', profileId);
+          if (receivedData != null) {
+            for (final item in receivedData as List<dynamic>) {
+              actualReceived += (item['stars_value'] as num?)?.toDouble() ?? 0.0;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error calculating actual received stars: $e');
+          actualReceived = (stats['lifetime_received'] as num?)?.toDouble() ?? 0.0;
+        }
+
+        // Calculate actual gold coins sent from transactions
+        double actualSentGold = 0.0;
+        try {
+          final sentData = await Supabase.instance.client
+              .from('gift_transactions')
+              .select('stars_value, gift_catalog(currency)')
+              .eq('sender_id', profileId);
+          if (sentData != null) {
+            for (final item in sentData as List<dynamic>) {
+              final catalog = item['gift_catalog'];
+              final currency = catalog != null ? catalog['currency'] as String? : 'gold';
+              if (currency == 'gold') {
+                actualSentGold += (item['stars_value'] as num?)?.toDouble() ?? 0.0;
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Error calculating actual sent gold: $e');
+          actualSentGold = (stats['lifetime_sent'] as num?)?.toDouble() ?? 0.0;
+        }
+
+        _giftLifetimeReceived.value = actualReceived;
+        _giftLifetimeSent.value = actualSentGold;
         _giftMonthlyReceived.value = (stats['monthly_received'] as num?)?.toDouble() ?? 0.0;
         _giftMonthlySent.value = (stats['monthly_sent'] as num?)?.toDouble() ?? 0.0;
         _giftRecentReceivedAvatars.assignAll(List<String>.from(stats['recent_received_avatars'] ?? []));
@@ -290,7 +329,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         _isLoadingGiftStats.value = false;
 
         // Save cache
-        await IsarStorageService.to.saveCacheEntry('gift_stats_cache:$profileId', jsonEncode(stats));
+        final Map<String, dynamic> cacheStats = {
+          'lifetime_received': actualReceived,
+          'lifetime_sent': actualSentGold,
+          'monthly_received': stats['monthly_received'],
+          'monthly_sent': stats['monthly_sent'],
+          'recent_received_avatars': stats['recent_received_avatars'],
+          'recent_sent_avatars': stats['recent_sent_avatars'],
+        };
+        await IsarStorageService.to.saveCacheEntry('gift_stats_cache:$profileId', jsonEncode(cacheStats));
       }
     } catch (e) {
       debugPrint('Error background fetching gift stats RPC: $e');
@@ -679,335 +726,225 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             Stack(
               clipBehavior: Clip.none,
               children: [
-                // Cover Banner
+                // Cover Banner Container
                 Container(
-                  height: 180,
                   width: double.infinity,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     image: DecorationImage(
                       image: NetworkImage(
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuBQXG_YXV_OQP0-xJhu5HQN_kSn29aNlQpdYprfy_6Lt6p7S1_iFiPZLBOCoYJyYLzD0jEMn_nDJdbzzTPPd9TPWvJOwbk2Hx0LhOeMno3fyDDnF0AexwryfifU6lOGkltd25UuY-QDuOgq-sQKBI_660pJrJUwMlGT4P1ZqHI7FpHXm4QzmIXTfLHKh-g5G0vX9VSCr97WBuxDAJjWw-oKaHFOSMYfd4JInnsuQE_mpojplk9j2obIfxP_OmYQFk2XxAFzsoJAuPrc',
+                        _user.coverPhoto != null && _user.coverPhoto!.isNotEmpty
+                            ? _user.coverPhoto!
+                            : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQXG_YXV_OQP0-xJhu5HQN_kSn29aNlQpdYprfy_6Lt6p7S1_iFiPZLBOCoYJyYLzD0jEMn_nDJdbzzTPPd9TPWvJOwbk2Hx0LhOeMno3fyDDnF0AexwryfifU6lOGkltd25UuY-QDuOgq-sQKBI_660pJrJUwMlGT4P1ZqHI7FpHXm4QzmIXTfLHKh-g5G0vX9VSCr97WBuxDAJjWw-oKaHFOSMYfd4JInnsuQE_mpojplk9j2obIfxP_OmYQFk2XxAFzsoJAuPrc',
                       ),
                       fit: BoxFit.cover,
                     ),
                   ),
                   child: Container(
-                    decoration: const BoxDecoration(
+                    padding: const EdgeInsets.only(top: 40, left: 16, right: 16),
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.transparent, Color(0xFF11131C)],
+                        colors: [Colors.transparent, _resolveProfileBackgroundColor()],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
                     ),
-                  ),
-                ),
-                // App bar buttons
-                Positioned(
-                  top: 40,
-                  left: 16,
-                  right: 16,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1D1F29).withOpacity(0.5),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.05)),
-                          ),
-                          child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
-                        ),
-                      ),
-                      if (_isMe)
-                        GestureDetector(
-                          onTap: () => Get.to(() => const SettingsScreen()),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1D1F29).withOpacity(0.5),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white.withOpacity(0.05)),
-                            ),
-                            child: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                // Centered Avatar Stack
-                Positioned(
-                  bottom: -55,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Stack(
-                      clipBehavior: Clip.none,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        CustomAvatarFrame(
-                          userId: _user.id,
-                          username: _user.username,
-                          size: (_user.avatarFrame != null && _user.avatarFrame!.isNotEmpty && _user.avatarFrame != 'none' && _user.avatarFrame != 'normal') || _user.vipLevel > 0 || _user.novelLevel > 0 ? 112 : 96,
-                          defaultVipLevel: _user.vipLevel,
-                          defaultNovelLevel: _user.novelLevel,
-                          showBadges: false,
-                          child: CircleAvatar(
-                            radius: 48,
-                            backgroundColor: const Color(0xFF11131C),
-                            child: OptimizedImage(
-                              imageUrl: _user.avatar != null && _user.avatar!.isNotEmpty
-                                  ? _user.avatar!
-                                  : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCybH5Mu5-PZ_dMHWuWFu9UFqwNpHtc79GaJ1SCz5v_bdFVOBIBr6-Cbgapb6sfnES7omhgh6mLz1FBQpMfCdnTcBsYtqmihxZELjY4zaJAwKYf6bU-AtUsm-WZRdG9uAznurNgCeHKjz02JXnJcB3olfo16_NN_dQPu_losBj6pac8-KtnTIXZREq6hInG6VPAEfdXysXJ11taDrh7Te-i-xDA02rAOPFka-22raXdTq9vSpH1pBr5u3Wsl9JF1x6b8CiVtPwIoSmu',
-                              quality: ImageQuality.thumbnail,
-                              borderRadius: BorderRadius.circular(48),
-                              width: 96,
-                              height: 96,
+                        // App bar buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1D1F29).withOpacity(0.5),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                ),
+                                child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                              ),
                             ),
-                          ),
+                            if (_isMe)
+                              GestureDetector(
+                                onTap: () => Get.to(() => const SettingsScreen()),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1D1F29).withOpacity(0.5),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                  ),
+                                  child: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
+                                ),
+                              ),
+                          ],
                         ),
-                        Positioned(
-                          bottom: 4,
-                          right: 4,
+                        const SizedBox(height: 20),
+                        
+                        // Centered Avatar Frame and Profile Photo
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CustomAvatarFrame(
+                              userId: _user.id,
+                              username: _user.username,
+                              size: (_user.avatarFrame != null && _user.avatarFrame!.isNotEmpty && _user.avatarFrame != 'none' && _user.avatarFrame != 'normal') || _user.vipLevel > 0 || _user.novelLevel > 0 ? 112 : 96,
+                              defaultVipLevel: _user.vipLevel,
+                              defaultNovelLevel: _user.novelLevel,
+                              showBadges: false,
+                              child: CircleAvatar(
+                                radius: 48,
+                                backgroundColor: const Color(0xFF11131C),
+                                child: OptimizedImage(
+                                  imageUrl: _user.avatar != null && _user.avatar!.isNotEmpty
+                                      ? _user.avatar!
+                                      : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCybH5Mu5-PZ_dMHWuWFu9UFqwNpHtc79GaJ1SCz5v_bdFVOBIBr6-Cbgapb6sfnES7omhgh6mLz1FBQpMfCdnTcBsYtqmihxZELjY4zaJAwKYf6bU-AtUsm-WZRdG9uAznurNgCeHKjz02JXnJcB3olfo16_NN_dQPu_losBj6pac8-KtnTIXZREq6hInG6VPAEfdXysXJ11taDrh7Te-i-xDA02rAOPFka-22raXdTq9vSpH1pBr5u3Wsl9JF1x6b8CiVtPwIoSmu',
+                                  quality: ImageQuality.thumbnail,
+                                  borderRadius: BorderRadius.circular(48),
+                                  width: 96,
+                                  height: 96,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 4,
+                              right: 4,
+                              child: Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFF11131C), width: 2),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // First Row: Username (Bold, Primary Focus, 18 px)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              _user.displayName,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              _user.gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
+                              color: _user.gender == 'female' ? const Color(0xFFF472B6) : const Color(0xFF60A5FA),
+                              size: 16,
+                            ),
+                            if (_isMe) ...[
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => Get.to(() => const ProfileCustomizationScreen()),
+                                child: const Icon(Icons.edit_rounded, color: Colors.white70, size: 14),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+
+                        // Second Row: User ID (Smaller, 13 px, Secondary text)
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: _user.sid));
+                            Get.snackbar('Copied', 'ID copied to clipboard.');
+                          },
                           child: Container(
-                            width: 16,
-                            height: 16,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFF11131C), width: 2),
+                              color: Colors.white.withOpacity(0.03),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'ID: ${_user.sid}',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.content_copy_rounded,
+                                  color: Colors.white54,
+                                  size: 11,
+                                ),
+                              ],
                             ),
                           ),
                         ),
+                        const SizedBox(height: 6),
+
+                        // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 320),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: buildTagLightsWidget(generateDynamicTagLights(_user), context),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+
+                        // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
+                        buildOfficialStatusRow(_user, context),
+                        const SizedBox(height: 6),
+
+                        // Fifth Row: Badge Showcase (with mockup container styling)
+                        buildBadgesShowcaseWidget(_user.showcasedBadges, context),
+                        const SizedBox(height: 8),
+                        
+                        // Extra bottom spacing to account for the top half of the Action Buttons row overlapping this container.
+                        const SizedBox(height: 23),
                       ],
                     ),
                   ),
                 ),
+                
+                // 2. Action Buttons Row (positioned to overlap the bottom edge of the banner by half its height)
+                Positioned(
+                  bottom: -23,
+                  left: 16,
+                  right: 16,
+                  child: _buildActionButtonsRow(),
+                ),
               ],
             ),
-            const SizedBox(height: 64),
-
-            // Profile info block
+            
+            // Rest of the profile content wrapped in a Padding with top spacer for Action Buttons
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // First Row: Username (Bold, Primary Focus, 18 px)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        _user.displayName,
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        _user.gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
-                        color: _user.gender == 'female' ? const Color(0xFFF472B6) : const Color(0xFF60A5FA),
-                        size: 16,
-                      ),
-                      if (_isMe) ...[
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => Get.to(() => const ProfileCustomizationScreen()),
-                          child: const Icon(Icons.edit_rounded, color: Colors.white70, size: 14),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Second Row: User ID (Smaller, 13 px, Secondary text)
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: _user.sid));
-                      Get.snackbar('Copied', 'ID copied to clipboard.');
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.03),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'ID: ${_user.sid}',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white70,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.content_copy_rounded,
-                            color: Colors.white54,
-                            size: 11,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: buildTagLightsWidget(generateDynamicTagLights(_user), context),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
-                  buildOfficialStatusRow(_user, context),
-                  const SizedBox(height: 6),
-
-                  // Fifth Row: Badge Showcase (with mockup container styling)
-                  buildBadgesShowcaseWidget(_user.showcasedBadges, context),
-                  const SizedBox(height: 8),
-
-                  // Action Buttons row
-                  Row(
-                    children: _isMe
-                        ? [
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF5865F2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  elevation: 0,
-                                ),
-                                onPressed: () => Get.to(() => const EditProfileScreen()),
-                                child: Text('Edit Profile', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.white10),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  backgroundColor: const Color(0xFF1D1F29).withOpacity(0.5),
-                                ),
-                                onPressed: () => Get.snackbar('Edit Cover', 'Select cover image customization.'),
-                                child: Text('Edit Cover', style: GoogleFonts.inter(color: const Color(0xFFE1E1EF), fontWeight: FontWeight.bold, fontSize: 13)),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => Get.to(() => const ProfileCustomizationScreen()),
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1D1F29).withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white10),
-                                ),
-                                child: const Icon(Icons.brush_rounded, color: Color(0xFFE1E1EF), size: 20),
-                              ),
-                            ),
-                          ]
-                        : [
-                            Expanded(
-                              child: Obx(() {
-                                final otherId = _user.id;
-                                final isFollowed = UserProfileCacheManager.followedUserIds.contains(otherId);
-                                final isFollower = UserProfileCacheManager.followerUserIds.contains(otherId);
-
-                                String buttonText = 'Follow';
-                                if (isFollowed && isFollower) {
-                                  buttonText = 'Mutual';
-                                } else if (isFollowed) {
-                                  buttonText = 'Following';
-                                } else if (isFollower) {
-                                  buttonText = 'Follow Back';
-                                }
-
-                                return ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF5865F2),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    elevation: 0,
-                                  ),
-                                  onPressed: () {
-                                    if (buttonText == 'Follow' || buttonText == 'Follow Back') {
-                                      UserProfileCacheManager.followUser(otherId);
-                                    } else {
-                                      UserProfileCacheManager.unfollowUser(otherId);
-                                    }
-                                  },
-                                  child: Text(buttonText, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                );
-                              }),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.white10),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  backgroundColor: const Color(0xFF1D1F29).withOpacity(0.5),
-                                ),
-                                onPressed: _startDirectChat,
-                                child: Text('Message', style: GoogleFonts.inter(color: const Color(0xFFE1E1EF), fontWeight: FontWeight.bold, fontSize: 13)),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: _openSendGiftDialog,
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1D1F29).withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white10),
-                                ),
-                                child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFE1E1EF), size: 20),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: _showMoreMenu,
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1D1F29).withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white10),
-                                ),
-                                child: const Icon(Icons.more_horiz_rounded, color: Color(0xFFE1E1EF), size: 20),
-                              ),
-                            ),
-                          ],
-                  ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 39),
                   // 3. Social Stats Section
                   Obx(() {
                     final u = UserProfileCacheManager.rxCache[_user.id] ?? _user;
                     final followersCount = u.followers;
                     final followingCount = u.following;
                     final friendsCount = u.friendsCount;
-                    final giftsCount = u.totalStarsReceived;
-                    final contributeCount = u.totalStarsGifted;
+                    final giftsCount = _giftLifetimeReceived.value;
+                    final contributeCount = _giftLifetimeSent.value;
 
                     return Row(
                       children: [
@@ -1050,7 +987,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                           const SizedBox(width: 8),
                           Expanded(
                             child: _statCard(
-                              _formatCount(giftsCount),
+                              _formatCount(giftsCount) + ' ★',
                               'Gifts',
                               onTap: () => Get.to(() => GiftingContributionScreen(
                                     userId: u.id,
@@ -1061,7 +998,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                         ] else ...[
                           Expanded(
                             child: _statCard(
-                              _formatCount(giftsCount),
+                              _formatCount(giftsCount) + ' ★',
                               'Gifts',
                               onTap: () => Get.to(() => GiftingContributionScreen(
                                     userId: u.id,
@@ -1072,7 +1009,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                           const SizedBox(width: 8),
                           Expanded(
                             child: _statCard(
-                              _formatCount(contributeCount),
+                              _formatCount(contributeCount) + ' ★',
                               'Contribute',
                               onTap: () => Get.to(() => GiftingContributionScreen(
                                     userId: u.id,
@@ -1400,10 +1337,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
                   // 10. Gift Stats Section (Replaces Arena Stats & Old Gift Stats)
                   Obx(() {
-                    final monthlyReceivedStr = _formatCount(_giftMonthlyReceived.value.toInt());
-                    final monthlySentStr = _formatCount(_giftMonthlySent.value.toInt());
-                    final lifetimeReceivedStr = _formatCount(_giftLifetimeReceived.value.toInt());
-                    final lifetimeSentStr = _formatCount(_giftLifetimeSent.value.toInt());
+                    final monthlyReceivedStr = _formatCount(_giftMonthlyReceived.value.toInt()) + ' ★';
+                    final monthlySentStr = _formatCount(_giftMonthlySent.value.toInt()) + ' ★';
+                    final lifetimeReceivedStr = _formatCount(_giftLifetimeReceived.value.toInt()) + ' ★';
+                    final lifetimeSentStr = _formatCount(_giftLifetimeSent.value.toInt()) + ' ★';
 
                     return _glassCard(
                       child: Column(
@@ -1680,6 +1617,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           'gradient': gradient,
           'icon': icon,
           'imageUrl': t.imageUrl,
+          'type': type,
         });
       }
     }
@@ -1703,6 +1641,34 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     final List<Widget> widgets = displayTags.map((tag) {
       final label = tag['label'] as String;
       final imageUrl = tag['imageUrl'] as String?;
+      final type = tag['type'] as String?;
+
+      String? localAsset;
+      final String cleanLabel = label.trim().toLowerCase();
+      final String cleanUrl = (imageUrl ?? '').trim().toLowerCase();
+      final String cleanType = (type ?? '').trim().toLowerCase();
+
+      if (cleanUrl.contains('vip_1_tag.png') || cleanUrl.contains('vip_level_1.png') || cleanLabel == 'vip 1' || cleanLabel == 'vip1') {
+        localAsset = 'assets/identity_tags/vip_level_1.png';
+      } else if (cleanUrl.contains('vip_2_tag.png') || cleanUrl.contains('vip_level_2.png') || cleanLabel == 'vip 2' || cleanLabel == 'vip2') {
+        localAsset = 'assets/identity_tags/vip_level_2.png';
+      } else if (cleanUrl.contains('id_level_1.png') || (cleanType == 'id_level' && (cleanLabel.contains('1') || cleanLabel.contains('level 1') || cleanLabel.contains('lv.1') || cleanLabel.contains('lv. 1')))) {
+        localAsset = 'assets/identity_tags/id_level_1.png';
+      } else if (cleanUrl.contains('id_level_2.png') || (cleanType == 'id_level' && (cleanLabel.contains('2') || cleanLabel.contains('level 2') || cleanLabel.contains('lv.2') || cleanLabel.contains('lv. 2')))) {
+        localAsset = 'assets/identity_tags/id_level_2.png';
+      }
+
+      if (localAsset != null) {
+        return Tooltip(
+          message: 'Identity Tag: $label',
+          child: Image.asset(
+            localAsset,
+            height: 19,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
+          ),
+        );
+      }
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
         Widget imgWidget;
@@ -1714,28 +1680,12 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
           );
         } else {
-          String? localAsset;
-          if (imageUrl.contains('vip_1_tag.png')) {
-            localAsset = 'assets/identity_tags/vip_level_1.png';
-          } else if (imageUrl.contains('vip_2_tag.png')) {
-            localAsset = 'assets/identity_tags/vip_level_2.png';
-          }
-
-          if (localAsset != null) {
-            imgWidget = Image.asset(
-              localAsset,
-              height: 19,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
-            );
-          } else {
-            imgWidget = Image.network(
-              imageUrl,
-              height: 19,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
-            );
-          }
+          imgWidget = Image.network(
+            imageUrl,
+            height: 19,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
+          );
         }
         return Tooltip(
           message: 'Identity Tag: $label',
@@ -2099,6 +2049,126 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Text(text, style: GoogleFonts.inter(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Widget _buildActionButtonsRow() {
+    return Row(
+      children: _isMe
+          ? [
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5865F2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Get.to(() => const EditProfileScreen()),
+                  child: Text('Edit Profile', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.white10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: const Color(0xFF1D1F29).withOpacity(0.5),
+                  ),
+                  onPressed: () => Get.to(() => const EditProfileScreen()), // Or trigger select cover photo directly: edit profile has media selectors!
+                  child: Text('Edit Cover', style: GoogleFonts.inter(color: const Color(0xFFE1E1EF), fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => Get.to(() => const ProfileCustomizationScreen()),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1D1F29).withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: const Icon(Icons.brush_rounded, color: Color(0xFFE1E1EF), size: 20),
+                ),
+              ),
+            ]
+          : [
+              Expanded(
+                child: Obx(() {
+                  final otherId = _user.id;
+                  final isFollowed = UserProfileCacheManager.followedUserIds.contains(otherId);
+                  final isFollower = UserProfileCacheManager.followerUserIds.contains(otherId);
+
+                  String buttonText = 'Follow';
+                  if (isFollowed && isFollower) {
+                    buttonText = 'Mutual';
+                  } else if (isFollowed) {
+                    buttonText = 'Following';
+                  } else if (isFollower) {
+                    buttonText = 'Follow Back';
+                  }
+
+                  return ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5865F2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      if (buttonText == 'Follow' || buttonText == 'Follow Back') {
+                        UserProfileCacheManager.followUser(otherId);
+                      } else {
+                        UserProfileCacheManager.unfollowUser(otherId);
+                      }
+                    },
+                    child: Text(buttonText, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  );
+                }),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.white10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: const Color(0xFF1D1F29).withOpacity(0.5),
+                  ),
+                  onPressed: _startDirectChat,
+                  child: Text('Message', style: GoogleFonts.inter(color: const Color(0xFFE1E1EF), fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _openSendGiftDialog,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1D1F29).withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFE1E1EF), size: 20),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _showMoreMenu,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1D1F29).withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: const Icon(Icons.more_horiz_rounded, color: Color(0xFFE1E1EF), size: 20),
+                ),
+              ),
+            ],
     );
   }
 

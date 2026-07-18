@@ -429,7 +429,32 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     required Color borderColor,
     required Color textColor,
     String? imageUrl,
+    String? type,
   }) {
+    String? localAsset;
+    final String cleanLabel = label.trim().toLowerCase();
+    final String cleanUrl = (imageUrl ?? '').trim().toLowerCase();
+    final String cleanType = (type ?? '').trim().toLowerCase();
+
+    if (cleanUrl.contains('vip_1_tag.png') || cleanUrl.contains('vip_level_1.png') || cleanLabel == 'vip 1' || cleanLabel == 'vip1') {
+      localAsset = 'assets/identity_tags/vip_level_1.png';
+    } else if (cleanUrl.contains('vip_2_tag.png') || cleanUrl.contains('vip_level_2.png') || cleanLabel == 'vip 2' || cleanLabel == 'vip2') {
+      localAsset = 'assets/identity_tags/vip_level_2.png';
+    } else if (cleanUrl.contains('id_level_1.png') || (cleanType == 'id_level' && (cleanLabel.contains('1') || cleanLabel.contains('level 1') || cleanLabel.contains('lv.1') || cleanLabel.contains('lv. 1')))) {
+      localAsset = 'assets/identity_tags/id_level_1.png';
+    } else if (cleanUrl.contains('id_level_2.png') || (cleanType == 'id_level' && (cleanLabel.contains('2') || cleanLabel.contains('level 2') || cleanLabel.contains('lv.2') || cleanLabel.contains('lv. 2')))) {
+      localAsset = 'assets/identity_tags/id_level_2.png';
+    }
+
+    if (localAsset != null) {
+      return Image.asset(
+        localAsset,
+        height: 19,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      );
+    }
+
     if (imageUrl != null && imageUrl.isNotEmpty) {
       if (imageUrl.startsWith('asset://')) {
         return Image.asset(
@@ -671,6 +696,7 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
           borderColor: color.withOpacity(0.6),
           textColor: color,
           imageUrl: t.imageUrl,
+          type: type,
         ));
       }
     }

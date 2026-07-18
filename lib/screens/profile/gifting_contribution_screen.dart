@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../services/user_profile_cache_manager.dart';
 
 class GiftingContributionScreen extends StatefulWidget {
   final String userId;
@@ -31,6 +32,8 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
   Map<String, dynamic>? _overallStats;
   List<dynamic> _receivedGifts = [];
   List<dynamic> _sentGifts = [];
+  Map<String, String> _giftCurrencies = {};
+  late final Worker _giftStatsWorker;
   
   // Search and filter parameters
   String _receivedSearch = '';
@@ -43,10 +46,17 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
     super.initState();
     _tabCtrl = TabController(length: 3, vsync: this, initialIndex: widget.initialTabIndex);
     _loadAllData();
+
+    // Recalculate ranking instantly on every successful gift realtime event
+    _giftStatsWorker = ever(UserProfileCacheManager.giftTransactionsTrigger, (_) {
+      debugPrint('[GiftingContributionScreen] Realtime gift transaction event detected. Refreshing data...');
+      _loadAllData();
+    });
   }
 
   @override
   void dispose() {
+    _giftStatsWorker.dispose();
     _tabCtrl.dispose();
     super.dispose();
   }
@@ -56,7 +66,33 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
       _loadOverallStats(),
       _loadReceivedHistory(),
       _loadSentHistory(),
+      _loadGiftCatalogCurrencies(),
     ]);
+  }
+
+  Future<void> _loadGiftCatalogCurrencies() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('gift_catalog')
+          .select('id, currency');
+      if (response != null) {
+        final Map<String, String> mapping = {};
+        for (final item in response as List<dynamic>) {
+          final id = item['id'] as String?;
+          final currency = item['currency'] as String?;
+          if (id != null && currency != null) {
+            mapping[id] = currency;
+          }
+        }
+        if (mounted) {
+          setState(() {
+            _giftCurrencies = mapping;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading gift catalog currencies: $e');
+    }
   }
 
   Future<void> _loadOverallStats() async {
@@ -211,12 +247,131 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
     );
   }
 
+  List<Map<String, dynamic>> _getGroupedReceived() {
+    final filtered = _getFilteredReceived();
+    final Map<String, Map<String, dynamic>> grouped = {};
+    
+    for (final item in filtered) {
+      final String senderId = item['sender_id'] ?? '';
+      if (senderId.isEmpty) continue;
+      
+      final String sender = item['sender_username'] ?? 'User';
+      final String avatar = item['sender_avatar'] ?? '';
+      final String giftName = item['gift_name'] ?? 'Gift';
+      final String giftIcon = item['gift_icon'] ?? '🎁';
+      final int qty = item['quantity'] ?? 1;
+      final double stars = (item['stars_value'] as num?)?.toDouble() ?? 0.0;
+      final DateTime date = DateTime.parse(item['created_at']);
+      final String? roomId = item['room_id'] as String?;
+
+      if (!grouped.containsKey(senderId)) {
+        grouped[senderId] = {
+          'sender_id': senderId,
+          'sender_username': sender,
+          'sender_avatar': avatar,
+          'total_stars': 0.0,
+          'total_qty': 0,
+          'gifts': <String, Map<String, dynamic>>{}, 
+          'last_date': date,
+          'room_ids': <String>{},
+        };
+      }
+      
+      final g = grouped[senderId]!;
+      g['total_stars'] = (g['total_stars'] as double) + stars;
+      g['total_qty'] = (g['total_qty'] as int) + qty;
+      if (date.isAfter(g['last_date'] as DateTime)) {
+        g['last_date'] = date;
+      }
+      if (roomId != null && roomId.isNotEmpty) {
+        (g['room_ids'] as Set<String>).add(roomId);
+      }
+      
+      final giftKey = '${giftIcon}_${giftName}';
+      final giftsMap = g['gifts'] as Map<String, Map<String, dynamic>>;
+      if (!giftsMap.containsKey(giftKey)) {
+        giftsMap[giftKey] = {
+          'icon': giftIcon,
+          'name': giftName,
+          'qty': 0,
+        };
+      }
+      giftsMap[giftKey]!['qty'] = (giftsMap[giftKey]!['qty'] as int) + qty;
+    }
+    
+    final result = grouped.values.toList();
+    result.sort((a, b) => (b['total_stars'] as double).compareTo(a['total_stars'] as double));
+    return result;
+  }
+
+  List<Map<String, dynamic>> _getGroupedSent() {
+    final filtered = _getFilteredSent();
+    final Map<String, Map<String, dynamic>> grouped = {};
+    
+    for (final item in filtered) {
+      final String receiverId = item['receiver_id'] ?? '';
+      if (receiverId.isEmpty) continue;
+      
+      final String giftId = item['gift_id'] ?? '';
+      final String currency = _giftCurrencies[giftId] ?? 'gold';
+      
+      if (currency != 'gold') continue;
+
+      final String receiver = item['receiver_username'] ?? 'User';
+      final String avatar = item['receiver_avatar'] ?? '';
+      final String giftName = item['gift_name'] ?? 'Gift';
+      final String giftIcon = item['gift_icon'] ?? '🎁';
+      final int qty = item['quantity'] ?? 1;
+      final double stars = (item['stars_value'] as num?)?.toDouble() ?? 0.0;
+      final DateTime date = DateTime.parse(item['created_at']);
+      final String? roomId = item['room_id'] as String?;
+
+      if (!grouped.containsKey(receiverId)) {
+        grouped[receiverId] = {
+          'receiver_id': receiverId,
+          'receiver_username': receiver,
+          'receiver_avatar': avatar,
+          'total_stars': 0.0,
+          'total_qty': 0,
+          'gifts': <String, Map<String, dynamic>>{}, 
+          'last_date': date,
+          'room_ids': <String>{},
+        };
+      }
+      
+      final g = grouped[receiverId]!;
+      g['total_stars'] = (g['total_stars'] as double) + stars;
+      g['total_qty'] = (g['total_qty'] as int) + qty;
+      if (date.isAfter(g['last_date'] as DateTime)) {
+        g['last_date'] = date;
+      }
+      if (roomId != null && roomId.isNotEmpty) {
+        (g['room_ids'] as Set<String>).add(roomId);
+      }
+      
+      final giftKey = '${giftIcon}_${giftName}';
+      final giftsMap = g['gifts'] as Map<String, Map<String, dynamic>>;
+      if (!giftsMap.containsKey(giftKey)) {
+        giftsMap[giftKey] = {
+          'icon': giftIcon,
+          'name': giftName,
+          'qty': 0,
+        };
+      }
+      giftsMap[giftKey]!['qty'] = (giftsMap[giftKey]!['qty'] as int) + qty;
+    }
+    
+    final result = grouped.values.toList();
+    result.sort((a, b) => (b['total_stars'] as double).compareTo(a['total_stars'] as double));
+    return result;
+  }
+
   Widget _buildReceivedTab() {
     if (_isLoadingReceived) {
       return const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6))));
     }
 
-    final filtered = _getFilteredReceived();
+    final groupedList = _getGroupedReceived();
 
     return Column(
       children: [
@@ -226,28 +381,31 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
           onFilterChanged: (val) => setState(() => _receivedFilter = val),
         ),
         Expanded(
-          child: filtered.isEmpty
+          child: groupedList.isEmpty
               ? _buildEmptyState('No received gifts found.')
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: filtered.length,
+                  itemCount: groupedList.length,
                   itemBuilder: (context, index) {
-                    final item = filtered[index];
+                    final item = groupedList[index];
                     final sender = item['sender_username'] ?? 'User';
                     final avatar = item['sender_avatar'] ?? '';
-                    final gift = item['gift_name'] ?? 'Gift';
-                    final icon = item['gift_icon'] ?? '🎁';
-                    final int qty = item['quantity'] ?? 1;
-                    final double stars = (item['stars_value'] as num?)?.toDouble() ?? 0.0;
-                    final DateTime date = DateTime.parse(item['created_at']);
-
-                    final String? roomId = item['room_id'] as String?;
+                    final double totalStars = item['total_stars'] ?? 0.0;
+                    final DateTime lastDate = item['last_date'];
+                    final roomIds = item['room_ids'] as Set<String>;
+                    final String? roomId = roomIds.isNotEmpty ? roomIds.first : null;
+                    
+                    final giftsMap = item['gifts'] as Map<String, Map<String, dynamic>>;
+                    final subtitleParts = giftsMap.values.map((g) {
+                      return '${g['qty']}× ${g['icon']} ${g['name']}';
+                    }).toList();
+                    final subtitle = subtitleParts.join(', ');
 
                     return _buildGiftListTile(
                       title: 'From $sender',
-                      subtitle: '$qty× $icon $gift',
-                      stars: stars,
-                      date: date,
+                      subtitle: subtitle,
+                      stars: totalStars,
+                      date: lastDate,
                       avatar: avatar,
                       roomId: roomId,
                     );
@@ -263,8 +421,8 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
       return const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6))));
     }
 
-    final filtered = _getFilteredSent();
-    final double totalSent = (_overallStats?['lifetime_contribution'] as num?)?.toDouble() ?? 0.0;
+    final groupedList = _getGroupedSent();
+    final double totalSent = groupedList.fold(0.0, (sum, item) => sum + (item['total_stars'] as double));
     final String topFriend = _overallStats?['top_friend'] ?? 'None';
     final String favoriteGift = _overallStats?['favorite_gift'] ?? 'None';
 
@@ -302,28 +460,31 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
           onFilterChanged: (val) => setState(() => _sentFilter = val),
         ),
         Expanded(
-          child: filtered.isEmpty
+          child: groupedList.isEmpty
               ? _buildEmptyState('No sent gifts found.')
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: filtered.length,
+                  itemCount: groupedList.length,
                   itemBuilder: (context, index) {
-                    final item = filtered[index];
+                    final item = groupedList[index];
                     final receiver = item['receiver_username'] ?? 'User';
                     final avatar = item['receiver_avatar'] ?? '';
-                    final gift = item['gift_name'] ?? 'Gift';
-                    final icon = item['gift_icon'] ?? '🎁';
-                    final int qty = item['quantity'] ?? 1;
-                    final double stars = (item['stars_value'] as num?)?.toDouble() ?? 0.0;
-                    final DateTime date = DateTime.parse(item['created_at']);
+                    final double totalStars = item['total_stars'] ?? 0.0;
+                    final DateTime lastDate = item['last_date'];
+                    final roomIds = item['room_ids'] as Set<String>;
+                    final String? roomId = roomIds.isNotEmpty ? roomIds.first : null;
 
-                    final String? roomId = item['room_id'] as String?;
+                    final giftsMap = item['gifts'] as Map<String, Map<String, dynamic>>;
+                    final subtitleParts = giftsMap.values.map((g) {
+                      return '${g['qty']}× ${g['icon']} ${g['name']}';
+                    }).toList();
+                    final subtitle = subtitleParts.join(', ');
 
                     return _buildGiftListTile(
                       title: 'Sent to $receiver',
-                      subtitle: '$qty× $icon $gift',
-                      stars: stars,
-                      date: date,
+                      subtitle: subtitle,
+                      stars: totalStars,
+                      date: lastDate,
                       avatar: avatar,
                       roomId: roomId,
                     );
