@@ -95,50 +95,133 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final chatCtrl = Get.find<ChatController>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      // IndexedStack keeps every tab alive — zero rebuild on tab switch
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),
-      bottomNavigationBar: Obx(() {
-        final unread = chatCtrl.totalUnread;
-        return BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() => _selectedIndex = index);
-          },
-          type: BottomNavigationBarType.fixed,
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home_filled),
-              label: 'Home',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.search),
-              activeIcon: Icon(Icons.search),
-              label: 'Explore',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.radio_button_checked_outlined),
-              activeIcon: Icon(Icons.radio_button_checked),
-              label: 'Arenas',
-            ),
-            BottomNavigationBarItem(
-              icon: _buildAnimatedBadgeIcon(unread, Icons.chat_bubble_outline_rounded),
-              activeIcon: _buildAnimatedBadgeIcon(unread, Icons.chat_bubble_rounded),
-              label: 'Messages',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF10131B) : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
             ),
           ],
-        );
-      }),
+        ),
+        child: SafeArea(
+          child: Container(
+            height: 64,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home', isDark),
+                _buildNavItem(1, Icons.explore_rounded, Icons.explore_outlined, 'Explore', isDark),
+                // Center Create (+) Button
+                GestureDetector(
+                  onTap: () {
+                    // Navigate to Arena / Create Room
+                    setState(() => _selectedIndex = 2);
+                  },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6D5DF6), // Royal Purple
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6D5DF6).withOpacity(0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+                Obx(() {
+                  final unread = chatCtrl.totalUnread;
+                  return _buildNavItem(
+                    3,
+                    Icons.chat_bubble_rounded,
+                    Icons.chat_bubble_outline_rounded,
+                    'Messages',
+                    isDark,
+                    unread: unread,
+                  );
+                }),
+                _buildNavItem(4, Icons.person_rounded, Icons.person_outline_rounded, 'Profile', isDark),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label, bool isDark, {int unread = 0}) {
+    final isSelected = _selectedIndex == index;
+    final activeColor = const Color(0xFF6D5DF6);
+    final inactiveColor = isDark ? Colors.white54 : const Color(0xFF9CA3AF);
+
+    return InkWell(
+      onTap: () => setState(() => _selectedIndex = index),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  isSelected ? activeIcon : inactiveIcon,
+                  color: isSelected ? activeColor : inactiveColor,
+                  size: 24,
+                ),
+                if (unread > 0)
+                  Positioned(
+                    top: -4,
+                    right: -8,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                      child: Text(
+                        unread > 99 ? '99+' : '$unread',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? activeColor : inactiveColor,
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

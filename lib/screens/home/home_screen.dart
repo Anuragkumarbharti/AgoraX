@@ -19,6 +19,8 @@ import '../../services/study_category_controller.dart';
 import '../../services/study_vault_controller.dart';
 import '../study_vault/study_vault_home_screen.dart';
 import '../study_vault/book_details_screen.dart';
+import '../events/wallet_screen.dart';
+import '../rooms/rooms_screen.dart';
 import '../notifications/notification_history_screen.dart';
 import '../../services/fcm_notification_service.dart';
 
@@ -189,28 +191,79 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF090B12) : const Color(0xFFF8FAFC),
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        titleSpacing: 16,
         title: Row(
           children: [
             Image.asset(
               'assets/images/logo.png',
-              height: 32,
-              width: 32,
+              height: 28,
+              width: 28,
               fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(Icons.school_rounded, color: Color(0xFF6D5DF6), size: 28),
             ),
             const SizedBox(width: 8),
             Text(
               'Creania',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.outfit(
                 fontWeight: FontWeight.bold,
                 fontSize: 22,
-                color: AppTheme.primaryColor,
+                color: const Color(0xFF6D5DF6),
               ),
             ),
           ],
         ),
         actions: [
+          // Wallet Balance Pill
+          GestureDetector(
+            onTap: () => Get.to(() => WalletScreen()),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF191E29) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: isDark ? const Color(0xFF2D3645) : const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF4B400),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.monetization_on_rounded, color: Colors.white, size: 12),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    '29,549',
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isDark ? Colors.white : const Color(0xFF111827),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Notifications Bell
           Obx(() {
             final unread = Get.isRegistered<FCMNotificationService>()
                 ? FCMNotificationService.to.unreadCount.value
@@ -219,8 +272,8 @@ class _HomeScreenState extends State<HomeScreen> {
               clipBehavior: Clip.none,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: _showNotifications,
+                  icon: Icon(Icons.notifications_none_rounded, color: isDark ? Colors.white : const Color(0xFF374151)),
+                  onPressed: () => Get.to(() => const NotificationHistoryScreen()),
                 ),
                 if (unread > 0)
                   Positioned(
@@ -228,22 +281,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     top: 8,
                     child: Container(
                       padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent,
-                        borderRadius: BorderRadius.circular(10),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
                       ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
+                      constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
                       child: Center(
                         child: Text(
                           unread > 9 ? '9+' : '$unread',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -252,20 +298,20 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             );
           }),
-          IconButton(
-            icon: const Icon(Icons.emoji_events_outlined),
-            onPressed: () => Get.to(
-              () => const EventsScreen(),
-              transition: Transition.rightToLeft,
-              duration: const Duration(milliseconds: 300),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.groups_rounded),
-            onPressed: () => Get.to(
-              () => const CommunitiesScreen(),
-              transition: Transition.rightToLeft,
-              duration: const Duration(milliseconds: 300),
+          
+          // User Avatar Pill
+          GestureDetector(
+            onTap: () {},
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16, left: 4),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: const Color(0xFF6D5DF6),
+                child: const CircleAvatar(
+                  radius: 14,
+                  backgroundImage: NetworkImage('https://images.unsplash.com/photo-1534528741775-53994a69daeb'),
+                ),
+              ),
             ),
           ),
         ],
@@ -283,158 +329,317 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           controller: _scrollController,
-          child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Daily Learning Mission Card
-              _buildDailyLearningMissionCard(context),
-              const SizedBox(height: 24),
-
-              // Official Events & Ranking
-              _buildSectionHeader(context, 'Official & Ranking Events'),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 140,
-                child: Obx(() {
-                  final eventsList = _eventController.events;
-                  return ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: eventsList.length,
-                    itemBuilder: (context, index) {
-                      final e = eventsList[index];
-                      return GestureDetector(
-                        onTap: () => Get.to(() => EventDetailScreen(event: e)),
-                        child: Container(
-                          width: 240,
-                          margin: const EdgeInsets.only(right: 12),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppTheme.cardBg,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: e.isOfficial
-                                  ? AppTheme.primaryColor.withOpacity(0.3)
-                                  : AppTheme.borderColor.withOpacity(0.4),
+              // User Welcome & XP Level Progress Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF151923) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: isDark ? const Color(0xFF2D3645) : const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 22,
+                      backgroundImage: NetworkImage('https://images.unsplash.com/photo-1534528741775-53994a69daeb'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Good morning, Riya! 👋',
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: isDark ? Colors.white : const Color(0xFF111827),
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(height: 2),
+                          Text(
+                            "Let's learn, connect & grow together.",
+                            style: GoogleFonts.outfit(
+                              fontSize: 12,
+                              color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Level badge & XP bar
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6D5DF6).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: e.isOfficial ? AppTheme.primaryColor : Colors.white12,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      e.isOfficial ? '👑 OFFICIAL' : '🏫 COMMUNITY',
-                                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800),
-                                    ),
-                                  ),
-                                  Text(
-                                    e.entryFeeType == model.EntryFeeType.free ? 'FREE' : '₹${e.entryFeeAmount}',
-                                    style: TextStyle(
-                                      color: e.entryFeeType == model.EntryFeeType.free ? AppTheme.accentColor : const Color(0xFFFBBF24),
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
+                              const Icon(Icons.military_tech_rounded, color: Color(0xFF6D5DF6), size: 16),
                               Text(
-                                e.title,
-                                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                e.prizePool,
-                                style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 10, fontWeight: FontWeight.w700),
+                                'Lv. 12',
+                                style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: const Color(0xFF6D5DF6),
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      );
-                    },
-                  );
-                }),
-              ),
-              const SizedBox(height: 32),
-
-              // Trending in Study Vault
-              _buildTrendingStudyVault(context),
-              const SizedBox(height: 32),
-
-              // Official Communities
-              _buildSectionHeader(
-                context,
-                'Official Communities',
-                onViewAll: () => Get.to(() => const CommunitiesScreen()),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 180,
-                child: Obx(() {
-                  final officialComms = _communityCtrl.communities
-                      .where((c) => c.type == 'Official')
-                      .toList();
-
-                  if (officialComms.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'Loading communities...',
-                        style: GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
+                          const SizedBox(height: 2),
+                          Text(
+                            '2560 / 5000 XP',
+                            style: GoogleFonts.outfit(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF6D5DF6),
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: officialComms.length,
-                    itemBuilder: (context, index) {
-                      final comm = officialComms[index];
-                      return _buildOfficialCommunityCard(context, comm, _communityCtrl);
-                    },
-                  );
-                }),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
 
-              // Popular Questions
-              _buildSectionHeader(context, 'Popular Questions'),
-              const SizedBox(height: 12),
-              ListView.builder(
+              // Quick Actions Grid (2x4)
+              GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: 3,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildQuestionCard(context, index),
-                  );
-                },
+                crossAxisCount: 4,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.9,
+                children: [
+                  _buildQuickActionTile('Study Room', Icons.school_rounded, const Color(0xFF6D5DF6), isDark, () => Get.to(() => const StudyVaultHomeScreen())),
+                  _buildQuickActionTile('Debate Room', Icons.record_voice_over_rounded, const Color(0xFFF97316), isDark, () => Get.to(() => RoomsScreen())),
+                  _buildQuickActionTile('Quiz', Icons.quiz_rounded, const Color(0xFF22C55E), isDark, () => Get.to(() => const DailyTaskScreen())),
+                  _buildQuickActionTile('Practice', Icons.menu_book_rounded, const Color(0xFF38BDF8), isDark, () => Get.to(() => const StudyVaultHomeScreen())),
+                  _buildQuickActionTile('Audio Room', Icons.headphones_rounded, const Color(0xFF3B82F6), isDark, () => Get.to(() => RoomsScreen())),
+                  _buildQuickActionTile('Create Room', Icons.add_box_rounded, const Color(0xFFEC4899), isDark, () => Get.to(() => RoomsScreen())),
+                  _buildQuickActionTile('Community', Icons.groups_rounded, const Color(0xFF8B5CF6), isDark, () => Get.to(() => const CommunitiesScreen())),
+                  _buildQuickActionTile('Events', Icons.event_rounded, const Color(0xFFF59E0B), isDark, () => Get.to(() => const EventsScreen())),
+                ],
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-              // Recent Posts
-              _buildSectionHeader(context, 'Recent Posts'),
+              // Recommended Rooms Header & Cards
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recommended Rooms',
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: isDark ? Colors.white : const Color(0xFF111827),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Get.to(() => RoomsScreen()),
+                    child: Text(
+                      'See all >',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: const Color(0xFF6D5DF6),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Recommended Room 1
+              _buildRecommendedRoomCard(
+                title: 'Physics Study Room',
+                subtitle: 'Concept + PYQ Discussion',
+                tag: 'STUDY',
+                listeners: '128',
+                lang: 'English',
+                imgUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f',
+                isDark: isDark,
+              ),
+              const SizedBox(height: 12),
+
+              // Recommended Room 2
+              _buildRecommendedRoomCard(
+                title: "India's Future Economy",
+                subtitle: '5 vs 5 Debate',
+                tag: 'DEBATE',
+                listeners: '96',
+                lang: 'English',
+                imgUrl: 'https://images.unsplash.com/photo-1543269865-cbf427effbad',
+                isDark: isDark,
+              ),
+              const SizedBox(height: 24),
+
+              // Daily Goals Card
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF151923) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: isDark ? const Color(0xFF2D3645) : const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('🔥 ', style: TextStyle(fontSize: 16)),
+                        Text(
+                          'Daily Goals',
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: isDark ? Colors.white : const Color(0xFF111827),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Keep your streak alive!',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '7 Days',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: isDark ? Colors.white : const Color(0xFF111827),
+                              ),
+                            ),
+                            Text(
+                              'Current Streak',
+                              style: GoogleFonts.outfit(
+                                fontSize: 11,
+                                color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '120 XP',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: isDark ? Colors.white : const Color(0xFF111827),
+                              ),
+                            ),
+                            Text(
+                              "Today's Goal",
+                              style: GoogleFonts.outfit(
+                                fontSize: 11,
+                                color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Ring chart indicator
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 50,
+                              height: 50,
+                              child: CircularProgressIndicator(
+                                value: 0.75,
+                                strokeWidth: 5,
+                                backgroundColor: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
+                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6D5DF6)),
+                              ),
+                            ),
+                            Text(
+                              '75%',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: const Color(0xFF6D5DF6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Recent Community Posts
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Community Feed',
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: isDark ? Colors.white : const Color(0xFF111827),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Get.to(() => const CommunitiesScreen()),
+                    child: Text(
+                      'View all >',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: const Color(0xFF6D5DF6),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               _isLoadingPosts
-                  ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF6D5DF6)))
                   : _posts.isEmpty
                       ? Center(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 20),
                             child: Text(
                               'No posts yet. Be the first to share!',
-                              style: GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
+                              style: GoogleFonts.outfit(color: isDark ? Colors.white38 : const Color(0xFF6B7280), fontSize: 13),
                             ),
                           ),
                         )
@@ -455,18 +660,153 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-    ),
-      floatingActionButton: ValueListenableBuilder<bool>(
-        valueListenable: _showFloatingButton,
-        builder: (context, show, _) => show
-            ? FloatingActionButton(
-                onPressed: _createNewPost,
-                backgroundColor: AppTheme.primaryColor,
-                child: const Icon(Icons.add),
-              )
-            : const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildQuickActionTile(String title, IconData icon, Color color, bool isDark, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white70 : const Color(0xFF374151),
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildRecommendedRoomCard({
+    required String title,
+    required String subtitle,
+    required String tag,
+    required String listeners,
+    required String lang,
+    required String imgUrl,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF151923) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? const Color(0xFF2D3645) : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: CachedNetworkImage(
+              imageUrl: imgUrl,
+              width: 84,
+              height: 84,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => Container(color: Colors.grey[200]),
+              errorWidget: (_, __, ___) => Container(color: Colors.grey[300]),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6D5DF6).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    tag,
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF6D5DF6),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: isDark ? Colors.white : const Color(0xFF111827),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.people_alt_rounded, size: 12, color: Color(0xFF6B7280)),
+                    const SizedBox(width: 3),
+                    Text(listeners, style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFF6B7280))),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.language_rounded, size: 12, color: Color(0xFF6B7280)),
+                    const SizedBox(width: 3),
+                    Text(lang, style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFF6B7280))),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () => Get.to(() => RoomsScreen()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6D5DF6),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(
+              'Join',
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSectionHeader(BuildContext context, String title, {VoidCallback? onViewAll}) => Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
 import '../../services/event_controller.dart';
 
@@ -34,7 +35,7 @@ class _WalletScreenState extends State<WalletScreen> {
         title: Row(
           children: [
             Icon(Icons.account_balance_wallet, color: context.primaryColor, size: 24),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Text(
               'Withdraw Cash (₹)',
               style: TextStyle(
@@ -54,11 +55,11 @@ class _WalletScreenState extends State<WalletScreen> {
                 'Funds will be transferred to your UPI ID instantly.',
                 style: TextStyle(color: context.textSecondary, fontSize: 11),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
-                style: TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Please enter amount';
                   final amt = double.tryParse(v);
@@ -75,11 +76,11 @@ class _WalletScreenState extends State<WalletScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _upiController,
                 keyboardType: TextInputType.emailAddress,
-                style: TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'UPI ID required';
                   if (!v.contains('@')) return 'Invalid UPI format (e.g. user@upi)';
@@ -117,13 +118,13 @@ class _WalletScreenState extends State<WalletScreen> {
                     'Withdrawal Initiated 💰',
                     '₹$amt is being transferred to $upi',
                     snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: Color(0xFF10B981),
+                    backgroundColor: const Color(0xFF10B981),
                     colorText: Colors.white,
                   );
                 }
               }
             },
-            child: Text('Withdraw', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Withdraw', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -143,87 +144,235 @@ class _WalletScreenState extends State<WalletScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: context.scaffoldBackgroundColor,
+      backgroundColor: isDark ? const Color(0xFF090B12) : const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: context.scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : const Color(0xFF111827)),
           onPressed: () => Get.back(),
         ),
         title: Text(
-          'Wallet & History',
-          style: TextStyle(
-            color: context.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+          'Wallet',
+          style: GoogleFonts.outfit(
+            color: isDark ? Colors.white : const Color(0xFF111827),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.add_card_rounded, color: context.accentOrange),
-            tooltip: 'Deposit Mock Money',
+            icon: Icon(Icons.qr_code_scanner_rounded, color: isDark ? Colors.white : const Color(0xFF374151)),
             onPressed: _depositMockMoney,
           ),
         ],
       ),
       body: Obx(() {
-        return Padding(
-          padding: EdgeInsets.all(16.0),
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Double Balance Card
-              _buildBalanceCards(),
-              SizedBox(height: 24),
-
-              // 2. Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.primaryColor,
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              // 1. Royal Purple Gradient Balance Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6D5DF6), Color(0xFF4C3CD2)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6D5DF6).withOpacity(0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'My Balance',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
-                      icon: Icon(Icons.account_balance_wallet_outlined, color: Colors.white),
-                      label: Text('Withdraw Cash', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF4B400),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.monetization_on_rounded, color: Colors.white, size: 24),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              '29,549',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // 3D Coin Stack Graphic
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.stars_rounded, color: Color(0xFFF4B400), size: 36),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Recharge Coins Button
+                    ElevatedButton.icon(
                       onPressed: _showWithdrawDialog,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF4B400),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      icon: const Icon(Icons.add_rounded, color: Color(0xFF111827), size: 18),
+                      label: Text(
+                        'Recharge Coins',
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFF111827),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 2. 4-Across Quick Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildWalletActionItem(Icons.receipt_long_rounded, 'Purchase\nHistory', isDark),
+                  _buildWalletActionItem(Icons.swap_horiz_rounded, 'Transactions', isDark),
+                  _buildWalletActionItem(Icons.qr_code_rounded, 'Redeem\nCode', isDark),
+                  _buildWalletActionItem(Icons.card_giftcard_rounded, 'Free Coins', isDark),
+                ],
+              ),
+              const SizedBox(height: 28),
+
+              // 3. Recent Transactions Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recent Transactions',
+                    style: GoogleFonts.outfit(
+                      color: isDark ? Colors.white : const Color(0xFF111827),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {},
+                    child: Text(
+                      'See all >',
+                      style: GoogleFonts.outfit(
+                        color: const Color(0xFF6D5DF6),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 28),
+              const SizedBox(height: 12),
 
-              // 3. Transactions List Header
-              Text(
-                '📜 Transaction History',
-                style: TextStyle(
-                  color: context.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              // 4. Sample & Real Transactions List
+              _buildTransactionCard('Gift Sent to Neha', 'Today, 10:30 AM', '-500', isPositive: false, isDark: isDark),
+              _buildTransactionCard('Room Gift Received', 'Today, 09:15 AM', '+1200', isPositive: true, isDark: isDark),
+              _buildTransactionCard('Quiz Reward', 'Today, 08:45 AM', '+200', isPositive: true, isDark: isDark),
+              _buildTransactionCard('Coins Purchase', 'Yesterday, 07:20 PM', '+5000', isPositive: true, isDark: isDark),
+              _buildTransactionCard('Entry Effect Purchase', 'Yesterday, 06:10 PM', '-300', isPositive: false, isDark: isDark),
+
+              const SizedBox(height: 24),
+
+              // 5. Get More Coins Promo Banner Card
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4C3CD2), Color(0xFF6D5DF6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ),
-              SizedBox(height: 12),
-
-              // 4. Transactions List
-              Expanded(
-                child: _controller.walletTransactions.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No transactions yet.',
-                          style: TextStyle(color: context.caption, fontSize: 13),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _controller.walletTransactions.length,
-                        itemBuilder: (context, index) {
-                          final tx = _controller.walletTransactions[index];
-                          return _buildTransactionRow(tx);
-                        },
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Get More Coins',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Exclusive coins packages',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(
+                              'View Packages',
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF6D5DF6),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    const Icon(Icons.monetization_on_rounded, color: Color(0xFFF4B400), size: 48),
+                  ],
+                ),
               ),
             ],
           ),
@@ -232,182 +381,102 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Widget _buildBalanceCards() {
-    return Row(
+  Widget _buildWalletActionItem(IconData icon, String label, bool isDark) {
+    return Column(
       children: [
-        // Silver Coins Card
-        Expanded(
-          child: Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF475569),
-                  Color(0xFF1E293B).withOpacity(0.9),
-                ],
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF151923) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? const Color(0xFF2D3645) : const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('🪙', style: TextStyle(fontSize: 18)),
-                    SizedBox(width: 6),
-                    Text(
-                      'Silver Coins',
-                      style: TextStyle(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-                Text(
-                  '${_controller.silverCoins.value}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'For hosting events & tools',
-                  style: TextStyle(color: context.caption, fontSize: 9),
-                ),
-              ],
-            ),
+            ],
           ),
+          child: Icon(icon, color: isDark ? Colors.white : const Color(0xFF374151), size: 24),
         ),
-        SizedBox(width: 10),
-        // Cash Card
-        Expanded(
-          child: Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1E1B4B),
-                  Color(0xFF0F172A).withOpacity(0.9),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: context.primaryColor.withOpacity(0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('💰', style: TextStyle(fontSize: 16)),
-                    SizedBox(width: 6),
-                    Text(
-                      'Cash Balance',
-                      style: TextStyle(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-                Text(
-                  '₹${_controller.cashBalance.value.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: context.accentOrange,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'For entry fees & winnings',
-                  style: TextStyle(color: context.caption, fontSize: 9),
-                ),
-              ],
-            ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : const Color(0xFF374151),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildTransactionRow(Map<String, dynamic> tx) {
-    final bool isCredit = tx['isCredit'] as bool;
-    final String amount = tx['amount'] as String;
-    final String type = tx['type'] as String;
-    final String title = tx['title'] as String;
-    final String date = tx['date'] as String;
-    
-    IconData icon;
-    Color iconColor;
-
-    if (type.contains('Paid') || type.contains('Fee') || type.contains('Withdrawal')) {
-      icon = Icons.arrow_outward_rounded;
-      iconColor = Colors.redAccent;
-    } else {
-      icon = Icons.call_received_rounded;
-      iconColor = Color(0xFF10B981);
-    }
-
+  Widget _buildTransactionCard(String title, String subtitle, String amount, {required bool isPositive, required bool isDark}) {
     return Container(
-      margin: EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.borderColor.withOpacity(0.3)),
+        color: isDark ? const Color(0xFF151923) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? const Color(0xFF2D3645) : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          CircleAvatar(
-            backgroundColor: iconColor.withOpacity(0.12),
-            radius: 18,
-            child: Icon(icon, color: iconColor, size: 16),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (isPositive ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withOpacity(0.12),
+                  shape: BoxShape.circle,
                 ),
-                SizedBox(height: 3),
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: context.scaffoldBackgroundColor,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        type,
-                        style: TextStyle(color: iconColor, fontSize: 9, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      date,
-                      style: TextStyle(color: context.caption, fontSize: 10),
-                    ),
-                  ],
+                child: Icon(
+                  isPositive ? Icons.call_received_rounded : Icons.call_made_rounded,
+                  color: isPositive ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                  size: 18,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isDark ? Colors.white : const Color(0xFF111827),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           Text(
-            '${isCredit ? '+' : '-'}$amount',
-            style: TextStyle(
-              color: isCredit ? Color(0xFF10B981) : Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
+            amount,
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: isPositive ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
             ),
           ),
         ],

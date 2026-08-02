@@ -2,55 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // ── LIGHT THEME COLS (Creania Premium Design System v1.0) ──
+  // ── LIGHT THEME COLS (Creania Premium Design System v2.0) ──
   static const Color lightBg = Color(0xFFF8FAFC);
-  static const Color lightSecBg = Color(0xFFF2F5FA);
+  static const Color lightSecBg = Color(0xFFF1F5F9);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightFloatingCard = Color(0xFFFFFFFF);
 
   // Glass colors
   static final Color lightGlassSurface =
-      const Color(0xFFFFFFFF).withOpacity(0.82);
+      const Color(0xFFFFFFFF).withOpacity(0.88);
   static final Color lightGlassHighlight =
-      const Color(0xFFFFFFFF).withOpacity(0.52);
+      const Color(0xFFFFFFFF).withOpacity(0.60);
   static final Color lightGlassReflection =
-      const Color(0xFFFFFFFF).withOpacity(0.35);
+      const Color(0xFFFFFFFF).withOpacity(0.40);
 
   // Typography
-  static const Color lightTextPrimary = Color(0xFF1A1C1E);
-  static const Color lightTextSecondary = Color(0xFF4B5563);
+  static const Color lightTextPrimary = Color(0xFF111827);
+  static const Color lightTextSecondary = Color(0xFF374151);
   static const Color lightTextBody = Color(0xFF4B5563);
   static const Color lightCaption = Color(0xFF6B7280);
   static const Color lightPlaceholder = Color(0xFF9CA3AF);
-  static const Color lightDisabled = Color(0xFFCBD5E1);
+  static const Color lightDisabled = Color(0xFFD1D5DB);
 
   // Dividers, Borders, Shadows
-  static const Color lightBorder = Color(0xFFE7ECF4);
-  static const Color lightDivider = Color(0xFFE7ECF4);
-  static const Color lightShadow = Color(0x0F0F172A); // rgba(15,23,42,0.06)
+  static const Color lightBorder = Color(0xFFE2E8F0);
+  static const Color lightDivider = Color(0xFFE2E8F0);
+  static const Color lightShadow = Color(0x0A0F172A); // rgba(15,23,42,0.04)
 
   // Brand & Accents
-  static const Color lightPrimary = Color(0xFFFF4D8D); // Primary Pink
-  static const Color lightPrimaryHover = Color(0xFFE03F78);
-  static const Color lightPrimaryPressed = Color(0xFFC23063);
-  static const Color lightSecondaryBrand = Color(0xFF8B5CFF); // Primary Purple
+  static const Color lightPrimary = Color(0xFF6D5DF6); // Royal Purple
+  static const Color lightPrimaryHover = Color(0xFF5B4BE3);
+  static const Color lightPrimaryPressed = Color(0xFF4C3CD2);
+  static const Color lightSecondaryBrand = Color(0xFF4EA8FF); // Blue
 
-  static const Color lightAccentPurple = Color(0xFF8B5CFF);
-  static const Color lightAccentBlue = Color(0xFF00C2FF); // Primary Blue
-  static const Color lightAccentCyan = Color(0xFF00C2FF);
-  static const Color lightAccentPink = Color(0xFFFF4D8D);
-  static const Color lightAccentOrange = Color(0xFFFF7A09);
-  static const Color lightAccentGold = Color(0xFFFFB020); // Accent Gold
+  static const Color lightAccentPurple = Color(0xFF6D5DF6);
+  static const Color lightAccentBlue = Color(0xFF4EA8FF);
+  static const Color lightAccentCyan = Color(0xFF38BDF8);
+  static const Color lightAccentPink = Color(0xFFEC4899);
+  static const Color lightAccentOrange = Color(0xFFF97316);
+  static const Color lightAccentGold = Color(0xFFF4B400); // Gold Accent
 
   // Statuses
   static const Color lightSuccess = Color(0xFF22C55E);
   static const Color lightWarning = Color(0xFFF59E0B);
   static const Color lightError = Color(0xFFEF4444);
-  static const Color lightInfo = Color(0xFF0EA5E9); // Link / verified / info color
+  static const Color lightInfo = Color(0xFF3B82F6);
 
   // Gamification & Badges
-  static const Color lightVipGold = Color(0xFFFFB020);
-  static const Color lightSilver = Color(0xFFAEB8C2);
+  static const Color lightVipGold = Color(0xFFF4B400);
+  static const Color lightSilver = Color(0xFF94A3B8);
   static const Color lightBronze = Color(0xFFB87333);
 
   // Legacy/Fallback Light Fields
