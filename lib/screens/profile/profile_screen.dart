@@ -1222,8 +1222,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                               Text(
                                 bioText,
                                 style: GoogleFonts.inter(
-                                    color: const Color(0xFFE1E1EF),
-                                    fontSize: 13,
+                                    color: context.textPrimary,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w500,
                                     height: 1.4),
                               ),
                               const SizedBox(height: 12),
