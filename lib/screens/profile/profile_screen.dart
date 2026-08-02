@@ -851,17 +851,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                         child: Container(
                           padding: const EdgeInsets.only(
-                              top: 40, left: 16, right: 16, bottom: 20),
+                              top: 40, left: 16, right: 16, bottom: 24),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                Colors.black.withOpacity(0.20),
+                                Colors.black.withOpacity(0.35),
                                 Colors.transparent,
-                                context.scaffoldBackgroundColor.withOpacity(0.35),
-                                context.scaffoldBackgroundColor.withOpacity(0.85),
-                                context.scaffoldBackgroundColor,
+                                Colors.black.withOpacity(0.15),
                               ],
-                              stops: const [0.0, 0.45, 0.75, 0.90, 1.0],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             ),
@@ -1093,11 +1090,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                               // Action Buttons Row inside cover photo banner
                               _buildActionButtonsRow(),
-                              const SizedBox(height: 12),
-
-                              // Social Stats Section inside cover photo banner
-                              _buildSocialStatsSection(),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 24),
                             ],
                           ),
                         ),
@@ -1106,16 +1099,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ],
                 ),
 
-                // Rest of the profile content starting immediately below the curved divider line
+                // Rest of the profile content starting on white canvas below the curved divider panel
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      const SizedBox(height: 18),
+                      // Social Stats Section (Followers, Following, Friends, Gifts)
+                      _buildSocialStatsSection(),
                       const SizedBox(height: 16),
-                      // 4. Bio & Links Section
-                      const SizedBox(height: 12),
-
                       // 4. Bio & Links Section
                       _glassCard(
                         child: Obx(() {
@@ -3333,14 +3326,14 @@ class ProfileHeaderCurveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    path.lineTo(0, size.height - 12);
+    path.lineTo(0, size.height - 24);
 
-    // Smooth subtle curve arch below edit buttons row
+    // Smooth upward dome curve like a modern bottom sheet panel
     path.quadraticBezierTo(
       size.width * 0.5,
-      size.height - 28,
+      size.height - 65,
       size.width,
-      size.height - 12,
+      size.height - 24,
     );
 
     path.lineTo(size.width, 0);
@@ -3359,27 +3352,9 @@ class ProfileHeaderCurveShadowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final path = Path();
-    path.lineTo(0, size.height - 12);
-
-    path.quadraticBezierTo(
-      size.width * 0.5,
-      size.height - 28,
-      size.width,
-      size.height - 12,
-    );
-
-    path.lineTo(size.width, 0);
-    path.close();
-
-    canvas.drawShadow(
-      path,
-      shadowColor.withOpacity(0.12),
-      8.0,
-      true,
-    );
+    // No shadow painter requested
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
