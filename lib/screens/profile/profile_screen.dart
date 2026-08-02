@@ -3422,10 +3422,10 @@ class _BreathingVTag extends StatefulWidget {
   final VoidCallback? onTap;
 
   const _BreathingVTag({
-    Key? key,
+    super.key,
     required this.level,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   State<_BreathingVTag> createState() => _BreathingVTagState();
@@ -3562,7 +3562,7 @@ class ProfileHeaderCurveClipper extends CustomClipper<Path> {
 class ProfileHeaderCurveShadowPainter extends CustomPainter {
   final Color shadowColor;
 
-  ProfileHeaderCurveShadowPainter({required this.shadowColor});
+  const ProfileHeaderCurveShadowPainter({required this.shadowColor});
 
   @override
   void paint(Canvas canvas, Size size) {
