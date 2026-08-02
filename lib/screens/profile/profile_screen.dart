@@ -851,14 +851,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                         child: Container(
                           padding: const EdgeInsets.only(
-                              top: 40, left: 16, right: 16, bottom: 40),
+                              top: 40, left: 16, right: 16, bottom: 20),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                Colors.black.withOpacity(0.25),
+                                Colors.black.withOpacity(0.20),
                                 Colors.transparent,
-                                Colors.black.withOpacity(0.12),
+                                context.scaffoldBackgroundColor.withOpacity(0.35),
+                                context.scaffoldBackgroundColor.withOpacity(0.85),
+                                context.scaffoldBackgroundColor,
                               ],
+                              stops: const [0.0, 0.45, 0.75, 0.90, 1.0],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             ),
@@ -1086,22 +1089,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                               // Fifth Row: Badge Showcase (with mockup container styling)
                               buildBadgesShowcaseWidget(
                                   _user.showcasedBadges, context),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 12),
 
-                              // Spacer for curved transition
-                              const SizedBox(height: 6),
+                              // Action Buttons Row inside cover photo banner
+                              _buildActionButtonsRow(),
+                              const SizedBox(height: 12),
                             ],
                           ),
                         ),
                       ),
-                    ),
-
-                    // 2. Action Buttons Row (positioned right over the curve transition)
-                    Positioned(
-                      bottom: -20,
-                      left: 16,
-                      right: 16,
-                      child: _buildActionButtonsRow(),
                     ),
                   ],
                 ),
@@ -1112,7 +1108,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 36),
+                      const SizedBox(height: 14),
                       // 3. Social Stats Section
                       Obx(() {
                         final u =
@@ -3334,14 +3330,14 @@ class ProfileHeaderCurveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    path.lineTo(0, size.height - 20);
+    path.lineTo(0, size.height - 12);
 
-    // Smooth upward dome arch: starts at (0, h-20), arches UP to (w*0.5, h-65), ends at (w, h-20)
+    // Smooth subtle curve arch below edit buttons row
     path.quadraticBezierTo(
       size.width * 0.5,
-      size.height - 65,
+      size.height - 28,
       size.width,
-      size.height - 20,
+      size.height - 12,
     );
 
     path.lineTo(size.width, 0);
@@ -3361,13 +3357,13 @@ class ProfileHeaderCurveShadowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final path = Path();
-    path.lineTo(0, size.height - 20);
+    path.lineTo(0, size.height - 12);
 
     path.quadraticBezierTo(
       size.width * 0.5,
-      size.height - 65,
+      size.height - 28,
       size.width,
-      size.height - 20,
+      size.height - 12,
     );
 
     path.lineTo(size.width, 0);
