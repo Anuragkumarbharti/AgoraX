@@ -834,268 +834,275 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
 
                     // Clipped Cover Banner Container
-                    ClipPath(
-                      clipper: ProfileHeaderCurveClipper(),
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: NetworkImage(
-                              _user.coverPhoto != null &&
-                                      _user.coverPhoto!.isNotEmpty
-                                  ? _user.coverPhoto!
-                                  : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQXG_YXV_OQP0-xJhu5HQN_kSn29aNlQpdYprfy_6Lt6p7S1_iFiPZLBOCoYJyYLzD0jEMn_nDJdbzzTPPd9TPWvJOwbk2Hx0LhOeMno3fyDDnF0AexwryfifU6lOGkltd25UuY-QDuOgq-sQKBI_660pJrJUwMlGT4P1ZqHI7FpHXm4QzmIXTfLHKh-g5G0vX9VSCr97WBuxDAJjWw-oKaHFOSMYfd4JInnsuQE_mpojplk9j2obIfxP_OmYQFk2XxAFzsoJAuPrc',
-                            ),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                    Obx(() {
+                      final liveUser =
+                          UserProfileCacheManager.rxCache[_user.id] ?? _user;
+
+                      return ClipPath(
+                        clipper: ProfileHeaderCurveClipper(),
                         child: Container(
-                          padding: const EdgeInsets.only(
-                              top: 40, left: 16, right: 16, bottom: 24),
+                          width: double.infinity,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.black.withOpacity(0.35),
-                                Colors.transparent,
-                                Colors.black.withOpacity(0.15),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
+                            image: DecorationImage(
+                              image: NetworkImage(
+                                liveUser.coverPhoto != null &&
+                                        liveUser.coverPhoto!.isNotEmpty
+                                    ? liveUser.coverPhoto!
+                                    : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQXG_YXV_OQP0-xJhu5HQN_kSn29aNlQpdYprfy_6Lt6p7S1_iFiPZLBOCoYJyYLzD0jEMn_nDJdbzzTPPd9TPWvJOwbk2Hx0LhOeMno3fyDDnF0AexwryfifU6lOGkltd25UuY-QDuOgq-sQKBI_660pJrJUwMlGT4P1ZqHI7FpHXm4QzmIXTfLHKh-g5G0vX9VSCr97WBuxDAJjWw-oKaHFOSMYfd4JInnsuQE_mpojplk9j2obIfxP_OmYQFk2XxAFzsoJAuPrc',
+                              ),
+                              fit: BoxFit.cover,
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // App bar buttons
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (Navigator.canPop(context)) {
-                                        Navigator.pop(context);
-                                      } else {
-                                        Get.offAll(() => const MainScreen());
-                                      }
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.35),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: Colors.white.withOpacity(0.15)),
-                                      ),
-                                      child: const Icon(Icons.arrow_back_rounded,
-                                          color: Colors.white, size: 20),
-                                    ),
-                                  ),
-                                  if (_isMe)
+                          child: Container(
+                            padding: const EdgeInsets.only(
+                                top: 40, left: 16, right: 16, bottom: 24),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.black.withOpacity(0.35),
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.15),
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // App bar buttons
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
                                     GestureDetector(
-                                      onTap: () =>
-                                          Get.to(() => const SettingsScreen()),
+                                      onTap: () {
+                                        if (Navigator.canPop(context)) {
+                                          Navigator.pop(context);
+                                        } else {
+                                          Get.offAll(() => const MainScreen());
+                                        }
+                                      },
                                       child: Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: Colors.black.withOpacity(0.35),
                                           shape: BoxShape.circle,
                                           border: Border.all(
-                                              color:
-                                                  Colors.white.withOpacity(0.15)),
+                                              color: Colors.white.withOpacity(0.15)),
                                         ),
-                                        child: const Icon(
-                                            Icons.settings_outlined,
-                                            color: Colors.white,
-                                            size: 20),
+                                        child: const Icon(Icons.arrow_back_rounded,
+                                            color: Colors.white, size: 20),
                                       ),
                                     ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
+                                    if (_isMe)
+                                      GestureDetector(
+                                        onTap: () =>
+                                            Get.to(() => const SettingsScreen()),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.35),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                                color:
+                                                    Colors.white.withOpacity(0.15)),
+                                          ),
+                                          child: const Icon(
+                                              Icons.settings_outlined,
+                                              color: Colors.white,
+                                              size: 20),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
 
-                              // Centered Avatar Frame and Profile Photo
-                              Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  CustomAvatarFrame(
-                                    userId: _user.id,
-                                    username: _user.username,
-                                    size: (_user.avatarFrame != null &&
-                                                _user.avatarFrame!.isNotEmpty &&
-                                                _user.avatarFrame != 'none' &&
-                                                _user.avatarFrame != 'normal') ||
-                                            _user.vipLevel > 0 ||
-                                            _user.novelLevel > 0
-                                        ? 112
-                                        : 96,
-                                    defaultVipLevel: _user.vipLevel,
-                                    defaultNovelLevel: _user.novelLevel,
-                                    showBadges: false,
-                                    child: CircleAvatar(
-                                      radius: 48,
-                                      backgroundColor: const Color(0xFF11131C),
-                                      child: OptimizedImage(
-                                        imageUrl: _user.avatar != null &&
-                                                _user.avatar!.isNotEmpty
-                                            ? _user.avatar!
-                                            : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCybH5Mu5-PZ_dMHWuWFu9UFqwNpHtc79GaJ1SCz5v_bdFVOBIBr6-Cbgapb6sfnES7omhgh6mLz1FBQpMfCdnTcBsYtqmihxZELjY4zaJAwKYf6bU-AtUsm-WZRdG9uAznurNgCeHKjz02JXnJcB3olfo16_NN_dQPu_losBj6pac8-KtnTIXZREq6hInG6VPAEfdXysXJ11taDrh7Te-i-xDA02rAOPFka-22raXdTq9vSpH1pBr5u3Wsl9JF1x6b8CiVtPwIoSmu',
-                                        quality: ImageQuality.thumbnail,
-                                        borderRadius: BorderRadius.circular(48),
-                                        width: 96,
-                                        height: 96,
+                                // Centered Avatar Frame and Profile Photo
+                                Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    CustomAvatarFrame(
+                                      userId: liveUser.id,
+                                      username: liveUser.username,
+                                      size: (liveUser.avatarFrame != null &&
+                                                  liveUser.avatarFrame!.isNotEmpty &&
+                                                  liveUser.avatarFrame != 'none' &&
+                                                  liveUser.avatarFrame != 'normal') ||
+                                              liveUser.vipLevel > 0 ||
+                                              liveUser.novelLevel > 0
+                                          ? 112
+                                          : 96,
+                                      defaultVipLevel: liveUser.vipLevel,
+                                      defaultNovelLevel: liveUser.novelLevel,
+                                      showBadges: false,
+                                      child: CircleAvatar(
+                                        radius: 48,
+                                        backgroundColor: const Color(0xFF11131C),
+                                        child: OptimizedImage(
+                                          imageUrl: liveUser.avatar != null &&
+                                                  liveUser.avatar!.isNotEmpty
+                                              ? liveUser.avatar!
+                                              : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCybH5Mu5-PZ_dMHWuWFu9UFqwNpHtc79GaJ1SCz5v_bdFVOBIBr6-Cbgapb6sfnES7omhgh6mLz1FBQpMfCdnTcBsYtqmihxZELjY4zaJAwKYf6bU-AtUsm-WZRdG9uAznurNgCeHKjz02JXnJcB3olfo16_NN_dQPu_losBj6pac8-KtnTIXZREq6hInG6VPAEfdXysXJ11taDrh7Te-i-xDA02rAOPFka-22raXdTq9vSpH1pBr5u3Wsl9JF1x6b8CiVtPwIoSmu',
+                                          quality: ImageQuality.thumbnail,
+                                          borderRadius: BorderRadius.circular(48),
+                                          width: 96,
+                                          height: 96,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Positioned(
-                                    bottom: 4,
-                                    right: 4,
-                                    child: Container(
-                                      width: 16,
-                                      height: 16,
-                                      decoration: BoxDecoration(
-                                        color: Colors.green,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: const Color(0xFF11131C),
-                                            width: 2),
+                                    Positioned(
+                                      bottom: 4,
+                                      right: 4,
+                                      child: Container(
+                                        width: 16,
+                                        height: 16,
+                                        decoration: BoxDecoration(
+                                          color: Colors.green,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                              color: const Color(0xFF11131C),
+                                              width: 2),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-
-                              // First Row: Username (Bold, Primary Focus, 18 px)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      _user.displayName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.poppins(
-                                        color: context.textPrimary,
-                                        fontSize: AppTypography.title,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: -0.4,
-                                        shadows: [
-                                          Shadow(
-                                            color: Colors.black.withOpacity(0.3),
-                                            blurRadius: 6,
-                                            offset: const Offset(0, 2),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Icon(
-                                    _user.gender == 'female'
-                                        ? Icons.female_rounded
-                                        : Icons.male_rounded,
-                                    color: _user.gender == 'female'
-                                        ? const Color(0xFFF472B6)
-                                        : const Color(0xFF60A5FA),
-                                    size: AppDimensions.minIconSize,
-                                  ),
-                                  if (_isMe) ...[
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () => Get.to(() =>
-                                          const ProfileCustomizationScreen()),
-                                      child: Icon(Icons.edit_rounded,
-                                          color: context.textSecondary,
-                                          size: 14),
                                     ),
                                   ],
-                                ],
-                              ),
-                              const SizedBox(height: 6),
+                                ),
+                                const SizedBox(height: 12),
 
-                              // Second Row: User ID (Smaller, 13 px, Secondary text)
-                              GestureDetector(
-                                onTap: () {
-                                  Clipboard.setData(
-                                      ClipboardData(text: _user.sid));
-                                  Get.snackbar(
-                                      'Copied', 'ID copied to clipboard.');
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: context.surfaceColor.withOpacity(0.9),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                        color: context.borderColor,
-                                        width: 1.0),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.04),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      )
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'ID: ${_user.sid}',
+                                // First Row: Username (Bold, Primary Focus, 18 px)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        liveUser.displayName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.poppins(
-                                          color: context.textSecondary,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
+                                          color: context.textPrimary,
+                                          fontSize: AppTypography.title,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: -0.4,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 2),
+                                            )
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.content_copy_rounded,
-                                        color: context.textSecondary,
-                                        size: 11,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Icon(
+                                      liveUser.gender == 'female'
+                                          ? Icons.female_rounded
+                                          : Icons.male_rounded,
+                                      color: liveUser.gender == 'female'
+                                          ? const Color(0xFFF472B6)
+                                          : const Color(0xFF60A5FA),
+                                      size: AppDimensions.minIconSize,
+                                    ),
+                                    if (_isMe) ...[
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () => Get.to(() =>
+                                            const ProfileCustomizationScreen())?.then((_) {
+                                          UserProfileCacheManager.fetchUserProfile(_user.id, forceRefresh: true);
+                                        }),
+                                        child: Icon(Icons.edit_rounded,
+                                            color: context.textSecondary,
+                                            size: 14),
                                       ),
                                     ],
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+
+                                // Second Row: User ID (Smaller, 13 px, Secondary text)
+                                GestureDetector(
+                                  onTap: () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: liveUser.sid));
+                                    Get.snackbar(
+                                        'Copied', 'ID copied to clipboard.');
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: context.surfaceColor.withOpacity(0.9),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                          color: context.borderColor,
+                                          width: 1.0),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.04),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        )
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'ID: ${liveUser.sid}',
+                                          style: GoogleFonts.poppins(
+                                            color: context.textSecondary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.content_copy_rounded,
+                                          color: context.textSecondary,
+                                          size: 11,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
+                                const SizedBox(height: 6),
 
-                              // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
-                              ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxWidth: 320),
-                                child: Wrap(
-                                  alignment: WrapAlignment.center,
-                                  spacing: 6,
-                                  runSpacing: 6,
-                                  children: buildTagLightsWidget(
-                                      generateDynamicTagLights(_user),
-                                      context),
+                                // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
+                                ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(maxWidth: 320),
+                                  child: Wrap(
+                                    alignment: WrapAlignment.center,
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: buildTagLightsWidget(
+                                        generateDynamicTagLights(liveUser),
+                                        context),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
+                                const SizedBox(height: 6),
 
-                              // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
-                              buildOfficialStatusRow(_user, context),
-                              const SizedBox(height: 6),
+                                // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
+                                buildOfficialStatusRow(liveUser, context),
+                                const SizedBox(height: 6),
 
-                              // Fifth Row: Badge Showcase (with mockup container styling)
-                              buildBadgesShowcaseWidget(
-                                  _user.showcasedBadges, context),
-                              const SizedBox(height: 12),
+                                // Fifth Row: Badge Showcase (with mockup container styling)
+                                buildBadgesShowcaseWidget(
+                                    liveUser.showcasedBadges, context),
+                                const SizedBox(height: 12),
 
-                              // Action Buttons Row inside cover photo banner
-                              _buildActionButtonsRow(),
-                              const SizedBox(height: 24),
-                            ],
+                                // Action Buttons Row inside cover photo banner
+                                _buildActionButtonsRow(),
+                                const SizedBox(height: 24),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    }),
                   ],
                 ),
 
@@ -2386,7 +2393,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           borderRadius: BorderRadius.circular(16)),
                       padding: EdgeInsets.zero,
                     ),
-                    onPressed: () => Get.to(() => const EditProfileScreen()),
+                    onPressed: () => Get.to(() => const EditProfileScreen())?.then((_) {
+                      UserProfileCacheManager.fetchUserProfile(_user.id, forceRefresh: true);
+                    }),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -2428,7 +2437,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       padding: EdgeInsets.zero,
                       backgroundColor: Colors.transparent,
                     ),
-                    onPressed: () => Get.to(() => const EditProfileScreen()),
+                    onPressed: () => Get.to(() => const EditProfileScreen())?.then((_) {
+                      UserProfileCacheManager.fetchUserProfile(_user.id, forceRefresh: true);
+                    }),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -2447,7 +2458,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: () => Get.to(() => const ProfileCustomizationScreen()),
+                onTap: () => Get.to(() => const ProfileCustomizationScreen())?.then((_) {
+                  UserProfileCacheManager.fetchUserProfile(_user.id, forceRefresh: true);
+                }),
                 child: Container(
                   width: 48,
                   height: 48,

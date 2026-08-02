@@ -296,7 +296,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _avatarFile!,
             fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
           );
-          avatarUrl = Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
+          final ts = DateTime.now().millisecondsSinceEpoch;
+          avatarUrl = '${Supabase.instance.client.storage.from('avatars').getPublicUrl(path)}?v=$ts';
           debugPrint('[Profile Update] Upload success: Avatar URL = $avatarUrl');
         } catch (e) {
           debugPrint('[Profile Update] Upload failed: Avatar: $e');
@@ -317,7 +318,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _coverFile!,
             fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
           );
-          coverUrl = Supabase.instance.client.storage.from('banners').getPublicUrl(path);
+          final ts = DateTime.now().millisecondsSinceEpoch;
+          coverUrl = '${Supabase.instance.client.storage.from('banners').getPublicUrl(path)}?v=$ts';
           debugPrint('[Profile Update] Upload success: Cover URL = $coverUrl');
         } catch (e) {
           debugPrint('[Profile Update] Upload failed: Cover: $e');
@@ -393,7 +395,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // Sync and reload cache
       UserProfileCacheManager.invalidateCache(userId);
-      await UserProfileCacheManager.fetchUserProfile(userId, forceRefresh: true);
+      final refreshedUser = await UserProfileCacheManager.fetchUserProfile(userId, forceRefresh: true);
+      if (refreshedUser != null) {
+        UserProfileCacheManager.rxCache[userId] = refreshedUser;
+      }
       await UserProgressSyncService.syncFromSupabase();
 
       setState(() => _isLoading = false);
