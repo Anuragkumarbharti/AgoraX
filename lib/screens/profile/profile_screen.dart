@@ -3212,86 +3212,86 @@ class _ProfileScreenState extends State<ProfileScreen>
       },
     );
   }
-
-  Widget _buildPlaceholderFeed(String text) {
-    return Center(
-      child: Text(text,
-          style:
-              GoogleFonts.inter(color: context.textSecondary, fontSize: 13)),
+              crossAxisCount: 3,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
+              children: [
+                _moreOptionItem(
+                  Icons.backpack_outlined,
+                  'Creania Vault',
+                  const Color(0xFFFBBF24),
+                  () {
+                    Get.back();
+                    Get.to(() => const CreaniaVaultHomeScreen());
+                  },
+                ),
+                _moreOptionItem(
+                  Icons.library_books_rounded,
+                  'My Library',
+                  const Color(0xFF3B82F6),
+                  () {
+                    Get.back();
+                    Get.to(() => const MyLibraryScreen());
+                  },
+                ),
+                _moreOptionItem(
+                  Icons.dashboard_rounded,
+                  'Seller Deck',
+                  const Color(0xFF10B981),
+                  () {
+                    Get.back();
+                    Get.to(() => const SellerDashboardScreen());
+                  },
+                ),
+                _moreOptionItem(
+                  Icons.admin_panel_settings_rounded,
+                  'Vault Admin',
+                  const Color(0xFFEF4444),
+                  () {
+                    Get.back();
+                    Get.to(() => const AdminVaultPanelScreen());
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
-}
 
-class _BreathingVTag extends StatefulWidget {
-  final String level;
-  final VoidCallback? onTap;
-
-  const _BreathingVTag({
-    Key? key,
-    required this.level,
-    this.onTap,
-  }) : super(key: key);
-
-  @override
-  State<_BreathingVTag> createState() => _BreathingVTagState();
-}
-
-class _BreathingVTagState extends State<_BreathingVTag>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-          tween: Tween<double>(begin: 1.0, end: 1.15), weight: 50),
-      TweenSequenceItem(
-          tween: Tween<double>(begin: 1.15, end: 1.0), weight: 50),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    _startPeriodicTimer();
-  }
-
-  void _startPeriodicTimer() {
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 5));
-      if (!mounted) return false;
-      _controller.forward(from: 0.0);
-      return true;
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Color badgeColor;
-    String checkIcon = '✓';
-
-    switch (widget.level.toLowerCase()) {
-      case 'diamond':
-        badgeColor = const Color(0xFFE2E8F0);
-        break;
-      case 'gold':
-        badgeColor = const Color(0xFFFFB020);
-        break;
-      case 'purple':
-        badgeColor = const Color(0xFF8B5CFF);
-        break;
-      case 'blue':
-      default:
-),
+  Widget _moreOptionItem(
+      IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
