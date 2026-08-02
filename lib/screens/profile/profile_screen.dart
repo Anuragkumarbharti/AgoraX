@@ -1094,6 +1094,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                               // Action Buttons Row inside cover photo banner
                               _buildActionButtonsRow(),
                               const SizedBox(height: 12),
+
+                              // Social Stats Section inside cover photo banner
+                              _buildSocialStatsSection(),
+                              const SizedBox(height: 12),
                             ],
                           ),
                         ),
@@ -1102,107 +1106,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ],
                 ),
 
-                // Rest of the profile content wrapped in a Padding with top spacer for Action Buttons
+                // Rest of the profile content starting immediately below the curved divider line
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 14),
-                      // 3. Social Stats Section
-                      Obx(() {
-                        final u =
-                            UserProfileCacheManager.rxCache[_user.id] ?? _user;
-                        final followersCount = u.followers;
-                        final followingCount = u.following;
-                        final friendsCount = u.friendsCount;
-                        final giftsCount = _giftLifetimeReceived.value;
-                        final contributeCount = _giftLifetimeSent.value;
-
-                        return Row(
-                          children: [
-                            Expanded(
-                              child: _statCard(
-                                _formatCount(followersCount),
-                                'Followers',
-                                icon: Icons.people_alt_outlined,
-                                onTap: () => Get.to(() => ConnectionsScreen(
-                                      initialTabIndex: 1,
-                                      targetUserId: u.id,
-                                      targetUserName: u.displayName,
-                                    )),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _statCard(
-                                _formatCount(followingCount),
-                                'Following',
-                                icon: Icons.person_add_alt_1_outlined,
-                                onTap: () => Get.to(() => ConnectionsScreen(
-                                      initialTabIndex: 0,
-                                      targetUserId: u.id,
-                                      targetUserName: u.displayName,
-                                    )),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            if (_isMe) ...[
-                              Expanded(
-                                child: _statCard(
-                                  _formatCount(friendsCount),
-                                  'Friends',
-                                  icon: Icons.groups_outlined,
-                                  onTap: () => Get.to(() => ConnectionsScreen(
-                                        initialTabIndex: 2,
-                                        targetUserId: u.id,
-                                        targetUserName: u.displayName,
-                                      )),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _statCard(
-                                  _formatCount(giftsCount) + ' ★',
-                                  'Gifts',
-                                  icon: Icons.card_giftcard_rounded,
-                                  onTap: () =>
-                                      Get.to(() => GiftingContributionScreen(
-                                            userId: u.id,
-                                            username: u.displayName,
-                                          )),
-                                ),
-                              ),
-                            ] else ...[
-                              Expanded(
-                                child: _statCard(
-                                  _formatCount(giftsCount) + ' ★',
-                                  'Gifts',
-                                  icon: Icons.card_giftcard_rounded,
-                                  onTap: () =>
-                                      Get.to(() => GiftingContributionScreen(
-                                            userId: u.id,
-                                            username: u.displayName,
-                                          )),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _statCard(
-                                  _formatCount(contributeCount) + ' ★',
-                                  'Contribute',
-                                  icon: Icons.favorite_outline_rounded,
-                                  onTap: () =>
-                                      Get.to(() => GiftingContributionScreen(
-                                            userId: u.id,
-                                            username: u.displayName,
-                                          )),
-                                ),
-                              ),
-                            ],
-                          ],
-                        );
-                      }),
+                      const SizedBox(height: 16),
+                      // 4. Bio & Links Section
                       const SizedBox(height: 12),
 
                       // 4. Bio & Links Section
@@ -2732,6 +2643,98 @@ class _ProfileScreenState extends State<ProfileScreen>
         }),
       ),
     );
+  }
+
+  Widget _buildSocialStatsSection() {
+    return Obx(() {
+      final u = UserProfileCacheManager.rxCache[_user.id] ?? _user;
+      final followersCount = u.followers;
+      final followingCount = u.following;
+      final friendsCount = u.friendsCount;
+      final giftsCount = _giftLifetimeReceived.value;
+      final contributeCount = _giftLifetimeSent.value;
+
+      return Row(
+        children: [
+          Expanded(
+            child: _statCard(
+              _formatCount(followersCount),
+              'Followers',
+              icon: Icons.people_alt_outlined,
+              onTap: () => Get.to(() => ConnectionsScreen(
+                    initialTabIndex: 1,
+                    targetUserId: u.id,
+                    targetUserName: u.displayName,
+                  )),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _statCard(
+              _formatCount(followingCount),
+              'Following',
+              icon: Icons.person_add_alt_1_outlined,
+              onTap: () => Get.to(() => ConnectionsScreen(
+                    initialTabIndex: 0,
+                    targetUserId: u.id,
+                    targetUserName: u.displayName,
+                  )),
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (_isMe) ...[
+            Expanded(
+              child: _statCard(
+                _formatCount(friendsCount),
+                'Friends',
+                icon: Icons.groups_outlined,
+                onTap: () => Get.to(() => ConnectionsScreen(
+                      initialTabIndex: 2,
+                      targetUserId: u.id,
+                      targetUserName: u.displayName,
+                    )),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _statCard(
+                _formatCount(giftsCount) + ' ★',
+                'Gifts',
+                icon: Icons.card_giftcard_rounded,
+                onTap: () => Get.to(() => GiftingContributionScreen(
+                      userId: u.id,
+                      username: u.displayName,
+                    )),
+              ),
+            ),
+          ] else ...[
+            Expanded(
+              child: _statCard(
+                _formatCount(giftsCount) + ' ★',
+                'Gifts',
+                icon: Icons.card_giftcard_rounded,
+                onTap: () => Get.to(() => GiftingContributionScreen(
+                      userId: u.id,
+                      username: u.displayName,
+                    )),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _statCard(
+                _formatCount(contributeCount) + ' ★',
+                'Contribute',
+                icon: Icons.favorite_outline_rounded,
+                onTap: () => Get.to(() => GiftingContributionScreen(
+                      userId: u.id,
+                      username: u.displayName,
+                    )),
+              ),
+            ),
+          ],
+        ],
+      );
+    });
   }
 
   Widget _statCard(String value, String label, {IconData? icon, VoidCallback? onTap}) {
