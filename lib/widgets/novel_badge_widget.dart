@@ -37,7 +37,8 @@ class SparklePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant SparklePainter oldDelegate) => true;
+  bool shouldRepaint(covariant SparklePainter oldDelegate) =>
+      oldDelegate.animationValue != animationValue;
 }
 
 class NovelBadgeWidget extends StatefulWidget {
@@ -55,13 +56,14 @@ class NovelBadgeWidget extends StatefulWidget {
 }
 
 class _NovelBadgeWidgetState extends State<NovelBadgeWidget>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _breathController;
   late AnimationController _sparkleController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _breathController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
@@ -74,7 +76,21 @@ class _NovelBadgeWidgetState extends State<NovelBadgeWidget>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _breathController.stop();
+      _sparkleController.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      _breathController.repeat(reverse: true);
+      _sparkleController.repeat();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _breathController.dispose();
     _sparkleController.dispose();
     super.dispose();
@@ -193,7 +209,9 @@ class _NovelBadgeWidgetState extends State<NovelBadgeWidget>
     }
 
     final badgeChild = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      height: 19,
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 0),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [startColor, endColor],

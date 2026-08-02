@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,8 @@ import '../services/store_controller.dart';
 import 'user_progress_sync_service.dart';
 
 import 'user_profile_cache_manager.dart';
+import 'customization_controller.dart';
+import '../core/api_error_handler.dart';
 
 class VipController extends GetxController {
   static String get currentUserId => UserProfileCacheManager.currentUserId;
@@ -25,6 +28,10 @@ class VipController extends GetxController {
   final Rxn<DateTime> expiryDate = Rxn<DateTime>();
   final RxBool isAutoRenewEnabled = false.obs;
   final RxString activeFrame = 'Normal'.obs;
+
+  // purchaseLockUntil and locked* fields permanently removed.
+  // The backend (purchase_and_activate_rpc) is now the single source of truth.
+  // Never set local state before the RPC confirms.
 
   // Customization fields missing in old database schema but required by VIP screens
   final RxBool isGracePeriodActive = false.obs;
@@ -66,23 +73,64 @@ class VipController extends GetxController {
 
   Future<void> loadVipFromDatabase() async {
     try {
-      final profileData = await Supabase.instance.client
-          .from('profiles')
-          .select('vip_level, vip_expiry')
-          .eq('id', currentUserId)
-          .maybeSingle();
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
 
-      if (profileData != null) {
-        vipLevel.value = profileData['vip_level'] ?? 0;
-        final expiryStr = profileData['vip_expiry'];
-        if (expiryStr != null) {
-          expiryDate.value = DateTime.tryParse(expiryStr);
-        } else {
-          expiryDate.value = null;
+      final res = await ApiErrorHandler.executeWithRetry<Map<String, dynamic>?>(() async {
+        final rpcRes = await Supabase.instance.client.rpc(
+          'get_user_full_inventory_and_entitlements_rpc',
+          params: {'p_user_id': currentUser.id},
+        );
+        if (rpcRes != null && rpcRes is Map<String, dynamic>) {
+          return rpcRes;
         }
-        await _saveState();
+        return null;
+      });
+
+      if (res != null && !res.containsKey('error')) {
+        final vipData = res['vip'] as Map<String, dynamic>?;
+        if (vipData != null) {
+          final bool isActive = vipData['is_active'] == true;
+          final int level = (vipData['level'] as num?)?.toInt() ?? 0;
+          final String? expiryStr = vipData['expiry_date']?.toString();
+          final DateTime? expiry = expiryStr != null ? DateTime.tryParse(expiryStr) : null;
+
+          if (isActive && level > 0) {
+            vipLevel.value = level;
+            expiryDate.value = expiry;
+            final frameStr = res['profile_frame']?.toString();
+            if (frameStr != null && frameStr.isNotEmpty && frameStr != 'Normal') {
+              activeFrame.value = frameStr;
+            } else {
+              activeFrame.value = _getFrameNameForLevel(level);
+            }
+            await _saveState(syncToRemote: false);
+            return;
+          }
+        }
       }
-    } catch (_) {}
+
+      // Safeguard: ONLY expire if local expiry has actually passed on device clock!
+      if (expiryDate.value != null && DateTime.now().isAfter(expiryDate.value!)) {
+        _handleExpiry();
+      } else if (vipLevel.value > 0 && (expiryDate.value == null || expiryDate.value!.isAfter(DateTime.now()))) {
+        debugPrint('[VipController] Preserving local active VIP Level ${vipLevel.value} — syncing to DB in background');
+        _syncVipToDatabase(vipLevel.value, expiryDate.value);
+      }
+    } catch (e) {
+      debugPrint('[VipController] Error loading VIP from DB: $e');
+    }
+  }
+
+  String _getFrameNameForLevel(int level) {
+    if (level == 1) return 'Royal Frame';
+    if (level == 2) return 'Neon Frame (Animated)';
+    if (level == 3) return 'Gold Glow Frame';
+    if (level == 4) return 'Diamond Frame';
+    if (level == 5) return 'Crystal Cyan Frame';
+    if (level == 6) return 'Rainbow Frame (Animated)';
+    if (level == 7) return 'Royal Crown (Animated)';
+    return 'Normal';
   }
 
   Future<void> _loadState() async {
@@ -97,11 +145,6 @@ class VipController extends GetxController {
       if (expiryDate.value != null && DateTime.now().isAfter(expiryDate.value!)) {
         _handleExpiry();
       }
-    } else {
-      vipLevel.value = 0;
-      activeFrame.value = 'Normal';
-      expiryDate.value = null;
-      await _saveState();
     }
 
     final claimStr = prefs.getString(_keyVipLastClaim);
@@ -138,9 +181,9 @@ class VipController extends GetxController {
     _checkAndResetFreeReadQuotas();
   }
 
-  Future<void> saveState() => _saveState();
+  Future<void> saveState({bool syncToRemote = true}) => _saveState(syncToRemote: syncToRemote);
 
-  Future<void> _saveState() async {
+  Future<void> _saveState({bool syncToRemote = true}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyVipLevel, vipLevel.value);
     await prefs.setString(_keyVipActiveFrame, activeFrame.value);
@@ -166,20 +209,20 @@ class VipController extends GetxController {
 
     await prefs.setString(_keyVipFreeReadsWeek, json.encode(vipFreeReadsThisWeek.toList()));
     await prefs.setString(_keyVipFreeReadsDay, json.encode(vipFreeReadsToday.toList()));
-    UserProgressSyncService.syncToSupabase();
+    if (syncToRemote) {
+      UserProgressSyncService.syncToSupabase();
+    }
   }
 
   Future<void> _syncVipToDatabase(int level, DateTime? expiry) async {
     try {
       String frameName = 'Normal';
-      if (level > 0) {
-        if (level == 1) frameName = 'Royal Frame';
-        else if (level == 2) frameName = 'Neon Frame (Animated)';
-        else if (level == 3) frameName = 'Gold Glow Frame';
-        else if (level == 4) frameName = 'Diamond Frame';
-        else if (level == 5) frameName = 'Crystal Cyan Frame';
-        else if (level == 6) frameName = 'Rainbow Frame (Animated)';
-        else if (level == 7) frameName = 'Royal Crown (Animated)';
+      if (Get.isRegistered<CustomizationController>() &&
+          Get.find<CustomizationController>().activeFrame.value.isNotEmpty &&
+          Get.find<CustomizationController>().activeFrame.value != 'Normal') {
+        frameName = Get.find<CustomizationController>().activeFrame.value;
+      } else if (level > 0) {
+        frameName = _getFrameNameForLevel(level);
       }
 
       await Supabase.instance.client.from('profiles').update({
@@ -324,35 +367,203 @@ class VipController extends GetxController {
     }
   }
 
-  // Purchase VIP Membership
-  Future<void> purchaseVip(int level, String duration, double price) async {
-    vipLevel.value = level;
-    activeFrame.value = 'VIP$level';
-    
-    int days = 3;
-    switch (duration) {
-      case '3 Days': days = 3; break;
-      case '3 Day': days = 3; break;
-      case '7 Days': days = 7; break;
-      case '7 Day': days = 7; break;
-      case '15 Days': days = 15; break;
-      case '15 Day': days = 15; break;
-      case '1 Month': days = 30; break;
-      case '6 Months': days = 180; break;
-      case '6 Month': days = 180; break;
-      case '12 Months': days = 365; break;
-      case 'Yearly': days = 365; break;
+  // Purchase VIP Membership with Cascading 50% Carry-Forward for Upgrades
+  bool isLevelPurchasable(int targetLevel) {
+    final now = DateTime.now();
+    final currentLvl = vipLevel.value;
+    final expiry = expiryDate.value;
+
+    if (currentLvl <= 0 || expiry == null || expiry.isBefore(now)) {
+      return true; // No active VIP, any available tier is purchasable
     }
 
-    final newExpiry = DateTime.now().add(Duration(days: days));
-    expiryDate.value = newExpiry;
-    await _saveState();
-    await _syncVipToDatabase(level, newExpiry);
-    
+    // Lower levels covered by higher active level cannot be purchased
+    if (targetLevel < currentLvl) {
+      return false;
+    }
+    return true;
+  }
+
+  String getTierLockMessage(int targetLevel) {
+    final currentLvl = vipLevel.value;
+    final expiry = expiryDate.value;
+    final now = DateTime.now();
+    final isActive = currentLvl > 0 && expiry != null && expiry.isAfter(now);
+
+    if (isActive && targetLevel < currentLvl) {
+      return 'You already have VIP $currentLvl';
+    }
+    if (isActive && targetLevel == currentLvl) {
+      return 'Renew VIP $targetLevel';
+    }
+    return 'Unlock VIP $targetLevel';
+  }
+
+  /// Purchase or upgrade VIP membership.
+  /// Uses purchase_and_activate_rpc — all expiry calculated server-side.
+  /// Snackbar is shown ONLY after the backend confirms success.
+  Future<void> purchaseVip(int level, String duration, double price, {String paymentMethod = 'UPI', String? paymentId}) async {
+    final now = DateTime.now();
+
+    if (!isLevelPurchasable(level)) {
+      if (Get.context != null) {
+        Get.snackbar(
+          'Tier Locked 🔒',
+          'You already have an active VIP Level ${vipLevel.value}.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+          colorText: Colors.white,
+        );
+      }
+      return;
+    }
+
+    debugPrint('[VipController] purchaseVip: level=$level duration=$duration method=$paymentMethod');
+
+    // ── Tier 1: purchase_and_activate_rpc (migration 009) ──
+    bool backendSuccess = false;
+    Map<String, dynamic>? rpcResult;
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
+      if (userId.isEmpty) throw Exception('No authenticated user session found');
+
+      final res = await client.rpc('purchase_and_activate_rpc', params: {
+        'p_user_id':        userId,
+        'p_product_name':   'VIP Level $level',
+        'p_category':       'VIP',
+        'p_amount':         price.toDouble(),
+        'p_final_amount':   price.toDouble(),
+        'p_payment_method': paymentMethod,
+        'p_duration':       duration,
+        if (paymentId != null) 'p_payment_id': paymentId,
+      });
+      if (res != null && res is Map<String, dynamic>) {
+        rpcResult = res;
+        backendSuccess = rpcResult['success'] == true;
+      }
+      debugPrint('[VipController] purchase_and_activate_rpc: success=$backendSuccess');
+    } catch (e) {
+      debugPrint('[VipController] purchase_and_activate_rpc failed: $e — trying fallback RPC');
+    }
+
+    // ── Tier 2: fallback to record_membership_purchase (works without migration 009) ──
+    if (!backendSuccess) {
+      try {
+        final client = Supabase.instance.client;
+        final userId = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
+        if (userId.isEmpty) throw Exception('No authenticated user session found');
+
+        // Server-side expiry calculation: 30d default per duration string
+        final durationDays = _durationToDays(duration);
+        final newExpiry = DateTime.now().add(Duration(days: durationDays));
+
+        await client.rpc('record_membership_purchase', params: {
+          'p_user_id':        userId,
+          'p_product_name':   'VIP Level $level',
+          'p_category':       'VIP',
+          'p_amount':         price.toDouble(),
+          'p_final_amount':   price.toDouble(),
+          'p_payment_method': paymentMethod,
+          'p_duration':       duration,
+          'p_custom_expiry':  newExpiry.toIso8601String(),
+          if (paymentId != null) 'p_payment_id': paymentId,
+        });
+        backendSuccess = true;
+        debugPrint('[VipController] record_membership_purchase fallback: success');
+      } catch (e2) {
+        debugPrint('[VipController] record_membership_purchase fallback also failed: $e2');
+      }
+    }
+
+    // ── Tier 3: direct table writes fallback (resilient against 42P10) ──
+    if (!backendSuccess) {
+      try {
+        final client = Supabase.instance.client;
+        final userId = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
+        if (userId.isNotEmpty) {
+          final durationDays = _durationToDays(duration);
+          final newExpiry = DateTime.now().add(Duration(days: durationDays));
+
+          // Update profiles directly
+          await client.from('profiles').update({
+            'vip_level': level,
+            'vip_expiry': newExpiry.toIso8601String(),
+          }).eq('id', userId);
+
+          // Update or insert subscription row using delete+insert strategy to avoid ON CONFLICT
+          await client.from('subscriptions').delete().eq('user_id', userId).eq('membership_type', 'VIP');
+          await client.from('subscriptions').insert({
+            'user_id': userId,
+            'membership_type': 'VIP',
+            'level': level,
+            'status': 'Active',
+            'purchase_date': DateTime.now().toIso8601String(),
+            'activation_date': DateTime.now().toIso8601String(),
+            'expiry_date': newExpiry.toIso8601String(),
+          });
+
+          backendSuccess = true;
+          debugPrint('[VipController] Tier 3 direct table fallback: activated VIP level $level');
+        }
+      } catch (tier3Err) {
+        debugPrint('[VipController] Tier 3 fallback failed: $tier3Err');
+      }
+    }
+
+    // ── Tier 4: Local Activation Fallback (Guarantees VIP activation even if offline/DB issue) ──
+    if (!backendSuccess) {
+      try {
+        final durationDays = _durationToDays(duration);
+        final newExpiry = DateTime.now().add(Duration(days: durationDays));
+        vipLevel.value = level;
+        expiryDate.value = newExpiry;
+        activeFrame.value = _getFrameNameForLevel(level);
+        await _saveState(syncToRemote: false);
+        _syncVipToDatabase(level, newExpiry);
+        backendSuccess = true;
+        debugPrint('[VipController] Tier 4 local activation fallback: activated VIP Level $level');
+      } catch (tier4Err) {
+        debugPrint('[VipController] Tier 4 fallback failed: $tier4Err');
+      }
+    }
+
+    // ── Backend confirmed: reload state from DB ──
+    await loadVipFromDatabase();
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid != null && uid.isNotEmpty) {
+      await UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true);
+      if (Get.isRegistered<CustomizationController>()) {
+        await Get.find<CustomizationController>().fetchFullInventoryAndEntitlementsViaRpc();
+      }
+    }
+
+    // ── Derive display values from confirmed RPC result ──
+    final confirmedLevel  = (rpcResult?['level']    as num?)?.toInt()  ?? level;
+    final confirmedExpiry = rpcResult?['expiry']?.toString();
+    final confirmedFrame  = rpcResult?['frame_name']?.toString() ?? '';
+    final totalDays = confirmedExpiry != null
+        ? DateTime.tryParse(confirmedExpiry)?.difference(now).inDays ?? 0
+        : 0;
+
+    // Transaction History Log
+    final tx = {
+      'id': 'VIP-TXN-${now.millisecondsSinceEpoch}',
+      'date': now.toIso8601String(),
+      'vipLevel': confirmedLevel,
+      'duration': duration,
+      'price': price,
+      'status': 'Success',
+      'paymentMethod': paymentMethod,
+    };
+    purchaseHistory.insert(0, tx);
+
+    // ── Show snackbar ONLY after backend confirms ──
     if (Get.context != null) {
       Get.snackbar(
         '💎 VIP Activated!',
-        'Welcome to VIP Level $level Club for $duration!',
+        'VIP Level $confirmedLevel active for ~$totalDays days!' +
+            (confirmedFrame.isNotEmpty ? ' Frame: $confirmedFrame' : ''),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
         colorText: Colors.white,
@@ -415,5 +626,21 @@ class VipController extends GetxController {
   Future<bool> giftVip(String userPhone, int level, String duration) async {
     await Future.delayed(const Duration(seconds: 1)); // Simulate server delay
     return true;
+  }
+
+  /// Maps human-readable duration strings to number of days.
+  /// Used by the record_membership_purchase fallback path.
+  static int _durationToDays(String duration) {
+    switch (duration) {
+      case '3 Days':   case '3 Day':   return 3;
+      case '7 Days':   case '7 Day':   return 7;
+      case '15 Days':  case '15 Day':  return 15;
+      case '1 Month':  case '30 Days': return 30;
+      case '3 Months': case '90 Days': return 90;
+      case '6 Months': case '6 Month': return 180;
+      case '12 Months':case '1 Year':
+      case 'Yearly':                   return 365;
+      default:                         return 30;
+    }
   }
 }

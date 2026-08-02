@@ -258,4 +258,75 @@ void main() {
       expect(controller.sellerTransactions.first.amount, 5.0);
     });
   });
+
+  group('VIP & Novel Cascading Carry-Forward & Lock Tests', () {
+    test('VIP Renewal Stacking (VIP 1 with 4 days left buys 30 days -> 34 days)', () async {
+      final now = DateTime.now();
+      vipController.vipLevel.value = 1;
+      vipController.expiryDate.value = now.add(const Duration(days: 4));
+
+      await vipController.purchaseVip(1, '30 Days', 99.0);
+
+      expect(vipController.vipLevel.value, 1);
+      final remaining = vipController.expiryDate.value!.difference(now).inDays;
+      expect(remaining, 34);
+    });
+
+    test('VIP 1 Upgrade to VIP 2 with 20 days left -> 40 days total (30 + 50% of 20)', () async {
+      final now = DateTime.now();
+      vipController.vipLevel.value = 1;
+      vipController.expiryDate.value = now.add(const Duration(days: 20));
+
+      await vipController.purchaseVip(2, '30 Days', 199.0);
+
+      expect(vipController.vipLevel.value, 2);
+      final remaining = vipController.expiryDate.value!.difference(now).inDays;
+      expect(remaining, 40);
+    });
+
+    test('VIP 1 Upgrade to VIP 5 with 30 days left -> 32 days (30 + (0.5)^4 * 30)', () async {
+      final now = DateTime.now();
+      vipController.vipLevel.value = 1;
+      vipController.expiryDate.value = now.add(const Duration(days: 30));
+
+      await vipController.purchaseVip(5, '30 Days', 499.0);
+
+      expect(vipController.vipLevel.value, 5);
+      final remaining = vipController.expiryDate.value!.difference(now).inDays;
+      expect(remaining, 32);
+    });
+
+    test('Lower VIP Tiers are Locked when VIP 5 is Active', () {
+      vipController.vipLevel.value = 5;
+      vipController.expiryDate.value = DateTime.now().add(const Duration(days: 30));
+
+      expect(vipController.isLevelPurchasable(1), false);
+      expect(vipController.isLevelPurchasable(2), false);
+      expect(vipController.isLevelPurchasable(3), false);
+      expect(vipController.isLevelPurchasable(4), false);
+      expect(vipController.isLevelPurchasable(5), true); // Renewal
+      expect(vipController.isLevelPurchasable(6), true); // Upgrade
+      expect(vipController.isLevelPurchasable(7), true); // Upgrade
+
+      expect(vipController.getTierLockMessage(1), 'You already have VIP 5');
+      expect(vipController.getTierLockMessage(5), 'Renew VIP 5');
+      expect(vipController.getTierLockMessage(6), 'Unlock VIP 6');
+    });
+
+    test('Novel Cascading 50% Carry-Forward & Locks', () async {
+      final now = DateTime.now();
+      novelController.novelLevel.value = 1;
+      novelController.expiryDate.value = now.add(const Duration(days: 20));
+
+      await novelController.purchaseNovel(2, '30 Days', 199.0);
+
+      expect(novelController.novelLevel.value, 2);
+      final remaining = novelController.expiryDate.value!.difference(now).inDays;
+      expect(remaining, 40);
+
+      expect(novelController.isLevelPurchasable(1), false);
+      expect(novelController.isLevelPurchasable(2), true); // Renewal
+      expect(novelController.isLevelPurchasable(3), true); // Upgrade
+    });
+  });
 }

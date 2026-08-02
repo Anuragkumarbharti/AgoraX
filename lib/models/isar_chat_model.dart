@@ -9,6 +9,9 @@ class IsarConversation {
   @Index(unique: true, replace: true)
   late String uuid; // e.g. 'conv_aisha'
 
+  @Index()
+  late String ownerUserId;
+
   late String otherUserId;
   late String otherUserName;
   late String otherUserAvatar;
@@ -31,6 +34,9 @@ class IsarChatMessage {
   @Index(unique: true, replace: true)
   late String uuid; // e.g. 'msg_12345'
 
+  @Index()
+  late String ownerUserId;
+
   late String senderId;
   late String receiverId;
 
@@ -50,5 +56,14 @@ class IsarChatMessage {
 
   List<String>? reactions;
   String? mediaUrl;
+  String? fileName;
+  int? fileSize;
+  String? thumbnailUrl;
+  double? locationLat;
+  double? locationLng;
+  String? locationName;
+  String? contactName;
+  String? contactPhone;
   late bool isEdited;
 }
+

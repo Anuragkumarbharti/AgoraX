@@ -1,4 +1,4 @@
-enum MessageType { text, image, audio, video, file, gif, reaction }
+enum MessageType { text, image, audio, video, file, document, gif, sticker, location, contact, reaction, gift }
 enum MessageStatus { sending, sent, delivered, read }
 
 class ChatMessage {
@@ -15,7 +15,17 @@ class ChatMessage {
   final String? replyToContent;
   final List<String>? reactions; // emoji list
   final String? mediaUrl;
+  final String? fileName;
+  final int? fileSize;
+  final String? thumbnailUrl;
+  final double? locationLat;
+  final double? locationLng;
+  final String? locationName;
+  final String? contactName;
+  final String? contactPhone;
   final bool isEdited;
+  final bool isUnlockGift;
+  final int audioDurationSeconds;
 
   const ChatMessage({
     required this.id,
@@ -31,7 +41,17 @@ class ChatMessage {
     this.replyToContent,
     this.reactions,
     this.mediaUrl,
+    this.fileName,
+    this.fileSize,
+    this.thumbnailUrl,
+    this.locationLat,
+    this.locationLng,
+    this.locationName,
+    this.contactName,
+    this.contactPhone,
     this.isEdited = false,
+    this.isUnlockGift = false,
+    this.audioDurationSeconds = 0,
   });
 
   ChatMessage copyWith({
@@ -40,6 +60,17 @@ class ChatMessage {
     List<String>? reactions,
     bool? isEdited,
     String? content,
+    bool? isUnlockGift,
+    int? audioDurationSeconds,
+    String? mediaUrl,
+    String? fileName,
+    int? fileSize,
+    String? thumbnailUrl,
+    double? locationLat,
+    double? locationLng,
+    String? locationName,
+    String? contactName,
+    String? contactPhone,
   }) {
     return ChatMessage(
       id: id,
@@ -54,8 +85,18 @@ class ChatMessage {
       replyToId: replyToId,
       replyToContent: replyToContent,
       reactions: reactions ?? this.reactions,
-      mediaUrl: mediaUrl,
+      mediaUrl: mediaUrl ?? this.mediaUrl,
+      fileName: fileName ?? this.fileName,
+      fileSize: fileSize ?? this.fileSize,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      locationLat: locationLat ?? this.locationLat,
+      locationLng: locationLng ?? this.locationLng,
+      locationName: locationName ?? this.locationName,
+      contactName: contactName ?? this.contactName,
+      contactPhone: contactPhone ?? this.contactPhone,
       isEdited: isEdited ?? this.isEdited,
+      isUnlockGift: isUnlockGift ?? this.isUnlockGift,
+      audioDurationSeconds: audioDurationSeconds ?? this.audioDurationSeconds,
     );
   }
 
@@ -73,7 +114,17 @@ class ChatMessage {
         'replyToContent': replyToContent,
         'reactions': reactions,
         'mediaUrl': mediaUrl,
+        'fileName': fileName,
+        'fileSize': fileSize,
+        'thumbnailUrl': thumbnailUrl,
+        'locationLat': locationLat,
+        'locationLng': locationLng,
+        'locationName': locationName,
+        'contactName': contactName,
+        'contactPhone': contactPhone,
         'isEdited': isEdited,
+        'isUnlockGift': isUnlockGift,
+        'audioDurationSeconds': audioDurationSeconds,
       };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
@@ -82,15 +133,25 @@ class ChatMessage {
         receiverId: json['receiverId'] ?? '',
         conversationId: json['conversationId'] ?? '',
         content: json['content'] ?? '',
-        type: MessageType.values[(json['type'] as int?) ?? 0],
-        status: MessageStatus.values[(json['status'] as int?) ?? 0],
+        type: MessageType.values[((json['type'] as int?) ?? 0).clamp(0, MessageType.values.length - 1)],
+        status: MessageStatus.values[((json['status'] as int?) ?? 0).clamp(0, MessageStatus.values.length - 1)],
         timestamp: DateTime.parse(json['timestamp'] ?? DateTime.now().toIso8601String()),
         isDeleted: json['isDeleted'] ?? false,
         replyToId: json['replyToId'],
         replyToContent: json['replyToContent'],
         reactions: json['reactions'] != null ? List<String>.from(json['reactions']) : null,
         mediaUrl: json['mediaUrl'],
+        fileName: json['fileName'],
+        fileSize: json['fileSize'],
+        thumbnailUrl: json['thumbnailUrl'],
+        locationLat: json['locationLat'] != null ? (json['locationLat'] as num).toDouble() : null,
+        locationLng: json['locationLng'] != null ? (json['locationLng'] as num).toDouble() : null,
+        locationName: json['locationName'],
+        contactName: json['contactName'],
+        contactPhone: json['contactPhone'],
         isEdited: json['isEdited'] ?? false,
+        isUnlockGift: json['isUnlockGift'] ?? false,
+        audioDurationSeconds: json['audioDurationSeconds'] ?? 0,
       );
 }
 
@@ -110,6 +171,7 @@ class Conversation {
   final String? lastMessageSenderId; // to show "You: ..." vs name
   final String levelTitle;
   final int level;
+  final bool isMutualFollow;
 
   const Conversation({
     required this.id,
@@ -127,6 +189,7 @@ class Conversation {
     this.lastMessageSenderId,
     this.levelTitle = 'Member',
     this.level = 1,
+    this.isMutualFollow = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -145,6 +208,7 @@ class Conversation {
         'lastMessageSenderId': lastMessageSenderId,
         'levelTitle': levelTitle,
         'level': level,
+        'isMutualFollow': isMutualFollow,
       };
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
@@ -163,5 +227,6 @@ class Conversation {
         lastMessageSenderId: json['lastMessageSenderId'],
         levelTitle: json['levelTitle'] ?? 'Member',
         level: json['level'] ?? 1,
+        isMutualFollow: json['isMutualFollow'] ?? false,
       );
 }

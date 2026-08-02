@@ -11,6 +11,7 @@ import '../../models/community_model.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/post_attachments_widget.dart';
 import '../../widgets/custom_avatar_frame.dart';
+import '../../widgets/wallet_header_pill.dart';
 import '../../services/study_vault_controller.dart';
 import '../study_vault/study_vault_home_screen.dart';
 import '../study_vault/book_details_screen.dart';
@@ -18,6 +19,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../services/store_controller.dart';
 import '../../services/community_controller.dart';
 import '../communities/community_detail_screen.dart';
+import '../../widgets/community_join_button.dart';
 
 
 class ExploreScreen extends StatefulWidget {
@@ -536,45 +538,7 @@ class _ExploreScreenState extends State<ExploreScreen>
   }
 
   Widget _buildGoldCoinIndicator() {
-    final storeCtrl = Get.find<StoreController>();
-    return Obx(() {
-      final coins = storeCtrl.coinsBalance.value;
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFB020).withOpacity(0.12),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFFFB020).withOpacity(0.3), width: 1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🪙', style: TextStyle(fontSize: 14)),
-            const SizedBox(width: 4),
-            Text(
-              '$coins',
-              style: const TextStyle(
-                color: Color(0xFFE28B00),
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: () => Get.toNamed('/store'),
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFB020),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.add, size: 10, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      );
-    });
+    return const WalletHeaderPill();
   }
 
   @override
@@ -1294,32 +1258,15 @@ class _ExploreScreenState extends State<ExploreScreen>
                 style:
                     const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
             const Spacer(),
-            SizedBox(
+            CommunityJoinButton(
+              community: c,
+              height: 28,
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (isMember) {
-                    communityCtrl.leaveCommunity(c.id);
-                    Get.snackbar('Left Community', 'You left ${c.name}');
-                  } else {
-                    communityCtrl.joinCommunity(c.id);
-                    Get.snackbar('Joined Community', 'You joined ${c.name}!');
-                  }
-                  setState(() {});
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isMember ? Colors.grey.shade800 : AppTheme.primaryColor,
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  minimumSize: Size.zero,
-                  elevation: 0,
-                ),
-                child: Text(isMember ? 'Leave' : 'Join',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
+              borderRadius: 8.0,
+              textStyle: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -1393,31 +1340,16 @@ class _ExploreScreenState extends State<ExploreScreen>
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: () {
-                if (isMember) {
-                  communityCtrl.leaveCommunity(c.id);
-                  Get.snackbar('Left Community', 'You left ${c.name}');
-                } else {
-                  communityCtrl.joinCommunity(c.id);
-                  Get.snackbar('Joined Community', 'You joined ${c.name}!');
-                }
-                setState(() {});
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isMember ? Colors.grey.shade800 : AppTheme.primaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
-                minimumSize: Size.zero,
+            CommunityJoinButton(
+              community: c,
+              height: 32,
+              width: 80,
+              borderRadius: 10.0,
+              textStyle: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
-              child: Text(isMember ? 'Leave' : 'Join',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600)),
             ),
           ],
         ),

@@ -26,7 +26,7 @@ class ChatsListScreen extends StatefulWidget {
 }
 
 class _ChatsListScreenState extends State<ChatsListScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final ChatController _ctrl;
   final TextEditingController _searchCtrl = TextEditingController();
   
@@ -59,11 +59,25 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     _searchCtrl.addListener(() {
       _ctrl.searchQuery.value = _searchCtrl.text;
     });
+    WidgetsBinding.instance.addObserver(this);
+  }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _glowAnimCtrl.stop();
+      _typingAnimCtrl.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      _glowAnimCtrl.repeat(reverse: true);
+      _typingAnimCtrl.repeat();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchCtrl.dispose();
     _entranceAnimCtrl.dispose();
     _glowAnimCtrl.dispose();
@@ -119,7 +133,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
       child: Row(
         children: [
           Text(
-            'Chat Peapale',
+            'Messages',
             style: GoogleFonts.outfit(
               color: AppTheme.textPrimary,
               fontSize: 24,
@@ -129,16 +143,15 @@ class _ChatsListScreenState extends State<ChatsListScreen>
           const Spacer(),
           GestureDetector(
             onTap: () {
-              // Action when tapping notification icon
               HapticFeedback.lightImpact();
-              Get.snackbar('Notifications', 'No new direct notifications.',
+              Get.snackbar('Messages', 'Chat & presence synced.',
                   backgroundColor: AppTheme.bgLight, colorText: AppTheme.textPrimary);
             },
             child: Container(
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: AppTheme.bgLight.withOpacity(0.5),
+                color: AppTheme.bgLight,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
               ),
@@ -171,10 +184,11 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       decoration: BoxDecoration(
-        color: AppTheme.bgLight.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+        color: AppTheme.bgLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
       ),
+
       child: Row(
         children: [
           const SizedBox(width: 14),
@@ -185,9 +199,13 @@ class _ChatsListScreenState extends State<ChatsListScreen>
               controller: _searchCtrl,
               style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Search chats...',
+                hintText: 'Search conversations...',
                 hintStyle: TextStyle(color: AppTheme.textTertiary.withOpacity(0.8), fontSize: 14),
                 border: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -209,7 +227,6 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   List<LiveArenaUser> _getLiveArenaUsers() {
     final List<LiveArenaUser> list = [];
     
-    // Safety check RoomController registration
     if (!Get.isRegistered<RoomController>()) {
       return list;
     }
@@ -218,30 +235,48 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     for (final room in roomCtrl.rooms) {
       if (!room.isLive) continue;
       
-      final isFollowed = roomCtrl.favoriteRoomIds.contains(room.id);
-      
+      final hostId = room.hostId;
+      final isMutual = UserProfileCacheManager.connectionStatuses[hostId] == 'mutual' ||
+          (UserProfileCacheManager.followerUserIds.contains(hostId) &&
+              UserProfileCacheManager.followedUserIds.contains(hostId));
+      final isFollowing = UserProfileCacheManager.followedUserIds.contains(hostId) ||
+          roomCtrl.favoriteRoomIds.contains(room.id);
+      final isVerified = UserProfileCacheManager.getCachedUser(hostId)?.isVerified ?? false;
+
+      // 5-Tier Priority Rank: 1 = Friend (Mutual), 2 = Following, 3 = Verified, 4 = Others
+      int priority = 4;
+      if (isMutual) {
+        priority = 1;
+      } else if (isFollowing) {
+        priority = 2;
+      } else if (isVerified) {
+        priority = 3;
+      }
+
       list.add(LiveArenaUser(
-        userId: room.hostId,
+        userId: hostId,
         username: room.ownerName,
         avatar: room.avatar ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
         avatarFrame: room.roomTheme.toLowerCase().contains('gold') ? 'Golden Frame' : 'Normal',
-        vipBadge: (UserProfileCacheManager.getCachedUser(room.hostId)?.vipLevel != null && UserProfileCacheManager.getCachedUser(room.hostId)!.vipLevel > 0) ? 'VIP ${UserProfileCacheManager.getCachedUser(room.hostId)!.vipLevel}' : null,
-        isSpeaking: room.speakerIds.contains(room.hostId) || room.hostIds.contains(room.hostId),
+        vipBadge: (UserProfileCacheManager.getCachedUser(hostId)?.vipLevel != null &&
+                UserProfileCacheManager.getCachedUser(hostId)!.vipLevel > 0)
+            ? 'VIP ${UserProfileCacheManager.getCachedUser(hostId)!.vipLevel}'
+            : null,
+        isSpeaking: room.speakerIds.contains(hostId) || room.hostIds.contains(hostId),
         roomId: room.id,
         room: room,
-        isFollowed: isFollowed,
+        isFollowed: isFollowing,
+        isMutual: isMutual,
+        isVerified: isVerified,
+        priorityRank: priority,
       ));
     }
     
-    // Sort so followed users appear first
-    list.sort((a, b) {
-      if (a.isFollowed && !b.isFollowed) return -1;
-      if (!a.isFollowed && b.isFollowed) return 1;
-      return 0;
-    });
-    
+    // Sort by Priority Rank
+    list.sort((a, b) => a.priorityRank.compareTo(b.priorityRank));
     return list;
   }
+
 
   void _joinArena(VoiceRoom room) {
     if (room.entryPermission != 'everyone') {
@@ -430,6 +465,15 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   }
 
   Widget _buildArenaUserAvatar(LiveArenaUser user) {
+    Color borderColor = Colors.green;
+    if (user.isMutual) {
+      borderColor = const Color(0xFFFF2D55); // Pink circular border for Friends
+    } else if (user.room.hostId == user.userId) {
+      borderColor = const Color(0xFFFFD700); // Gold border for Host
+    } else if (user.isVerified) {
+      borderColor = Colors.blueAccent;
+    }
+
     return GestureDetector(
       onTap: () => _joinArena(user.room),
       child: Container(
@@ -449,14 +493,14 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                         border: Border.all(
                           color: user.isSpeaking
                               ? AppTheme.accentColor.withOpacity(0.3 + 0.7 * _glowAnimCtrl.value)
-                              : Colors.green.withOpacity(0.3 + 0.7 * _glowAnimCtrl.value),
-                          width: 2,
+                              : borderColor.withOpacity(0.4 + 0.6 * _glowAnimCtrl.value),
+                          width: 2.2,
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: user.isSpeaking
-                                ? AppTheme.accentColor.withOpacity(0.2 * _glowAnimCtrl.value)
-                                : Colors.green.withOpacity(0.2 * _glowAnimCtrl.value),
+                                ? AppTheme.accentColor.withOpacity(0.3 * _glowAnimCtrl.value)
+                                : borderColor.withOpacity(0.25 * _glowAnimCtrl.value),
                             blurRadius: 6,
                           ),
                         ],
@@ -500,6 +544,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
       ),
     );
   }
+
 
   Widget _buildConversationList() {
     return Obx(() {
@@ -616,10 +661,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   Widget _buildConversationTile(Conversation conv) {
     return Obx(() {
       final isTyping = Get.find<ChatController>().typingState[conv.id] ?? false;
-      final isMe = conv.lastMessageSenderId == 'me';
-      final msgs = Get.find<ChatController>().getMessages(conv.id);
-      final lastMsg = msgs.isNotEmpty ? msgs.last : null;
-      final lastStatus = lastMsg?.status ?? MessageStatus.sent;
+      final currentUid = UserProfileCacheManager.currentUserId;
+      final isMe = conv.lastMessageSenderId == currentUid || conv.lastMessageSenderId == 'me';
 
       return InkWell(
         onTap: () => _openChat(conv),
@@ -627,6 +670,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
+
             children: [
               // Avatar with frame and online indicator
               GestureDetector(
@@ -752,9 +796,10 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                       children: [
                         // Status Ticks
                         if (isMe && !isTyping) ...[
-                          _buildDeliveryStatusIcon(lastStatus),
+                          _buildDeliveryStatusIcon(conv.unreadCount == 0 ? MessageStatus.read : MessageStatus.sent),
                           const SizedBox(width: 4),
                         ],
+
                         // Last message or Typing indicator
                         Expanded(
                           child: isTyping
@@ -884,12 +929,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
               color: AppTheme.warningColor,
               label: conv.isPinned ? 'Unpin' : 'Pin Chat',
               onTap: () {
-                final idx = _ctrl.conversations.indexWhere((c) => c.id == conv.id);
-                if (idx != -1) {
-                  final c = _ctrl.conversations[idx];
-                  _ctrl.conversations[idx] = c.copyWith(isPinned: !c.isPinned);
-                  _ctrl.conversations.refresh();
-                }
+                _ctrl.togglePin(conv.id);
                 Get.back();
               },
             ),
@@ -898,12 +938,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
               color: AppTheme.textSecondary,
               label: conv.isMuted ? 'Unmute' : 'Mute',
               onTap: () {
-                final idx = _ctrl.conversations.indexWhere((c) => c.id == conv.id);
-                if (idx != -1) {
-                  final c = _ctrl.conversations[idx];
-                  _ctrl.conversations[idx] = c.copyWith(isMuted: !c.isMuted);
-                  _ctrl.conversations.refresh();
-                }
+                _ctrl.toggleMute(conv.id);
                 Get.back();
               },
             ),
@@ -912,10 +947,11 @@ class _ChatsListScreenState extends State<ChatsListScreen>
               color: AppTheme.errorColor,
               label: 'Delete Conversation',
               onTap: () {
-                _ctrl.conversations.removeWhere((c) => c.id == conv.id);
+                _ctrl.deleteConversation(conv.id);
                 Get.back();
               },
             ),
+
           ],
         ),
       ),
@@ -941,6 +977,9 @@ class LiveArenaUser {
   final String roomId;
   final VoiceRoom room;
   final bool isFollowed;
+  final bool isMutual;
+  final bool isVerified;
+  final int priorityRank;
 
   LiveArenaUser({
     required this.userId,
@@ -952,8 +991,12 @@ class LiveArenaUser {
     required this.roomId,
     required this.room,
     this.isFollowed = false,
+    this.isMutual = false,
+    this.isVerified = false,
+    this.priorityRank = 4,
   });
 }
+
 
 // Simple copyWith extension for Conversation
 extension ConversationExtension on Conversation {

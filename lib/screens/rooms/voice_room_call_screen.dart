@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:io' as io;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -110,32 +111,37 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   DateTime _messageCooldownUntil = DateTime.fromMillisecondsSinceEpoch(0);
   final RxBool _showEntranceOverlay = false.obs;
   Timer? _heartbeatTimer;
-  final RxList<Map<String, dynamic>> _entranceQueue = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> _entranceQueue =
+      <Map<String, dynamic>>[].obs;
   final RxBool _isEntrancePlaying = false.obs;
   final RxString _currentEntranceUser = ''.obs;
   final RxString _currentEntranceUserId = ''.obs;
   final RxInt _currentEntranceVipLevel = 0.obs;
   final RxInt _currentEntranceNovelLevel = 0.obs;
-  
+  final RxString _currentEntranceEntryEffect = ''.obs;
+  final RxString _resolvedEntranceAnimation = 'None'.obs;
+
   bool _showEmojiPanel = false;
   final RxBool _showMentionAutocomplete = false.obs;
-  final RxList<Map<String, String>> _mentionSuggestions = <Map<String, String>>[].obs;
-  
+  final RxList<Map<String, String>> _mentionSuggestions =
+      <Map<String, String>>[].obs;
+
   final RxList<String> _followedUsers = <String>[].obs;
   final RxList<String> _blockedUsers = <String>[].obs;
 
   // Floating Reactions
   final RxList<FloatingReaction> _reactions = <FloatingReaction>[].obs;
-  
+
   Worker? _giftNotificationWorker;
   Worker? _systemNotificationWorker;
   Timer? _giftBannerTimer;
   Timer? _systemNotificationTimer;
   // GlobalKeys for targeting visual Gifting Animations on seats
   final Map<int, GlobalKey> _seatKeys = {};
-  
+
   // Animation request list of active animations in the overlay
-  final RxList<Map<String, dynamic>> _activeGiftingAnimations = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> _activeGiftingAnimations =
+      <Map<String, dynamic>>[].obs;
 
   // Screen shake offset for Megas/Castles/Rockets
   final Rx<Offset> _shakeOffset = Offset.zero.obs;
@@ -188,21 +194,28 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   @override
   void initState() {
     super.initState();
+    NovelVideoPreloader
+        .preload(); // Preload Novel 1 entry effect in background asynchronously
+    VipVideoPreloader
+        .preload(); // Preload VIP 2 entry effect in background asynchronously
     Get.put(VoiceController());
     _permissionService = PermissionService();
     _controller = RoomController.to;
     _controller.activeRoomId = widget.roomId;
     _controller.hidePipBubble();
 
+    // Glow controller: starts paused, activated only when someone is speaking
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
-    )..repeat();
+    );
+    // Will be started by seat speaking state changes — not continuously
 
     _initializeSeats();
 
     // Subscribe to controller's roomSeatsInfo changes to keep local _seats in sync
-    _seatsSyncWorker = ever(_controller.roomSeatsInfo, (Map<String, List<Map<String, dynamic>>> infoMap) {
+    _seatsSyncWorker = ever(_controller.roomSeatsInfo,
+        (Map<String, List<Map<String, dynamic>>> infoMap) {
       final list = infoMap[widget.roomId];
       if (list != null && list.isNotEmpty) {
         _seats.assignAll(list);
@@ -210,7 +223,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     });
 
     // Subscribe to marquee queue updates
-    _marqueeWorker = ever(_controller.marqueeAnnouncementsQueue, (List<String> queue) {
+    _marqueeWorker =
+        ever(_controller.marqueeAnnouncementsQueue, (List<String> queue) {
       if (queue.isNotEmpty) {
         for (final msg in queue) {
           _localAnnouncementsQueue.add(msg);
@@ -223,27 +237,33 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     });
 
     // Gift notification timer auto-clear and Bezier animation trigger
-    _giftNotificationWorker = ever(_controller.activeGiftNotification, (Map<String, dynamic>? data) {
+    _giftNotificationWorker =
+        ever(_controller.activeGiftNotification, (Map<String, dynamic>? data) {
       if (data != null) {
         _giftBannerTimer?.cancel();
         _giftBannerTimer = Timer(const Duration(seconds: 4), () {
           _controller.activeGiftNotification.value = null;
         });
 
-        final List<dynamic>? seatIndices = data['seat_indices'] as List<dynamic>?;
+        final List<dynamic>? seatIndices =
+            data['seat_indices'] as List<dynamic>?;
         final String giftIcon = data['gift_icon'] ?? '🌹';
         final String giftName = data['gift_name'] ?? 'Rose';
         final int amount = data['amount'] ?? 1;
 
         if (seatIndices != null && seatIndices.isNotEmpty) {
-          final List<int> targets = seatIndices.map((s) => int.tryParse(s.toString()) ?? -1).where((s) => s != -1).toList();
+          final List<int> targets = seatIndices
+              .map((s) => int.tryParse(s.toString()) ?? -1)
+              .where((s) => s != -1)
+              .toList();
           _triggerGiftingAnimations(targets, giftIcon, giftName, amount);
         } else {
           final rName = data['receiverName'];
           final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
           final matchedSeat = seats.firstWhereOrNull((s) => s['name'] == rName);
           if (matchedSeat != null) {
-            _triggerGiftingAnimations([matchedSeat['seatIndex'] as int], giftIcon, giftName, amount);
+            _triggerGiftingAnimations(
+                [matchedSeat['seatIndex'] as int], giftIcon, giftName, amount);
           } else {
             _triggerGiftingAnimations([0], giftIcon, giftName, amount);
           }
@@ -252,7 +272,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     });
 
     // System notification toast timer auto-clear
-    _systemNotificationWorker = ever(_controller.activeSystemNotification, (String? msg) {
+    _systemNotificationWorker =
+        ever(_controller.activeSystemNotification, (String? msg) {
       if (msg != null) {
         _systemNotificationTimer?.cancel();
         _systemNotificationTimer = Timer(const Duration(seconds: 3), () {
@@ -267,14 +288,16 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         final String? uName = event['userName'];
         if (uId != null && uId != widget.userId) {
           final vip = int.tryParse(event['vip_level']?.toString() ?? '0') ?? 0;
-          final novel = int.tryParse(event['noble_level']?.toString() ?? '0') ?? 0;
-          _entranceQueue.add({
-            'userId': uId,
-            'userName': uName ?? 'User',
-            'vipLevel': vip,
-            'novelLevel': novel,
-          });
-          _processEntranceQueue();
+          final novel =
+              int.tryParse(event['noble_level']?.toString() ?? '0') ?? 0;
+          final entryEffect = event['entry_effect']?.toString();
+          onUserJoin(
+            uId,
+            uName ?? 'User',
+            vipLevel: vip,
+            novelLevel: novel,
+            entryEffect: entryEffect,
+          );
         }
       }
     });
@@ -297,7 +320,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     // Initial delay simulation
     Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
-      _controller.marqueeAnnouncementsQueue.add('🔥 Rahul Roy (Performer) is singing a song! 🎵');
+      _controller.marqueeAnnouncementsQueue
+          .add('🔥 Rahul Roy (Performer) is singing a song! 🎵');
     });
 
     _marqueeTimer = Timer.periodic(const Duration(seconds: 22), (timer) {
@@ -317,7 +341,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   void _playNextMarquee() {
     _marqueeDelayTimer?.cancel();
-    
+
     if (_localAnnouncementsQueue.isNotEmpty) {
       _currentMarqueeText.value = _localAnnouncementsQueue.removeAt(0);
       _showBanner.value = true;
@@ -333,46 +357,95 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
   }
 
+  // Performance monitoring variables
+  final Stopwatch _totalReadyStopwatch = Stopwatch();
+  final Stopwatch _authStopwatch = Stopwatch();
+  final Stopwatch _roomJoinStopwatch = Stopwatch();
+  final Stopwatch _seatSyncStopwatch = Stopwatch();
+  
+  double? _engineInitTimeMs;
+  double? _authTimeMs;
+  double? _roomJoinTimeMs;
+  double? _seatSyncTimeMs;
+  double? _firstAudioPacketTimeMs;
+
   void _initializeSeats() {
-    _seats.assignAll(List.generate(10, (index) => {
-      'seatIndex': index,
-      'role': index == 0 ? 'Owner' : (index == 1 ? 'Co-owner' : 'Guest'),
-      'userId': (index == 0 && widget.isHost) ? widget.userId : null,
-      'name': (index == 0 && widget.isHost) ? widget.userName : 'Seat ${index + 1}',
-      'isSpeaking': index == 0 && widget.isHost,
-      'isLocked': false,
-    }));
+    final cachedSeats = _controller.roomSeatsInfo[widget.roomId];
+    if (cachedSeats != null && cachedSeats.isNotEmpty) {
+      _seats.assignAll(cachedSeats);
+      debugPrint('[Performance] Restored seats from cache: ${cachedSeats.length} seats.');
+    } else {
+      _seats.assignAll(List.generate(
+          10,
+          (index) => {
+                'seatIndex': index,
+                'role':
+                    index == 0 ? 'Owner' : (index == 1 ? 'Co-owner' : 'Guest'),
+                'userId': (index == 0 && widget.isHost) ? widget.userId : null,
+                'name': (index == 0 && widget.isHost)
+                    ? widget.userName
+                    : 'Seat ${index + 1}',
+                'isSpeaking': index == 0 && widget.isHost,
+                'isLocked': false,
+              }));
+    }
   }
 
   Future<void> _initializeRoom() async {
-    try {
-      final permissionsGranted =
-          await _permissionService.requestAllPermissions();
+    _totalReadyStopwatch.start();
+    _seatSyncStopwatch.start();
 
-      if (!permissionsGranted) {
-        Get.snackbar(
-          'Permissions Required',
-          'Please enable microphone and camera permissions',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: context.warningColor,
-        );
-        Navigator.pop(context);
-        return;
+    // 1. Immediately set loading to false to display the UI structure instantly
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+
+    // 2. Perform Zego and Supabase connection tasks in the background asynchronously
+    _startBackgroundRoomJoin();
+  }
+
+  Future<void> _startBackgroundRoomJoin() async {
+    try {
+      final roomVoiceManager = RoomVoiceManager();
+
+      // Check/request permissions asynchronously without blocking the UI thread
+      if (widget.isHost) {
+        final permissionsGranted = await _permissionService.requestMicrophonePermission();
+        if (!permissionsGranted) {
+          Get.snackbar(
+            'Permissions Required',
+            'Please enable microphone permissions to speak on stage',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: context.warningColor,
+          );
+        }
       }
 
-      // Initialize and join ZEGOCLOUD room securely using Token Authentication
-      final roomVoiceManager = RoomVoiceManager();
+      // Time the Token fetch (Auth)
+      _authStopwatch.start();
+      _roomJoinStopwatch.start();
+      
+      final zegoInitStart = DateTime.now();
       await roomVoiceManager.joinRoom(
         roomId: widget.roomId,
         userId: widget.userId,
         userName: widget.userName,
         enableMic: widget.isHost,
       );
+      final zegoInitEnd = DateTime.now();
+      
+      _authTimeMs = _authStopwatch.elapsedMilliseconds.toDouble();
+      _roomJoinTimeMs = _roomJoinStopwatch.elapsedMilliseconds.toDouble();
+      _engineInitTimeMs = zegoInitEnd.difference(zegoInitStart).inMilliseconds.toDouble();
 
-      // Call enterRoom to synchronize Supabase membership, events, and setup realtime subscriptions
+      // 3. Connect to Supabase Room in the background
       await _controller.enterRoom(widget.roomId);
 
-      // Auto-seat Host or Restore return seats from database
+      // 4. Auto-seat Host or Restore return seats
       if (widget.isHost) {
         await _controller.joinRoomSeat(widget.roomId, 0);
       } else {
@@ -385,36 +458,85 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         }
       }
 
-      // Delay setState past current frame to avoid calling it during build
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            if (widget.isHost) {
-              _isMicOn = true;
-            } else {
-              final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
-              final mySeat = seatsList.firstWhereOrNull((s) => s['userId'] == widget.userId);
-              if (mySeat != null) {
-                _isMicOn = (mySeat['micStatus'] ?? 'unmuted') == 'unmuted';
-              }
+      // Seat sync time
+      _seatSyncTimeMs = _seatSyncStopwatch.elapsedMilliseconds.toDouble();
+
+      // Sync local mic status
+      if (mounted) {
+        setState(() {
+          if (widget.isHost) {
+            _isMicOn = true;
+          } else {
+            final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
+            final mySeat = seatsList.firstWhereOrNull((s) => s['userId'] == widget.userId);
+            if (mySeat != null) {
+              _isMicOn = (mySeat['micStatus'] ?? 'unmuted') == 'unmuted';
             }
-          });
-        }
-      });
+          }
+        });
+      }
 
       _controller.initializeChatForRoom(widget.roomId);
-      onUserJoin(widget.userId, widget.userName);
-      // _startSimulatedUsersTimer();
+      String? localEntryEffect;
+      try {
+        if (Get.isRegistered<CustomizationController>()) {
+          localEntryEffect = Get.find<CustomizationController>().activeEntryEffect.value;
+        }
+      } catch (_) {}
+      
+      onUserJoin(widget.userId, widget.userName, entryEffect: localEntryEffect);
+
+      // Measure total room ready time
+      _totalReadyStopwatch.stop();
+      final totalTime = _totalReadyStopwatch.elapsedMilliseconds;
+
+      // Print performance logs in debug mode only
+      if (kDebugMode) {
+        debugPrint('==================================================');
+        debugPrint('[ZEGOCLOUD PERFORMANCE DIAGNOSTICS]');
+        debugPrint('- Engine Initialization Time: ${_engineInitTimeMs ?? 0} ms');
+        debugPrint('- Authentication (Token Fetch) Time: ${_authTimeMs ?? 0} ms');
+        debugPrint('- Room Join (Zego Login) Time: ${_roomJoinTimeMs ?? 0} ms');
+        debugPrint('- Seat Synchronization Time: ${_seatSyncTimeMs ?? 0} ms');
+        debugPrint('- Total Room Ready Time: $totalTime ms');
+        debugPrint('==================================================');
+      }
+
+      // Listen to first audio packet timing to measure it
+      _monitorFirstAudioPacket();
+      
     } catch (e) {
+      debugPrint('[VoiceRoomCallScreen] Error in background room join: $e');
       Get.snackbar(
-        'Error',
-        'Failed to initialize arena: $e',
+        'Connection Error',
+        'Failed to connect to arena: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: context.errorColor,
       );
       Future.delayed(const Duration(seconds: 2), () {
-        Navigator.pop(context);
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      });
+    }
+  }
+
+  void _monitorFirstAudioPacket() {
+    if (Get.isRegistered<VoiceController>()) {
+      final ctrl = Get.find<VoiceController>();
+      
+      // Reset first audio packet time on entry
+      ctrl.firstAudioPacketTime.value = null;
+
+      // Listen for the first audio packet timestamp change
+      ever(ctrl.firstAudioPacketTime, (DateTime? packetTime) {
+        if (packetTime != null && _firstAudioPacketTimeMs == null) {
+          final difference = packetTime.difference(DateTime.now().subtract(_totalReadyStopwatch.elapsed));
+          _firstAudioPacketTimeMs = difference.inMilliseconds.toDouble();
+          if (kDebugMode) {
+            debugPrint('[ZEGOCLOUD PERFORMANCE] First Audio Packet Received in: $_firstAudioPacketTimeMs ms');
+          }
+        }
       });
     }
   }
@@ -439,7 +561,21 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           }
         }
       }
+      _updateGlowAnimation();
     });
+  }
+
+  /// Starts the glow animation if any seat is speaking, stops it otherwise.
+  /// Prevents continuous GPU usage in silent rooms.
+  void _updateGlowAnimation() {
+    final anySpeaking = _seats.any(
+      (s) => s['userId'] != null && (s['isSpeaking'] == true),
+    );
+    if (anySpeaking && !_glowController.isAnimating) {
+      _glowController.repeat();
+    } else if (!anySpeaking && _glowController.isAnimating) {
+      _glowController.stop();
+    }
   }
 
   bool _isCurrentUserOnSeat() {
@@ -470,6 +606,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           ..._seats[index],
           'isSpeaking': newState,
         };
+        _updateGlowAnimation();
       }
     } catch (e) {
       Get.snackbar('Error', 'Failed to toggle microphone',
@@ -578,8 +715,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             ListTile(
               leading: Icon(Icons.close, color: context.caption),
-              title: Text('Cancel',
-                  style: TextStyle(color: context.caption)),
+              title: Text('Cancel', style: TextStyle(color: context.caption)),
               onTap: () => Get.back(),
             ),
           ],
@@ -672,18 +808,34 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
   }
 
-  void onUserJoin(String userId, String userName) {
-    final identity = PremiumIdentityController.getIdentity(userId, userName);
-    final vipLevel = identity.vipLevel;
-    final novelLevel = identity.novelLevel;
+  void onUserJoin(String userId, String userName,
+      {int? vipLevel, int? novelLevel, String? entryEffect}) {
+    final identity = PremiumIdentityController.getIdentity(
+      userId,
+      userName,
+      vipLevel: vipLevel,
+      novelLevel: novelLevel,
+    );
+    final finalVip = vipLevel ?? identity.vipLevel;
+    final finalNovel = novelLevel ?? identity.novelLevel;
 
     _entranceQueue.add({
       'userId': userId,
       'userName': userName,
-      'vipLevel': vipLevel,
-      'novelLevel': novelLevel,
+      'vipLevel': finalVip,
+      'novelLevel': finalNovel,
+      'entryEffect': entryEffect,
     });
     _processEntranceQueue();
+  }
+
+  Completer<void>? _currentEntranceCompleter;
+
+  void _onEntranceAnimationFinished() {
+    if (_currentEntranceCompleter != null &&
+        !_currentEntranceCompleter!.isCompleted) {
+      _currentEntranceCompleter!.complete();
+    }
   }
 
   void _processEntranceQueue() async {
@@ -696,14 +848,97 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     _currentEntranceUserId.value = task['userId'];
     _currentEntranceVipLevel.value = task['vipLevel'];
     _currentEntranceNovelLevel.value = task['novelLevel'];
+    _currentEntranceEntryEffect.value = task['entryEffect'] ?? '';
 
-    _showEntranceOverlay.value = true;
+    final completer = Completer<void>();
+    _currentEntranceCompleter = completer;
 
-    await Future.delayed(const Duration(milliseconds: 3200));
+    final String effectStr = (_currentEntranceEntryEffect.value ?? '').trim();
+    final int vipLvl = _currentEntranceVipLevel.value;
+    final int novelLvl = _currentEntranceNovelLevel.value;
+
+    String targetEffect = 'None';
+    if (effectStr.isNotEmpty && effectStr != 'null') {
+      if (effectStr == 'Neon Gateway' || effectStr == 'VIP 2' || effectStr == 'VIP Level 2' || effectStr == 'VIP2') {
+        targetEffect = 'VIP 2';
+      } else if (effectStr == 'Royal Portal' || effectStr == 'VIP 1' || effectStr == 'VIP Level 1' || effectStr == 'VIP1') {
+        targetEffect = 'VIP 1';
+      } else if (effectStr.contains('Novel') || effectStr.contains('novel')) {
+        targetEffect = 'Novel';
+      } else if (effectStr == 'None') {
+        targetEffect = 'None';
+      } else {
+        // Fallback to levels
+        if (vipLvl >= 2) {
+          targetEffect = 'VIP 2';
+        } else if (vipLvl == 1) {
+          targetEffect = 'VIP 1';
+        } else if (novelLvl >= 1) {
+          targetEffect = 'Novel';
+        }
+      }
+    } else {
+      if (vipLvl >= 2) {
+        targetEffect = 'VIP 2';
+      } else if (vipLvl == 1) {
+        targetEffect = 'VIP 1';
+      } else if (novelLvl >= 1) {
+        targetEffect = 'Novel';
+      }
+    }
+
+    _resolvedEntranceAnimation.value = targetEffect;
+
+    if (targetEffect == 'VIP 2') {
+      _showEntranceOverlay.value = false;
+      VipEntryAnimation.show(
+        context,
+        username: _currentEntranceUser.value,
+        avatarUrl:
+            UserProfileCacheManager.getCachedUser(_currentEntranceUserId.value)
+                ?.avatar,
+        vipLevel: 2,
+        onFinished: () {
+          if (!mounted) return;
+          _onEntranceAnimationFinished();
+        },
+      );
+    } else if (targetEffect == 'Novel') {
+      _showEntranceOverlay.value = false;
+      final int activeNovelLvl = novelLvl > 0 ? novelLvl : 1;
+      NovelEntryAnimation.show(
+        context,
+        username: _currentEntranceUser.value,
+        avatarUrl:
+            UserProfileCacheManager.getCachedUser(_currentEntranceUserId.value)
+                ?.avatar,
+        novelLevel: activeNovelLvl,
+        onFinished: () {
+          if (!mounted) return;
+          final hasVipBanner = _currentEntranceVipLevel.value > 0;
+          final hasNovelBanner = _currentEntranceNovelLevel.value > 1;
+
+          if (hasVipBanner || hasNovelBanner) {
+            _showEntranceOverlay.value = true;
+          } else {
+            _onEntranceAnimationFinished();
+          }
+        },
+      );
+    } else {
+      _showEntranceOverlay.value = true;
+    }
+
+    // Wait until animation finishes or safety timeout (12s)
+    await Future.any([
+      completer.future,
+      Future.delayed(const Duration(seconds: 12)),
+    ]);
 
     if (!mounted) return;
 
     _showEntranceOverlay.value = false;
+    _currentEntranceCompleter = null;
 
     _controller.addSystemActivity(
       widget.roomId,
@@ -729,11 +964,23 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         {'name': 'Shan King', 'vip': '7', 'novel': '0'},
         {'name': 'Rahul Roy', 'vip': '0', 'novel': '3'},
         {'name': 'Divya Sharma', 'vip': '0', 'novel': '5'},
+        {
+          'name': 'Novel Tester',
+          'vip': '0',
+          'novel': '1',
+          'entry_effect': 'Novel Level 1'
+        },
       ];
       final user = names[Random().nextInt(names.length)];
       final uName = user['name']!;
 
-      onUserJoin('uid_${uName.toLowerCase().replaceAll(' ', '_')}', uName);
+      onUserJoin(
+        'uid_${uName.toLowerCase().replaceAll(' ', '_')}',
+        uName,
+        vipLevel: int.tryParse(user['vip'] ?? '0') ?? 0,
+        novelLevel: int.tryParse(user['novel'] ?? '0') ?? 0,
+        entryEffect: user['entry_effect'],
+      );
     });
   }
 
@@ -749,7 +996,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           decoration: BoxDecoration(
             color: const Color(0xFF0F172A).withOpacity(0.96),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 1.5),
+            border: Border.all(
+                color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF8B5CF6).withOpacity(0.1),
@@ -763,7 +1011,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             children: [
               Row(
                 children: [
-                  const Icon(Icons.stars_rounded, color: Colors.amber, size: 24),
+                  const Icon(Icons.stars_rounded,
+                      color: Colors.amber, size: 24),
                   const SizedBox(width: 8),
                   Text(
                     'DAILY ARENA TASKS',
@@ -776,7 +1025,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+                    icon: const Icon(Icons.close,
+                        color: Colors.white54, size: 18),
                     onPressed: () => Get.back(),
                   ),
                 ],
@@ -787,10 +1037,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 final currentPoints = stats?.todayTaskPoints ?? 0;
                 final extraPoints = stats?.todayExtraXpPoints ?? 0;
                 final totalPoints = currentPoints + extraPoints;
-                
+
                 return Text(
                   'Task Points: $totalPoints / 1200 (${extraPoints} Extra points)',
-                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                  style:
+                      GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
                 );
               }),
               const SizedBox(height: 16),
@@ -798,7 +1049,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxHeight: Get.height * 0.5),
                   child: Obx(() {
-                    final tasks = _controller.roomDailyTaskLists[widget.roomId] ?? [];
+                    final tasks =
+                        _controller.roomDailyTaskLists[widget.roomId] ?? [];
                     if (tasks.isEmpty) {
                       return const Center(child: CircularProgressIndicator());
                     }
@@ -811,7 +1063,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                           padding: const EdgeInsets.only(bottom: 12.0),
                           child: _buildTaskItem(
                             title: t.description,
-                            description: 'Rewards: +${t.taskPoints} TP, +${t.xpReward} XP, +${t.silverReward} Silver',
+                            description:
+                                'Rewards: +${t.taskPoints} TP, +${t.xpReward} XP, +${t.silverReward} Silver',
                             progress: '${t.currentValue}/${t.targetValue}',
                             isClaimed: t.isCompleted,
                             onClaim: null,
@@ -849,38 +1102,60 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                Text(title,
+                    style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text(description, style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                Text(description,
+                    style: GoogleFonts.poppins(
+                        color: Colors.white54, fontSize: 10)),
               ],
             ),
           ),
           const SizedBox(width: 12),
           Column(
             children: [
-              Text(progress, style: GoogleFonts.poppins(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(progress,
+                  style: GoogleFonts.poppins(
+                      color: Colors.amber,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               if (onClaim != null)
                 ElevatedButton(
                   onPressed: isClaimed ? null : onClaim,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isClaimed ? Colors.white12 : const Color(0xFF8B5CF6),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    backgroundColor:
+                        isClaimed ? Colors.white12 : const Color(0xFF8B5CF6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     minimumSize: const Size(60, 24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Text(
                     isClaimed ? 'Claimed' : 'Claim',
-                    style: GoogleFonts.outfit(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold),
                   ),
                 )
               else
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: isClaimed ? Colors.green.withOpacity(0.1) : Colors.white10,
+                    color: isClaimed
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.white10,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: isClaimed ? Colors.green.withOpacity(0.3) : Colors.white12),
+                    border: Border.all(
+                        color: isClaimed
+                            ? Colors.green.withOpacity(0.3)
+                            : Colors.white12),
                   ),
                   child: Text(
                     isClaimed ? 'Completed' : 'In Progress',
@@ -902,7 +1177,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     if (text.endsWith('@')) {
       final list = _seats
           .where((s) => s['userId'] != null && s['userId'] != widget.userId)
-          .map((s) => {'userId': s['userId'] as String, 'name': s['name'] as String})
+          .map((s) =>
+              {'userId': s['userId'] as String, 'name': s['name'] as String})
           .toList();
       _mentionSuggestions.assignAll(list);
       _showMentionAutocomplete.value = list.isNotEmpty;
@@ -915,7 +1191,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       }
       final list = _seats
           .where((s) => s['userId'] != null && s['userId'] != widget.userId)
-          .map((s) => {'userId': s['userId'] as String, 'name': s['name'] as String})
+          .map((s) =>
+              {'userId': s['userId'] as String, 'name': s['name'] as String})
           .where((u) => u['name']!.toLowerCase().contains(query))
           .toList();
       _mentionSuggestions.assignAll(list);
@@ -929,7 +1206,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     final text = _chatInputController.text;
     final int atIndex = text.lastIndexOf('@');
     if (atIndex != -1) {
-      final newText = text.substring(0, atIndex) + '@${name.replaceAll(' ', '_')} ';
+      final newText =
+          text.substring(0, atIndex) + '@${name.replaceAll(' ', '_')} ';
       _chatInputController.text = newText;
       _chatInputController.selection = TextSelection.fromPosition(
         TextPosition(offset: _chatInputController.text.length),
@@ -964,7 +1242,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
 
     final roomRole = _controller.getUserRole(room, widget.userId);
-    final identity = PremiumIdentityController.getIdentity(widget.userId, widget.userName);
+    final identity =
+        PremiumIdentityController.getIdentity(widget.userId, widget.userName);
     final cleaned = _applyProfanityFilter(rawText);
 
     _controller.sendRoomMessage(
@@ -979,7 +1258,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       replyToMessageId: _replyTarget?.id,
       senderLevel: 'Lv ${identity.idLevel}',
       vipLabel: identity.vipLevel > 0 ? 'VIP ${identity.vipLevel}' : null,
-      novelLabel: identity.novelLevel > 0 ? 'Novel ${identity.novelLevel}' : null,
+      novelLabel:
+          identity.novelLevel > 0 ? 'Novel ${identity.novelLevel}' : null,
       communityTag: identity.communityTag?.name,
       roleTag: roomRole,
       isActiveSpeaker: _isMicOn,
@@ -1022,7 +1302,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       spans.add(
         TextSpan(
           text: match.group(0),
-          style: const TextStyle(color: Color(0xFF8B5CF6), fontWeight: FontWeight.w700),
+          style: const TextStyle(
+              color: Color(0xFF8B5CF6), fontWeight: FontWeight.w700),
         ),
       );
       start = match.end;
@@ -1032,12 +1313,16 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       spans.add(TextSpan(text: text.substring(start)));
     }
 
-    return TextSpan(children: spans, style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.9), fontSize: 11));
+    return TextSpan(
+        children: spans,
+        style: GoogleFonts.poppins(
+            color: Colors.white.withOpacity(0.9), fontSize: 11));
   }
 
   Widget _buildChatMessageTile(RoomChatMessage msg) {
     if (msg.isSystem) {
-      final String emojiPrefix = msg.text.substring(0, min(2, msg.text.length)).trim();
+      final String emojiPrefix =
+          msg.text.substring(0, min(2, msg.text.length)).trim();
       final Color accentColor = _getSystemEventColor(emojiPrefix);
 
       return Padding(
@@ -1055,7 +1340,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: accentColor.withOpacity(0.18), width: 1.0),
+              border:
+                  Border.all(color: accentColor.withOpacity(0.18), width: 1.0),
               boxShadow: [
                 BoxShadow(
                   color: accentColor.withOpacity(0.04),
@@ -1080,7 +1366,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    msg.repeatCount > 1 ? '${msg.text} x${msg.repeatCount}' : msg.text,
+                    msg.repeatCount > 1
+                        ? '${msg.text} x${msg.repeatCount}'
+                        : msg.text,
                     style: GoogleFonts.poppins(
                       color: Colors.white.withOpacity(0.85),
                       fontSize: 10.5,
@@ -1095,7 +1383,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       );
     }
 
-    final identity = PremiumIdentityController.getIdentity(msg.senderId, msg.senderName);
+    final identity =
+        PremiumIdentityController.getIdentity(msg.senderId, msg.senderName);
     final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
     final isMine = msg.senderId == widget.userId;
     final canDelete = _canDeleteAnyMessage(room) || isMine;
@@ -1110,7 +1399,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         onLongPress: () => _showMessageMenu(msg, canDelete),
         onSecondaryTapDown: (_) => _showMessageMenu(msg, canDelete),
         child: Obx(() {
-          final u = UserProfileCacheManager.rxCache[msg.senderId] ?? UserProfileCacheManager.getCachedUser(msg.senderId);
+          final u = UserProfileCacheManager.rxCache[msg.senderId] ??
+              UserProfileCacheManager.getCachedUser(msg.senderId);
           final String uName = u?.username ?? msg.senderName;
           final String? uAvatar = u?.avatar ?? msg.senderAvatar;
           final int uLevel = u?.level ?? 25;
@@ -1140,9 +1430,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isMine ? const Color(0xFF1E1B4B).withOpacity(0.9) : const Color(0xFF0F172A).withOpacity(0.7),
+                    color: isMine
+                        ? const Color(0xFF1E1B4B).withOpacity(0.9)
+                        : const Color(0xFF0F172A).withOpacity(0.7),
                     borderRadius: BorderRadius.only(
                       topRight: const Radius.circular(20),
                       bottomLeft: const Radius.circular(20),
@@ -1170,70 +1463,89 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                             name: uName,
                             userId: msg.senderId,
                             style: GoogleFonts.outfit(
-                              color: isMine ? const Color(0xFFC084FC) : Colors.white,
+                              color: isMine
+                                  ? const Color(0xFFC084FC)
+                                  : Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           _buildTinyTag('LV $uLevel', const Color(0xFF38BDF8)),
-                          if (vipLevel > 0) _buildTinyTag('VIP $vipLevel', const Color(0xFFFFD700)),
-                          if (novelLevel > 0) _buildTinyTag('Novel $novelLevel', const Color(0xFFF97316)),
-                          if (msg.communityTag != null) _buildTinyTag(msg.communityTag!, const Color(0xFF10B981)),
-                          if ((msg.senderRole ?? '').isNotEmpty && msg.senderRole != 'Guest')
+                          if (vipLevel > 0)
+                            _buildTinyTag(
+                                'VIP $vipLevel', const Color(0xFFFFD700)),
+                          if (novelLevel > 0)
+                            _buildTinyTag(
+                                'Novel $novelLevel', const Color(0xFFF97316)),
+                          if (msg.communityTag != null)
+                            _buildTinyTag(
+                                msg.communityTag!, const Color(0xFF10B981)),
+                          if ((msg.senderRole ?? '').isNotEmpty &&
+                              msg.senderRole != 'Guest')
                             _buildTinyTag(msg.senderRole!, roleColor),
                         ],
                       ),
-                    const SizedBox(height: 6),
-                    if (msg.replyToMessageId != null) ...[
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.03),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white.withOpacity(0.04)),
-                        ),
-                        child: Text(
-                          'Replying to previous message',
-                          style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9),
-                        ),
-                      ),
-                    ],
-                    Text.rich(
-                      _buildRichTextWithMentions(msg.text),
-                      style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.95), fontSize: 12),
-                    ),
-                    const SizedBox(height: 6),
-                    if (identity.vipLevel > 0 || identity.novelLevel > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: identity.buildBadges(context, fontSize: 8.0).take(4).toList(),
+                      const SizedBox(height: 6),
+                      if (msg.replyToMessageId != null) ...[
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.03),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: Colors.white.withOpacity(0.04)),
+                          ),
+                          child: Text(
+                            'Replying to previous message',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white38, fontSize: 9),
                           ),
                         ),
-                      ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatMessageTimestamp(msg.timestamp),
-                          style: GoogleFonts.poppins(color: Colors.white38, fontSize: 8.5),
-                        ),
-                        Text(
-                          'Reply / Copy',
-                          style: GoogleFonts.poppins(color: Colors.white24, fontSize: 8.5),
-                        ),
                       ],
-                    ),
-                  ],
+                      Text.rich(
+                        _buildRichTextWithMentions(msg.text),
+                        style: GoogleFonts.poppins(
+                            color: Colors.white.withOpacity(0.95),
+                            fontSize: 12),
+                      ),
+                      const SizedBox(height: 6),
+                      if (identity.vipLevel > 0 || identity.novelLevel > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: identity
+                                  .buildBadges(context, fontSize: 8.0)
+                                  .take(4)
+                                  .toList(),
+                            ),
+                          ),
+                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _formatMessageTimestamp(msg.timestamp),
+                            style: GoogleFonts.poppins(
+                                color: Colors.white38, fontSize: 8.5),
+                          ),
+                          Text(
+                            'Reply / Copy',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white24, fontSize: 8.5),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        );
+            ],
+          );
         }),
       ),
     );
@@ -1241,28 +1553,50 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   Color _getSystemEventColor(String emoji) {
     switch (emoji) {
-      case '🟢': return const Color(0xFF10B981);
-      case '👋': return const Color(0xFF6B7280);
-      case '🎤': return const Color(0xFF8B5CF6);
-      case '💺': return const Color(0xFFEF4444);
-      case '🔄': return const Color(0xFFF59E0B);
-      case '👑': return const Color(0xFFFBBF24);
-      case '⭐': return const Color(0xFFF59E0B);
-      case '🛡️': return const Color(0xFF3B82F6);
-      case '🔇': return const Color(0xFFEF4444);
-      case '🔊': return const Color(0xFF10B981);
-      case '🚫': return const Color(0xFFDC2626);
-      case '🎁': return const Color(0xFFEC4899);
-      case '🎉': return const Color(0xFF10B981);
-      case '💎': return const Color(0xFFFBBF24);
-      case '📚': return const Color(0xFFF97316);
-      case '🏆': return const Color(0xFF10B981);
-      case '📢': return const Color(0xFF38BDF8);
-      case '🔒': return const Color(0xFFEF4444);
-      case '🔓': return const Color(0xFF10B981);
-      case '🎊': return const Color(0xFFFF007F);
-      case '✅': return const Color(0xFF10B981);
-      default: return const Color(0xFFC084FC);
+      case '🟢':
+        return const Color(0xFF10B981);
+      case '👋':
+        return const Color(0xFF6B7280);
+      case '🎤':
+        return const Color(0xFF8B5CF6);
+      case '💺':
+        return const Color(0xFFEF4444);
+      case '🔄':
+        return const Color(0xFFF59E0B);
+      case '👑':
+        return const Color(0xFFFBBF24);
+      case '⭐':
+        return const Color(0xFFF59E0B);
+      case '🛡️':
+        return const Color(0xFF3B82F6);
+      case '🔇':
+        return const Color(0xFFEF4444);
+      case '🔊':
+        return const Color(0xFF10B981);
+      case '🚫':
+        return const Color(0xFFDC2626);
+      case '🎁':
+        return const Color(0xFFEC4899);
+      case '🎉':
+        return const Color(0xFF10B981);
+      case '💎':
+        return const Color(0xFFFBBF24);
+      case '📚':
+        return const Color(0xFFF97316);
+      case '🏆':
+        return const Color(0xFF10B981);
+      case '📢':
+        return const Color(0xFF38BDF8);
+      case '🔒':
+        return const Color(0xFFEF4444);
+      case '🔓':
+        return const Color(0xFF10B981);
+      case '🎊':
+        return const Color(0xFFFF007F);
+      case '✅':
+        return const Color(0xFF10B981);
+      default:
+        return const Color(0xFFC084FC);
     }
   }
 
@@ -1276,7 +1610,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       ),
       child: Text(
         label,
-        style: GoogleFonts.poppins(color: color, fontSize: 7.4, fontWeight: FontWeight.w700),
+        style: GoogleFonts.poppins(
+            color: color, fontSize: 7.4, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -1296,7 +1631,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       Container(
         decoration: BoxDecoration(
           color: context.secondaryBackgroundColor,
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+          borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24), topRight: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1320,8 +1656,10 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.person_search_rounded, color: Colors.white70),
-              title: const Text('View Profile', style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.person_search_rounded,
+                  color: Colors.white70),
+              title: const Text('View Profile',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
                 _showProfilePopup(msg);
@@ -1329,7 +1667,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             ListTile(
               leading: const Icon(Icons.send_rounded, color: Colors.white70),
-              title: const Text('Private Message', style: TextStyle(color: Colors.white)),
+              title: const Text('Private Message',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
                 final conversation = Conversation(
@@ -1339,39 +1678,53 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   otherUserAvatar: msg.senderAvatar ?? _getUserDp(msg.senderId),
                   lastMessage: '',
                   lastMessageTime: DateTime.now(),
-                  level: PremiumIdentityController.getIdentity(msg.senderId, msg.senderName).idLevel,
+                  level: PremiumIdentityController.getIdentity(
+                          msg.senderId, msg.senderName)
+                      .idLevel,
                 );
                 Get.to(() => ChatScreen(conversation: conversation));
               },
             ),
             ListTile(
-              leading: const Icon(Icons.card_giftcard_rounded, color: Colors.amber),
-              title: const Text('Send Gift', style: TextStyle(color: Colors.white)),
+              leading:
+                  const Icon(Icons.card_giftcard_rounded, color: Colors.amber),
+              title: const Text('Send Gift',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
-                Get.dialog(SendGiftDialog(roomId: widget.roomId, occupiedSeatsCount: _seats.where((s) => s['userId'] != null).length));
+                Get.dialog(SendGiftDialog(
+                    roomId: widget.roomId,
+                    occupiedSeatsCount:
+                        _seats.where((s) => s['userId'] != null).length));
               },
             ),
             ListTile(
               leading: const Icon(Icons.block_rounded, color: Colors.redAccent),
-              title: const Text('Block User', style: TextStyle(color: Colors.white)),
+              title: const Text('Block User',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
-                Get.snackbar('Blocked', '${msg.senderName} blocked locally in this arena.');
+                Get.snackbar('Blocked',
+                    '${msg.senderName} blocked locally in this arena.');
               },
             ),
             ListTile(
-              leading: const Icon(Icons.flag_rounded, color: Colors.orangeAccent),
-              title: const Text('Report User', style: TextStyle(color: Colors.white)),
+              leading:
+                  const Icon(Icons.flag_rounded, color: Colors.orangeAccent),
+              title: const Text('Report User',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
-                Get.snackbar('Report', 'Report submitted for ${msg.senderName}.');
+                Get.snackbar(
+                    'Report', 'Report submitted for ${msg.senderName}.');
               },
             ),
             if (canDelete)
               ListTile(
-                leading: const Icon(Icons.delete_rounded, color: Colors.redAccent),
-                title: const Text('Delete Message', style: TextStyle(color: Colors.white)),
+                leading:
+                    const Icon(Icons.delete_rounded, color: Colors.redAccent),
+                title: const Text('Delete Message',
+                    style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Get.back();
                   _controller.deleteRoomMessage(widget.roomId, msg.id);
@@ -1385,7 +1738,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   }
 
   void _showProfilePopup(RoomChatMessage msg) {
-    final identity = PremiumIdentityController.getIdentity(msg.senderId, msg.senderName);
+    final identity =
+        PremiumIdentityController.getIdentity(msg.senderId, msg.senderName);
     final user = User(
       id: msg.senderId,
       username: msg.senderName.replaceAll(' ', '_').toLowerCase(),
@@ -1414,7 +1768,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       Container(
         decoration: BoxDecoration(
           color: context.scaffoldBackgroundColor.withOpacity(0.98),
-          borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+          borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24), topRight: Radius.circular(24)),
           border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
         ),
         padding: const EdgeInsets.all(20),
@@ -1449,10 +1804,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       role: msg.senderRole,
                       child: CircleAvatar(
                         radius: 23,
-                        backgroundImage: msg.senderAvatar != null && msg.senderAvatar!.isNotEmpty
+                        backgroundImage: msg.senderAvatar != null &&
+                                msg.senderAvatar!.isNotEmpty
                             ? NetworkImage(msg.senderAvatar!)
                             : null,
-                        child: msg.senderAvatar == null || msg.senderAvatar!.isEmpty
+                        child: msg.senderAvatar == null ||
+                                msg.senderAvatar!.isEmpty
                             ? _buildDefaultAvatar(msg.senderName, roleColor)
                             : null,
                       ),
@@ -1468,11 +1825,15 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         children: [
                           Text(
                             msg.senderName,
-                            style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 6),
                           if (identity.idLevel >= 25)
-                            const Icon(Icons.verified_rounded, color: Colors.blueAccent, size: 16),
+                            const Icon(Icons.verified_rounded,
+                                color: Colors.blueAccent, size: 16),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -1480,9 +1841,15 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         spacing: 6,
                         runSpacing: 4,
                         children: [
-                          _buildTinyTag(msg.senderLevel ?? 'LV ${identity.idLevel}', const Color(0xFF38BDF8)),
-                          if (msg.vipLabel != null) _buildTinyTag(msg.vipLabel!, const Color(0xFFFFD700)),
-                          if (msg.novelLabel != null) _buildTinyTag(msg.novelLabel!, const Color(0xFFF97316)),
+                          _buildTinyTag(
+                              msg.senderLevel ?? 'LV ${identity.idLevel}',
+                              const Color(0xFF38BDF8)),
+                          if (msg.vipLabel != null)
+                            _buildTinyTag(
+                                msg.vipLabel!, const Color(0xFFFFD700)),
+                          if (msg.novelLabel != null)
+                            _buildTinyTag(
+                                msg.novelLabel!, const Color(0xFFF97316)),
                         ],
                       ),
                     ],
@@ -1502,17 +1869,23 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 Obx(() {
                   final isFollowing = _followedUsers.contains(msg.senderId);
                   return _buildActionButton(
-                    icon: isFollowing ? Icons.person_remove_rounded : Icons.person_add_rounded,
+                    icon: isFollowing
+                        ? Icons.person_remove_rounded
+                        : Icons.person_add_rounded,
                     label: isFollowing ? 'Unfollow' : 'Follow',
                     color: const Color(0xFF8B5CF6),
                     onTap: () {
                       Get.back();
                       if (isFollowing) {
                         _followedUsers.remove(msg.senderId);
-                        Get.snackbar('Unfollowed', 'You unfollowed ${msg.senderName}.', snackPosition: SnackPosition.BOTTOM);
+                        Get.snackbar(
+                            'Unfollowed', 'You unfollowed ${msg.senderName}.',
+                            snackPosition: SnackPosition.BOTTOM);
                       } else {
                         _followedUsers.add(msg.senderId);
-                        Get.snackbar('Followed', 'You followed ${msg.senderName}!', snackPosition: SnackPosition.BOTTOM);
+                        Get.snackbar(
+                            'Followed', 'You followed ${msg.senderName}!',
+                            snackPosition: SnackPosition.BOTTOM);
                       }
                     },
                   );
@@ -1527,10 +1900,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       id: 'room-${widget.roomId}-${msg.senderId}',
                       otherUserId: msg.senderId,
                       otherUserName: msg.senderName,
-                      otherUserAvatar: msg.senderAvatar ?? _getUserDp(msg.senderId),
+                      otherUserAvatar:
+                          msg.senderAvatar ?? _getUserDp(msg.senderId),
                       lastMessage: '',
                       lastMessageTime: DateTime.now(),
-                      level: PremiumIdentityController.getIdentity(msg.senderId, msg.senderName).idLevel,
+                      level: PremiumIdentityController.getIdentity(
+                              msg.senderId, msg.senderName)
+                          .idLevel,
                     );
                     Get.to(() => ChatScreen(conversation: conversation));
                   },
@@ -1546,7 +1922,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         roomId: widget.roomId,
                         targetUserId: msg.senderId,
                         targetUserName: msg.senderName,
-                        occupiedSeatsCount: _seats.where((s) => s['userId'] != null).length,
+                        occupiedSeatsCount:
+                            _seats.where((s) => s['userId'] != null).length,
                       ),
                     );
                   },
@@ -1561,10 +1938,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       Get.back();
                       if (isBlocked) {
                         _blockedUsers.remove(msg.senderId);
-                        Get.snackbar('Unblocked', '${msg.senderName} has been unblocked.', snackPosition: SnackPosition.BOTTOM);
+                        Get.snackbar('Unblocked',
+                            '${msg.senderName} has been unblocked.',
+                            snackPosition: SnackPosition.BOTTOM);
                       } else {
                         _blockedUsers.add(msg.senderId);
-                        Get.snackbar('Blocked', '${msg.senderName} has been blocked locally.', snackPosition: SnackPosition.BOTTOM);
+                        Get.snackbar('Blocked',
+                            '${msg.senderName} has been blocked locally.',
+                            snackPosition: SnackPosition.BOTTOM);
                       }
                     },
                   );
@@ -1575,7 +1956,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   color: Colors.orangeAccent,
                   onTap: () {
                     Get.back();
-                    Get.snackbar('Report Submitted', 'We will review ${msg.senderName}\'s activity.', snackPosition: SnackPosition.BOTTOM);
+                    Get.snackbar('Report Submitted',
+                        'We will review ${msg.senderName}\'s activity.',
+                        snackPosition: SnackPosition.BOTTOM);
                   },
                 ),
                 _buildActionButton(
@@ -1617,7 +2000,10 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             const SizedBox(height: 6),
             Text(
               label,
-              style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+              style: GoogleFonts.outfit(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -1645,7 +2031,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   // Get User DP based on user ID
   String _getUserDp(String userId) {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == 'uid_anurag_101' || userId == 'me' || (currentUid != null && userId == currentUid)) {
+    if (userId == 'uid_anurag_101' ||
+        userId == 'me' ||
+        (currentUid != null && userId == currentUid)) {
       final avatarUrl = UserProfileCacheManager.currentUser?.avatar;
       if (avatarUrl != null && avatarUrl.isNotEmpty) return avatarUrl;
     }
@@ -1701,6 +2089,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   @override
   void dispose() {
+    NovelEntryAnimation.dismiss();
     _seatsSyncWorker.dispose();
     _marqueeWorker.dispose();
     _marqueeDelayTimer?.cancel();
@@ -1751,270 +2140,321 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       child: Scaffold(
         backgroundColor: context.scaffoldBackgroundColor,
         body: SafeArea(
-        child: Obx(() => Transform.translate(
-          offset: _shakeOffset.value,
-          child: Stack(
-            children: [
-            // 1. Theme-based background
-            _buildCustomBackground(),
-
-            // 2. Main Content area (with static headers/seats and scrollable chat)
-            Positioned.fill(
-              top: 55,
-              bottom: 76, // Leave space for bottom control bar
-              child: Column(
+          child: Obx(() => Transform.translate(
+              offset: _shakeOffset.value,
+              child: Stack(
                 children: [
-                  // Task Badges and Program Info Row
-                  _buildTaskBadgesAndProgramInfo(),
-                  
-                  const SizedBox(height: 16),
+                  // 1. Theme-based background
+                  _buildCustomBackground(),
 
-                  // The 10-seat native grid layout matching the screenshot
-                  _buildCustomSeatGrid(),
+                  // 2. Main Content area (with static headers/seats and scrollable chat)
+                  Positioned.fill(
+                    top: 55,
+                    bottom: 76, // Leave space for bottom control bar
+                    child: Column(
+                      children: [
+                        // Task Badges and Program Info Row
+                        _buildTaskBadgesAndProgramInfo(),
 
-                  // WePlay-style animated horizontal gift notification banner
-                  Obx(() {
-                    final giftData = _controller.activeGiftNotification.value;
-                    if (giftData == null) return const SizedBox.shrink();
+                        const SizedBox(height: 16),
 
-                    final senderName = giftData['senderName'] ?? 'Someone';
-                    final amount = giftData['amount'] ?? 1;
-                    final receiverName = giftData['receiverName'] ?? 'someone';
-                    final senderAvatar = giftData['senderAvatar'] as String?;
-                    final receiverAvatar = giftData['receiverAvatar'] as String?;
+                        // The 10-seat native grid layout matching the screenshot
+                        _buildCustomSeatGrid(),
 
-                    final String giftName = giftData['gift_name'] ?? 'Rose';
-                    final String giftIcon = giftData['gift_icon'] ?? '🌹';
-                    final List<dynamic>? receiverNames = giftData['receiver_names'] as List<dynamic>?;
-                    
-                    String formattedAction = 'sent $giftIcon $giftName to ';
-                    if (amount > 1) {
-                      formattedAction = 'sent $amount× $giftIcon $giftName to ';
-                    }
-                    
-                    String receiversText = receiverName;
-                    if (receiverNames != null && receiverNames.isNotEmpty) {
-                      if (receiverNames.length == 1) {
-                        receiversText = receiverNames[0] as String;
-                      } else if (receiverNames.length >= 10) {
-                        formattedAction = 'gifted everyone with $giftIcon $giftName';
-                        receiversText = '';
-                      } else {
-                        receiversText = receiverNames.join(', ');
-                      }
-                    }
+                        // WePlay-style animated horizontal gift notification banner
+                        Obx(() {
+                          final giftData =
+                              _controller.activeGiftNotification.value;
+                          if (giftData == null) return const SizedBox.shrink();
 
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      height: 38,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)],
-                        ),
-                        borderRadius: BorderRadius.circular(19),
-                        border: Border.all(color: const Color(0xFFFFD700), width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.pinkAccent.withOpacity(0.3),
-                            blurRadius: 8,
-                            spreadRadius: 1,
-                          )
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 4),
-                          Container(
+                          final senderName =
+                              giftData['senderName'] ?? 'Someone';
+                          final amount = giftData['amount'] ?? 1;
+                          final receiverName =
+                              giftData['receiverName'] ?? 'someone';
+                          final senderAvatar =
+                              giftData['senderAvatar'] as String?;
+                          final receiverAvatar =
+                              giftData['receiverAvatar'] as String?;
+
+                          final String giftName =
+                              giftData['gift_name'] ?? 'Rose';
+                          final String giftIcon = giftData['gift_icon'] ?? '🌹';
+                          final List<dynamic>? receiverNames =
+                              giftData['receiver_names'] as List<dynamic>?;
+
+                          String formattedAction =
+                              'sent $giftIcon $giftName to ';
+                          if (amount > 1) {
+                            formattedAction =
+                                'sent $amount× $giftIcon $giftName to ';
+                          }
+
+                          String receiversText = receiverName;
+                          if (receiverNames != null &&
+                              receiverNames.isNotEmpty) {
+                            if (receiverNames.length == 1) {
+                              receiversText = receiverNames[0] as String;
+                            } else if (receiverNames.length >= 10) {
+                              formattedAction =
+                                  'gifted everyone with $giftIcon $giftName';
+                              receiversText = '';
+                            } else {
+                              receiversText = receiverNames.join(', ');
+                            }
+                          }
+
+                          return Container(
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            height: 38,
+                            width: double.infinity,
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFFFD700), width: 1.0),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)],
+                              ),
+                              borderRadius: BorderRadius.circular(19),
+                              border: Border.all(
+                                  color: const Color(0xFFFFD700), width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.pinkAccent.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                )
+                              ],
                             ),
-                            child: CircleAvatar(
-                              radius: 14,
-                              backgroundImage: senderAvatar != null && senderAvatar.isNotEmpty
-                                  ? NetworkImage(senderAvatar)
-                                  : const AssetImage('assets/images/placeholder.png') as ImageProvider,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: '$senderName ',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
+                            child: Row(
+                              children: [
+                                const SizedBox(width: 4),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: const Color(0xFFFFD700),
+                                        width: 1.0),
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 14,
+                                    backgroundImage: senderAvatar != null &&
+                                            senderAvatar.isNotEmpty
+                                        ? NetworkImage(senderAvatar)
+                                        : const AssetImage(
+                                                'assets/images/placeholder.png')
+                                            as ImageProvider,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: '$senderName ',
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: formattedAction,
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white70,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        if (receiversText.isNotEmpty)
+                                          TextSpan(
+                                            text: receiversText,
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.amberAccent,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
-                                  TextSpan(
-                                    text: formattedAction,
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white70,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: const Color(0xFFAF52DE),
+                                        width: 1.0),
                                   ),
-                                  if (receiversText.isNotEmpty)
-                                    TextSpan(
-                                      text: receiversText,
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.amberAccent,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                ],
+                                  child: CircleAvatar(
+                                    radius: 14,
+                                    backgroundImage: receiverAvatar != null &&
+                                            receiverAvatar.isNotEmpty
+                                        ? NetworkImage(receiverAvatar)
+                                        : const AssetImage(
+                                                'assets/images/placeholder.png')
+                                            as ImageProvider,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                              ],
+                            ),
+                          );
+                        }),
+
+                        const SizedBox(height: 10),
+
+                        // Custom Chat Box (real-time stream of Zego room messages) - Scrollable
+                        Expanded(
+                          child: _buildCustomChatBox(),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 3. Custom Top Header Bar Overlay
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _buildCustomTopBar(),
+                  ),
+
+                  // 4. Side promotion cards overlay (Riches Marbles & Candy Storm)
+                  Positioned(
+                    right: 16,
+                    bottom: 135,
+                    child: _buildSidePromotions(),
+                  ),
+
+                  // Floating System Notification toast at the bottom left
+                  Obx(() {
+                    final toastMsg = _controller.activeSystemNotification.value;
+                    if (toastMsg == null) return const SizedBox.shrink();
+
+                    return Positioned(
+                      left: 16,
+                      bottom: 130,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B)
+                              .withOpacity(0.9), // Slate gray dark glass
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white24, width: 0.8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.info_outline_rounded,
+                                color: Colors.cyanAccent, size: 12),
+                            const SizedBox(width: 6),
+                            Text(
+                              toastMsg,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFAF52DE), width: 1.0),
-                            ),
-                            child: CircleAvatar(
-                              radius: 14,
-                              backgroundImage: receiverAvatar != null && receiverAvatar.isNotEmpty
-                                  ? NetworkImage(receiverAvatar)
-                                  : const AssetImage('assets/images/placeholder.png') as ImageProvider,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   }),
 
-                  const SizedBox(height: 10),
+                  // 5. Custom Bottom controls dock Overlay
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: _buildCustomBottomControls(),
+                  ),
 
-                  // Custom Chat Box (real-time stream of Zego room messages) - Scrollable
-                  Expanded(
-                    child: _buildCustomChatBox(),
+                  // Floating reactions animations stack overlay
+                  _buildFloatingReactionsOverlay(),
+
+                  Obx(() {
+                    if (!_showEntranceOverlay.value)
+                      return const SizedBox.shrink();
+
+                    final anim = _resolvedEntranceAnimation.value;
+
+                    if (anim == 'VIP 1') {
+                      return Positioned.fill(
+                        child: IgnorePointer(
+                          child: VipEntryAnimation(
+                            username: _currentEntranceUser.value,
+                            vipLevel: 1,
+                            onFinished: _onEntranceAnimationFinished,
+                          ),
+                        ),
+                      );
+                    }
+
+                    if (anim == 'Novel' && _currentEntranceNovelLevel.value > 1) {
+                      return Positioned.fill(
+                        child: IgnorePointer(
+                          child: NovelEntryAnimation(
+                            username: _currentEntranceUser.value,
+                            avatarUrl: UserProfileCacheManager.getCachedUser(
+                                    _currentEntranceUserId.value)
+                                ?.avatar,
+                            novelLevel: _currentEntranceNovelLevel.value,
+                            onFinished: _onEntranceAnimationFinished,
+                          ),
+                        ),
+                      );
+                    }
+
+                    if (anim == 'None') {
+                      return Positioned.fill(
+                        child: IgnorePointer(
+                          child: DefaultEntryAnimation(
+                            username: _currentEntranceUser.value,
+                            userId: _currentEntranceUserId.value,
+                            onFinished: _onEntranceAnimationFinished,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return const SizedBox.shrink();
+                  }),
+
+                  // Gifting curve animations overlay layer
+                  Positioned.fill(
+                    child: GiftingAnimationOverlay(
+                      activeAnimations: _activeGiftingAnimations,
+                      seatKeys: _seatKeys,
+                      onExplosion: (bool isMajor) {
+                        if (isMajor) {
+                          _shakeRoomScreen();
+                        }
+                      },
+                    ),
                   ),
                 ],
-              ),
-            ),
-
-            // 3. Custom Top Header Bar Overlay
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _buildCustomTopBar(),
-            ),
-
-            // 4. Side promotion cards overlay (Riches Marbles & Candy Storm)
-            Positioned(
-              right: 16,
-              bottom: 135,
-              child: _buildSidePromotions(),
-            ),
-
-            // Floating System Notification toast at the bottom left
-            Obx(() {
-              final toastMsg = _controller.activeSystemNotification.value;
-              if (toastMsg == null) return const SizedBox.shrink();
-
-              return Positioned(
-                left: 16,
-                bottom: 130,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withOpacity(0.9), // Slate gray dark glass
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white24, width: 0.8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.info_outline_rounded, color: Colors.cyanAccent, size: 12),
-                      const SizedBox(width: 6),
-                      Text(
-                        toastMsg,
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-
-            // 5. Custom Bottom controls dock Overlay
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _buildCustomBottomControls(),
-            ),
-
-            // Floating reactions animations stack overlay
-            _buildFloatingReactionsOverlay(),
-
-            // Entrance Effects Overlay Queue layer
-            Obx(() {
-              if (!_showEntranceOverlay.value) return const SizedBox.shrink();
-              return Positioned(
-                top: 80,
-                left: 0,
-                right: 0,
-                child: IgnorePointer(
-                  child: _currentEntranceVipLevel.value > 0
-                      ? VipEntryAnimation(
-                          username: _currentEntranceUser.value,
-                          vipLevel: _currentEntranceVipLevel.value,
-                        )
-                      : (_currentEntranceNovelLevel.value > 0
-                          ? NovelEntryAnimation(
-                              username: _currentEntranceUser.value,
-                              novelLevel: _currentEntranceNovelLevel.value,
-                            )
-                          : DefaultEntryAnimation(
-                              username: _currentEntranceUser.value,
-                              userId: _currentEntranceUserId.value,
-                            )),
-                ),
-              );
-            }),
-            
-            // Gifting curve animations overlay layer
-            Positioned.fill(
-              child: GiftingAnimationOverlay(
-                activeAnimations: _activeGiftingAnimations,
-                seatKeys: _seatKeys,
-                onExplosion: (bool isMajor) {
-                  if (isMajor) {
-                    _shakeRoomScreen();
-                  }
-                },
-              ),
-            ),
-          ],
-        ))),
+              ))),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  void _triggerGiftingAnimations(List<int> targets, String giftIcon, String giftName, int count) {
+  void _triggerGiftingAnimations(
+      List<int> targets, String giftIcon, String giftName, int count) {
     final List<Offset> targetPositions = [];
     for (final seatIndex in targets) {
       final key = _seatKeys[seatIndex];
       if (key != null) {
-        final RenderBox? box = key.currentContext?.findRenderObject() as RenderBox?;
+        final RenderBox? box =
+            key.currentContext?.findRenderObject() as RenderBox?;
         if (box != null) {
           final size = box.size;
           final offset = box.localToGlobal(Offset.zero);
-          targetPositions.add(Offset(offset.dx + size.width / 2, offset.dy + size.height / 2));
+          targetPositions.add(
+              Offset(offset.dx + size.width / 2, offset.dy + size.height / 2));
         } else {
           targetPositions.add(Offset(Get.width / 2, Get.height / 3));
         }
@@ -2027,7 +2467,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
     final startPosition = Offset(Get.width / 2, Get.height - 80);
     final requestId = DateTime.now().microsecondsSinceEpoch.toString();
-    
+
     _activeGiftingAnimations.add({
       'id': requestId,
       'start': startPosition,
@@ -2043,7 +2483,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     double shakeAmplitude = 6.0;
     int durationMs = 400;
     int intervalMs = 20;
-    
+
     Timer.periodic(Duration(milliseconds: intervalMs), (timer) {
       if (timer.tick * intervalMs >= durationMs) {
         _shakeOffset.value = Offset.zero;
@@ -2058,73 +2498,97 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   }
 
   Widget _buildCustomSeatGrid() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          // Row 0: Host & Co-host (2 seats)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildSingleNativeSeat(0),
-              const SizedBox(width: 48), // Wide spacing between Host and Co-host
-              _buildSingleNativeSeat(1),
-            ],
-          ),
-          const SizedBox(height: 25),
-          // Row 1: Speakers 2-5 (4 seats)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildSingleNativeSeat(2),
-              _buildSingleNativeSeat(3),
-              _buildSingleNativeSeat(4),
-              _buildSingleNativeSeat(5),
-            ],
-          ),
-          const SizedBox(height: 25),
-          // Row 2: Speakers 6-9 (4 seats)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildSingleNativeSeat(6),
-              _buildSingleNativeSeat(7),
-              _buildSingleNativeSeat(8),
-              _buildSingleNativeSeat(9),
-            ],
-          ),
-        ],
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double baseWidth = 375.0;
+    final double scale = (screenWidth > 600 ? 600.0 : screenWidth) / baseWidth;
+
+    // RepaintBoundary isolates seat grid repaints from chat, background, top bar
+    return RepaintBoundary(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16 * scale),
+        child: Column(
+          children: [
+            // Row 0: Host & Co-host (2 seats)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildSingleNativeSeat(0),
+                SizedBox(
+                    width: 48 * scale), // Wide spacing between Host and Co-host
+                _buildSingleNativeSeat(1),
+              ],
+            ),
+            SizedBox(height: 25 * scale),
+            // Row 1: Speakers 2-5 (4 seats)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSingleNativeSeat(2),
+                _buildSingleNativeSeat(3),
+                _buildSingleNativeSeat(4),
+                _buildSingleNativeSeat(5),
+              ],
+            ),
+            SizedBox(height: 25 * scale),
+            // Row 2: Speakers 6-9 (4 seats)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSingleNativeSeat(6),
+                _buildSingleNativeSeat(7),
+                _buildSingleNativeSeat(8),
+                _buildSingleNativeSeat(9),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSingleNativeSeat(int index) {
     return Obx(() {
+      final double screenWidth = MediaQuery.of(context).size.width;
+      final double baseWidth = 375.0;
+      final double scale =
+          (screenWidth > 600 ? 600.0 : screenWidth) / baseWidth;
+
       final seatsMap = _controller.roomSeatsInfo;
-      final _ = seatsMap.length; // Force GetX to observe roomSeatsInfo map changes
+      final _ =
+          seatsMap.length; // Force GetX to observe roomSeatsInfo map changes
       final seatsList = seatsMap[widget.roomId] ?? [];
       final seat = seatsList.firstWhereOrNull((s) => s['seatIndex'] == index);
       final userId = seat?['userId'] as String?;
       final isOccupied = userId != null;
       final isLocked = seat?['isLocked'] == true;
       final micStatus = seat?['micStatus'] as String? ?? 'unmuted';
-      final soundLevel = isOccupied ? (VoiceController.to.userSoundLevels[userId] ?? 0.0) : 0.0;
+      final soundLevel = isOccupied
+          ? (VoiceController.to.userSoundLevels[userId] ?? 0.0)
+          : 0.0;
       final isSpeaking = isOccupied && soundLevel > 3.0 && micStatus != 'muted';
-      final role = seat?['role'] ?? (index == 0 ? 'Host' : (index == 1 ? 'Co-Host' : 'Listener'));
+      final role = seat?['role'] ??
+          (index == 0 ? 'Host' : (index == 1 ? 'Co-Host' : 'Listener'));
 
       // Resolve user properties reactively
-      final u = isOccupied ? (UserProfileCacheManager.rxCache[userId] ?? UserProfileCacheManager.getCachedUser(userId)) : null;
+      final u = isOccupied
+          ? (UserProfileCacheManager.rxCache[userId] ??
+              UserProfileCacheManager.getCachedUser(userId))
+          : null;
 
       final avatarUrl = u?.avatar ?? seat?['avatar'] as String?;
-      final avatarFrame = u?.avatarFrame ?? seat?['avatarFrame'] as String? ?? 'Normal';
-      final userName = u?.username ?? seat?['name'] as String? ?? (index == 0 ? 'Host' : (index == 1 ? 'Co-Host' : 'Seat ${index + 1}'));
+      final avatarFrame =
+          u?.avatarFrame ?? seat?['avatarFrame'] as String? ?? 'Normal';
+      final userName = u?.username ??
+          seat?['name'] as String? ??
+          (index == 0
+              ? 'Host'
+              : (index == 1 ? 'Co-Host' : 'Seat ${index + 1}'));
       final userLevel = u?.level ?? seat?['level'] as int? ?? 1;
       final nobleLevel = u?.novelLevel ?? seat?['nobleLevel'] as int? ?? 0;
       final vipLevel = u?.vipLevel ?? seat?['vipLevel'] as int? ?? 0;
-      final totalGifts = seat?['seatTotalGifts'] as int? ?? 0;
       final totalStars = seat?['seatTotalStars'] as int? ?? 0;
 
-      final double size = (index == 0 || index == 1) ? 56.0 : 44.0;
+      final double size = ((index == 0 || index == 1) ? 56.0 : 44.0) * scale;
 
       // Premium Frame Color definitions
       Color frameColor = Colors.white24;
@@ -2140,8 +2604,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         frameColor = const Color(0xFFFFB800); // Amber Co-Host
       }
 
-      final double innerAvatarSize = size - 4.0;
-
       final seatBackground = Container(
         width: size,
         height: size,
@@ -2151,8 +2613,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         ),
         child: Center(
           child: isLocked
-              ? const Icon(Icons.lock, color: Colors.grey, size: 15)
-              : const Icon(Icons.chair, color: Colors.white24, size: 16),
+              ? Icon(Icons.lock, color: Colors.grey, size: 15 * scale)
+              : Icon(Icons.chair, color: Colors.white24, size: 16 * scale),
         ),
       );
 
@@ -2171,6 +2633,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 vipLevel: vipLevel,
                 novelLevel: nobleLevel,
                 level: userLevel,
+                soundLevel: soundLevel,
                 isSpeaking: isSpeaking && micStatus != 'muted',
                 child: avatarUrl != null && avatarUrl.isNotEmpty
                     ? Image.network(avatarUrl, fit: BoxFit.cover)
@@ -2178,11 +2641,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         color: context.primaryColor.withOpacity(0.2),
                         child: Center(
                           child: Text(
-                            userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                            style: const TextStyle(
+                            userName.isNotEmpty
+                                ? userName[0].toUpperCase()
+                                : 'U',
+                            style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 14 * scale,
                             ),
                           ),
                         ),
@@ -2204,18 +2669,21 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               // Top Role Badge for Host/Co-host
               if (index == 0 || index == 1)
                 Positioned(
-                  top: -8,
+                  top: -8 * scale,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 6 * scale, vertical: 1.5 * scale),
                     decoration: BoxDecoration(
-                      color: index == 0 ? const Color(0xFF8B5CF6) : const Color(0xFFFFB800),
-                      borderRadius: BorderRadius.circular(4),
+                      color: index == 0
+                          ? const Color(0xFF8B5CF6)
+                          : const Color(0xFFFFB800),
+                      borderRadius: BorderRadius.circular(4 * scale),
                     ),
                     child: Text(
                       index == 0 ? 'Host' : 'Co-Host',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 7,
+                        fontSize: 7 * scale,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -2225,171 +2693,93 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               // Bottom-right indicator badge (Crown/Star) for Host/Co-host
               if (index == 0 || index == 1)
                 Positioned(
-                  bottom: -1,
-                  right: -3,
+                  bottom: -1 * scale,
+                  right: -3 * scale,
                   child: index == 0
-                      ? const Text('👑', style: TextStyle(fontSize: 11))
-                      : const Text('⭐', style: TextStyle(fontSize: 11)),
+                      ? Text('👑', style: TextStyle(fontSize: 11 * scale))
+                      : Text('⭐', style: TextStyle(fontSize: 11 * scale)),
                 ),
 
               // Speaker red mic off badge (top right)
-              if (isOccupied && micStatus == 'muted')
+              if (isOccupied &&
+                  (_controller.mutedUsers[widget.roomId]?.contains(userId) ??
+                      false))
                 Positioned(
-                  top: -1,
-                  right: -1,
+                  top: -1 * scale,
+                  right: -1 * scale,
                   child: Container(
-                    padding: const EdgeInsets.all(1.5),
+                    padding: EdgeInsets.all(1.5 * scale),
                     decoration: const BoxDecoration(
                       color: Color(0xFFFF3B30),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.mic_off, color: Colors.white, size: 7),
+                    child: Icon(Icons.mic_off,
+                        color: Colors.white, size: 7 * scale),
                   ),
                 ),
 
               // Speaker green check badge (bottom center)
               if (index >= 2 && isOccupied)
                 Positioned(
-                  bottom: -4,
+                  bottom: -4 * scale,
                   child: Container(
-                    padding: const EdgeInsets.all(1),
+                    padding: EdgeInsets.all(1 * scale),
                     decoration: const BoxDecoration(
                       color: Color(0xFF34C759),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check, color: Colors.white, size: 7),
+                    child:
+                        Icon(Icons.check, color: Colors.white, size: 7 * scale),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 5),
+          SizedBox(height: 5 * scale),
 
           // Username Text name label
           SizedBox(
-            width: 72,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  userName,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 8.5,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
+            width: 72 * scale,
+            height: 14 * scale,
+            child: Center(
+              child: Text(
+                userName,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 8.5 * scale,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 1),
-                
-                // Badges row: Level + VIP/Noble
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
-                      decoration: BoxDecoration(
-                        color: Colors.white10,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      child: Text(
-                        'Lv.$userLevel',
-                        style: const TextStyle(color: Colors.white70, fontSize: 6.5, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    if (vipLevel > 0) ...[
-                      const SizedBox(width: 2),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF2D55),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: const Text(
-                          'VIP',
-                          style: TextStyle(color: Colors.white, fontSize: 6.5, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                    if (nobleLevel > 0) ...[
-                      const SizedBox(width: 2),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFD700),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: const Text(
-                          'Noble',
-                          style: TextStyle(color: Colors.black, fontSize: 6.5, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                
-                const SizedBox(height: 2),
-
-                // Star & Gift Counts on seat
-                if (isOccupied) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 7.5),
-                      const SizedBox(width: 1),
-                      Text(
-                        '$totalStars',
-                        style: const TextStyle(color: Colors.white70, fontSize: 7, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.card_giftcard, color: Colors.pinkAccent, size: 7.5),
-                      const SizedBox(width: 1),
-                      Text(
-                        '$totalGifts',
-                        style: const TextStyle(color: Colors.white70, fontSize: 7, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ],
-
-                // Soundwave / micro animations if speaking
-                if (isSpeaking) ...[
-                  const SizedBox(height: 2),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 1.5,
-                        height: 3.5,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00FF66),
-                          borderRadius: BorderRadius.circular(0.7),
-                        ),
-                      ),
-                      const SizedBox(width: 1),
-                      Container(
-                        width: 1.5,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00FF66),
-                          borderRadius: BorderRadius.circular(0.7),
-                        ),
-                      ),
-                      const SizedBox(width: 1),
-                      Container(
-                        width: 1.5,
-                        height: 3.5,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00FF66),
-                          borderRadius: BorderRadius.circular(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
+          ),
+          SizedBox(height: 1 * scale),
+
+          // ⭐ Total Gift Stars
+          SizedBox(
+            width: 72 * scale,
+            height: 12 * scale,
+            child: isOccupied
+                ? Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.star,
+                            color: Colors.amber, size: 7.5 * scale),
+                        SizedBox(width: 1 * scale),
+                        Text(
+                          '$totalStars',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 7 * scale,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
       );
@@ -2478,20 +2868,28 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       userId = user.userID;
       final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
       final seatIndex = seatsList.indexWhere((s) => s['userId'] == user.userID);
-      isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
-      isMuted = _controller.mutedUsers[widget.roomId]?.contains(user.userID) ?? false;
+      isSpeaking =
+          seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
+      isMuted =
+          _controller.mutedUsers[widget.roomId]?.contains(user.userID) ?? false;
     } else if (index >= 0 && index < _seats.length) {
       final mockSeat = _seats[index];
       if (mockSeat['userId'] != null) {
         isOccupied = true;
         userId = mockSeat['userId'] as String;
-        isMuted = _controller.mutedUsers[widget.roomId]?.contains(userId) ?? false;
+        isMuted =
+            _controller.mutedUsers[widget.roomId]?.contains(userId) ?? false;
         isSpeaking = mockSeat['isSpeaking'] == true && !isMuted;
       }
     }
 
-    final double customWidth = (index == 0 || index == 1) ? size.width * 1.22 : size.width;
-    final double customHeight = (index == 0 || index == 1) ? size.height * 1.22 : size.height;
+    final double customWidth =
+        (index == 0 || index == 1) ? size.width * 1.22 : size.width;
+    final double customHeight =
+        (index == 0 || index == 1) ? size.height * 1.22 : size.height;
+
+    final double soundLevel =
+        isOccupied ? (VoiceController.to.userSoundLevels[userId] ?? 0.0) : 0.0;
 
     // 1. Build the circular avatar container
     final avatarCircle = isOccupied
@@ -2499,6 +2897,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             userId: userId!,
             username: user?.userName ?? '',
             size: customWidth,
+            soundLevel: soundLevel,
+            isSpeaking: isSpeaking,
             child: CircleAvatar(
               backgroundImage: NetworkImage(_getUserDp(userId!)),
             ),
@@ -2569,9 +2969,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             child: Container(
               padding: const EdgeInsets.all(3.5),
               decoration: BoxDecoration(
-                color: index == 0 
-                    ? const Color(0xFFFF9500) 
-                    : (index == 1 ? const Color(0xFFAF52DE) : const Color(0xFF007AFF)),
+                color: index == 0
+                    ? const Color(0xFFFF9500)
+                    : (index == 1
+                        ? const Color(0xFFAF52DE)
+                        : const Color(0xFF007AFF)),
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.black87, width: 1.5),
               ),
@@ -2590,7 +2992,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1.5),
               decoration: BoxDecoration(
-                color: index == 0 ? const Color(0xFF8A2BE2) : const Color(0xFFFF8C00),
+                color: index == 0
+                    ? const Color(0xFF8A2BE2)
+                    : const Color(0xFFFF8C00),
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
@@ -2737,14 +3141,15 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     return const SizedBox.shrink();
   }
 
-  Widget _buildCustomChatMessage(RoomChatMessage message, {bool isConsecutive = false}) {
+  Widget _buildCustomChatMessage(RoomChatMessage message,
+      {bool isConsecutive = false}) {
     final isSystem = message.isSystem;
     final isActivity = message.messageType == 'activity';
 
     if (isSystem || isActivity) {
       Color eventColor = const Color(0xFF2196F3);
       IconData icon = Icons.notifications;
-      
+
       final type = message.eventType ?? '';
       if (type == 'room_join') {
         eventColor = const Color(0xFF34C759);
@@ -2769,7 +3174,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         icon = Icons.image_rounded;
       }
 
-      final timestampStr = '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
+      final timestampStr =
+          '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
       return Align(
         alignment: Alignment.centerLeft,
@@ -2812,11 +3218,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       );
     }
 
-    final timestampStr = '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
-    
+    final timestampStr =
+        '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
+
     final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
-    final senderSeat = seatsList.firstWhereOrNull((s) => s['userId'] == message.senderId);
-    final bool isSpeaking = senderSeat != null && senderSeat['isSpeaking'] == true;
+    final senderSeat =
+        seatsList.firstWhereOrNull((s) => s['userId'] == message.senderId);
+    final bool isSpeaking =
+        senderSeat != null && senderSeat['isSpeaking'] == true;
 
     Widget leftSide;
     if (isConsecutive) {
@@ -2837,8 +3246,10 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               role: message.senderRole ?? 'Guest',
               seatIndex: -1,
               isHost: (() {
-                final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
-                return room?.hostId == RoomController.currentUserId || room?.founderId == RoomController.currentUserId;
+                final room = _controller.rooms
+                    .firstWhereOrNull((r) => r.id == widget.roomId);
+                return room?.hostId == RoomController.currentUserId ||
+                    room?.founderId == RoomController.currentUserId;
               })(),
               occupiedSeatsCount: occupiedSeats,
             ),
@@ -2868,11 +3279,15 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 ),
               CircleAvatar(
                 radius: 18,
-                backgroundImage: message.senderAvatar != null && message.senderAvatar!.isNotEmpty
+                backgroundImage: message.senderAvatar != null &&
+                        message.senderAvatar!.isNotEmpty
                     ? NetworkImage(message.senderAvatar!)
-                    : const AssetImage('assets/images/placeholder.png') as ImageProvider,
+                    : const AssetImage('assets/images/placeholder.png')
+                        as ImageProvider,
               ),
-              if (message.avatarFrame != null && message.avatarFrame != 'Normal' && message.avatarFrame!.isNotEmpty)
+              if (message.avatarFrame != null &&
+                  message.avatarFrame != 'Normal' &&
+                  message.avatarFrame!.isNotEmpty)
                 Positioned(
                   top: -4,
                   left: -4,
@@ -2937,11 +3352,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
     Widget buildReactions() {
       if (message.reactions.isEmpty) return const SizedBox.shrink();
-      
+
       final reactionWidgets = <Widget>[];
       message.reactions.forEach((reactionType, usersList) {
         if (usersList.isEmpty) return;
-        
+
         final hasReacted = usersList.contains(RoomController.currentUserId);
         String emoji = '❤️';
         if (reactionType == 'laugh') emoji = '😂';
@@ -2950,16 +3365,21 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         reactionWidgets.add(
           GestureDetector(
             onTap: () {
-              _controller.sendRoomReactionBroadcast(widget.roomId, message.id, reactionType);
+              _controller.sendRoomReactionBroadcast(
+                  widget.roomId, message.id, reactionType);
             },
             child: Container(
               margin: const EdgeInsets.only(right: 6),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: hasReacted ? Colors.pinkAccent.withOpacity(0.2) : Colors.white.withOpacity(0.06),
+                color: hasReacted
+                    ? Colors.pinkAccent.withOpacity(0.2)
+                    : Colors.white.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: hasReacted ? Colors.pinkAccent.withOpacity(0.5) : Colors.white12,
+                  color: hasReacted
+                      ? Colors.pinkAccent.withOpacity(0.5)
+                      : Colors.white12,
                   width: 0.8,
                 ),
               ),
@@ -3002,7 +3422,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             leftSide,
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(16),
@@ -3030,9 +3451,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () {
-                                final occupiedSeats = (_controller.roomSeatsInfo[widget.roomId] ?? [])
-                                    .where((s) => s['userId'] != null)
-                                    .length;
+                                final occupiedSeats =
+                                    (_controller.roomSeatsInfo[widget.roomId] ??
+                                            [])
+                                        .where((s) => s['userId'] != null)
+                                        .length;
                                 Get.dialog(
                                   MiniProfileDialog(
                                     roomId: widget.roomId,
@@ -3042,9 +3465,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                                     role: message.senderRole ?? 'Guest',
                                     seatIndex: -1,
                                     isHost: (() {
-                                       final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
-                                       return room?.hostId == RoomController.currentUserId || room?.founderId == RoomController.currentUserId;
-                                     })(),
+                                      final room = _controller.rooms
+                                          .firstWhereOrNull(
+                                              (r) => r.id == widget.roomId);
+                                      return room?.hostId ==
+                                              RoomController.currentUserId ||
+                                          room?.founderId ==
+                                              RoomController.currentUserId;
+                                    })(),
                                     occupiedSeatsCount: occupiedSeats,
                                   ),
                                 );
@@ -3062,13 +3490,28 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                           ),
                           const SizedBox(width: 6),
                           if (message.senderLevel != null)
-                            buildBadge('Lv.${message.senderLevel}', Colors.grey.withOpacity(0.24), Colors.amberAccent),
-                          if (message.nobleLabel != null && message.nobleLabel!.isNotEmpty)
-                            buildBadge(message.nobleLabel!, const Color(0xFFFFD700).withOpacity(0.2), const Color(0xFFFFD700)),
-                          if (message.vipLabel != null && message.vipLabel!.isNotEmpty)
-                            buildBadge(message.vipLabel!, Colors.pinkAccent.withOpacity(0.2), Colors.pinkAccent),
+                            buildBadge(
+                                'Lv.${message.senderLevel}',
+                                Colors.grey.withOpacity(0.24),
+                                Colors.amberAccent),
+                          if (message.nobleLabel != null &&
+                              message.nobleLabel!.isNotEmpty)
+                            buildBadge(
+                                message.nobleLabel!,
+                                const Color(0xFFFFD700).withOpacity(0.2),
+                                const Color(0xFFFFD700)),
+                          if (message.vipLabel != null &&
+                              message.vipLabel!.isNotEmpty)
+                            buildBadge(
+                                message.vipLabel!,
+                                Colors.pinkAccent.withOpacity(0.2),
+                                Colors.pinkAccent),
                           if (message.senderRole != null)
-                            buildBadge(message.senderRole!, getRoleColor(message.senderRole).withOpacity(0.2), getRoleColor(message.senderRole)),
+                            buildBadge(
+                                message.senderRole!,
+                                getRoleColor(message.senderRole)
+                                    .withOpacity(0.2),
+                                getRoleColor(message.senderRole)),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -3088,7 +3531,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                           children: [
                             GestureDetector(
                               onTap: () {
-                                _controller.sendRoomReactionBroadcast(widget.roomId, message.id, 'heart');
+                                _controller.sendRoomReactionBroadcast(
+                                    widget.roomId, message.id, 'heart');
                               },
                               child: Icon(
                                 Icons.favorite_border_rounded,
@@ -3191,11 +3635,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               GestureDetector(
                 onTap: _showRoomTasksDialog,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F203C).withOpacity(0.6),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFFF4081).withOpacity(0.3), width: 1),
+                    border: Border.all(
+                        color: const Color(0xFFFF4081).withOpacity(0.3),
+                        width: 1),
                   ),
                   child: Row(
                     children: [
@@ -3203,12 +3650,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                           color: Color(0xFFFF4081), size: 15),
                       const SizedBox(width: 6),
                       Obx(() => Text(
-                        '${_taskProgress.value}/400',
-                        style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600),
-                      )),
+                            '${_taskProgress.value}/400',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600),
+                          )),
                     ],
                   ),
                 ),
@@ -3216,11 +3663,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               const SizedBox(width: 8),
               // Capsule 2: Time 3 d
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0F203C).withOpacity(0.6),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.cyanAccent.withOpacity(0.3), width: 1),
+                  border: Border.all(
+                      color: Colors.cyanAccent.withOpacity(0.3), width: 1),
                 ),
                 child: Row(
                   children: [
@@ -3242,12 +3691,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           // Capsule 3: Program info with red edit circle
           GestureDetector(
             onTap: () {
-              final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+              final room = _controller.rooms
+                  .firstWhereOrNull((r) => r.id == widget.roomId);
               if (room == null) return;
               final callerRole = _controller.getUserRole(room, widget.userId);
               final callerWeight = _controller.getRoleWeight(callerRole);
               if (callerWeight >= 7) {
-                Get.dialog(RoomSettingsDialog(roomId: widget.roomId, room: room));
+                Get.dialog(
+                    RoomSettingsDialog(roomId: widget.roomId, room: room));
               } else {
                 Get.snackbar('Permission Denied',
                     'Only moderators and above can edit the arena.',
@@ -3270,7 +3721,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       color: Color(0xFFFF3B30), // Red edit button
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.edit, color: Colors.white, size: 10),
+                    child:
+                        const Icon(Icons.edit, color: Colors.white, size: 10),
                   ),
                   const SizedBox(width: 6),
                   Column(
@@ -3417,7 +3869,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-
           // ── Chat Input + Action Buttons Row ───────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
@@ -3477,7 +3928,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       ),
                       onSubmitted: (text) {
                         if (text.trim().isNotEmpty) {
-                          _controller.sendRoomBroadcastMessage(widget.roomId, text.trim());
+                          _controller.sendRoomBroadcastMessage(
+                              widget.roomId, text.trim());
                           _chatInputController.clear();
                         }
                       },
@@ -3580,12 +4032,16 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   Widget _buildRoomBanner() {
     return Obx(() {
-      final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+      final room =
+          _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
       if (room == null) return const SizedBox.shrink();
       final isOwner = room.hostId == widget.userId;
 
-      final bool hasCover = (room.avatar != null && room.avatar!.isNotEmpty) || (room.banner != null && room.banner!.isNotEmpty);
-      final String? coverUrl = (room.avatar != null && room.avatar!.isNotEmpty) ? room.avatar : room.banner;
+      final bool hasCover = (room.avatar != null && room.avatar!.isNotEmpty) ||
+          (room.banner != null && room.banner!.isNotEmpty);
+      final String? coverUrl = (room.avatar != null && room.avatar!.isNotEmpty)
+          ? room.avatar
+          : room.banner;
 
       return GestureDetector(
         onTap: isOwner ? () => _changeRoomCoverPhoto(room.id) : null,
@@ -3620,7 +4076,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          isOwner ? 'Tap to change Arena Cover' : 'Welcome to Creania Arena',
+                          isOwner
+                              ? 'Tap to change Arena Cover'
+                              : 'Welcome to Creania Arena',
                           style: GoogleFonts.poppins(
                             color: Colors.white30,
                             fontSize: 10.5,
@@ -3635,7 +4093,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                     bottom: 8,
                     right: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.black87,
                         borderRadius: BorderRadius.circular(8),
@@ -3644,11 +4103,15 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.camera_alt, color: Colors.cyanAccent, size: 10),
+                          const Icon(Icons.camera_alt,
+                              color: Colors.cyanAccent, size: 10),
                           const SizedBox(width: 4),
                           Text(
                             hasCover ? 'Change Cover' : 'Upload Cover',
-                            style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -3695,7 +4158,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Preset Cover Photos Grid
             Text(
               'Select Preset Cover Photo',
@@ -3714,9 +4177,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 itemBuilder: (context, idx) {
                   return GestureDetector(
                     onTap: () {
-                      _controller.updateRoomSettings(roomId, avatar: presets[idx]);
+                      _controller.updateRoomSettings(roomId,
+                          avatar: presets[idx]);
                       Get.back();
-                      Get.snackbar('Cover Changed', 'Arena cover photo updated successfully.', snackPosition: SnackPosition.BOTTOM);
+                      Get.snackbar('Cover Changed',
+                          'Arena cover photo updated successfully.',
+                          snackPosition: SnackPosition.BOTTOM);
                     },
                     child: Container(
                       margin: const EdgeInsets.only(right: 10),
@@ -3735,20 +4201,25 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Custom Upload Option
             ListTile(
-              leading: Icon(Icons.cloud_upload_rounded, color: context.primaryColor),
+              leading:
+                  Icon(Icons.cloud_upload_rounded, color: context.primaryColor),
               title: Text(
                 'Upload Custom Cover Photo',
-                style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
                 'Pick an image from your gallery',
                 style: GoogleFonts.poppins(color: Colors.white30, fontSize: 11),
               ),
               tileColor: Colors.white.withOpacity(0.02),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               onTap: () {
                 Get.back();
                 _pickAndUploadBanner(roomId);
@@ -3778,13 +4249,18 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           children: [
             const Text(
               'Update Arena Banner',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: Colors.cyanAccent),
-              title: const Text('Choose from Gallery', style: TextStyle(color: Colors.white)),
+              leading:
+                  const Icon(Icons.photo_library, color: Colors.cyanAccent),
+              title: const Text('Choose from Gallery',
+                  style: TextStyle(color: Colors.white)),
               onTap: () async {
                 Get.back();
                 await _processImageSelection(roomId, ImageSource.gallery);
@@ -3792,7 +4268,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.amberAccent),
-              title: const Text('Take a Photo', style: TextStyle(color: Colors.white)),
+              title: const Text('Take a Photo',
+                  style: TextStyle(color: Colors.white)),
               onTap: () async {
                 Get.back();
                 await _processImageSelection(roomId, ImageSource.camera);
@@ -3815,7 +4292,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       final pickedFile = await picker.pickImage(source: source);
       if (pickedFile == null) return;
 
-      final editedFile = await CustomImageEditor.editImage(context, io.File(pickedFile.path));
+      final editedFile =
+          await CustomImageEditor.editImage(context, io.File(pickedFile.path));
       if (editedFile == null) return;
 
       final file = io.File(editedFile.path);
@@ -3823,7 +4301,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       Get.dialog(
         Dialog(
           backgroundColor: context.scaffoldBackgroundColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -3831,7 +4310,10 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               children: [
                 const Text(
                   'Confirm Arena Banner',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 ClipRRect(
@@ -3854,7 +4336,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   children: [
                     TextButton(
                       onPressed: () => Get.back(),
-                      child: const Text('Cancel', style: TextStyle(color: Colors.white30)),
+                      child: const Text('Cancel',
+                          style: TextStyle(color: Colors.white30)),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -3864,13 +4347,17 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       onPressed: () async {
                         Get.back();
                         Get.dialog(
-                          const Center(child: CircularProgressIndicator(color: Colors.cyanAccent)),
+                          const Center(
+                              child: CircularProgressIndicator(
+                                  color: Colors.cyanAccent)),
                           barrierDismissible: false,
                         );
-                        final url = await _controller.uploadRoomBanner(roomId, file);
+                        final url =
+                            await _controller.uploadRoomBanner(roomId, file);
                         Get.back();
                         if (url != null) {
-                          Get.snackbar('Success 🎉', 'Arena banner updated successfully!');
+                          Get.snackbar('Success 🎉',
+                              'Arena banner updated successfully!');
                         }
                       },
                       child: const Text('Upload & Apply'),
@@ -3889,7 +4376,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   Widget _buildRoomLevelAndXpProgress() {
     return Obx(() {
-      final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+      final room =
+          _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
       if (room == null || !room.isPermanent) return const SizedBox.shrink();
 
       final int xpNeeded = _controller.getXpForNextLevel(room.level);
@@ -3912,7 +4400,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Colors.purpleAccent, Colors.deepPurple],
@@ -3962,7 +4451,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                     duration: const Duration(milliseconds: 600),
                     curve: Curves.easeOutCubic,
                     height: 6,
-                    width: (MediaQuery.of(context).size.width - 58) * xpProgress,
+                    width:
+                        (MediaQuery.of(context).size.width - 58) * xpProgress,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFF00FF87), Color(0xFF60EFFF)],
@@ -3981,12 +4471,16 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   Widget _buildCustomTopBar() {
     return Obx(() {
-      final liveRoom = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+      final liveRoom =
+          _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
       final roomName = liveRoom?.name ?? widget.roomName;
       final roomLevel = liveRoom?.level ?? 1;
       final roomId = liveRoom?.id ?? widget.roomId;
 
-      final String? coverUrl = (liveRoom?.avatar != null && liveRoom!.avatar!.isNotEmpty) ? liveRoom.avatar : liveRoom?.banner;
+      final String? coverUrl =
+          (liveRoom?.avatar != null && liveRoom!.avatar!.isNotEmpty)
+              ? liveRoom.avatar
+              : liveRoom?.banner;
 
       return Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
@@ -3997,11 +4491,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.4),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.8),
+                    border: Border.all(
+                        color: Colors.white.withOpacity(0.05), width: 0.8),
                   ),
                   child: Row(
                     children: [
@@ -4095,19 +4591,23 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 GestureDetector(
                   onTap: () {
                     if (liveRoom != null) {
-                      Get.dialog(OnlineMembersDialog(roomId: roomId, room: liveRoom));
+                      Get.dialog(
+                          OnlineMembersDialog(roomId: roomId, room: liveRoom));
                     }
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.8),
+                      border: Border.all(
+                          color: Colors.white.withOpacity(0.05), width: 0.8),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.people_alt, color: Colors.white70, size: 12),
+                        const Icon(Icons.people_alt,
+                            color: Colors.white70, size: 12),
                         const SizedBox(width: 4),
                         Text(
                           '${liveRoom?.totalMembers ?? 3}',
@@ -4121,7 +4621,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   ),
                 ),
                 const SizedBox(width: 6),
-                
+
                 // Top Bar Dropdown Button for Seat Applications
                 _buildTopBarButton(
                   icon: Icons.keyboard_arrow_down_rounded,
@@ -4136,7 +4636,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   icon: Icons.close_rounded,
                   onTap: _leaveRoom,
                 ),
-                const SizedBox(width: 32), // Leave space for the warning banner tag
+                const SizedBox(
+                    width: 32), // Leave space for the warning banner tag
               ],
             ),
           ],
@@ -4253,11 +4754,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       },
                       child: Container(
                         margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withOpacity(0.1), width: 0.5),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.1), width: 0.5),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -4416,8 +4919,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             child: Row(
               children: [
-                Icon(Icons.people,
-                    color: context.primaryColor, size: 10),
+                Icon(Icons.people, color: context.primaryColor, size: 10),
                 const SizedBox(width: 4),
                 Text(
                   '${room.participantCount}',
@@ -5101,14 +5603,15 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       },
                     ),
 
-                   // Seat base
+                  // Seat base
                   isOccupied
                       ? CustomAvatarFrame(
                           userId: seat['userId'] ?? '',
                           username: seat['name'] ?? '',
                           size: 54,
                           child: CircleAvatar(
-                            backgroundImage: NetworkImage(_getUserDp(seat['userId'] ?? '')),
+                            backgroundImage:
+                                NetworkImage(_getUserDp(seat['userId'] ?? '')),
                           ),
                         )
                       : Container(
@@ -5128,8 +5631,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                               ? const Icon(Icons.lock,
                                   color: Colors.redAccent, size: 16)
                               : const Icon(Icons.chair_alt,
-                                  color: Colors.white30,
-                                  size: 16),
+                                  color: Colors.white30, size: 16),
                         ),
 
                   // Role badge text overlay at the bottom of avatar
@@ -5187,7 +5689,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       const SizedBox(height: 2),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        child: PremiumIdentityController.getIdentity(seat['userId'] ?? '', seat['name'] ?? '')
+                        child: PremiumIdentityController.getIdentity(
+                                seat['userId'] ?? '', seat['name'] ?? '')
                             .buildBadgeRow(context, fontSize: 6.5),
                       ),
                     ],
@@ -5302,16 +5805,21 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                     onTap: () => _selectMentionSuggestion(u['name']!),
                     child: Container(
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: const Color(0xFF8B5CF6).withOpacity(0.12),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+                        border: Border.all(
+                            color: const Color(0xFF8B5CF6).withOpacity(0.3)),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         '@${u['name']}',
-                        style: GoogleFonts.poppins(color: const Color(0xFFC084FC), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.poppins(
+                            color: const Color(0xFFC084FC),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   );
@@ -5335,12 +5843,28 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 crossAxisCount: 6,
                 mainAxisSpacing: 4,
                 crossAxisSpacing: 4,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                children: ['😊', '❤️', '😂', '🔥', '👏', '🎉', '🌟', '👑', '💎', '🦄', '😮', '👍'].map((emoji) {
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                children: [
+                  '😊',
+                  '❤️',
+                  '😂',
+                  '🔥',
+                  '👏',
+                  '🎉',
+                  '🌟',
+                  '👑',
+                  '💎',
+                  '🦄',
+                  '😮',
+                  '👍'
+                ].map((emoji) {
                   return GestureDetector(
                     onTap: () {
-                      _chatInputController.text = '${_chatInputController.text}$emoji';
-                      _chatInputController.selection = TextSelection.fromPosition(
+                      _chatInputController.text =
+                          '${_chatInputController.text}$emoji';
+                      _chatInputController.selection =
+                          TextSelection.fromPosition(
                         TextPosition(offset: _chatInputController.text.length),
                       );
                     },
@@ -5360,21 +5884,25 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               decoration: BoxDecoration(
                 color: const Color(0xFF8B5CF6).withOpacity(0.10),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.25)),
+                border: Border.all(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.25)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.reply_rounded, color: Color(0xFFC084FC), size: 14),
+                  const Icon(Icons.reply_rounded,
+                      color: Color(0xFFC084FC), size: 14),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Replying to ${_replyTarget!.senderName}',
-                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10),
+                      style: GoogleFonts.poppins(
+                          color: Colors.white70, fontSize: 10),
                     ),
                   ),
                   GestureDetector(
                     onTap: _clearReplyTarget,
-                    child: const Icon(Icons.close_rounded, color: Colors.white54, size: 14),
+                    child: const Icon(Icons.close_rounded,
+                        color: Colors.white54, size: 14),
                   ),
                 ],
               ),
@@ -5422,7 +5950,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                           child: Icon(
                             Icons.emoji_emotions_rounded,
-                            color: _showEmojiPanel ? const Color(0xFF8B5CF6) : Colors.white54,
+                            color: _showEmojiPanel
+                                ? const Color(0xFF8B5CF6)
+                                : Colors.white54,
                             size: 16,
                           ),
                         ),
@@ -5533,13 +6063,15 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   }
 
   Widget _buildFloatingReactionsOverlay() {
-    return Obx(() {
-      return Stack(
-        children: _reactions.map((r) {
-          return _FloatingEmojiItem(reaction: r);
-        }).toList(),
-      );
-    });
+    return RepaintBoundary(
+      child: Obx(() {
+        return Stack(
+          children: _reactions.map((r) {
+            return _FloatingEmojiItem(reaction: r);
+          }).toList(),
+        );
+      }),
+    );
   }
 
   void _showMiniProfileDialog(
@@ -5554,7 +6086,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         targetUserName: targetUserName,
         role: role,
         seatIndex: seatIndex,
-        isHost: widget.isHost || widget.userId == room.hostId || widget.userId == room.founderId,
+        isHost: widget.isHost ||
+            widget.userId == room.hostId ||
+            widget.userId == room.founderId,
         occupiedSeatsCount: occupiedSeats,
         onMoveToAudience: () => _leaveSeat(seatIndex),
       ),
@@ -5565,7 +6099,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   void _insertMention(String username, String targetUserId) {
     final currentText = _chatInputController.text;
     final mentionText = '@${username.replaceAll(' ', '_')} ';
-    
+
     if (currentText.contains(mentionText.trim())) {
       final index = currentText.indexOf(mentionText.trim());
       _chatInputController.selection = TextSelection(
@@ -5576,20 +6110,23 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
 
     final newText = currentText.isNotEmpty
-        ? (currentText.endsWith(' ') ? '$currentText$mentionText' : '$currentText $mentionText')
+        ? (currentText.endsWith(' ')
+            ? '$currentText$mentionText'
+            : '$currentText $mentionText')
         : mentionText;
 
     _chatInputController.text = newText;
     final mentionStart = newText.length - mentionText.length;
     final mentionEnd = newText.length - 1; // before the trailing space
-    
+
     _chatInputController.selection = TextSelection(
       baseOffset: mentionStart,
       extentOffset: mentionEnd,
     );
   }
 
-  void _showMemberContextMenu(String targetUserId, String targetUserName, String targetRole, int seatIndex) {
+  void _showMemberContextMenu(String targetUserId, String targetUserName,
+      String targetRole, int seatIndex) {
     final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
     final myRole = _controller.getUserRole(room, widget.userId);
     final myWeight = _controller.getRoleWeight(myRole);
@@ -5619,27 +6156,35 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             const SizedBox(height: 12),
             ListTile(
-              leading: const Icon(Icons.alternate_email_rounded, color: Colors.amberAccent),
-              title: const Text('Mention', style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.alternate_email_rounded,
+                  color: Colors.amberAccent),
+              title:
+                  const Text('Mention', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
                 _insertMention(targetUserName, targetUserId);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.person_outline_rounded, color: Colors.cyanAccent),
-              title: const Text('View Profile', style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.person_outline_rounded,
+                  color: Colors.cyanAccent),
+              title: const Text('View Profile',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
-                _showMiniProfileDialog(targetUserId, targetUserName, targetRole, seatIndex);
+                _showMiniProfileDialog(
+                    targetUserId, targetUserName, targetRole, seatIndex);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.card_giftcard_rounded, color: Colors.pinkAccent),
-              title: const Text('Send Gift', style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.card_giftcard_rounded,
+                  color: Colors.pinkAccent),
+              title: const Text('Send Gift',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
-                final occupiedSeats = _seats.where((s) => s['userId'] != null).length;
+                final occupiedSeats =
+                    _seats.where((s) => s['userId'] != null).length;
                 Get.dialog(SendGiftDialog(
                   roomId: widget.roomId,
                   occupiedSeatsCount: occupiedSeats,
@@ -5650,24 +6195,31 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             ListTile(
               leading: Icon(
-                isFollowing ? Icons.person_remove_rounded : Icons.person_add_rounded,
+                isFollowing
+                    ? Icons.person_remove_rounded
+                    : Icons.person_add_rounded,
                 color: Colors.greenAccent,
               ),
-              title: Text(isFollowing ? 'Unfollow' : 'Follow', style: const TextStyle(color: Colors.white)),
+              title: Text(isFollowing ? 'Unfollow' : 'Follow',
+                  style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
                 if (isFollowing) {
                   _followedUsers.remove(targetUserId);
-                  Get.snackbar('Unfollowed', 'You unfollowed $targetUserName.', snackPosition: SnackPosition.BOTTOM);
+                  Get.snackbar('Unfollowed', 'You unfollowed $targetUserName.',
+                      snackPosition: SnackPosition.BOTTOM);
                 } else {
                   _followedUsers.add(targetUserId);
-                  Get.snackbar('Followed', 'You followed $targetUserName!', snackPosition: SnackPosition.BOTTOM);
+                  Get.snackbar('Followed', 'You followed $targetUserName!',
+                      snackPosition: SnackPosition.BOTTOM);
                 }
               },
             ),
             ListTile(
-              leading: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.blueAccent),
-              title: const Text('Send Message', style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.chat_bubble_outline_rounded,
+                  color: Colors.blueAccent),
+              title: const Text('Send Message',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
                 final conversation = Conversation(
@@ -5677,27 +6229,42 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   otherUserAvatar: '',
                   lastMessage: '',
                   lastMessageTime: DateTime.now(),
-                  level: PremiumIdentityController.getIdentity(targetUserId, targetUserName).idLevel,
+                  level: PremiumIdentityController.getIdentity(
+                          targetUserId, targetUserName)
+                      .idLevel,
                 );
                 Get.to(() => ChatScreen(conversation: conversation));
               },
             ),
-            if (myWeight >= 7 && seatIndex == -1) // If caller has permission and target is in audience
+            if (myWeight >= 7 &&
+                seatIndex ==
+                    -1) // If caller has permission and target is in audience
               ListTile(
-                leading: const Icon(Icons.airline_seat_recline_normal_rounded, color: Colors.purpleAccent),
-                title: const Text('Invite to Seat', style: TextStyle(color: Colors.white)),
+                leading: const Icon(Icons.airline_seat_recline_normal_rounded,
+                    color: Colors.purpleAccent),
+                title: const Text('Invite to Seat',
+                    style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Get.back();
                   // Find first empty seat index
-                  final emptyIndex = _seats.indexWhere((s) => s['userId'] == null && s['isLocked'] != true);
+                  final emptyIndex = _seats.indexWhere(
+                      (s) => s['userId'] == null && s['isLocked'] != true);
                   if (emptyIndex != -1) {
-                    _controller.joinRoomSeat(widget.roomId, emptyIndex).then((_) {
+                    _controller
+                        .joinRoomSeat(widget.roomId, emptyIndex)
+                        .then((_) {
                       // Simulating joining by assigning user ID to the seat if owner/moderator invites
-                      _seats[emptyIndex] = {..._seats[emptyIndex], 'userId': targetUserId};
+                      _seats[emptyIndex] = {
+                        ..._seats[emptyIndex],
+                        'userId': targetUserId
+                      };
                     });
-                    Get.snackbar('Invited', 'Sent seat invitation to $targetUserName.', snackPosition: SnackPosition.BOTTOM);
+                    Get.snackbar(
+                        'Invited', 'Sent seat invitation to $targetUserName.',
+                        snackPosition: SnackPosition.BOTTOM);
                   } else {
-                    Get.snackbar('Error', 'No empty seats available.', snackPosition: SnackPosition.BOTTOM);
+                    Get.snackbar('Error', 'No empty seats available.',
+                        snackPosition: SnackPosition.BOTTOM);
                   }
                 },
               ),
@@ -5808,8 +6375,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             ListTile(
               leading: Icon(Icons.close, color: context.caption),
-              title: Text('Cancel',
-                  style: TextStyle(color: context.caption)),
+              title: Text('Cancel', style: TextStyle(color: context.caption)),
               onTap: () => Get.back(),
             ),
           ],
@@ -5869,8 +6435,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             ListTile(
               leading: Icon(Icons.close, color: context.caption),
-              title: Text('Cancel',
-                  style: TextStyle(color: context.caption)),
+              title: Text('Cancel', style: TextStyle(color: context.caption)),
               onTap: () => Get.back(),
             ),
           ],
@@ -5926,8 +6491,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             ListTile(
               leading: Icon(Icons.close, color: context.caption),
-              title: Text('Cancel',
-                  style: TextStyle(color: context.caption)),
+              title: Text('Cancel', style: TextStyle(color: context.caption)),
               onTap: () => Get.back(),
             ),
           ],
@@ -6032,18 +6596,23 @@ class PulsingOnlineIndicator extends StatefulWidget {
   State<PulsingOnlineIndicator> createState() => _PulsingOnlineIndicatorState();
 }
 
-class _PulsingOnlineIndicatorState extends State<PulsingOnlineIndicator> with SingleTickerProviderStateMixin {
+class _PulsingOnlineIndicatorState extends State<PulsingOnlineIndicator>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+    _animationController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 2))
+          ..repeat(reverse: true);
   }
+
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -6057,7 +6626,8 @@ class _PulsingOnlineIndicatorState extends State<PulsingOnlineIndicator> with Si
             color: const Color(0xFF10B981),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF10B981).withOpacity(0.2 + 0.6 * _animationController.value),
+                color: const Color(0xFF10B981)
+                    .withOpacity(0.2 + 0.6 * _animationController.value),
                 blurRadius: 4 + 4 * _animationController.value,
                 spreadRadius: 1 + 2 * _animationController.value,
               )
@@ -6070,7 +6640,8 @@ class _PulsingOnlineIndicatorState extends State<PulsingOnlineIndicator> with Si
   }
 }
 
-class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTickerProviderStateMixin {
+class _MiniProfileDialogState extends State<MiniProfileDialog>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -6083,8 +6654,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _scaleAnimation = CurvedAnimation(parent: _animController, curve: Curves.easeOutBack);
-    _fadeAnimation = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _scaleAnimation =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOutBack);
+    _fadeAnimation =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
     _resolveProfile();
   }
@@ -6105,7 +6678,9 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
 
   String _getUserDp(String userId) {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == 'uid_anurag_101' || userId == 'me' || (currentUid != null && userId == currentUid)) {
+    if (userId == 'uid_anurag_101' ||
+        userId == 'me' ||
+        (currentUid != null && userId == currentUid)) {
       final avatarUrl = UserProfileCacheManager.currentUser?.avatar;
       if (avatarUrl != null && avatarUrl.isNotEmpty) return avatarUrl;
     }
@@ -6185,8 +6760,11 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
               'Intellectual Property Violation',
             ].map((reason) {
               return ListTile(
-                leading: const Icon(Icons.report_problem_rounded, color: Colors.orangeAccent, size: 18),
-                title: Text(reason, style: GoogleFonts.poppins(color: Colors.white, fontSize: 13)),
+                leading: const Icon(Icons.report_problem_rounded,
+                    color: Colors.orangeAccent, size: 18),
+                title: Text(reason,
+                    style:
+                        GoogleFonts.poppins(color: Colors.white, fontSize: 13)),
                 onTap: () {
                   Get.back();
                   Get.snackbar(
@@ -6204,7 +6782,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Get.back(),
-                child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.white38)),
+                child: Text('Cancel',
+                    style: GoogleFonts.poppins(color: Colors.white38)),
               ),
             ),
           ],
@@ -6219,8 +6798,12 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     final callerRole = _controller.getUserRole(room, widget.callerUserId);
     final targetRole = _controller.getUserRole(room, widget.targetUserId);
 
-    final isMuted = _controller.mutedUsers[widget.roomId]?.contains(widget.targetUserId) ?? false;
-    final isChatMuted = _controller.mutedChatUsers[widget.roomId]?.contains(widget.targetUserId) ?? false;
+    final isMuted =
+        _controller.mutedUsers[widget.roomId]?.contains(widget.targetUserId) ??
+            false;
+    final isChatMuted = _controller.mutedChatUsers[widget.roomId]
+            ?.contains(widget.targetUserId) ??
+        false;
 
     Get.bottomSheet(
       Container(
@@ -6255,18 +6838,24 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.person_remove_rounded, color: Colors.orangeAccent),
-              title: Text('Remove From Room', style: GoogleFonts.poppins(color: Colors.white)),
+              leading: const Icon(Icons.person_remove_rounded,
+                  color: Colors.orangeAccent),
+              title: Text('Remove From Room',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () {
                 Get.back();
-                _controller.moderateKickUser(widget.roomId, widget.targetUserId);
+                _controller.moderateKickUser(
+                    widget.roomId, widget.targetUserId);
                 Get.back();
-                Get.snackbar('Success 🎉', 'User has been removed from the room.', snackPosition: SnackPosition.BOTTOM);
+                Get.snackbar(
+                    'Success 🎉', 'User has been removed from the room.',
+                    snackPosition: SnackPosition.BOTTOM);
               },
             ),
             ListTile(
               leading: const Icon(Icons.block_flipped, color: Colors.redAccent),
-              title: Text('Ban From Room', style: GoogleFonts.poppins(color: Colors.white)),
+              title: Text('Ban From Room',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () {
                 Get.back();
                 _showKickDurationSelector(context);
@@ -6274,36 +6863,52 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
             ),
             if (callerRole == 'Owner')
               ListTile(
-                leading: const Icon(Icons.manage_accounts_rounded, color: Colors.cyanAccent),
-                title: Text('Change Role', style: GoogleFonts.poppins(color: Colors.white)),
+                leading: const Icon(Icons.manage_accounts_rounded,
+                    color: Colors.cyanAccent),
+                title: Text('Change Role',
+                    style: GoogleFonts.poppins(color: Colors.white)),
                 onTap: () {
                   Get.back();
                   _showChangeRoleSheet(context);
                 },
               ),
             ListTile(
-              leading: Icon(isMuted ? Icons.mic_rounded : Icons.mic_off_rounded, color: Colors.greenAccent),
-              title: Text(isMuted ? 'Unmute Voice' : 'Mute Voice', style: GoogleFonts.poppins(color: Colors.white)),
+              leading: Icon(isMuted ? Icons.mic_rounded : Icons.mic_off_rounded,
+                  color: Colors.greenAccent),
+              title: Text(isMuted ? 'Unmute Voice' : 'Mute Voice',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () {
                 Get.back();
                 _controller.toggleMuteUser(widget.roomId, widget.targetUserId);
                 setState(() {});
-                Get.snackbar('Success 🎉', isMuted ? 'Voice unmuted.' : 'Voice muted.', snackPosition: SnackPosition.BOTTOM);
+                Get.snackbar(
+                    'Success 🎉', isMuted ? 'Voice unmuted.' : 'Voice muted.',
+                    snackPosition: SnackPosition.BOTTOM);
               },
             ),
             ListTile(
-              leading: Icon(isChatMuted ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded, color: Colors.blueAccent),
-              title: Text(isChatMuted ? 'Unmute Chat' : 'Mute Chat', style: GoogleFonts.poppins(color: Colors.white)),
+              leading: Icon(
+                  isChatMuted
+                      ? Icons.chat_bubble_rounded
+                      : Icons.chat_bubble_outline_rounded,
+                  color: Colors.blueAccent),
+              title: Text(isChatMuted ? 'Unmute Chat' : 'Mute Chat',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () {
                 Get.back();
-                _controller.toggleMuteUserChat(widget.roomId, widget.targetUserId);
+                _controller.toggleMuteUserChat(
+                    widget.roomId, widget.targetUserId);
                 setState(() {});
-                Get.snackbar('Success 🎉', isChatMuted ? 'Chat unmuted.' : 'Chat muted.', snackPosition: SnackPosition.BOTTOM);
+                Get.snackbar(
+                    'Success 🎉', isChatMuted ? 'Chat unmuted.' : 'Chat muted.',
+                    snackPosition: SnackPosition.BOTTOM);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.history_rounded, color: Colors.purpleAccent),
-              title: Text('View Moderation History', style: GoogleFonts.poppins(color: Colors.white)),
+              leading:
+                  const Icon(Icons.history_rounded, color: Colors.purpleAccent),
+              title: Text('View Moderation History',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () {
                 Get.back();
                 _showModHistoryDialog(context);
@@ -6314,7 +6919,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Get.back(),
-                child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.white38)),
+                child: Text('Cancel',
+                    style: GoogleFonts.poppins(color: Colors.white38)),
               ),
             ),
           ],
@@ -6349,32 +6955,44 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
             ),
             const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.person_outline_rounded, color: Colors.white70),
-              title: Text('Member', style: GoogleFonts.poppins(color: Colors.white)),
+              leading: const Icon(Icons.person_outline_rounded,
+                  color: Colors.white70),
+              title: Text('Member',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () {
                 Get.back();
-                _controller.changeUserRole(widget.roomId, widget.targetUserId, 'Guest');
-                Get.snackbar('Success 🎉', 'Role updated to Member.', snackPosition: SnackPosition.BOTTOM);
+                _controller.changeUserRole(
+                    widget.roomId, widget.targetUserId, 'Guest');
+                Get.snackbar('Success 🎉', 'Role updated to Member.',
+                    snackPosition: SnackPosition.BOTTOM);
                 setState(() {});
               },
             ),
             ListTile(
-              leading: const Icon(Icons.security_rounded, color: Colors.blueAccent),
-              title: Text('Admin', style: GoogleFonts.poppins(color: Colors.white)),
+              leading:
+                  const Icon(Icons.security_rounded, color: Colors.blueAccent),
+              title: Text('Admin',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () {
                 Get.back();
-                _controller.changeUserRole(widget.roomId, widget.targetUserId, 'Admin');
-                Get.snackbar('Success 🎉', 'Role updated to Admin.', snackPosition: SnackPosition.BOTTOM);
+                _controller.changeUserRole(
+                    widget.roomId, widget.targetUserId, 'Admin');
+                Get.snackbar('Success 🎉', 'Role updated to Admin.',
+                    snackPosition: SnackPosition.BOTTOM);
                 setState(() {});
               },
             ),
             ListTile(
-              leading: const Icon(Icons.star_rounded, color: Colors.amberAccent),
-              title: Text('Co Owner', style: GoogleFonts.poppins(color: Colors.white)),
+              leading:
+                  const Icon(Icons.star_rounded, color: Colors.amberAccent),
+              title: Text('Co Owner',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () {
                 Get.back();
-                _controller.changeUserRole(widget.roomId, widget.targetUserId, 'Co-owner');
-                Get.snackbar('Success 🎉', 'Role updated to Co Owner.', snackPosition: SnackPosition.BOTTOM);
+                _controller.changeUserRole(
+                    widget.roomId, widget.targetUserId, 'Co-owner');
+                Get.snackbar('Success 🎉', 'Role updated to Co Owner.',
+                    snackPosition: SnackPosition.BOTTOM);
                 setState(() {});
               },
             ),
@@ -6396,7 +7014,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
             children: [
               Text(
                 'Moderation History',
-                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16),
               ),
               const SizedBox(height: 20),
               Container(
@@ -6407,7 +7028,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                 ),
                 child: Text(
                   'No recent violations or moderator actions found for this user.',
-                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                  style:
+                      GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -6415,9 +7037,12 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B5CF6)),
                   onPressed: () => Get.back(),
-                  child: Text('Close', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: Text('Close',
+                      style: GoogleFonts.poppins(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               )
             ],
@@ -6452,10 +7077,11 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                 .map((duration) {
               return ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.timer_outlined,
-                    color: Color(0xFF8B5CF6)),
-                title:
-                    Text(duration, style: GoogleFonts.poppins(color: Colors.white, fontSize: 14)),
+                leading:
+                    const Icon(Icons.timer_outlined, color: Color(0xFF8B5CF6)),
+                title: Text(duration,
+                    style:
+                        GoogleFonts.poppins(color: Colors.white, fontSize: 14)),
                 onTap: () {
                   _controller.banUserWithDuration(
                       widget.roomId, widget.targetUserId, duration);
@@ -6498,17 +7124,23 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
   String getVTagLevel(User? user) {
     if (user == null) return 'blue';
     final name = user.displayName.toLowerCase();
-    if (name.contains('president') || name.contains('minister') || user.rTags.contains('Founder')) {
+    if (name.contains('president') ||
+        name.contains('minister') ||
+        user.rTags.contains('Founder')) {
       return 'diamond';
-    } else if (user.tagLights.contains('STAR') || user.tagLights.contains('TOP') || name.contains('anurag')) {
+    } else if (user.tagLights.contains('STAR') ||
+        user.tagLights.contains('TOP') ||
+        name.contains('anurag')) {
       return 'gold';
-    } else if (user.tagLights.contains('Official') || user.rTags.contains('Official')) {
+    } else if (user.tagLights.contains('Official') ||
+        user.rTags.contains('Official')) {
       return 'purple';
     }
     return 'blue';
   }
 
-  List<Map<String, dynamic>> generateDynamicTagLights(User? user, int fallbackVip, int fallbackNovel, int fallbackLevel) {
+  List<Map<String, dynamic>> generateDynamicTagLights(
+      User? user, int fallbackVip, int fallbackNovel, int fallbackLevel) {
     final List<Map<String, dynamic>> tags = [];
     if (user == null || user.tagSystem == null) {
       return tags;
@@ -6528,7 +7160,9 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
           end: Alignment.bottomRight,
         );
       } else if (type == 'community') {
-        color = t.color != null ? Color(int.parse(t.color!.replaceAll('#', '0xFF'))) : const Color(0xFFEC4899);
+        color = t.color != null
+            ? Color(int.parse(t.color!.replaceAll('#', '0xFF')))
+            : const Color(0xFFEC4899);
         if (t.color == null) {
           gradient = const LinearGradient(
             colors: [Color(0xFFF472B6), Color(0xFFEC4899)],
@@ -6577,7 +7211,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     return tags;
   }
 
-  List<Widget> buildTagLightsWidget(List<Map<String, dynamic>> tags, BuildContext context) {
+  List<Widget> buildTagLightsWidget(
+      List<Map<String, dynamic>> tags, BuildContext context) {
     final List<Map<String, dynamic>> displayTags = [];
     bool hasOverflow = false;
     int overflowCount = 0;
@@ -6600,14 +7235,37 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
       final String cleanUrl = (imageUrl ?? '').trim().toLowerCase();
       final String cleanType = (type ?? '').trim().toLowerCase();
 
-      if (cleanUrl.contains('vip_1_tag.png') || cleanUrl.contains('vip_level_1.png') || cleanLabel == 'vip 1' || cleanLabel == 'vip1') {
+      if (cleanUrl.contains('vip_1_tag.png') ||
+          cleanUrl.contains('vip_level_1.png') ||
+          cleanLabel == 'vip 1' ||
+          cleanLabel == 'vip1') {
         localAsset = 'assets/identity_tags/vip_level_1.png';
-      } else if (cleanUrl.contains('vip_2_tag.png') || cleanUrl.contains('vip_level_2.png') || cleanLabel == 'vip 2' || cleanLabel == 'vip2') {
+      } else if (cleanUrl.contains('vip_2_tag.png') ||
+          cleanUrl.contains('vip_level_2.png') ||
+          cleanLabel == 'vip 2' ||
+          cleanLabel == 'vip2') {
         localAsset = 'assets/identity_tags/vip_level_2.png';
-      } else if (cleanUrl.contains('id_level_1.png') || (cleanType == 'id_level' && (cleanLabel.contains('1') || cleanLabel.contains('level 1') || cleanLabel.contains('lv.1') || cleanLabel.contains('lv. 1')))) {
+      } else if (cleanUrl.contains('id_level_1.png') ||
+          (cleanType == 'id_level' &&
+              (cleanLabel.contains('1') ||
+                  cleanLabel.contains('level 1') ||
+                  cleanLabel.contains('lv.1') ||
+                  cleanLabel.contains('lv. 1')))) {
         localAsset = 'assets/identity_tags/id_level_1.png';
-      } else if (cleanUrl.contains('id_level_2.png') || (cleanType == 'id_level' && (cleanLabel.contains('2') || cleanLabel.contains('level 2') || cleanLabel.contains('lv.2') || cleanLabel.contains('lv. 2')))) {
+      } else if (cleanUrl.contains('id_level_2.png') ||
+          (cleanType == 'id_level' &&
+              (cleanLabel.contains('2') ||
+                  cleanLabel.contains('level 2') ||
+                  cleanLabel.contains('lv.2') ||
+                  cleanLabel.contains('lv. 2')))) {
         localAsset = 'assets/identity_tags/id_level_2.png';
+      }
+
+      final String? officialCommAsset = getOfficialCommunityTagAssetPath(cleanLabel) ??
+          getOfficialCommunityTagAssetPath(cleanUrl) ??
+          getOfficialCommunityTagAssetPath(cleanType);
+      if (officialCommAsset != null) {
+        localAsset = officialCommAsset;
       }
 
       if (localAsset != null) {
@@ -6615,7 +7273,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
           message: 'Identity Tag: $label',
           child: Image.asset(
             localAsset,
-            height: 22,
+            height: 19,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => _buildTextTagFallback(label, tag),
           ),
@@ -6671,11 +7329,20 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
       ];
 
       if (glow == 'gold') {
-        shadows.add(BoxShadow(color: const Color(0xFFF59E0B).withOpacity(0.4), blurRadius: 6, spreadRadius: 1));
+        shadows.add(BoxShadow(
+            color: const Color(0xFFF59E0B).withOpacity(0.4),
+            blurRadius: 6,
+            spreadRadius: 1));
       } else if (glow == 'silver') {
-        shadows.add(BoxShadow(color: const Color(0xFFE2E8F0).withOpacity(0.4), blurRadius: 5, spreadRadius: 1));
+        shadows.add(BoxShadow(
+            color: const Color(0xFFE2E8F0).withOpacity(0.4),
+            blurRadius: 5,
+            spreadRadius: 1));
       } else if (glow == 'neon') {
-        shadows.add(BoxShadow(color: const Color(0xFF818CF8).withOpacity(0.5), blurRadius: 8, spreadRadius: 1.5));
+        shadows.add(BoxShadow(
+            color: const Color(0xFF818CF8).withOpacity(0.5),
+            blurRadius: 8,
+            spreadRadius: 1.5));
       }
 
       BoxBorder borderStyle = Border.all(color: borderCol, width: 1.0);
@@ -6744,7 +7411,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.08),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.8),
+            border:
+                Border.all(color: Colors.white.withOpacity(0.2), width: 0.8),
           ),
           child: Text(
             '+$overflowCount',
@@ -6778,7 +7446,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
       message: 'Identity Tag: $label',
       child: GestureDetector(
         onTap: () {
-          Get.snackbar('Tag Info', 'Details page for $label tag (coming soon).');
+          Get.snackbar(
+              'Tag Info', 'Details page for $label tag (coming soon).');
         },
         child: Container(
           height: 22,
@@ -6838,7 +7507,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
   Widget buildOfficialStatusRow(User? user, BuildContext context) {
     if (user == null) return const SizedBox.shrink();
     final status = user.tagSystem?.officialStatus;
-    
+
     // Fallback if tagSystem is not loaded yet
     if (status == null) {
       return const SizedBox.shrink();
@@ -6919,7 +7588,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     );
   }
 
-  Widget buildBadgesShowcaseWidget(List<String> activeBadgesList, BuildContext context) {
+  Widget buildBadgesShowcaseWidget(
+      List<String> activeBadgesList, BuildContext context) {
     final custCtrl = Get.find<CustomizationController>();
     final badgesToUse = activeBadgesList;
     if (badgesToUse.isEmpty) return const SizedBox.shrink();
@@ -6937,10 +7607,11 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: badgesToUse.take(5).map((bName) {
-              final meta = custCtrl.badgeMetadata[bName] ?? {'icon': '🏅', 'rarity': 'Common'};
+              final meta = custCtrl.badgeMetadata[bName] ??
+                  {'icon': '🏅', 'rarity': 'Common'};
               final iconStr = meta['icon'] as String? ?? '🏅';
               final rarity = meta['rarity'] as String? ?? 'Common';
-              
+
               Color glowColor = const Color(0xFFFFB020);
               if (rarity == 'Legendary') {
                 glowColor = const Color(0xFFFFD700);
@@ -7027,31 +7698,40 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
     final callerRole = _controller.getUserRole(room, widget.callerUserId);
     final targetRole = _controller.getUserRole(room, widget.targetUserId);
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    final isMe = widget.targetUserId == widget.callerUserId || (currentUid != null && widget.targetUserId == currentUid);
+    final isMe = widget.targetUserId == widget.callerUserId ||
+        (currentUid != null && widget.targetUserId == currentUid);
 
     bool showThreeDotMenu = false;
     if (widget.callerUserId != widget.targetUserId) {
       if (callerRole == 'Owner') {
         showThreeDotMenu = true;
       } else if (callerRole == 'Co-owner') {
-        if (targetRole != 'Owner' && targetRole != 'Co-owner' && targetRole != 'Admin') {
+        if (targetRole != 'Owner' &&
+            targetRole != 'Co-owner' &&
+            targetRole != 'Admin') {
           showThreeDotMenu = true;
         }
       } else if (callerRole == 'Admin') {
-        if (targetRole != 'Owner' && targetRole != 'Co-owner' && targetRole != 'Admin') {
+        if (targetRole != 'Owner' &&
+            targetRole != 'Co-owner' &&
+            targetRole != 'Admin') {
           showThreeDotMenu = true;
         }
       }
     }
 
     return Obx(() {
-      final u = UserProfileCacheManager.rxCache[widget.targetUserId] ?? UserProfileCacheManager.getCachedUser(widget.targetUserId);
+      final u = UserProfileCacheManager.rxCache[widget.targetUserId] ??
+          UserProfileCacheManager.getCachedUser(widget.targetUserId);
       final String uName = u?.username ?? widget.targetUserName;
       final String uAvatar = u?.avatar ?? avatarUrl;
       final int uLevel = u?.level ?? 25;
       final int vipLevel = u?.vipLevel ?? 0;
       final int novelLevel = u?.novelLevel ?? 0;
-      final bool isVIP = vipLevel > 0 || widget.targetUserId == 'uid_anurag_101' || widget.role == 'Owner' || widget.role == 'Co-owner';
+      final bool isVIP = vipLevel > 0 ||
+          widget.targetUserId == 'uid_anurag_101' ||
+          widget.role == 'Owner' ||
+          widget.role == 'Co-owner';
 
       return BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
@@ -7075,7 +7755,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                       const Color(0xFF0F0E17).withOpacity(0.95),
                     ],
                   ),
-                  border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.2),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.08), width: 1.2),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF8B5CF6).withOpacity(0.2),
@@ -7093,12 +7774,14 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.bookmark_border_rounded, color: Colors.white70),
+                          icon: const Icon(Icons.bookmark_border_rounded,
+                              color: Colors.white70),
                           onPressed: () => _showReportUserSheet(context),
                         ),
                         if (showThreeDotMenu)
                           IconButton(
-                            icon: const Icon(Icons.more_vert_rounded, color: Colors.white70),
+                            icon: const Icon(Icons.more_vert_rounded,
+                                color: Colors.white70),
                             onPressed: () => _showThreeDotMenuSheet(context),
                           )
                         else
@@ -7115,13 +7798,25 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                         CustomAvatarFrame(
                           userId: widget.targetUserId,
                           username: uName,
-                          size: (vipLevel > 0 || novelLevel > 0 || (u?.avatarFrame != null && u!.avatarFrame!.isNotEmpty && u.avatarFrame != 'none' && u.avatarFrame != 'normal')) ? 112 : 96,
+                          size: (vipLevel > 0 ||
+                                  novelLevel > 0 ||
+                                  (u?.avatarFrame != null &&
+                                      u!.avatarFrame!.isNotEmpty &&
+                                      u.avatarFrame != 'none' &&
+                                      u.avatarFrame != 'normal'))
+                              ? 112
+                              : 96,
                           defaultVipLevel: vipLevel,
                           defaultNovelLevel: novelLevel,
                           child: CircleAvatar(
                             radius: 48,
-                            backgroundImage: uAvatar.isNotEmpty ? CachedNetworkImageProvider(uAvatar) : null,
-                            child: uAvatar.isEmpty ? const Icon(Icons.person, size: 36, color: Colors.white54) : null,
+                            backgroundImage: uAvatar.isNotEmpty
+                                ? CachedNetworkImageProvider(uAvatar)
+                                : null,
+                            child: uAvatar.isEmpty
+                                ? const Icon(Icons.person,
+                                    size: 36, color: Colors.white54)
+                                : null,
                           ),
                         ),
                         Positioned(
@@ -7149,8 +7844,12 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                         ),
                         const SizedBox(width: 6),
                         Icon(
-                          u?.gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
-                          color: u?.gender == 'female' ? const Color(0xFFF472B6) : const Color(0xFF60A5FA),
+                          u?.gender == 'female'
+                              ? Icons.female_rounded
+                              : Icons.male_rounded,
+                          color: u?.gender == 'female'
+                              ? const Color(0xFFF472B6)
+                              : const Color(0xFF60A5FA),
                           size: 16,
                         ),
                       ],
@@ -7164,11 +7863,14 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                         Get.snackbar('Copied', 'ID copied to clipboard.');
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.03),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.08),
+                              width: 1.0),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -7201,7 +7903,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                         alignment: WrapAlignment.center,
                         spacing: 6,
                         runSpacing: 6,
-                        children: buildTagLightsWidget(generateDynamicTagLights(u, vipLevel, novelLevel, uLevel), context),
+                        children: buildTagLightsWidget(
+                            generateDynamicTagLights(
+                                u, vipLevel, novelLevel, uLevel),
+                            context),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -7211,14 +7916,16 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                     const SizedBox(height: 6),
 
                     // 6. Showcase Badges
-                    buildBadgesShowcaseWidget(u?.showcasedBadges ?? [], context),
+                    buildBadgesShowcaseWidget(
+                        u?.showcasedBadges ?? [], context),
                     const SizedBox(height: 6),
 
                     // Bio
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        u?.bio ?? 'Crafting intuitive digital experiences. Passionate about minimalist design and front...',
+                        u?.bio ??
+                            'Crafting intuitive digital experiences. Passionate about minimalist design and front...',
                         style: GoogleFonts.poppins(
                           color: Colors.white70,
                           fontSize: 11,
@@ -7237,8 +7944,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildStatColumn(_formatStatValue(u?.followers ?? 1240), 'Followers'),
-                        _buildStatColumn(_formatStatValue(u?.following ?? 380), 'Following'),
+                        _buildStatColumn(_formatStatValue(u?.followers ?? 1240),
+                            'Followers'),
+                        _buildStatColumn(
+                            _formatStatValue(u?.following ?? 380), 'Following'),
                         if (isMe) ...[
                           _buildStatColumn('89', 'Friends'),
                           _buildStatColumn('123.5K', 'Gifts'),
@@ -7257,14 +7966,16 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.03),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.05)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.featured_play_list_rounded, color: Color(0xFFFBBF24), size: 14),
+                              const Icon(Icons.featured_play_list_rounded,
+                                  color: Color(0xFFFBBF24), size: 14),
                               const SizedBox(width: 6),
                               Text(
                                 'Gift Stats',
@@ -7282,7 +7993,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                             children: [
                               Text(
                                 'Monthly received gifts',
-                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                                style: GoogleFonts.poppins(
+                                    color: Colors.white70, fontSize: 11),
                               ),
                               Text(
                                 '12.5K',
@@ -7300,7 +8012,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                             children: [
                               Text(
                                 'monthly contribute',
-                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                                style: GoogleFonts.poppins(
+                                    color: Colors.white70, fontSize: 11),
                               ),
                               Text(
                                 '450K',
@@ -7318,7 +8031,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                             children: [
                               Text(
                                 'Gifts',
-                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                                style: GoogleFonts.poppins(
+                                    color: Colors.white70, fontSize: 11),
                               ),
                               Row(
                                 children: [
@@ -7338,7 +8052,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                                     ),
                                   ),
                                   const SizedBox(width: 2),
-                                  const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 14),
+                                  const Icon(Icons.chevron_right_rounded,
+                                      color: Colors.white30, size: 14),
                                 ],
                               ),
                             ],
@@ -7349,7 +8064,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                             children: [
                               Text(
                                 'Contributors',
-                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                                style: GoogleFonts.poppins(
+                                    color: Colors.white70, fontSize: 11),
                               ),
                               Row(
                                 children: [
@@ -7369,7 +8085,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                                     ),
                                   ),
                                   const SizedBox(width: 2),
-                                  const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 14),
+                                  const Icon(Icons.chevron_right_rounded,
+                                      color: Colors.white30, size: 14),
                                 ],
                               ),
                             ],
@@ -7394,33 +8111,49 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
                               ),
                               onPressed: () {
                                 Get.back();
-                                final currentUid = Supabase.instance.client.auth.currentUser?.id;
-                                Get.to(() => ProfileScreen(visitorUser: u ?? User(
-                                      id: widget.targetUserId,
-                                      username: uName.toLowerCase().replaceAll(' ', '_'),
-                                      email: '${widget.targetUserId}@example.com',
-                                      displayName: uName,
-                                      avatar: uAvatar,
-                                      followers: 1240,
-                                      following: 380,
-                                      isVerified: isVIP,
-                                      isPremium: isVIP,
-                                      level: uLevel,
-                                      interests: const [],
-                                      communities: const [],
-                                      reputation: 100,
-                                      sid: widget.targetUserId.hashCode.abs().toString(),
-                                    )));
+                                final currentUid = Supabase
+                                    .instance.client.auth.currentUser?.id;
+                                Get.to(() => ProfileScreen(
+                                    visitorUser: u ??
+                                        User(
+                                          id: widget.targetUserId,
+                                          username: uName
+                                              .toLowerCase()
+                                              .replaceAll(' ', '_'),
+                                          email:
+                                              '${widget.targetUserId}@example.com',
+                                          displayName: uName,
+                                          avatar: uAvatar,
+                                          followers: 1240,
+                                          following: 380,
+                                          isVerified: isVIP,
+                                          isPremium: isVIP,
+                                          level: uLevel,
+                                          interests: const [],
+                                          communities: const [],
+                                          reputation: 100,
+                                          sid: widget.targetUserId.hashCode
+                                              .abs()
+                                              .toString(),
+                                        )));
                               },
-                              icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 14),
+                              icon: const Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  color: Colors.white,
+                                  size: 14),
                               label: Text(
                                 'Message',
-                                style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
@@ -7431,40 +8164,58 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               color: Colors.white.withOpacity(0.06),
-                              border: Border.all(color: Colors.white.withOpacity(0.12)),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.12)),
                             ),
                             child: TextButton(
                               style: TextButton.styleFrom(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
                               ),
                               onPressed: () {
                                 Get.back();
-                                final currentUid = Supabase.instance.client.auth.currentUser?.id;
-                                final isMe = widget.targetUserId == widget.callerUserId || (currentUid != null && widget.targetUserId == currentUid);
+                                final currentUid = Supabase
+                                    .instance.client.auth.currentUser?.id;
+                                final isMe = widget.targetUserId ==
+                                        widget.callerUserId ||
+                                    (currentUid != null &&
+                                        widget.targetUserId == currentUid);
                                 if (isMe) {
                                   Get.to(() => const ProfileScreen());
-                                } else {                                  Get.to(() => ProfileScreen(visitorUser: u ?? User(
-                                    id: widget.targetUserId,
-                                    username: uName.toLowerCase().replaceAll(' ', '_'),
-                                    email: '${widget.targetUserId}@example.com',
-                                    displayName: uName,
-                                    avatar: uAvatar,
-                                    followers: 1240,
-                                    following: 380,
-                                    isVerified: isVIP,
-                                    isPremium: isVIP,
-                                    level: uLevel,
-                                    interests: const [],
-                                    communities: const [],
-                                    reputation: 100,
-                                    sid: widget.targetUserId.hashCode.abs().toString(),
-                                  )));
+                                } else {
+                                  Get.to(() => ProfileScreen(
+                                      visitorUser: u ??
+                                          User(
+                                            id: widget.targetUserId,
+                                            username: uName
+                                                .toLowerCase()
+                                                .replaceAll(' ', '_'),
+                                            email:
+                                                '${widget.targetUserId}@example.com',
+                                            displayName: uName,
+                                            avatar: uAvatar,
+                                            followers: 1240,
+                                            following: 380,
+                                            isVerified: isVIP,
+                                            isPremium: isVIP,
+                                            level: uLevel,
+                                            interests: const [],
+                                            communities: const [],
+                                            reputation: 100,
+                                            sid: widget.targetUserId.hashCode
+                                                .abs()
+                                                .toString(),
+                                          )));
                                 }
                               },
                               child: Text(
                                 'View Profile',
-                                style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
@@ -7475,12 +8226,16 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               color: const Color(0xFFFBBF24).withOpacity(0.15),
-                              border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.3)),
+                              border: Border.all(
+                                  color:
+                                      const Color(0xFFFBBF24).withOpacity(0.3)),
                             ),
                             child: TextButton.icon(
                               style: TextButton.styleFrom(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
                               ),
                               onPressed: () {
                                 Get.back();
@@ -7491,10 +8246,14 @@ class _MiniProfileDialogState extends State<MiniProfileDialog> with SingleTicker
                                   targetUserName: uName,
                                 ));
                               },
-                              icon: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFFBBF24), size: 14),
+                              icon: const Icon(Icons.card_giftcard_rounded,
+                                  color: Color(0xFFFBBF24), size: 14),
                               label: Text(
                                 'Gift',
-                                style: GoogleFonts.poppins(color: const Color(0xFFFBBF24), fontSize: 11, fontWeight: FontWeight.bold),
+                                style: GoogleFonts.poppins(
+                                    color: const Color(0xFFFBBF24),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
@@ -7572,7 +8331,8 @@ class MemberListDialog extends StatelessWidget {
         targetUserName: name,
         role: role,
         seatIndex: -1,
-        isHost: room.hostId == RoomController.currentUserId || room.founderId == RoomController.currentUserId,
+        isHost: room.hostId == RoomController.currentUserId ||
+            room.founderId == RoomController.currentUserId,
         occupiedSeatsCount: occupiedSeats,
       ),
     );
@@ -7582,7 +8342,7 @@ class MemberListDialog extends StatelessWidget {
     final dp = _getUserDp(targetId);
     Get.back(); // Dismiss MemberListDialog
     Get.back(); // Exit VoiceRoomCallScreen to go home
-    
+
     // Trigger PIP float bubble with room info
     RoomController.to.showPipBubble(
       roomId,
@@ -7611,7 +8371,8 @@ class MemberListDialog extends StatelessWidget {
     required VoidCallback onChatPressed,
   }) {
     return Obx(() {
-      final profile = UserProfileCacheManager.rxCache[userId] ?? UserProfileCacheManager.getCachedUser(userId);
+      final profile = UserProfileCacheManager.rxCache[userId] ??
+          UserProfileCacheManager.getCachedUser(userId);
       final name = profile?.username ?? fallbackName;
       final avatarUrl = profile?.avatar ?? '';
       final level = profile?.level ?? 1;
@@ -7634,8 +8395,11 @@ class MemberListDialog extends StatelessWidget {
               size: 38,
               child: CircleAvatar(
                 radius: 17,
-                backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                child: avatarUrl.isEmpty ? const Icon(Icons.person, size: 18) : null,
+                backgroundImage:
+                    avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                child: avatarUrl.isEmpty
+                    ? const Icon(Icons.person, size: 18)
+                    : null,
               ),
             ),
             const SizedBox(width: 10),
@@ -7659,7 +8423,8 @@ class MemberListDialog extends StatelessWidget {
                       ),
                       if (isSpeaking) ...[
                         const SizedBox(width: 4),
-                        const Icon(Icons.mic, color: Color(0xFF00FF66), size: 10),
+                        const Icon(Icons.mic,
+                            color: Color(0xFF00FF66), size: 10),
                       ],
                     ],
                   ),
@@ -7667,41 +8432,53 @@ class MemberListDialog extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 3, vertical: 0.5),
                         decoration: BoxDecoration(
                           color: Colors.amber.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(3),
                         ),
                         child: Text(
                           'Lv $level',
-                          style: const TextStyle(color: Colors.amber, fontSize: 7, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Colors.amber,
+                              fontSize: 7,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(width: 4),
                       if (nobleLevel > 0) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 3, vertical: 0.5),
                           decoration: BoxDecoration(
                             color: Colors.cyan.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(3),
                           ),
                           child: Text(
                             'Novel $nobleLevel',
-                            style: const TextStyle(color: Colors.cyanAccent, fontSize: 7, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.cyanAccent,
+                                fontSize: 7,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                         const SizedBox(width: 4),
                       ],
                       if (vipLevel > 0) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 3, vertical: 0.5),
                           decoration: BoxDecoration(
                             color: Colors.purple.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(3),
                           ),
                           child: Text(
                             'VIP $vipLevel',
-                            style: const TextStyle(color: Colors.purpleAccent, fontSize: 7, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.purpleAccent,
+                                fontSize: 7,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -7709,7 +8486,8 @@ class MemberListDialog extends StatelessWidget {
                       Flexible(
                         child: Text(
                           seatText.isNotEmpty ? seatText : role,
-                          style: GoogleFonts.poppins(color: Colors.white30, fontSize: 8),
+                          style: GoogleFonts.poppins(
+                              color: Colors.white30, fontSize: 8),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -7725,33 +8503,42 @@ class MemberListDialog extends StatelessWidget {
                 if (isOnline)
                   Container(
                     margin: const EdgeInsets.only(right: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                     decoration: BoxDecoration(
                       color: const Color(0xFF00FF66).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('Online', style: TextStyle(color: Color(0xFF00FF66), fontSize: 7, fontWeight: FontWeight.bold)),
+                    child: const Text('Online',
+                        style: TextStyle(
+                            color: Color(0xFF00FF66),
+                            fontSize: 7,
+                            fontWeight: FontWeight.bold)),
                   )
                 else
                   Container(
                     margin: const EdgeInsets.only(right: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                     decoration: BoxDecoration(
                       color: Colors.white10,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('Offline', style: TextStyle(color: Colors.white30, fontSize: 7)),
+                    child: const Text('Offline',
+                        style: TextStyle(color: Colors.white30, fontSize: 7)),
                   ),
                 if (userId != RoomController.currentUserId)
                   IconButton(
-                    icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.cyanAccent, size: 16),
+                    icon: const Icon(Icons.chat_bubble_outline_rounded,
+                        color: Colors.cyanAccent, size: 16),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: () => onChatPressed(),
                   ),
                 const SizedBox(width: 6),
                 IconButton(
-                  icon: const Icon(Icons.visibility_outlined, color: Colors.white70, size: 16),
+                  icon: const Icon(Icons.visibility_outlined,
+                      color: Colors.white70, size: 16),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onPressed: onViewProfile,
@@ -7800,7 +8587,8 @@ class MemberListDialog extends StatelessWidget {
               Expanded(
                 child: Obx(() {
                   final onlineUsers = VoiceController.to.roomUsers;
-                  final onlineUserIds = onlineUsers.map((u) => u.userID).toSet();
+                  final onlineUserIds =
+                      onlineUsers.map((u) => u.userID).toSet();
 
                   return TabBarView(
                     children: [
@@ -7816,7 +8604,8 @@ class MemberListDialog extends StatelessWidget {
               ),
               TextButton(
                 onPressed: () => Get.back(),
-                child: Text('Close', style: GoogleFonts.poppins(color: Colors.white54)),
+                child: Text('Close',
+                    style: GoogleFonts.poppins(color: Colors.white54)),
               ),
             ],
           ),
@@ -7827,19 +8616,23 @@ class MemberListDialog extends StatelessWidget {
 
   Widget _buildOnlineTab(List<ZegoUser> onlineUsers) {
     if (onlineUsers.isEmpty) {
-      return const Center(child: Text('No users online', style: TextStyle(color: Colors.white30)));
+      return const Center(
+          child:
+              Text('No users online', style: TextStyle(color: Colors.white30)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: onlineUsers.length,
       itemBuilder: (context, index) {
         final u = onlineUsers[index];
-        final member = RoomController.to.activeMembers.firstWhereOrNull((m) => m.userId == u.userID);
+        final member = RoomController.to.activeMembers
+            .firstWhereOrNull((m) => m.userId == u.userID);
         final role = member?.role ?? 'Audience';
         final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
         final seatIndex = seatsList.indexWhere((s) => s['userId'] == u.userID);
         final seatText = seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
-        final isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
+        final isSpeaking =
+            seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
 
         return _buildMemberTile(
           userId: u.userID,
@@ -7857,13 +8650,23 @@ class MemberListDialog extends StatelessWidget {
 
   Widget _buildManagementTab(Set<String> onlineUserIds) {
     return Obx(() {
-      final staffRoles = ['Founder', 'Owner', 'Arena Owner', 'Co-owner', 'Co-Owner', 'Admin', 'Moderator'];
+      final staffRoles = [
+        'Founder',
+        'Owner',
+        'Arena Owner',
+        'Co-owner',
+        'Co-Owner',
+        'Admin',
+        'Moderator'
+      ];
       final staff = RoomController.to.activeMembers.where((m) {
         return staffRoles.any((r) => r.toLowerCase() == m.role.toLowerCase());
       }).toList();
 
       if (staff.isEmpty) {
-        return const Center(child: Text('No management staff found', style: TextStyle(color: Colors.white30)));
+        return const Center(
+            child: Text('No management staff found',
+                style: TextStyle(color: Colors.white30)));
       }
 
       return ListView.builder(
@@ -7873,8 +8676,10 @@ class MemberListDialog extends StatelessWidget {
           final m = staff[index];
           final isOnline = onlineUserIds.contains(m.userId);
           final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
-          final seatIndex = seatsList.indexWhere((s) => s['userId'] == m.userId);
-          final seatText = seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
+          final seatIndex =
+              seatsList.indexWhere((s) => s['userId'] == m.userId);
+          final seatText =
+              seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
 
           return _buildMemberTile(
             userId: m.userId,
@@ -7897,7 +8702,9 @@ class MemberListDialog extends StatelessWidget {
       final speakerSeats = seatsList.where((s) => s['userId'] != null).toList();
 
       if (speakerSeats.isEmpty) {
-        return const Center(child: Text('No active speakers', style: TextStyle(color: Colors.white30)));
+        return const Center(
+            child: Text('No active speakers',
+                style: TextStyle(color: Colors.white30)));
       }
 
       return ListView.builder(
@@ -7916,8 +8723,10 @@ class MemberListDialog extends StatelessWidget {
             isOnline: isOnline,
             isSpeaking: isOnline,
             seatText: 'Seat ${seatIndex + 1}',
-            onViewProfile: () => _handleViewProfile(uId, seat['name'] ?? 'Speaker', seat['role'] ?? 'Speaker'),
-            onChatPressed: () => _handleChatPressed(uId, seat['name'] ?? 'Speaker'),
+            onViewProfile: () => _handleViewProfile(
+                uId, seat['name'] ?? 'Speaker', seat['role'] ?? 'Speaker'),
+            onChatPressed: () =>
+                _handleChatPressed(uId, seat['name'] ?? 'Speaker'),
           );
         },
       );
@@ -7927,12 +8736,15 @@ class MemberListDialog extends StatelessWidget {
   Widget _buildElitesTab(Set<String> onlineUserIds) {
     return Obx(() {
       final elites = RoomController.to.activeMembers.where((m) {
-        final profile = UserProfileCacheManager.rxCache[m.userId] ?? UserProfileCacheManager.getCachedUser(m.userId);
+        final profile = UserProfileCacheManager.rxCache[m.userId] ??
+            UserProfileCacheManager.getCachedUser(m.userId);
         return (profile?.level ?? 1) >= 20;
       }).toList();
 
       if (elites.isEmpty) {
-        return const Center(child: Text('No Elite members', style: TextStyle(color: Colors.white30)));
+        return const Center(
+            child: Text('No Elite members',
+                style: TextStyle(color: Colors.white30)));
       }
 
       return ListView.builder(
@@ -7959,12 +8771,15 @@ class MemberListDialog extends StatelessWidget {
   Widget _buildVipsTab(Set<String> onlineUserIds) {
     return Obx(() {
       final vips = RoomController.to.activeMembers.where((m) {
-        final profile = UserProfileCacheManager.rxCache[m.userId] ?? UserProfileCacheManager.getCachedUser(m.userId);
+        final profile = UserProfileCacheManager.rxCache[m.userId] ??
+            UserProfileCacheManager.getCachedUser(m.userId);
         return (profile?.vipLevel ?? 0) > 0 || (profile?.novelLevel ?? 0) > 0;
       }).toList();
 
       if (vips.isEmpty) {
-        return const Center(child: Text('No VIP members', style: TextStyle(color: Colors.white30)));
+        return const Center(
+            child: Text('No VIP members',
+                style: TextStyle(color: Colors.white30)));
       }
 
       return ListView.builder(
@@ -7988,15 +8803,20 @@ class MemberListDialog extends StatelessWidget {
     });
   }
 
-  Widget _buildAudienceTab(Set<String> onlineUserIds, List<ZegoUser> onlineUsers) {
+  Widget _buildAudienceTab(
+      Set<String> onlineUserIds, List<ZegoUser> onlineUsers) {
     return Obx(() {
       final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
-      final speakerUserIds = seatsList.map((s) => s['userId']).where((id) => id != null).toSet();
+      final speakerUserIds =
+          seatsList.map((s) => s['userId']).where((id) => id != null).toSet();
 
-      final audience = onlineUsers.where((u) => !speakerUserIds.contains(u.userID)).toList();
+      final audience =
+          onlineUsers.where((u) => !speakerUserIds.contains(u.userID)).toList();
 
       if (audience.isEmpty) {
-        return const Center(child: Text('No audience connected', style: TextStyle(color: Colors.white30)));
+        return const Center(
+            child: Text('No audience connected',
+                style: TextStyle(color: Colors.white30)));
       }
 
       return ListView.builder(
@@ -8004,7 +8824,8 @@ class MemberListDialog extends StatelessWidget {
         itemCount: audience.length,
         itemBuilder: (context, index) {
           final u = audience[index];
-          final member = RoomController.to.activeMembers.firstWhereOrNull((m) => m.userId == u.userID);
+          final member = RoomController.to.activeMembers
+              .firstWhereOrNull((m) => m.userId == u.userID);
           final role = member?.role ?? 'Audience';
 
           return _buildMemberTile(
@@ -8173,7 +8994,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             const SizedBox(height: 20),
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.white),
-              title: const Text('Take Photo', style: TextStyle(color: Colors.white)),
+              title: const Text('Take Photo',
+                  style: TextStyle(color: Colors.white)),
               onTap: () async {
                 Get.back();
                 try {
@@ -8184,7 +9006,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     maxHeight: 1024,
                   );
                   if (image != null) {
-                    final editedFile = await CustomImageEditor.editImage(context, io.File(image.path));
+                    final editedFile = await CustomImageEditor.editImage(
+                        context, io.File(image.path));
                     if (editedFile == null) return;
                     final uploadedUrl = await _controller.uploadRoomCoverPhoto(
                       widget.roomId,
@@ -8192,17 +9015,21 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     );
                     if (uploadedUrl != null) {
                       setState(() => _avatar = uploadedUrl);
-                      Get.snackbar('Success', 'Cover photo updated successfully.', snackPosition: SnackPosition.BOTTOM);
+                      Get.snackbar(
+                          'Success', 'Cover photo updated successfully.',
+                          snackPosition: SnackPosition.BOTTOM);
                     }
                   }
                 } catch (e) {
-                  Get.snackbar('Error', 'Failed to pick image: $e', snackPosition: SnackPosition.BOTTOM);
+                  Get.snackbar('Error', 'Failed to pick image: $e',
+                      snackPosition: SnackPosition.BOTTOM);
                 }
               },
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.white),
-              title: const Text('Choose from Gallery', style: TextStyle(color: Colors.white)),
+              title: const Text('Choose from Gallery',
+                  style: TextStyle(color: Colors.white)),
               onTap: () async {
                 Get.back();
                 try {
@@ -8213,7 +9040,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     maxHeight: 1024,
                   );
                   if (image != null) {
-                    final editedFile = await CustomImageEditor.editImage(context, io.File(image.path));
+                    final editedFile = await CustomImageEditor.editImage(
+                        context, io.File(image.path));
                     if (editedFile == null) return;
                     final uploadedUrl = await _controller.uploadRoomCoverPhoto(
                       widget.roomId,
@@ -8221,32 +9049,40 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     );
                     if (uploadedUrl != null) {
                       setState(() => _avatar = uploadedUrl);
-                      Get.snackbar('Success', 'Cover photo updated successfully.', snackPosition: SnackPosition.BOTTOM);
+                      Get.snackbar(
+                          'Success', 'Cover photo updated successfully.',
+                          snackPosition: SnackPosition.BOTTOM);
                     }
                   }
                 } catch (e) {
-                  Get.snackbar('Error', 'Failed to pick image: $e', snackPosition: SnackPosition.BOTTOM);
+                  Get.snackbar('Error', 'Failed to pick image: $e',
+                      snackPosition: SnackPosition.BOTTOM);
                 }
               },
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Remove Cover', style: TextStyle(color: Colors.red)),
+              title: const Text('Remove Cover',
+                  style: TextStyle(color: Colors.red)),
               onTap: () async {
                 Get.back();
-                setState(() => _avatar = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150');
+                setState(() => _avatar =
+                    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150');
                 _controller.updateRoomSettings(
                   widget.roomId,
-                  avatar: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
+                  avatar:
+                      'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
                   roomCoverUrl: '',
                 );
-                Get.snackbar('Success', 'Cover photo removed.', snackPosition: SnackPosition.BOTTOM);
+                Get.snackbar('Success', 'Cover photo removed.',
+                    snackPosition: SnackPosition.BOTTOM);
               },
             ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
           ],
         ),
@@ -8288,8 +9124,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                                   ? FontWeight.bold
                                   : FontWeight.normal)),
                       trailing: opt == currentValue
-                          ? Icon(Icons.check,
-                              color: context.primaryColor)
+                          ? Icon(Icons.check, color: context.primaryColor)
                           : null,
                       onTap: () {
                         setState(() {
@@ -8359,11 +9194,14 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                           width: 28, height: 28, fit: BoxFit.cover),
                     ),
                     onTap: () {
-                      final currentUid = Supabase.instance.client.auth.currentUser?.id;
-                      final isHost = widget.room.hostId == currentUid || widget.room.founderId == currentUid;
-                      final isCoHost = widget.room.coOwnerIds.contains(currentUid);
+                      final currentUid =
+                          Supabase.instance.client.auth.currentUser?.id;
+                      final isHost = widget.room.hostId == currentUid ||
+                          widget.room.founderId == currentUid;
+                      final isCoHost =
+                          widget.room.coOwnerIds.contains(currentUid);
                       final isAdmin = widget.room.adminIds.contains(currentUid);
-                      
+
                       final canEditCover = isHost ||
                           (isCoHost && widget.room.coHostCanEditCover) ||
                           (isAdmin && widget.room.adminCanEditCover);
@@ -8418,14 +9256,23 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
               // Reactively reads from rooms RxList so any role change triggers rebuild
               final room = _controller.rooms
                       .firstWhereOrNull((r) => r.id == widget.roomId) ??
-                  (_controller.rooms.isNotEmpty ? _controller.rooms.first : null);
+                  (_controller.rooms.isNotEmpty
+                      ? _controller.rooms.first
+                      : null);
 
               if (room == null) return const SizedBox.shrink();
 
-              final activeUserIds = _controller.activeMembers.map((m) => m.userId).toSet();
-              final coOwners = List<String>.from(room.coOwnerIds).where((id) => activeUserIds.contains(id)).toList();
-              final admins = List<String>.from(room.adminIds).where((id) => activeUserIds.contains(id)).toList();
-              final starMembers = List<String>.from(room.starMemberIds).where((id) => activeUserIds.contains(id)).toList();
+              final activeUserIds =
+                  _controller.activeMembers.map((m) => m.userId).toSet();
+              final coOwners = List<String>.from(room.coOwnerIds)
+                  .where((id) => activeUserIds.contains(id))
+                  .toList();
+              final admins = List<String>.from(room.adminIds)
+                  .where((id) => activeUserIds.contains(id))
+                  .toList();
+              final starMembers = List<String>.from(room.starMemberIds)
+                  .where((id) => activeUserIds.contains(id))
+                  .toList();
               final ownerId = room.hostId;
 
               return Container(
@@ -8518,7 +9365,10 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       onTap: () => _showBlockListManager(context, liveRoom),
                     );
                   }),
-                  if (widget.room.hostId == Supabase.instance.client.auth.currentUser?.id || widget.room.founderId == Supabase.instance.client.auth.currentUser?.id) ...[
+                  if (widget.room.hostId ==
+                          Supabase.instance.client.auth.currentUser?.id ||
+                      widget.room.founderId ==
+                          Supabase.instance.client.auth.currentUser?.id) ...[
                     _buildDivider(),
                     _buildListTile(
                       'Co-owners can edit cover photo',
@@ -8660,8 +9510,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                           fontWeight: FontWeight.w500)),
                   subtitle: Text(
                       'ID: ${blockedId.hashCode.abs() % 900000 + 100000}$durationInfo',
-                      style: TextStyle(
-                          color: context.caption, fontSize: 11)),
+                      style: TextStyle(color: context.caption, fontSize: 11)),
                   trailing: TextButton(
                     onPressed: () {
                       _controller.unbanUser(widget.roomId, blockedId);
@@ -8680,8 +9529,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text('Close',
-                style: TextStyle(color: context.caption)),
+            child: Text('Close', style: TextStyle(color: context.caption)),
           ),
         ],
       ),
@@ -8706,7 +9554,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
     }
     final cached = UserProfileCacheManager.getCachedUser(userId);
-    if (cached != null && cached.avatar != null && cached.avatar!.isNotEmpty) return cached.avatar!;
+    if (cached != null && cached.avatar != null && cached.avatar!.isNotEmpty)
+      return cached.avatar!;
     return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
   }
 
@@ -8733,13 +9582,13 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
         child: Text(
           role,
           style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.bold),
+              color: color, fontSize: 11, fontWeight: FontWeight.bold),
         ),
       ),
       title: Text(
-        count == 0 ? 'None assigned' : '$count ${count == 1 ? 'member' : 'members'}',
+        count == 0
+            ? 'None assigned'
+            : '$count ${count == 1 ? 'member' : 'members'}',
         style: const TextStyle(
             color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w400),
       ),
@@ -8758,9 +9607,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
               child: Text(
                 '+${count - 1}',
                 style: TextStyle(
-                    color: color,
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold),
+                    color: color, fontSize: 8, fontWeight: FontWeight.bold),
               ),
             ),
           const SizedBox(width: 4),
@@ -8769,7 +9616,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       ),
       onTap: count == 0
           ? null
-          : () => _showTagMemberList(role: role, memberIds: memberIds, color: color),
+          : () => _showTagMemberList(
+              role: role, memberIds: memberIds, color: color),
     );
   }
 
@@ -8805,11 +9653,13 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: color.withOpacity(0.4), width: 0.8),
+                    border:
+                        Border.all(color: color.withOpacity(0.4), width: 0.8),
                   ),
                   child: Text(role,
                       style: TextStyle(
@@ -8820,8 +9670,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                 const SizedBox(width: 10),
                 Text(
                   '${memberIds.length} ${memberIds.length == 1 ? 'member' : 'members'}',
-                  style: const TextStyle(
-                      color: Colors.white54, fontSize: 13),
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
                 ),
               ],
             ),
@@ -8853,8 +9702,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                             fontWeight: FontWeight.w600)),
                     subtitle: Text(
                       'ID: ${uid.hashCode.abs() % 900000 + 100000}',
-                      style: const TextStyle(
-                          color: Colors.white38, fontSize: 11),
+                      style:
+                          const TextStyle(color: Colors.white38, fontSize: 11),
                     ),
                     trailing: const Icon(Icons.arrow_forward_ios,
                         color: Colors.white24, size: 14),
@@ -8898,8 +9747,10 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
 
   void _showRoomMemberMiniProfile(
       String userId, String name, String currentRole) {
-    final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
-    final bool isOwner = currentUserId == widget.room.hostId || currentUserId == widget.room.founderId;
+    final String currentUserId =
+        Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
+    final bool isOwner = currentUserId == widget.room.hostId ||
+        currentUserId == widget.room.founderId;
     final bool isSelf = userId == currentUserId;
 
     Get.bottomSheet(
@@ -9049,8 +9900,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text('No management actions available for this user.',
-                    style:
-                        TextStyle(color: context.caption, fontSize: 13)),
+                    style: TextStyle(color: context.caption, fontSize: 13)),
               ),
             ],
           ],
@@ -9068,8 +9918,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                 fontSize: 14,
                 fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
-        Text(label,
-            style: TextStyle(color: context.caption, fontSize: 11)),
+        Text(label, style: TextStyle(color: context.caption, fontSize: 11)),
       ],
     );
   }
@@ -9095,8 +9944,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       title: Text(label,
           style: const TextStyle(
               color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-      trailing: Icon(Icons.chevron_right_rounded,
-          color: context.caption, size: 16),
+      trailing:
+          Icon(Icons.chevron_right_rounded, color: context.caption, size: 16),
     );
   }
 }
@@ -9131,7 +9980,8 @@ class SeatVoiceEffect extends StatelessWidget {
       );
     }
 
-    final soundStream = Stream.periodic(const Duration(milliseconds: 100), (count) {
+    final soundStream =
+        Stream.periodic(const Duration(milliseconds: 100), (count) {
       if (isMuted) return 0.0;
       return VoiceController.to.userSoundLevels[userId] ?? 0.0;
     }).asBroadcastStream();
@@ -9210,7 +10060,8 @@ class VoiceWaveformWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isMuted) return const SizedBox.shrink();
 
-    final soundStream = Stream.periodic(const Duration(milliseconds: 100), (count) {
+    final soundStream =
+        Stream.periodic(const Duration(milliseconds: 100), (count) {
       if (isMuted) return 0.0;
       return VoiceController.to.userSoundLevels[userId] ?? 0.0;
     }).asBroadcastStream();
@@ -9258,7 +10109,8 @@ class VoiceWaveformWidget extends StatelessWidget {
 class OnlineMembersDialog extends StatelessWidget {
   final String roomId;
   final VoiceRoom room;
-  const OnlineMembersDialog({required this.roomId, required this.room, Key? key})
+  const OnlineMembersDialog(
+      {required this.roomId, required this.room, Key? key})
       : super(key: key);
 
   void _handleViewProfile(String userId, String name, String role) {
@@ -9275,7 +10127,8 @@ class OnlineMembersDialog extends StatelessWidget {
         targetUserName: name,
         role: role,
         seatIndex: -1,
-        isHost: room.hostId == RoomController.currentUserId || room.founderId == RoomController.currentUserId,
+        isHost: room.hostId == RoomController.currentUserId ||
+            room.founderId == RoomController.currentUserId,
         occupiedSeatsCount: occupiedSeats,
       ),
     );
@@ -9307,43 +10160,47 @@ class OnlineMembersDialog extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: Obx(() {
-                final users = VoiceController.to.roomUsers;
-                if (users.isEmpty) {
-                  return Center(
-                    child: Text('No users online',
-                        style: GoogleFonts.poppins(
-                            color: Colors.white30, fontSize: 13)),
-                  );
-                }
+              child: Obx(
+                () {
+                  final users = VoiceController.to.roomUsers;
+                  if (users.isEmpty) {
+                    return Center(
+                      child: Text('No users online',
+                          style: GoogleFonts.poppins(
+                              color: Colors.white30, fontSize: 13)),
+                    );
+                  }
 
-                return ListView.builder(
-                  itemCount: users.length,
-                  itemBuilder: (context, index) {
-                    final u = users[index];
-                    final member = RoomController.to.activeMembers
-                        .firstWhereOrNull((m) => m.userId == u.userID);
-                    final role = member?.role ?? 'Audience';
-                    final String mappedRole;
-                    if (role == 'Host' || role == 'Founder') {
-                      mappedRole = 'Owner';
-                    } else if (role == 'Co-Host') {
-                      mappedRole = 'Co-host';
-                    } else {
-                      mappedRole = 'Member';
-                    }
+                  return ListView.builder(
+                    itemCount: users.length,
+                    itemBuilder: (context, index) {
+                      final u = users[index];
+                      final member = RoomController.to.activeMembers
+                          .firstWhereOrNull((m) => m.userId == u.userID);
+                      final role = member?.role ?? 'Audience';
+                      final String mappedRole;
+                      if (role == 'Host' || role == 'Founder') {
+                        mappedRole = 'Owner';
+                      } else if (role == 'Co-Host') {
+                        mappedRole = 'Co-host';
+                      } else {
+                        mappedRole = 'Member';
+                      }
 
-                    final seatsList =
-                        RoomController.to.roomSeatsInfo[roomId] ?? [];
-                    final seatIndex =
-                        seatsList.indexWhere((s) => s['userId'] == u.userID);
-                    final seatText =
-                        seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
-                    final isSpeaking = seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
+                      final seatsList =
+                          RoomController.to.roomSeatsInfo[roomId] ?? [];
+                      final seatIndex =
+                          seatsList.indexWhere((s) => s['userId'] == u.userID);
+                      final seatText = seatIndex != -1
+                          ? 'Seat ${seatIndex + 1}'
+                          : 'Audience';
+                      final isSpeaking = seatIndex != -1 &&
+                          seatsList[seatIndex]['isSpeaking'] == true;
 
                       return Obx(() {
-                        final profile = UserProfileCacheManager.rxCache[u.userID] ??
-                            UserProfileCacheManager.getCachedUser(u.userID);
+                        final profile =
+                            UserProfileCacheManager.rxCache[u.userID] ??
+                                UserProfileCacheManager.getCachedUser(u.userID);
                         final name = profile?.username ?? u.userName;
                         final avatarUrl = profile?.avatar ?? '';
                         final level = profile?.level ?? 1;
@@ -9409,7 +10266,8 @@ class OnlineMembersDialog extends StatelessWidget {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 3, vertical: 0.5),
                                           decoration: BoxDecoration(
-                                            color: Colors.amber.withOpacity(0.15),
+                                            color:
+                                                Colors.amber.withOpacity(0.15),
                                             borderRadius:
                                                 BorderRadius.circular(3),
                                           ),
@@ -9427,7 +10285,8 @@ class OnlineMembersDialog extends StatelessWidget {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 3, vertical: 0.5),
                                             decoration: BoxDecoration(
-                                              color: Colors.cyan.withOpacity(0.15),
+                                              color:
+                                                  Colors.cyan.withOpacity(0.15),
                                               borderRadius:
                                                   BorderRadius.circular(3),
                                             ),
@@ -9462,14 +10321,19 @@ class OnlineMembersDialog extends StatelessWidget {
                                           const SizedBox(width: 4),
                                         ],
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4, vertical: 1),
                                           decoration: BoxDecoration(
                                             color: mappedRole == 'Owner'
-                                                ? Colors.redAccent.withOpacity(0.15)
+                                                ? Colors.redAccent
+                                                    .withOpacity(0.15)
                                                 : (mappedRole == 'Co-host'
-                                                    ? Colors.orangeAccent.withOpacity(0.15)
-                                                    : Colors.blueAccent.withOpacity(0.15)),
-                                            borderRadius: BorderRadius.circular(4),
+                                                    ? Colors.orangeAccent
+                                                        .withOpacity(0.15)
+                                                    : Colors.blueAccent
+                                                        .withOpacity(0.15)),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
                                           ),
                                           child: Text(
                                             mappedRole,
@@ -9486,10 +10350,13 @@ class OnlineMembersDialog extends StatelessWidget {
                                         ),
                                         const SizedBox(width: 4),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4, vertical: 1),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF00FF66).withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(4),
+                                            color: const Color(0xFF00FF66)
+                                                .withOpacity(0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
                                           ),
                                           child: const Text(
                                             'Online',
@@ -9510,14 +10377,16 @@ class OnlineMembersDialog extends StatelessWidget {
                                 children: [
                                   if (u.userID != RoomController.currentUserId)
                                     IconButton(
-                                      icon: Icon(
-                                          Icons.person_add_alt_1_rounded,
+                                      icon: Icon(Icons.person_add_alt_1_rounded,
                                           color: context.primaryColor,
                                           size: 16),
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
                                       onPressed: () {
-                                        Get.snackbar('Followed', 'You followed @$name', snackPosition: SnackPosition.BOTTOM);
+                                        Get.snackbar(
+                                            'Followed', 'You followed @$name',
+                                            snackPosition:
+                                                SnackPosition.BOTTOM);
                                       },
                                     ),
                                   const SizedBox(width: 6),
@@ -9526,8 +10395,8 @@ class OnlineMembersDialog extends StatelessWidget {
                                         color: Colors.white70, size: 16),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
-                                    onPressed: () =>
-                                        _handleViewProfile(u.userID, name, role),
+                                    onPressed: () => _handleViewProfile(
+                                        u.userID, name, role),
                                   ),
                                 ],
                               ),
@@ -9557,7 +10426,8 @@ class OnlineMembersDialog extends StatelessWidget {
 
 class SeatApplicationsDialog extends StatefulWidget {
   final String roomId;
-  const SeatApplicationsDialog({required this.roomId, Key? key}) : super(key: key);
+  const SeatApplicationsDialog({required this.roomId, Key? key})
+      : super(key: key);
 
   @override
   State<SeatApplicationsDialog> createState() => _SeatApplicationsDialogState();
@@ -9583,9 +10453,14 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
       if (currentUserId == null) return;
 
       // 1. Get room role
-      final roomRes = await _supabase.from('rooms').select().eq('id', widget.roomId).maybeSingle();
+      final roomRes = await _supabase
+          .from('rooms')
+          .select()
+          .eq('id', widget.roomId)
+          .maybeSingle();
       if (roomRes != null) {
-        if (roomRes['host_id'] == currentUserId || roomRes['founder_id'] == currentUserId) {
+        if (roomRes['host_id'] == currentUserId ||
+            roomRes['founder_id'] == currentUserId) {
           _userRole = 'Host';
         } else {
           final memberRes = await _supabase
@@ -9645,10 +10520,14 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
     }
   }
 
-  Future<void> _acceptApplication(String id, String applicantId, String applicantName) async {
+  Future<void> _acceptApplication(
+      String id, String applicantId, String applicantName) async {
     try {
       // Find first empty seat
-      final emptyIndex = RoomController.to.roomSeatsInfo[widget.roomId]?.indexWhere((s) => s['userId'] == null && s['isLocked'] != true) ?? -1;
+      final emptyIndex = RoomController.to.roomSeatsInfo[widget.roomId]
+              ?.indexWhere(
+                  (s) => s['userId'] == null && s['isLocked'] != true) ??
+          -1;
       if (emptyIndex == -1) {
         Get.snackbar('Error', 'No empty seats available.');
         return;
@@ -9656,9 +10535,12 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
 
       // 1. Assign applicant to seat via joinRoomSeat
       await RoomController.to.joinRoomSeat(widget.roomId, emptyIndex);
-      await _supabase.from('room_seat_applications').update({'status': 'accepted'}).eq('id', id);
+      await _supabase
+          .from('room_seat_applications')
+          .update({'status': 'accepted'}).eq('id', id);
 
-      Get.snackbar('Accepted', '$applicantName has been assigned to Seat ${emptyIndex + 1}.');
+      Get.snackbar('Accepted',
+          '$applicantName has been assigned to Seat ${emptyIndex + 1}.');
       _fetchDetails();
     } catch (e) {
       Get.snackbar('Error', 'Failed to accept: $e');
@@ -9691,7 +10573,9 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
         ),
         padding: const EdgeInsets.all(20),
         child: _isChecking
-            ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(context.primaryColor)))
+            ? Center(
+                child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation(context.primaryColor)))
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -9710,14 +10594,16 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                             ? Center(
                                 child: Text(
                                   'No pending applications',
-                                  style: GoogleFonts.poppins(color: Colors.white30, fontSize: 13),
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.white30, fontSize: 13),
                                 ),
                               )
                             : ListView.builder(
                                 itemCount: _applications.length,
                                 itemBuilder: (context, index) {
                                   final app = _applications[index];
-                                  final profile = app['profiles'] as Map<String, dynamic>?;
+                                  final profile =
+                                      app['profiles'] as Map<String, dynamic>?;
                                   final name = profile?['username'] ?? 'User';
                                   final avatarUrl = profile?['avatar'] ?? '';
 
@@ -9727,29 +10613,47 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                                     decoration: BoxDecoration(
                                       color: Colors.white.withOpacity(0.02),
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.white.withOpacity(0.04)),
+                                      border: Border.all(
+                                          color:
+                                              Colors.white.withOpacity(0.04)),
                                     ),
                                     child: Row(
                                       children: [
                                         CircleAvatar(
                                           radius: 16,
-                                          backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                                          child: avatarUrl.isEmpty ? const Icon(Icons.person, size: 16) : null,
+                                          backgroundImage: avatarUrl.isNotEmpty
+                                              ? NetworkImage(avatarUrl)
+                                              : null,
+                                          child: avatarUrl.isEmpty
+                                              ? const Icon(Icons.person,
+                                                  size: 16)
+                                              : null,
                                         ),
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
                                             name,
-                                            style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                            style: GoogleFonts.poppins(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.check_circle_outline, color: Colors.greenAccent),
-                                          onPressed: () => _acceptApplication(app['id'], app['applicant_id'], name),
+                                          icon: const Icon(
+                                              Icons.check_circle_outline,
+                                              color: Colors.greenAccent),
+                                          onPressed: () => _acceptApplication(
+                                              app['id'],
+                                              app['applicant_id'],
+                                              name),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
-                                          onPressed: () => _rejectApplication(app['id']),
+                                          icon: const Icon(
+                                              Icons.cancel_outlined,
+                                              color: Colors.redAccent),
+                                          onPressed: () =>
+                                              _rejectApplication(app['id']),
                                         ),
                                       ],
                                     ),
@@ -9761,18 +10665,28 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  _hasApplied ? 'Your application is pending' : 'Apply to speak on stage',
-                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
+                                  _hasApplied
+                                      ? 'Your application is pending'
+                                      : 'Apply to speak on stage',
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.white70, fontSize: 13),
                                 ),
                                 const SizedBox(height: 16),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: _hasApplied ? Colors.grey : context.primaryColor,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    backgroundColor: _hasApplied
+                                        ? Colors.grey
+                                        : context.primaryColor,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 12),
                                   ),
                                   onPressed: _hasApplied ? null : _applyForSeat,
-                                  child: Text(_hasApplied ? 'Applied' : 'Apply for Seat'),
+                                  child: Text(_hasApplied
+                                      ? 'Applied'
+                                      : 'Apply for Seat'),
                                 ),
                               ],
                             ),
@@ -9781,7 +10695,8 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                   Center(
                     child: TextButton(
                       onPressed: () => Get.back(),
-                      child: Text('Close', style: GoogleFonts.poppins(color: Colors.white54)),
+                      child: Text('Close',
+                          style: GoogleFonts.poppins(color: Colors.white54)),
                     ),
                   ),
                 ],
@@ -9805,7 +10720,8 @@ class _BreathingVTag extends StatefulWidget {
   State<_BreathingVTag> createState() => _BreathingVTagState();
 }
 
-class _BreathingVTagState extends State<_BreathingVTag> with SingleTickerProviderStateMixin {
+class _BreathingVTagState extends State<_BreathingVTag>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -9818,8 +10734,10 @@ class _BreathingVTagState extends State<_BreathingVTag> with SingleTickerProvide
     );
 
     _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.15), weight: 50),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.15, end: 1.0), weight: 50),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 1.0, end: 1.15), weight: 50),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 1.15, end: 1.0), weight: 50),
     ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _startPeriodicTimer();
@@ -9886,7 +10804,9 @@ class _BreathingVTagState extends State<_BreathingVTag> with SingleTickerProvide
               child: Text(
                 checkIcon,
                 style: TextStyle(
-                  color: widget.level.toLowerCase() == 'diamond' ? Colors.cyanAccent : badgeColor,
+                  color: widget.level.toLowerCase() == 'diamond'
+                      ? Colors.cyanAccent
+                      : badgeColor,
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                 ),
@@ -9907,7 +10827,8 @@ class _BreathingWidget extends StatefulWidget {
   State<_BreathingWidget> createState() => _BreathingWidgetState();
 }
 
-class _BreathingWidgetState extends State<_BreathingWidget> with SingleTickerProviderStateMixin {
+class _BreathingWidgetState extends State<_BreathingWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -9943,7 +10864,8 @@ class _PulseWidget extends StatefulWidget {
   State<_PulseWidget> createState() => _PulseWidgetState();
 }
 
-class _PulseWidgetState extends State<_PulseWidget> with SingleTickerProviderStateMixin {
+class _PulseWidgetState extends State<_PulseWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _opacityAnimation;
 
@@ -9988,10 +10910,12 @@ class GiftingAnimationOverlay extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<GiftingAnimationOverlay> createState() => _GiftingAnimationOverlayState();
+  State<GiftingAnimationOverlay> createState() =>
+      _GiftingAnimationOverlayState();
 }
 
-class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> with TickerProviderStateMixin {
+class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay>
+    with TickerProviderStateMixin {
   final List<_ActivePathAnimation> _paths = [];
 
   @override
@@ -10015,7 +10939,10 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> with 
     final String name = anim['name'];
     final int count = anim['count'];
 
-    final isMajor = name.contains('Castle') || name.contains('Car') || name.contains('Rocket') || name.contains('Sports Car');
+    final isMajor = name.contains('Castle') ||
+        name.contains('Car') ||
+        name.contains('Rocket') ||
+        name.contains('Sports Car');
 
     final controller = AnimationController(
       vsync: this,
@@ -10040,7 +10967,7 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> with 
     controller.forward().then((_) {
       pathAnim.triggerExplosion();
       widget.onExplosion(isMajor);
-      
+
       // Clean up path flight
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) {
@@ -10068,7 +10995,8 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> with 
           // Projectile bezier curve paths
           Positioned.fill(
             child: AnimatedBuilder(
-              animation: Listenable.merge(_paths.map((p) => p.controller).toList()),
+              animation:
+                  Listenable.merge(_paths.map((p) => p.controller).toList()),
               builder: (context, child) {
                 return CustomPaint(
                   painter: _GiftingFlightPainter(paths: _paths),
@@ -10116,7 +11044,8 @@ class _ActivePathAnimation {
       final target = targets[i];
       final midX = (start.dx + target.dx) / 2;
       final midY = (start.dy + target.dy) / 2;
-      final displacement = (random.nextBool() ? 1 : -1) * (50 + random.nextInt(70));
+      final displacement =
+          (random.nextBool() ? 1 : -1) * (50 + random.nextInt(70));
       controlPoints.add(Offset(midX + displacement, midY - 40));
     }
   }
@@ -10143,7 +11072,7 @@ class _GiftingFlightPainter extends CustomPainter {
       for (int i = 0; i < path.targets.length; i++) {
         final target = path.targets[i];
         final control = path.controlPoints[i];
-        
+
         final pos = _getBezierPoint(path.start, control, target, t);
 
         // 1. Draw Sparkle Trail
@@ -10152,12 +11081,16 @@ class _GiftingFlightPainter extends CustomPainter {
           final trailT = (t - (p * 0.05)).clamp(0.0, 1.0);
           final trailPos = _getBezierPoint(path.start, control, target, trailT);
           final offsetDist = 8.0 * (1 - trailT);
-          final trailX = trailPos.dx + (random.nextDouble() * 2 - 1) * offsetDist;
-          final trailY = trailPos.dy + (random.nextDouble() * 2 - 1) * offsetDist;
+          final trailX =
+              trailPos.dx + (random.nextDouble() * 2 - 1) * offsetDist;
+          final trailY =
+              trailPos.dy + (random.nextDouble() * 2 - 1) * offsetDist;
 
-          paintTrail.color = (path.isMajor ? const Color(0xFFFFD700) : const Color(0xFFAF52DE))
-              .withOpacity((1 - trailT) * 0.6);
-          canvas.drawCircle(Offset(trailX, trailY), 2.5 * (1 - trailT), paintTrail);
+          paintTrail.color =
+              (path.isMajor ? const Color(0xFFFFD700) : const Color(0xFFAF52DE))
+                  .withOpacity((1 - trailT) * 0.6);
+          canvas.drawCircle(
+              Offset(trailX, trailY), 2.5 * (1 - trailT), paintTrail);
         }
 
         // 2. Draw Flying Icon (scaled up/down based on progress)
@@ -10165,13 +11098,14 @@ class _GiftingFlightPainter extends CustomPainter {
         canvas.save();
         canvas.translate(pos.dx, pos.dy);
         canvas.scale(scale);
-        
+
         textPainter.text = TextSpan(
           text: path.icon,
           style: const TextStyle(fontSize: 24),
         );
         textPainter.layout();
-        textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
+        textPainter.paint(
+            canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
         canvas.restore();
       }
     }
@@ -10198,7 +11132,8 @@ class _ExplosionBurstWidget extends StatefulWidget {
   State<_ExplosionBurstWidget> createState() => _ExplosionBurstWidgetState();
 }
 
-class _ExplosionBurstWidgetState extends State<_ExplosionBurstWidget> with SingleTickerProviderStateMixin {
+class _ExplosionBurstWidgetState extends State<_ExplosionBurstWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   bool _triggered = false;
 
@@ -10248,7 +11183,8 @@ class _ExplosionPainter extends CustomPainter {
   final double progress;
   final List<Offset> targets;
   final bool isMajor;
-  _ExplosionPainter({required this.progress, required this.targets, required this.isMajor});
+  _ExplosionPainter(
+      {required this.progress, required this.targets, required this.isMajor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -10260,8 +11196,9 @@ class _ExplosionPainter extends CustomPainter {
 
     for (final target in targets) {
       // 1. Expanding ring
-      paintRing.color = (isMajor ? const Color(0xFFFFD700) : const Color(0xFFE0F2FE))
-          .withOpacity((1 - progress).clamp(0.0, 1.0));
+      paintRing.color =
+          (isMajor ? const Color(0xFFFFD700) : const Color(0xFFE0F2FE))
+              .withOpacity((1 - progress).clamp(0.0, 1.0));
       canvas.drawCircle(target, 45.0 * progress, paintRing);
 
       // 2. Dispersing sparkle particles
@@ -10271,13 +11208,17 @@ class _ExplosionPainter extends CustomPainter {
 
       for (int i = 0; i < sparkleCount; i++) {
         final double angle = i * (2 * 3.14159 / sparkleCount);
-        final double distance = maxRadius * progress * (0.8 + 0.2 * random.nextDouble());
+        final double distance =
+            maxRadius * progress * (0.8 + 0.2 * random.nextDouble());
         final double x = target.dx + distance * cos(angle);
         final double y = target.dy + distance * sin(angle);
 
-        paintSparkle.color = (isMajor 
-            ? (random.nextBool() ? const Color(0xFFFFD700) : const Color(0xFFFF2D55)) 
-            : const Color(0xFFAF52DE)).withOpacity((1 - progress).clamp(0.0, 1.0));
+        paintSparkle.color = (isMajor
+                ? (random.nextBool()
+                    ? const Color(0xFFFFD700)
+                    : const Color(0xFFFF2D55))
+                : const Color(0xFFAF52DE))
+            .withOpacity((1 - progress).clamp(0.0, 1.0));
 
         canvas.drawCircle(Offset(x, y), 3.5 * (1 - progress), paintSparkle);
       }

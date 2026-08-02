@@ -4,6 +4,8 @@ import 'package:creania/core/theme.dart';
 import '../../services/chat_controller.dart';
 import '../../services/study_vault_controller.dart';
 import '../../services/user_progress_sync_service.dart';
+import '../../services/voice/room_voice_manager.dart';
+import '../../services/user_profile_cache_manager.dart';
 import '../home/home_screen.dart';
 import '../explore/explore_screen.dart';
 import '../rooms/rooms_screen.dart';
@@ -23,31 +25,83 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    UserProgressSyncService.syncFromSupabase();
-  }
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const ExploreScreen(),
-    const RoomsScreen(),
-    const ChatsListScreen(),
-    const ProfileScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    // Ensure StudyVaultController is registered
+    // Register lazy controllers once here — never inside build()
     if (!Get.isRegistered<StudyVaultController>()) {
       Get.put(StudyVaultController());
     }
-    // Ensure ChatController is registered
-    if (!Get.isRegistered<ChatController>()) {
-      Get.put(ChatController());
+    UserProgressSyncService.syncFromSupabase();
+
+    // Preload ZEGOCLOUD engine and fetch token asynchronously in the background
+    final currentUid = UserProfileCacheManager.currentUserId;
+    if (currentUid.isNotEmpty) {
+      RoomVoiceManager().preloadEngine(currentUid);
     }
+  }
+
+  final List<Widget> _screens = const [
+    HomeScreen(),
+    ExploreScreen(),
+    RoomsScreen(),
+    ChatsListScreen(),
+    ProfileScreen(),
+  ];
+
+  Widget _buildAnimatedBadgeIcon(int unread, IconData iconData) {
+    final String labelStr = unread > 99 ? '99+' : '$unread';
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(iconData),
+        if (unread > 0)
+          Positioned(
+            top: -6,
+            right: -10,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+              child: Container(
+                key: ValueKey<String>(labelStr),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.4),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  labelStr,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final chatCtrl = Get.find<ChatController>();
 
     return Scaffold(
-      body: _screens[_selectedIndex],
+      // IndexedStack keeps every tab alive — zero rebuild on tab switch
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: Obx(() {
         final unread = chatCtrl.totalUnread;
         return BottomNavigationBar(
@@ -73,24 +127,8 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Arenas',
             ),
             BottomNavigationBarItem(
-              icon: Badge(
-                isLabelVisible: unread > 0,
-                label: Text(
-                  unread > 9 ? '9+' : '$unread',
-                  style: TextStyle(fontSize: 10, color: Colors.white),
-                ),
-                backgroundColor: context.primaryColor,
-                child: Icon(Icons.chat_bubble_outline_rounded),
-              ),
-              activeIcon: Badge(
-                isLabelVisible: unread > 0,
-                label: Text(
-                  unread > 9 ? '9+' : '$unread',
-                  style: TextStyle(fontSize: 10, color: Colors.white),
-                ),
-                backgroundColor: context.primaryColor,
-                child: Icon(Icons.chat_bubble_rounded),
-              ),
+              icon: _buildAnimatedBadgeIcon(unread, Icons.chat_bubble_outline_rounded),
+              activeIcon: _buildAnimatedBadgeIcon(unread, Icons.chat_bubble_rounded),
               label: 'Messages',
             ),
             const BottomNavigationBarItem(

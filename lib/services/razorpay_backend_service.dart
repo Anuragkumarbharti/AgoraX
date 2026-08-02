@@ -7,7 +7,6 @@ import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
 import 'vip_controller.dart';
 import 'novel_controller.dart';
-import 'customization_controller.dart';
 import 'store_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'user_profile_cache_manager.dart';
@@ -139,52 +138,74 @@ class RazorpayBackendService extends GetxController {
     }
   }
 
-  // 1. POST /payment/create-order
+  // 1. POST /payment/create-order (Backend call)
   Future<String> createOrder({
     required double amount,
     required String product,
     required String duration,
   }) async {
-    _log('Order Request', 'Creating order - Product: $product, Amount: $amount, Duration: $duration, Mode: ${activeMode.value}');
+    _log('Order Request', 'Creating order via backend - Product: $product, Amount: $amount, Duration: $duration, Mode: ${activeMode.value}');
 
-    final String keyId = activeMode.value == 'Test' ? _keyId : _liveKeyId;
-    final String secretKey = activeMode.value == 'Test' ? _secretKey : _liveSecretKey;
-
-    // Validate credentials match activeMode
-    if (activeMode.value == 'Test' && !keyId.startsWith('rzp_test_')) {
-      _log('Order Error', 'Invalid API Key for Test Mode: $keyId');
-      throw Exception('Invalid API Key');
-    }
-    if (activeMode.value == 'Live' && !keyId.startsWith('rzp_live_')) {
-      _log('Order Error', 'Invalid API Key for Live Mode: $keyId');
-      throw Exception('Invalid API Key');
-    }
     if (amount <= 0) {
       _log('Order Error', 'Invalid Amount: $amount');
       throw Exception('Invalid Amount');
     }
 
-    final dio = Dio();
-    final basicAuth = 'Basic ' + base64Encode(utf8.encode('$keyId:$secretKey'));
-    final String receiptId = 'rcpt_${_generateRandomString(10)}';
-    final requestBody = {
-      'amount': (amount * 100).toInt(), // in paise
-      'currency': 'INR',
-      'receipt': receiptId,
-      'notes': {
-        'product': product,
-        'duration': duration,
-      }
-    };
-
-    _log('Order Request', 'API URL: https://api.razorpay.com/v1/orders');
-    _log('Order Request', 'Headers: Authorization: Basic ***, Content-Type: application/json');
-    _log('Order Request', 'Payload: ${jsonEncode(requestBody)}');
-
     try {
-      final response = await dio.post(
+      final response = await Supabase.instance.client.functions.invoke(
+        'razorpay-backend',
+        body: {
+          'action': 'create-order',
+          'amount': amount,
+          'product': product,
+          'duration': duration,
+        },
+      );
+
+      _log('Order Response', 'Status Code: ${response.status}');
+
+      final data = response.data;
+      if (response.status == 200 && data is Map<String, dynamic> && data['success'] == true) {
+        final orderData = data['order'];
+        final String orderId = orderData['id'];
+
+        final newOrder = RazorpayOrder(
+          orderId: orderId,
+          amount: amount,
+          currency: 'INR',
+          product: product,
+          duration: duration,
+          status: 'Pending',
+          createdTime: DateTime.now(),
+        );
+
+        dbOrders.insert(0, newOrder);
+        _saveLocalDb();
+        _log('Database Update', 'Saved new Pending order from backend: $orderId');
+
+        return orderId;
+      } else {
+        final errorMsg = data is Map ? data['error']?.toString() : 'Failed to create order';
+        throw Exception(errorMsg);
+      }
+    } catch (e) {
+      _log('Order Error', 'Backend invocation failed: $e. Falling back to direct Razorpay API client-side order creation for robustness.');
+
+      final String keyId = activeMode.value == 'Test' ? _keyId : _liveKeyId;
+      final String secretKey = activeMode.value == 'Test' ? _secretKey : _liveSecretKey;
+
+      final dio = Dio();
+      final basicAuth = 'Basic ' + base64Encode(utf8.encode('$keyId:$secretKey'));
+      final String receiptId = 'rcpt_${_generateRandomString(10)}';
+
+      final res = await dio.post(
         'https://api.razorpay.com/v1/orders',
-        data: requestBody,
+        data: {
+          'amount': (amount * 100).toInt(),
+          'currency': 'INR',
+          'receipt': receiptId,
+          'notes': {'product': product, 'duration': duration}
+        },
         options: Options(
           headers: {
             'Authorization': basicAuth,
@@ -193,334 +214,270 @@ class RazorpayBackendService extends GetxController {
         ),
       );
 
-      _log('Order Response', 'Status Code: ${response.statusCode}');
-      _log('Order Response', 'Body: ${jsonEncode(response.data)}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data;
-        if (data is Map<String, dynamic> && data.containsKey('id')) {
-          final String orderId = data['id'];
-          
-          final newOrder = RazorpayOrder(
-            orderId: orderId,
-            amount: amount,
-            currency: 'INR',
-            product: product,
-            duration: duration,
-            status: 'Pending',
-            createdTime: DateTime.now(),
-          );
-
-          dbOrders.insert(0, newOrder);
-          _saveLocalDb();
-          _log('Database Update', 'Saved new Pending order: $orderId');
-
-          // Simulate Webhook Event: order.created
-          _simulateWebhookEvent('order.created', {
-            'entity': 'event',
-            'account_id': keyId,
-            'event': 'order.created',
-            'payload': {
-              'order': {'entity': data}
-            },
-            'created_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          });
-
-          return orderId;
-        } else {
-          throw Exception('Unable to create Razorpay Order');
-        }
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final data = res.data;
+        final String orderId = data['id'];
+        final newOrder = RazorpayOrder(
+          orderId: orderId,
+          amount: amount,
+          currency: 'INR',
+          product: product,
+          duration: duration,
+          status: 'Pending',
+          createdTime: DateTime.now(),
+        );
+        dbOrders.insert(0, newOrder);
+        _saveLocalDb();
+        return orderId;
       } else {
-        throw Exception('Order Creation Failed');
+        throw Exception('Unable to create Razorpay Order');
       }
-    } on DioException catch (e) {
-      _log('Order Error', 'DioException: Status=${e.response?.statusCode}, Body=${e.response?.data}');
-      if (e.response?.statusCode == 401) {
-        final responseData = e.response?.data;
-        if (responseData != null && responseData.toString().contains('secret')) {
-          throw Exception('Invalid Secret Key');
-        } else {
-          throw Exception('Invalid API Key');
-        }
-      }
-      throw Exception('Network Error');
-    } catch (e) {
-      _log('Order Error', 'Unexpected Error: $e');
-      throw Exception('Backend Error');
     }
   }
 
-  // 2. POST /payment/verify
-  Future<bool> verifyPaymentSignature({
+  // 2. POST /payment/verify (Backend call)
+  Future<Map<String, dynamic>> verifyPaymentSignature({
     required String orderId,
     required String paymentId,
     required String signature,
   }) async {
-    _log('Payment Verification', 'Verifying signature for Order: $orderId, Payment: $paymentId');
-    _log('Payment Verification', 'Signature received: $signature');
-
-    await Future.delayed(const Duration(milliseconds: 400)); // Simulating verification time
-
-    final String expectedSignature = generateSignature(orderId, paymentId);
-    _log('Payment Verification', 'Signature expected: $expectedSignature');
-
-    final bool isValid = (signature == expectedSignature);
-    _log('Verification Result', isValid ? 'SUCCESS: Signatures match' : 'FAILURE: Signatures mismatch');
+    _log('Payment Verification', 'Verifying signature on backend for Order: $orderId, Payment: $paymentId');
 
     final idx = dbOrders.indexWhere((o) => o.orderId == orderId);
-    if (idx != -1) {
-      final old = dbOrders[idx];
-      final updated = RazorpayOrder(
+    if (idx == -1) {
+      _log('Verification Error', 'Order $orderId not found in local DB');
+      return {'success': false, 'error': 'Order not found in local DB'};
+    }
+
+    final old = dbOrders[idx];
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    if (currentUid == null) {
+      _log('Verification Error', 'No authenticated user session found');
+      return {'success': false, 'error': 'No authenticated user session found'};
+    }
+
+    bool isSuccess = false;
+    String? errorDetails;
+
+    try {
+      _log('Verification Request', 'Invoking verify-payment on Deno Edge Function...');
+      final response = await Supabase.instance.client.functions.invoke(
+        'razorpay-backend',
+        body: {
+          'action': 'verify-payment',
+          'orderId': orderId,
+          'paymentId': paymentId,
+          'signature': signature,
+          'product': old.product,
+          'duration': old.duration,
+          'amount': old.amount,
+          'userId': currentUid,
+        },
+      );
+
+      final data = response.data;
+      if (response.status == 200 && data is Map<String, dynamic> && data['success'] == true) {
+        isSuccess = true;
+        _log('Verification Response', 'Deno verification SUCCESS');
+      } else {
+        errorDetails = data?['error']?.toString();
+        _log('Verification Response', 'Deno verification failed or returned error: $errorDetails');
+      }
+    } catch (e) {
+      errorDetails = e.toString();
+      _log('Verification Error', 'Deno Edge Function call failed: $e. Falling back to SQL RPC verification.');
+    }
+
+    if (!isSuccess) {
+      try {
+        _log('Verification Fallback', 'Invoking verify_and_process_razorpay_payment_rpc on database...');
+        final response = await Supabase.instance.client.rpc('verify_and_process_razorpay_payment_rpc', params: {
+          'p_order_id': orderId,
+          'p_payment_id': paymentId,
+          'p_signature': signature,
+          'p_product': old.product,
+          'p_duration': old.duration,
+          'p_amount': old.amount,
+          'p_user_id': currentUid,
+        });
+
+        if (response == true) {
+          isSuccess = true;
+          errorDetails = null;
+          _log('Verification Fallback', 'SQL RPC verification SUCCESS');
+        } else {
+          errorDetails = 'SQL RPC verification returned false';
+          _log('Verification Fallback', 'SQL RPC verification returned false');
+        }
+      } catch (e) {
+        errorDetails = 'SQL RPC execution failed: $e';
+        _log('Verification Fallback Error', 'SQL RPC execution failed: $e. Invoking local cryptographic HMAC check...');
+      }
+    }
+
+    // 3. Robust Local HMAC-SHA256 Signature Verification Fallback
+    if (!isSuccess) {
+      final String activeSecret = activeMode.value == 'Test' ? _secretKey : _liveSecretKey;
+      final keyBytes = utf8.encode(activeSecret);
+      final messageBytes = utf8.encode('$orderId|$paymentId');
+      final hmacSha256 = Hmac(sha256, keyBytes);
+      final computedSig = hmacSha256.convert(messageBytes).toString();
+
+      if (computedSig.toLowerCase() == signature.toLowerCase()) {
+        _log('Cryptographic Check', 'Local HMAC-SHA256 signature verification PASSED! Activating entitlements for user.');
+        isSuccess = true;
+        errorDetails = null;
+
+        // Perform safe direct database inserts for resilience
+        try {
+          final client = Supabase.instance.client;
+          await client.from('payments').insert({
+            'payment_id': paymentId,
+            'order_id': orderId,
+            'user_id': currentUid,
+            'amount': old.amount,
+            'vip_plan': old.product,
+            'status': 'Success',
+            'purchase_date': DateTime.now().toIso8601String(),
+          }).catchError((_) {});
+
+          await client.from('purchases').insert({
+            'user_id': currentUid,
+            'product_name': old.product,
+            'category': old.product.contains('Coins') ? 'Coins' : (old.product.contains('Novel') ? 'Novel' : 'VIP'),
+            'amount': old.amount,
+            'final_amount': old.amount,
+            'payment_method': 'Razorpay Gateway',
+            'status': 'Success',
+            'duration': old.duration,
+            'payment_id': paymentId,
+          }).catchError((_) {});
+        } catch (e) {
+          _log('Direct DB Write Warning', 'Non-critical DB insert error: $e');
+        }
+      } else {
+        _log('Cryptographic Check', 'Local HMAC-SHA256 signature verification FAILED. Signature mismatch.');
+      }
+    }
+
+    if (isSuccess) {
+      dbOrders[idx] = RazorpayOrder(
         orderId: old.orderId,
         amount: old.amount,
         currency: old.currency,
         product: old.product,
         duration: old.duration,
-        status: isValid ? 'Success' : 'Failed',
+        status: 'Success',
         createdTime: old.createdTime,
         completedTime: DateTime.now(),
         paymentId: paymentId,
         signature: signature,
       );
-
-      dbOrders[idx] = updated;
       _saveLocalDb();
-      _log('Database Result', 'Order $orderId status updated to: ${updated.status}');
 
-      if (isValid) {
-        _log('Database Result', 'Delivering product benefits for: ${updated.product}');
-        _deliverProduct(updated.product, updated.duration);
+      // ── Tier 1: purchase_and_activate_rpc (migration 009) ────────────────
+      bool entitlementSuccess = false;
+      try {
+        String category = 'VIP';
+        if (old.product.contains('Novel')) category = 'Novel';
+        else if (old.product.contains('Coins')) category = 'Coins';
 
-        // Simulate Webhook Event: payment.captured
-        _simulateWebhookEvent('payment.captured', {
-          'entity': 'event',
-          'account_id': activeMode.value == 'Test' ? _keyId : _liveKeyId,
-          'event': 'payment.captured',
-          'payload': {
-            'payment': {
-              'entity': {
-                'id': paymentId,
-                'amount': (old.amount * 100).toInt(),
-                'currency': 'INR',
-                'order_id': orderId,
-                'status': 'captured',
-              }
-            }
-          },
-          'created_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        _log('Entitlement', 'Calling purchase_and_activate_rpc: ${old.product} / $category');
+
+        final rpcResult = await Supabase.instance.client.rpc('purchase_and_activate_rpc', params: {
+          'p_user_id':        currentUid,
+          'p_product_name':   old.product,
+          'p_category':       category,
+          'p_amount':         old.amount,
+          'p_final_amount':   old.amount,
+          'p_payment_method': 'Razorpay Gateway',
+          'p_duration':       old.duration,
+          'p_payment_id':     paymentId,
+          'p_order_id':       orderId,
         });
+
+        entitlementSuccess = rpcResult != null &&
+            rpcResult is Map<String, dynamic> &&
+            rpcResult['success'] == true;
+        _log('Entitlement', 'purchase_and_activate_rpc: ok=$entitlementSuccess');
+      } catch (e) {
+        _log('Entitlement Error', 'purchase_and_activate_rpc threw: $e — trying fallback');
       }
+
+      // ── Tier 2: fallback to record_membership_purchase ───────────────────
+      if (!entitlementSuccess) {
+        try {
+          String category = 'VIP';
+          if (old.product.contains('Novel')) category = 'Novel';
+          else if (old.product.contains('Coins')) category = 'Coins';
+
+          final daysMap = {
+            '3 Days': 3, '7 Days': 7, '15 Days': 15,
+            '30 Days': 30, '1 Month': 30, '90 Days': 90,
+            '6 Months': 180, '1 Year': 365, 'Yearly': 365,
+          };
+          final days = daysMap[old.duration] ?? 30;
+          final expiry = DateTime.now().add(Duration(days: days));
+
+          await Supabase.instance.client.rpc('record_membership_purchase', params: {
+            'p_user_id':        currentUid,
+            'p_product_name':   old.product,
+            'p_category':       category,
+            'p_amount':         old.amount,
+            'p_final_amount':   old.amount,
+            'p_payment_method': 'Razorpay Gateway',
+            'p_duration':       old.duration,
+            'p_custom_expiry':  expiry.toIso8601String(),
+            'p_payment_id':     paymentId,
+          });
+          _log('Entitlement Fallback', 'record_membership_purchase: success');
+        } catch (e2) {
+          _log('Entitlement Fallback Error', 'record_membership_purchase also failed: $e2');
+        }
+      }
+
+      // ── Reload all state from DB after confirmed activation ───────────────
+      final uid = Supabase.instance.client.auth.currentUser?.id ?? currentUid;
+      await UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true);
+      try {
+        if (old.product.contains('VIP')) {
+          await Get.find<VipController>().loadVipFromDatabase();
+        } else if (old.product.contains('Novel')) {
+          await Get.find<NovelController>().loadNovelFromDatabase();
+        } else if (old.product.contains('Coins')) {
+          try { await Get.find<StoreController>().syncWithDatabase(force: true); } catch (_) {}
+        }
+      } catch (_) {}
+
+      return {'success': true, 'error': null};
+
+
     } else {
-      _log('Database Result', 'Order $orderId not found in local DB');
+      dbOrders[idx] = RazorpayOrder(
+        orderId: old.orderId,
+        amount: old.amount,
+        currency: old.currency,
+        product: old.product,
+        duration: old.duration,
+        status: 'Failed',
+        createdTime: old.createdTime,
+        completedTime: DateTime.now(),
+        paymentId: paymentId,
+        signature: signature,
+      );
+      _saveLocalDb();
+      return {'success': false, 'error': errorDetails ?? 'Signature verification failed.'};
     }
-
-    return isValid;
   }
 
-  // Pure Dart HMAC-SHA256 signature generator matching Razorpay algorithm
-  String generateSignature(String orderId, String paymentId) {
-    final secretKey = activeMode.value == 'Test' ? _secretKey : _liveSecretKey;
-    final bytes = utf8.encode('$orderId|$paymentId');
-    final key = utf8.encode(secretKey);
-    final hmac = Hmac(sha256, key);
-    final digest = hmac.convert(bytes);
-    return digest.toString();
-  }
-
-  void _simulateWebhookEvent(String eventType, Map<String, dynamic> payload) {
-    _log('Webhook Events', 'Received webhook event $eventType: ${jsonEncode(payload)}');
-  }
-
-  // GET /payment/history
   List<RazorpayOrder> getPaymentHistory() {
     return dbOrders;
   }
 
-  // POST /payment/refund-request
-  Future<bool> requestRefund(String orderId) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    final idx = dbOrders.indexWhere((o) => o.orderId == orderId);
-    if (idx != -1) {
-      final old = dbOrders[idx];
-      if (old.status == 'Success') {
-        dbOrders[idx] = RazorpayOrder(
-          orderId: old.orderId,
-          amount: old.amount,
-          currency: old.currency,
-          product: old.product,
-          duration: old.duration,
-          status: 'Refunded',
-          createdTime: old.createdTime,
-          completedTime: DateTime.now(),
-          paymentId: old.paymentId,
-          signature: old.signature,
-        );
-        _saveLocalDb();
-
-        // Revert product benefits (deduct coins, etc.)
-        _revertProductBenefits(old.product);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Switch between Test and Live modes
   void setMode(String mode) {
     if (mode == 'Test' || mode == 'Live') {
       activeMode.value = mode;
     }
-  }
-
-  // Product Delivery Resolver (Strictly after signature verification)
-  void _deliverProduct(String name, String duration) {
-    final storeCtrl = Get.find<StoreController>();
-    
-    // Look up in standard coin packs first
-    final coinPackIdx = storeCtrl.coinPacks.indexWhere((p) => p.name == name);
-    if (coinPackIdx != -1) {
-      final pack = storeCtrl.coinPacks[coinPackIdx];
-      final totalCoins = pack.coins + pack.bonusCoins;
-      _log('Product Delivery', 'Found coin pack: $name. Crediting $totalCoins coins.');
-      storeCtrl.addCoins(totalCoins, 'Razorpay Purchase: $name');
-      return;
-    }
-
-    if (name.contains('Coins')) {
-      final coinMatch = RegExp(r'(\d+,?\d*) Coins').firstMatch(name);
-      if (coinMatch != null) {
-        final amt = int.parse(coinMatch.group(1)!.replaceAll(',', ''));
-        _log('Product Delivery', 'Found custom coins amount: $amt from product: $name');
-        storeCtrl.addCoins(amt, 'Razorpay Purchase: $name');
-        return;
-      }
-    } else if (name.contains('VIP')) {
-      final vipLvl = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-      final currentUid = Supabase.instance.client.auth.currentUser?.id;
-      if (currentUid != null) {
-        Supabase.instance.client.rpc('record_membership_purchase', params: {
-          'p_user_id': currentUid,
-          'p_product_name': name,
-          'p_category': 'VIP',
-          'p_amount': 99.0,
-          'p_final_amount': 99.0,
-          'p_payment_method': 'Razorpay Gateway',
-          'p_duration': duration,
-        }).then((_) {
-          UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
-          try {
-            Get.find<VipController>().loadVipFromDatabase();
-          } catch (_) {}
-        }).catchError((e) {
-          debugPrint('Error recording VIP purchase: $e');
-        });
-      }
-      _log('Product Delivery', 'VIP Level $vipLvl purchase recorded.');
-    } else if (name.contains('Novel')) {
-      final novelLvl = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-      final currentUid = Supabase.instance.client.auth.currentUser?.id;
-      if (currentUid != null) {
-        Supabase.instance.client.rpc('record_membership_purchase', params: {
-          'p_user_id': currentUid,
-          'p_product_name': name,
-          'p_category': 'Novel',
-          'p_amount': 199.0,
-          'p_final_amount': 199.0,
-          'p_payment_method': 'Razorpay Gateway',
-          'p_duration': duration,
-        }).then((_) {
-          UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
-          try {
-            Get.find<NovelController>().loadNovelFromDatabase();
-          } catch (_) {}
-        }).catchError((e) {
-          debugPrint('Error recording Novel purchase: $e');
-        });
-      }
-      _log('Product Delivery', 'Novel Level $novelLvl purchase recorded.');
-    } else {
-      // General custom cosmetics or frames
-      final cust = Get.find<CustomizationController>();
-      cust.itemExpiries[name] = DateTime.now().add(const Duration(days: 30));
-      cust.unlockedItems.add(name);
-      cust.activeFrame.value = name;
-      _log('Product Delivery', 'Cosmetic frame "$name" unlocked.');
-    }
-  }
-
-  void _revertProductBenefits(String name) {
-    final storeCtrl = Get.find<StoreController>();
-    
-    final coinPackIdx = storeCtrl.coinPacks.indexWhere((p) => p.name == name);
-    if (coinPackIdx != -1) {
-      final pack = storeCtrl.coinPacks[coinPackIdx];
-      final totalCoins = pack.coins + pack.bonusCoins;
-      _log('Revert Benefits', 'Deducting $totalCoins coins for refunded coin pack: $name');
-      storeCtrl.deductCoins(totalCoins, 'Refund reverted for: $name');
-      return;
-    }
-
-    if (name.contains('Coins')) {
-      final coinMatch = RegExp(r'(\d+,?\d*) Coins').firstMatch(name);
-      if (coinMatch != null) {
-        final amt = int.parse(coinMatch.group(1)!.replaceAll(',', ''));
-        _log('Revert Benefits', 'Deducting $amt coins for refunded custom coins product: $name');
-        storeCtrl.deductCoins(amt, 'Refund reverted for: $name');
-      }
-    } else if (name.contains('VIP')) {
-      Get.find<VipController>().vipLevel.value = 0;
-      _log('Revert Benefits', 'VIP membership deactivated.');
-    } else if (name.contains('Novel')) {
-      Get.find<NovelController>().novelLevel.value = 0;
-      _log('Revert Benefits', 'Novel membership deactivated.');
-    }
-  }
-
-  // Pure Dart SHA-256 helper
-  String _sha256(String input) {
-    var bytes = utf8.encode(input);
-    var hash = _sha256Process(bytes);
-    return hash.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-  }
-
-  List<int> _sha256Process(List<int> message) {
-    // Standard SHA-256 padding and hashing algorithm block logic
-    var k = [
-      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-    ];
-
-    // Dummy simplified SHA-256 for self-contained compilation safety
-    // Uses standard polynomial transformations for unique fingerprint
-    int h0 = 0x6a09e667;
-    int h1 = 0xbb67ae85;
-    int h2 = 0x3c6ef372;
-    int h3 = 0xa54ff53a;
-    int h4 = 0x510e527f;
-    int h5 = 0x9b05688c;
-    int h6 = 0x1f83d9ab;
-    int h7 = 0x5be0cd19;
-
-    var len = message.length;
-    var hashVal = (h0 ^ len) + (h1 ^ 0xff) + h2 + h3 + h4 + h5 + h6 + h7;
-    
-    // Deterministic 32-byte representation based on input message bytes
-    var output = List<int>.generate(32, (i) {
-      int v = (hashVal ^ (i * 0x25413987)) & 0xFF;
-      for (var b in message) {
-        v = (v ^ b) + i;
-      }
-      return v & 0xFF;
-    });
-
-    return output;
   }
 
   String _generateRandomString(int len) {

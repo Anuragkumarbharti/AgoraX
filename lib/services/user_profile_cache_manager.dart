@@ -12,9 +12,12 @@ import 'customization_controller.dart';
 import 'career_progression_controller.dart';
 
 import 'isar_storage_service.dart';
+import 'chat_controller.dart';
+import 'chat_socket_service.dart';
 import '../models/isar_chat_model.dart';
 import 'asset_cache_manager.dart';
 import '../screens/auth/login_screen.dart';
+import '../core/api_error_handler.dart';
 import 'package:flutter/material.dart';
 
 class UserProfileCacheManager {
@@ -27,15 +30,31 @@ class UserProfileCacheManager {
   static RealtimeChannel? _giftRealtimeChannel;
   static final RxInt giftTransactionsTrigger = 0.obs;
 
+  /// Incremented every time an equip/unequip is confirmed by the backend.
+  /// Screens can listen to this with Obx(() => ...) to refresh their user card.
+  static final RxInt equipEventTrigger = 0.obs;
+
+  /// Called by CustomizationController after every confirmed backend equip/unequip.
+  /// All screens (Profile, Room, Chat, Leaderboard, Store) should Obx-react to equipEventTrigger.
+  static void broadcastEquipConfirmed() {
+    equipEventTrigger.value++;
+  }
+
+
   // Connection RxSets
   static final RxSet<String> followedUserIds = <String>{}.obs;
   static final RxSet<String> followerUserIds = <String>{}.obs;
-  static final RxMap<String, String> connectionStatuses = <String, String>{}.obs; // key: otherUserId -> status
+  static final RxMap<String, String> connectionStatuses =
+      <String, String>{}.obs; // key: otherUserId -> status
 
   static User? get currentUser => _currentUser;
 
   static String get currentUserId {
-    return Supabase.instance.client.auth.currentUser?.id ?? '';
+    final authUid = Supabase.instance.client.auth.currentUser?.id;
+    if (authUid != null && authUid.isNotEmpty) return authUid;
+    final cachedUid = _currentUser?.id;
+    if (cachedUid != null && cachedUid.isNotEmpty) return cachedUid;
+    return '';
   }
 
   static void addListener(VoidCallback listener) {
@@ -64,27 +83,44 @@ class UserProfileCacheManager {
 
   /// Fetches canonical mapping for the logged in auth user (returns auth.uid() directly)
   static Future<String> getOrFetchCanonicalId() async {
-    return Supabase.instance.client.auth.currentUser?.id ?? '';
+    final uid = currentUserId;
+    return uid;
   }
 
   /// Get cached user or null
   static User? getCachedUser(String userId) {
-    final currentId = Supabase.instance.client.auth.currentUser?.id;
-    final id = (userId == 'me' || userId == 'uid_anurag_101' || userId == currentId)
-        ? (currentId ?? userId)
+    if (userId.trim().isEmpty) return null;
+    final currentId = currentUserId;
+    final id = (userId == 'me' || userId == 'uid_anurag_101' || (currentId.isNotEmpty && userId == currentId))
+        ? (currentId.isNotEmpty ? currentId : userId)
         : userId;
-    if (id == currentId && _currentUser != null) return _currentUser;
+    if (currentId.isNotEmpty && id == currentId && _currentUser != null) return _currentUser;
     return _cache[id];
   }
 
   /// Fetch a user by ID, using local memory cache if available, falling back to Supabase
-  static Future<User> fetchUserProfile(String userId, {bool forceRefresh = false}) async {
-    final currentId = Supabase.instance.client.auth.currentUser?.id;
-    
+  static Future<User> fetchUserProfile(String userId,
+      {bool forceRefresh = false}) async {
+    if (userId.trim().isEmpty) {
+      throw Exception("User ID cannot be empty");
+    }
+    final currentId = currentUserId;
+
     // Resolve user ID if the query is for the active user session
     String idToQuery = userId;
-    if (userId == 'me' || userId == 'uid_anurag_101' || userId == currentId) {
-      idToQuery = currentId ?? '';
+    if (userId == 'me' || userId == 'uid_anurag_101' || (currentId.isNotEmpty && userId == currentId)) {
+      idToQuery = currentId.isNotEmpty ? currentId : userId;
+    }
+    if (idToQuery.trim().isEmpty) {
+      throw Exception("User ID cannot be empty");
+    }
+
+    // ── Guard: reject malformed IDs (e.g. concatenated roomId_userId keys) ──
+    // A valid Supabase UUID has exactly 36 chars in format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    final uuidPattern = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    if (!uuidPattern.hasMatch(idToQuery)) {
+      debugPrint('[CacheManager] Rejected malformed userId: $idToQuery');
+      throw Exception('Invalid user ID format: $idToQuery');
     }
 
     if (!forceRefresh && idToQuery == currentId && _currentUser != null) {
@@ -99,7 +135,8 @@ class UserProfileCacheManager {
       // Deactivate expired memberships on the backend if looking up own profile
       if (idToQuery == currentId) {
         try {
-          await Supabase.instance.client.rpc('check_and_clean_expired_memberships');
+          await Supabase.instance.client
+              .rpc('check_and_clean_expired_memberships');
         } catch (_) {}
       }
 
@@ -113,11 +150,14 @@ class UserProfileCacheManager {
         if (data == null) {
           final currentUser = Supabase.instance.client.auth.currentUser;
           if (currentUser == null) {
-            await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+            await forceLogout(
+                message:
+                    "Your account is unavailable. Please sign in again or contact support.");
             throw Exception("Profile row missing and auth user is null");
           }
           try {
-            final newUsername = 'user_${currentUser.id.replaceAll('-', '').substring(0, 8)}';
+            final newUsername =
+                'user_${currentUser.id.replaceAll('-', '').substring(0, 8)}';
             await Supabase.instance.client.from('profiles').insert({
               'id': currentUser.id,
               'username': newUsername,
@@ -137,13 +177,19 @@ class UserProfileCacheManager {
             if (refetched != null) {
               data = refetched;
             } else {
-              await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+              await forceLogout(
+                  message:
+                      "Your account is unavailable. Please sign in again or contact support.");
               throw Exception("Recreation succeeded but refetch returned null");
             }
           } catch (recreateError) {
-            debugPrint('[CacheManager] Missing profile recreation failed: $recreateError');
-            await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
-            throw Exception("Profile row missing and recreation failed: $recreateError");
+            debugPrint(
+                '[CacheManager] Missing profile recreation failed: $recreateError');
+            await forceLogout(
+                message:
+                    "Your account is unavailable. Please sign in again or contact support.");
+            throw Exception(
+                "Profile row missing and recreation failed: $recreateError");
           }
         }
         final status = data['status'] as String?;
@@ -160,7 +206,11 @@ class UserProfileCacheManager {
       }
 
       if (data != null) {
-        final userObj = User.fromJson(data);
+        var userObj = User.fromJson(data);
+        if (idToQuery == currentId) {
+          // Backend is now the single source of truth.
+          // No local lock overlay — VIP/Novel state comes directly from DB via subscriptions table.
+        }
         _cache[idToQuery] = userObj;
         rxCache[idToQuery] = userObj;
         if (idToQuery == currentId) {
@@ -172,7 +222,9 @@ class UserProfileCacheManager {
         debugPrint('[CacheManager] Profile fetch success for $idToQuery');
         return userObj;
       } else {
-        debugPrint('[CacheManager] Profile fetch success but no data for $idToQuery');
+
+        debugPrint(
+            '[CacheManager] Profile fetch success but no data for $idToQuery');
       }
     } catch (e) {
       debugPrint('[CacheManager] Profile fetch failed for $idToQuery: $e');
@@ -208,6 +260,9 @@ class UserProfileCacheManager {
     _cache.clear();
     rxCache.clear();
     _currentUser = null;
+    if (Get.isRegistered<ChatController>()) {
+      Get.find<ChatController>().clearAllDataOnLogout();
+    }
     _notifyListeners();
   }
 
@@ -228,7 +283,8 @@ class UserProfileCacheManager {
 
       final currentUser = client.auth.currentUser;
       if (currentUser == null) {
-        await forceLogout(message: "Your session is invalid. Please sign in again.");
+        await forceLogout(
+            message: "Your session is invalid. Please sign in again.");
         return false;
       }
 
@@ -242,7 +298,8 @@ class UserProfileCacheManager {
       if (data == null) {
         // Attempt to auto-recreate the profiles row if missing
         try {
-          final newUsername = 'user_${currentUser.id.replaceAll('-', '').substring(0, 8)}';
+          final newUsername =
+              'user_${currentUser.id.replaceAll('-', '').substring(0, 8)}';
           await client.from('profiles').insert({
             'id': currentUser.id,
             'username': newUsername,
@@ -253,6 +310,7 @@ class UserProfileCacheManager {
             'vip_level': 0,
             'novel_level': 0,
             'verified': false,
+            'signup_status': 'otp_verified',
           });
           // Verify it was created successfully
           final refetched = await client
@@ -263,12 +321,17 @@ class UserProfileCacheManager {
           if (refetched != null) {
             data = refetched;
           } else {
-            await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+            await forceLogout(
+                message:
+                    "Your account is unavailable. Please sign in again or contact support.");
             return false;
           }
         } catch (e) {
-          debugPrint('[CacheManager] Auto-recreation of profiles row failed during session validation: $e');
-          await forceLogout(message: "Your account is unavailable. Please sign in again or contact support.");
+          debugPrint(
+              '[CacheManager] Auto-recreation of profiles row failed during session validation: $e');
+          await forceLogout(
+              message:
+                  "Your account is unavailable. Please sign in again or contact support.");
           return false;
         }
       }
@@ -308,17 +371,23 @@ class UserProfileCacheManager {
     } catch (e) {
       debugPrint('[CacheManager] Session validation error: $e');
       final errStr = e.toString().toLowerCase();
-      if (errStr.contains('jwt') || errStr.contains('session') || errStr.contains('unauthorized') || errStr.contains('invalid token') || errStr.contains('expired')) {
+      if (errStr.contains('jwt') ||
+          errStr.contains('session') ||
+          errStr.contains('unauthorized') ||
+          errStr.contains('invalid token') ||
+          errStr.contains('expired')) {
         // Attempt session refresh
         try {
           final res = await client.auth.refreshSession();
           if (res.session == null) {
-            await forceLogout(message: "Your session has expired. Please sign in again.");
+            await forceLogout(
+                message: "Your session has expired. Please sign in again.");
             return false;
           }
           return true;
         } catch (_) {
-          await forceLogout(message: "Your session has expired. Please sign in again.");
+          await forceLogout(
+              message: "Your session has expired. Please sign in again.");
           return false;
         }
       }
@@ -327,6 +396,23 @@ class UserProfileCacheManager {
   }
 
   static Future<void> forceLogout({required String message}) async {
+    final uid = currentUserId;
+    if (uid.isNotEmpty) {
+      final nowIso = DateTime.now().toIso8601String();
+      try {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'last_seen': nowIso})
+            .eq('id', uid);
+      } catch (_) {}
+
+      try {
+        if (Get.isRegistered<ChatSocketService>()) {
+          ChatSocketService.to.disconnect();
+        }
+      } catch (_) {}
+    }
+
     try {
       await Supabase.instance.client.auth.signOut();
     } catch (_) {}
@@ -394,7 +480,8 @@ class UserProfileCacheManager {
       followedUserIds.assignAll(followed);
       followerUserIds.assignAll(followers);
       connectionStatuses.assignAll(statuses);
-      debugPrint('[CacheManager] Connections loaded. Following: ${followed.length}, Followers: ${followers.length}');
+      debugPrint(
+          '[CacheManager] Connections loaded. Following: ${followed.length}, Followers: ${followers.length}');
 
       // Save to Isar offline cache
       try {
@@ -404,7 +491,8 @@ class UserProfileCacheManager {
           'followers': followers.toList(),
           'statuses': statuses,
         };
-        await isar.saveCacheEntry('offline_connections_cache', jsonEncode(connData));
+        await isar.saveCacheEntry(
+            'offline_connections_cache', jsonEncode(connData));
       } catch (e) {
         debugPrint('[CacheManager] Error saving connections cache to Isar: $e');
       }
@@ -477,7 +565,9 @@ class UserProfileCacheManager {
     if (me != null) {
       _currentUser = me.copyWith(
         following: me.following - 1 >= 0 ? me.following - 1 : 0,
-        friendsCount: wasMutual ? (me.friendsCount - 1 >= 0 ? me.friendsCount - 1 : 0) : me.friendsCount,
+        friendsCount: wasMutual
+            ? (me.friendsCount - 1 >= 0 ? me.friendsCount - 1 : 0)
+            : me.friendsCount,
       );
       rxCache[myId] = _currentUser!;
     }
@@ -485,7 +575,9 @@ class UserProfileCacheManager {
     if (target != null) {
       rxCache[targetUserId] = target.copyWith(
         followers: target.followers - 1 >= 0 ? target.followers - 1 : 0,
-        friendsCount: wasMutual ? (target.friendsCount - 1 >= 0 ? target.friendsCount - 1 : 0) : target.friendsCount,
+        friendsCount: wasMutual
+            ? (target.friendsCount - 1 >= 0 ? target.friendsCount - 1 : 0)
+            : target.friendsCount,
       );
     }
     _notifyListeners();
@@ -511,7 +603,7 @@ class UserProfileCacheManager {
   static void initializeRealtimeSubscription() {
     if (_realtimeChannel != null) return;
     loadUserConnections();
-    
+
     // Subscribe to connections table
     try {
       _connectionsRealtimeChannel = Supabase.instance.client
@@ -525,9 +617,11 @@ class UserProfileCacheManager {
             },
           );
       _connectionsRealtimeChannel?.subscribe();
-      debugPrint('[UserProfileCacheManager] Subscribed to connections table Realtime updates.');
+      debugPrint(
+          '[UserProfileCacheManager] Subscribed to connections table Realtime updates.');
     } catch (e) {
-      debugPrint('[UserProfileCacheManager] Connections realtime subscription failed: $e');
+      debugPrint(
+          '[UserProfileCacheManager] Connections realtime subscription failed: $e');
     }
 
     try {
@@ -541,10 +635,11 @@ class UserProfileCacheManager {
               final newRecord = payload.newRecord;
               if (newRecord != null && newRecord['id'] != null) {
                 final String userId = newRecord['id'];
-                
+
                 // Parse updated user object
-                final userObj = User.fromJson(Map<String, dynamic>.from(newRecord));
-                
+                final userObj =
+                    User.fromJson(Map<String, dynamic>.from(newRecord));
+
                 _cache[userId] = userObj;
                 rxCache[userId] = userObj;
                 if (userId == currentUserId) {
@@ -554,32 +649,40 @@ class UserProfileCacheManager {
                   try {
                     if (Get.isRegistered<VipController>()) {
                       final vipCtrl = Get.find<VipController>();
-                      vipCtrl.vipLevel.value = (newRecord['vip_level'] ?? 0).toInt();
+                      final newVipLevel = (newRecord['vip_level'] ?? 0).toInt();
+                      vipCtrl.vipLevel.value = newVipLevel;
                       final expiryStr = newRecord['vip_expiry'];
                       if (expiryStr != null) {
                         vipCtrl.expiryDate.value = DateTime.tryParse(expiryStr);
                       } else {
                         vipCtrl.expiryDate.value = null;
                       }
-                      vipCtrl.saveState();
+                      vipCtrl.saveState(syncToRemote: false);
                     }
                   } catch (_) {}
                   try {
                     if (Get.isRegistered<NovelController>()) {
                       final novelCtrl = Get.find<NovelController>();
-                      novelCtrl.novelLevel.value = (newRecord['novel_level'] ?? 0).toInt();
+                      novelCtrl.novelLevel.value =
+                          (newRecord['novel_level'] ?? 0).toInt();
                       final expiryStr = newRecord['novel_expiry'];
                       if (expiryStr != null) {
-                        novelCtrl.expiryDate.value = DateTime.tryParse(expiryStr);
+                        novelCtrl.expiryDate.value =
+                            DateTime.tryParse(expiryStr);
                       } else {
                         novelCtrl.expiryDate.value = null;
                       }
-                      novelCtrl.saveState();
+                      novelCtrl.saveState(syncToRemote: false);
                     }
                   } catch (_) {}
                   try {
                     if (Get.isRegistered<CustomizationController>()) {
-                      Get.find<CustomizationController>().activeFrame.value = newRecord['avatar_frame'] ?? 'Normal';
+                      final frameVal = newRecord['avatar_frame']?.toString();
+                      if (frameVal != null && frameVal.isNotEmpty) {
+                        Get.find<CustomizationController>().activeFrame.value = frameVal;
+                      }
+                      // Reload full inventory on any VIP/Novel/frame profile change
+                      Get.find<CustomizationController>().fetchFullInventoryAndEntitlementsViaRpc();
                     }
                   } catch (_) {}
                   try {
@@ -587,20 +690,24 @@ class UserProfileCacheManager {
                       final cCtrl = Get.find<CareerProgressionController>();
                       cCtrl.idLevel.value = (newRecord['level'] ?? 1).toInt();
                       cCtrl.idXp.value = (newRecord['experience'] ?? 0).toInt();
-                      cCtrl.careerLevel.value = (newRecord['career_level'] ?? 1).toInt();
-                      cCtrl.careerXp.value = (newRecord['career_xp'] ?? 0).toInt();
+                      cCtrl.careerLevel.value =
+                          (newRecord['career_level'] ?? 1).toInt();
+                      cCtrl.careerXp.value =
+                          (newRecord['career_xp'] ?? 0).toInt();
                     }
                   } catch (_) {}
                 }
 
                 _notifyListeners();
                 AssetCacheManager.prefetchProfileAssets(userObj);
-                debugPrint('[UserProfileCacheManager] Realtime update notified for: $userId');
+                debugPrint(
+                    '[UserProfileCacheManager] Realtime update notified for: $userId');
               }
             },
           );
       _realtimeChannel?.subscribe();
-      debugPrint('[UserProfileCacheManager] Subscribed to profiles table Realtime updates.');
+      debugPrint(
+          '[UserProfileCacheManager] Subscribed to profiles table Realtime updates.');
     } catch (e) {
       debugPrint('[UserProfileCacheManager] Realtime subscription failed: $e');
     }
@@ -622,8 +729,10 @@ class UserProfileCacheManager {
                   final num silver = newRecord['silver_balance'] ?? 0;
                   try {
                     if (Get.isRegistered<StoreController>()) {
-                      Get.find<StoreController>().coinsBalance.value = coins.toInt();
-                      Get.find<StoreController>().silverCoinsBalance.value = silver.toInt();
+                      Get.find<StoreController>().coinsBalance.value =
+                          coins.toInt();
+                      Get.find<StoreController>().silverCoinsBalance.value =
+                          silver.toInt();
                     }
                   } catch (_) {}
                 }
@@ -631,9 +740,11 @@ class UserProfileCacheManager {
             },
           );
       walletsChannel.subscribe();
-      debugPrint('[UserProfileCacheManager] Subscribed to wallets table Realtime updates.');
+      debugPrint(
+          '[UserProfileCacheManager] Subscribed to wallets table Realtime updates.');
     } catch (e) {
-      debugPrint('[UserProfileCacheManager] Wallets realtime subscription failed: $e');
+      debugPrint(
+          '[UserProfileCacheManager] Wallets realtime subscription failed: $e');
     }
 
     // Subscribe to gift_transactions table to refresh stats in real-time
@@ -650,8 +761,10 @@ class UserProfileCacheManager {
                 final senderId = newRecord['sender_id'] as String?;
                 final receiverId = newRecord['receiver_id'] as String?;
                 final currentId = currentUserId;
-                if (currentId.isNotEmpty && (senderId == currentId || receiverId == currentId)) {
-                  debugPrint('[UserProfileCacheManager] Realtime gift transaction involving user detected.');
+                if (currentId.isNotEmpty &&
+                    (senderId == currentId || receiverId == currentId)) {
+                  debugPrint(
+                      '[UserProfileCacheManager] Realtime gift transaction involving user detected.');
                   giftTransactionsTrigger.value++;
                   _notifyListeners();
                 }
@@ -659,9 +772,72 @@ class UserProfileCacheManager {
             },
           );
       _giftRealtimeChannel?.subscribe();
-      debugPrint('[UserProfileCacheManager] Subscribed to gift_transactions table Realtime updates.');
+      debugPrint(
+          '[UserProfileCacheManager] Subscribed to gift_transactions table Realtime updates.');
     } catch (e) {
-      debugPrint('[UserProfileCacheManager] Gift transactions realtime subscription failed: $e');
+      debugPrint(
+          '[UserProfileCacheManager] Gift transactions realtime subscription failed: $e');
+    }
+
+    // Subscribe to subscriptions table changes for VIP/Novel real-time sync
+    try {
+      Supabase.instance.client
+          .channel('public:subscriptions_cache_realtime')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'subscriptions',
+            callback: (payload) {
+              final record = payload.newRecord ?? payload.oldRecord;
+              if (record != null && record['user_id'] != null) {
+                final String userId = record['user_id'].toString();
+                if (userId == currentUserId) {
+                  debugPrint('[UserProfileCacheManager] Subscriptions Realtime change detected. Reloading VIP/Novel state.');
+                  // Reload VIP and Novel from backend as the source of truth
+                  try {
+                    if (Get.isRegistered<VipController>()) {
+                      Get.find<VipController>().loadVipFromDatabase();
+                    }
+                  } catch (_) {}
+                  try {
+                    if (Get.isRegistered<NovelController>()) {
+                      Get.find<NovelController>().loadNovelFromDatabase();
+                    }
+                  } catch (_) {}
+                  try {
+                    if (Get.isRegistered<CustomizationController>()) {
+                      Get.find<CustomizationController>().fetchFullInventoryAndEntitlementsViaRpc();
+                    }
+                  } catch (_) {}
+                }
+              }
+            },
+          )
+          .subscribe();
+      debugPrint('[UserProfileCacheManager] Subscribed to subscriptions table Realtime updates.');
+    } catch (e) {
+      debugPrint('[UserProfileCacheManager] Subscriptions realtime subscription failed: $e');
+    }
+
+    // Auth state change listener: auto-reload on reconnect / token refresh
+    try {
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        final event = data.event;
+        if (event == AuthChangeEvent.tokenRefreshed ||
+            event == AuthChangeEvent.signedIn) {
+          final uid = currentUserId;
+          if (uid.isNotEmpty) {
+            debugPrint('[UserProfileCacheManager] Auth event: $event — reloading profile, VIP, Novel, and inventory.');
+            fetchUserProfile(uid, forceRefresh: true);
+            try { if (Get.isRegistered<VipController>()) Get.find<VipController>().loadVipFromDatabase(); } catch (_) {}
+            try { if (Get.isRegistered<NovelController>()) Get.find<NovelController>().loadNovelFromDatabase(); } catch (_) {}
+            try { if (Get.isRegistered<CustomizationController>()) Get.find<CustomizationController>().fetchFullInventoryAndEntitlementsViaRpc(); } catch (_) {}
+          }
+        }
+      });
+      debugPrint('[UserProfileCacheManager] Auth state change listener registered.');
+    } catch (e) {
+      debugPrint('[UserProfileCacheManager] Auth state change listener failed: $e');
     }
   }
 
@@ -680,11 +856,13 @@ class UserProfileCacheManager {
           }
         });
         _notifyListeners();
-        debugPrint('[CacheManager] Loaded ${_cache.length} profiles from Isar offline cache.');
+        debugPrint(
+            '[CacheManager] Loaded ${_cache.length} profiles from Isar offline cache.');
       }
 
       // Load cached connections
-      final connPayload = await isar.getCacheEntryPayload('offline_connections_cache');
+      final connPayload =
+          await isar.getCacheEntryPayload('offline_connections_cache');
       if (connPayload != null && connPayload.isNotEmpty) {
         final Map<String, dynamic> decoded = jsonDecode(connPayload);
         final followed = List<String>.from(decoded['followed'] ?? []);
@@ -695,7 +873,8 @@ class UserProfileCacheManager {
         followedUserIds.assignAll(followed);
         followerUserIds.assignAll(followers);
         connectionStatuses.assignAll(statuses);
-        debugPrint('[CacheManager] Connections loaded from Isar offline cache.');
+        debugPrint(
+            '[CacheManager] Connections loaded from Isar offline cache.');
       }
     } catch (e) {
       debugPrint('[CacheManager] Error loading Isar offline cache: $e');
@@ -710,7 +889,8 @@ class UserProfileCacheManager {
         // Cache profile records locally
         dataToSave[key] = value.toJson();
       });
-      await isar.saveCacheEntry('offline_profiles_cache', jsonEncode(dataToSave));
+      await isar.saveCacheEntry(
+          'offline_profiles_cache', jsonEncode(dataToSave));
     } catch (e) {
       debugPrint('[CacheManager] Error saving to Isar offline cache: $e');
     }
@@ -719,16 +899,15 @@ class UserProfileCacheManager {
   static Future<void> syncDeltaProfiles() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String? lastSyncStr = prefs.getString('profiles_last_sync_timestamp');
-      
-      var query = Supabase.instance.client
-          .from('profiles')
-          .select();
-          
+      final String? lastSyncStr =
+          prefs.getString('profiles_last_sync_timestamp');
+
+      var query = Supabase.instance.client.from('profiles').select();
+
       if (lastSyncStr != null) {
         query = query.gt('updated_at', lastSyncStr);
       }
-      
+
       final response = await query;
       if (response != null) {
         final list = response as List<dynamic>;
@@ -740,10 +919,12 @@ class UserProfileCacheManager {
             _currentUser = userObj;
           }
         }
-        await prefs.setString('profiles_last_sync_timestamp', DateTime.now().toUtc().toIso8601String());
+        await prefs.setString('profiles_last_sync_timestamp',
+            DateTime.now().toUtc().toIso8601String());
         _saveCacheToOffline();
         _notifyListeners();
-        debugPrint('[CacheManager] Delta sync completed. Processed ${list.length} profiles.');
+        debugPrint(
+            '[CacheManager] Delta sync completed. Processed ${list.length} profiles.');
       }
     } catch (e) {
       debugPrint('[CacheManager] Delta sync failed: $e');
@@ -756,7 +937,8 @@ class UserProfileCacheManager {
     try {
       await fetchUserProfile(myId, forceRefresh: true);
     } catch (e) {
-      debugPrint('[CacheManager] rebuildAndSyncCurrentUserTagSystem failed: $e');
+      debugPrint(
+          '[CacheManager] rebuildAndSyncCurrentUserTagSystem failed: $e');
     }
   }
 }

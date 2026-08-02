@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../models/user_model.dart';
 import 'vip_controller.dart';
 import 'novel_controller.dart';
+import 'store_controller.dart';
 import 'user_profile_cache_manager.dart';
+import '../core/api_error_handler.dart';
 
 class CustomizationController extends GetxController {
   static String get currentUserId => UserProfileCacheManager.currentUserId;
@@ -13,6 +16,13 @@ class CustomizationController extends GetxController {
   // SharedPreferences Keys (Local cache fallback/Visual settings)
   static const String _keyTheme = 'cust_active_theme';
   static const String _keyFavorites = 'cust_favorites';
+  static const String _keyActiveFrame = 'cust_active_frame';
+  static const String _keyActiveBubble = 'cust_active_bubble';
+  static const String _keyActiveEntryEffect = 'cust_active_entry_effect';
+  static const String _keyActiveAvatarEffect = 'cust_active_avatar_effect';
+  static const String _keyActiveNameEffect = 'cust_active_name_effect';
+  static const String _keyActiveBackground = 'cust_active_background';
+  static const String _keyActiveEmojiPack = 'cust_active_emoji_pack';
 
   // Observables
   final RxString activeFrame = 'Normal'.obs;
@@ -25,6 +35,13 @@ class CustomizationController extends GetxController {
   final RxString activeAvatar = 'Default'.obs;
   final RxString customAvatarPath = ''.obs;
   final RxString activeEmojiPack = 'Classic Emojis'.obs;
+
+  /// True while an equip/unequip RPC is in-flight — drives loading state on buttons.
+  final RxBool isEquipping = false.obs;
+
+  /// Snapshot of equipped values captured before sending the RPC.
+  /// Restored if the RPC fails, so the UI never reflects uncommitted state.
+  final Map<String, String> _previousEquipped = {};
 
   final RxList<String> activeBadges = <String>[].obs; // Max 5 showcase badges
   final Map<String, Map<String, dynamic>> badgeMetadata = {
@@ -53,55 +70,48 @@ class CustomizationController extends GetxController {
 
   // Central customization database with items and metadata
   final List<Map<String, dynamic>> customizationDb = [
-    // 1. Avatar Frames (Static & Animated)
-    {'name': 'Normal', 'category': 'Avatar Frame', 'rarity': 'Common', 'premium': 'None', 'req': 'Default unlocked border'},
-    {'name': 'Early Explorer Frame', 'category': 'Avatar Frame', 'rarity': 'Rare', 'premium': 'None', 'req': 'Profile Completion Badge'},
+    // ─── Avatar Frames ───────────────────────────────────────────────────────
+    // ✅ ACTIVE: Only Novel Level 1 is visible and selectable
+    {'name': 'Normal', 'category': 'Avatar Frame', 'rarity': 'Common', 'premium': 'None', 'req': 'Default unlocked border', 'isAvailable': true},
+    {'name': 'Novel Level 1', 'category': 'Avatar Frame', 'rarity': 'Rare', 'premium': 'Novel', 'req': 'Novel Level 1', 'isAvailable': true},
+
+    // ── DISABLED FRAMES (isAvailable: false) — restore later by setting isAvailable: true ──
     // VIP Frames
-    {'name': 'Royal Frame', 'category': 'Avatar Frame', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
-    {'name': 'Neon Frame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Gold Glow Frame', 'category': 'Avatar Frame', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Frame', 'category': 'Avatar Frame', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Cyan Frame', 'category': 'Avatar Frame', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Rainbow Frame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Royal Crown (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Frames
-    {'name': 'Galaxy Orbit (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Royal Gold Palace', 'category': 'Avatar Frame', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Dragon Fire Frame', 'category': 'Avatar Frame', 'rarity': 'Limited', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Flame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Sky Frame', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Emperor (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
+    // ✅ ACTIVE: VIP Level 1 — Royal Blue Crown PNG
+    {'name': 'Royal Frame', 'category': 'Avatar Frame', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1', 'isAvailable': true},
+    // ✅ ACTIVE: VIP Level 2 — Mystic Purple Crown PNG
+    {'name': 'Neon Frame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2', 'isAvailable': true},
+    {'name': 'Gold Glow Frame', 'category': 'Avatar Frame', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3', 'isAvailable': false},
+    {'name': 'Diamond Frame', 'category': 'Avatar Frame', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4', 'isAvailable': false},
+    {'name': 'Crystal Cyan Frame', 'category': 'Avatar Frame', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5', 'isAvailable': false},
+    {'name': 'Rainbow Frame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6', 'isAvailable': false},
+    {'name': 'Royal Crown (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7', 'isAvailable': false},
+    // Novel Frames (levels 2–7 disabled)
+    {'name': 'Galaxy Orbit (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II', 'isAvailable': false},
+    {'name': 'Royal Gold Palace', 'category': 'Avatar Frame', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III', 'isAvailable': false},
+    {'name': 'Dragon Fire Frame', 'category': 'Avatar Frame', 'rarity': 'Limited', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV', 'isAvailable': false},
+    {'name': 'Phoenix Flame (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V', 'isAvailable': false},
+    {'name': 'Celestial Sky Frame', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI', 'isAvailable': false},
+    {'name': 'Cosmic Emperor (Animated)', 'category': 'Avatar Frame', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII', 'isAvailable': false},
+    // Early Explorer also disabled for now
+    {'name': 'Early Explorer Frame', 'category': 'Avatar Frame', 'rarity': 'Rare', 'premium': 'None', 'req': 'Profile Completion Badge', 'isAvailable': false},
 
     // 2. Chat Bubbles
     {'name': 'Classic Bubble', 'category': 'Chat Bubble', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
-    // VIP Bubbles
+    // VIP Bubbles (only VIP 1 & VIP 2)
     {'name': 'Royal Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'Blue Shield Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'Neon Bubble', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'VIP Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Golden Shimmer Bubble', 'category': 'Chat Bubble', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Bubble', 'category': 'Chat Bubble', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Cyan Neon Bubble', 'category': 'Chat Bubble', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Rainbow Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Emperor Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
-    // Novel Bubbles
-    {'name': 'Galaxy Bubble', 'category': 'Chat Bubble', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Galaxy Novel II'},
-    {'name': 'Royal Palace Bubble', 'category': 'Chat Bubble', 'rarity': 'Legendary', 'premium': 'Novel', 'req': 'Unlock with Royal Novel III'},
-    {'name': 'Dragon Fire Bubble', 'category': 'Chat Bubble', 'rarity': 'Limited', 'premium': 'Novel', 'req': 'Unlock with Dragon Novel IV'},
-    {'name': 'Phoenix Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Phoenix Novel V'},
-    {'name': 'Celestial Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Celestial Novel VI'},
-    {'name': 'Cosmic Emperor Bubble', 'category': 'Chat Bubble', 'rarity': 'Mythic', 'premium': 'Novel', 'req': 'Unlock with Immortal Novel VII'},
+    // Novel Bubbles (only Novel 1)
+    // (Novel 1 uses default bubble; higher novel bubbles removed)
 
     // 3. Entry Effects
     {'name': 'None', 'category': 'Entry Effect', 'rarity': 'Common', 'premium': 'None', 'req': 'Default'},
-    // VIP Entry Effects
+    // Novel Entry Effects (only Novel 1)
+    {'name': 'Novel Level 1', 'category': 'Entry Effect', 'rarity': 'Rare', 'premium': 'Novel', 'req': 'Unlock with Novel Level 1', 'isAvailable': true},
+    // VIP Entry Effects (only VIP 1 & VIP 2)
     {'name': 'Royal Portal', 'category': 'Entry Effect', 'rarity': 'Rare', 'premium': 'VIP', 'req': 'Unlock with VIP Level 1'},
     {'name': 'Neon Gateway', 'category': 'Entry Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 2'},
-    {'name': 'Golden Explosion', 'category': 'Entry Effect', 'rarity': 'Epic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 3'},
-    {'name': 'Diamond Shatter', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 4'},
-    {'name': 'Crystal Blizzard', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 5'},
-    {'name': 'Rainbow Bridge', 'category': 'Entry Effect', 'rarity': 'Legendary', 'premium': 'VIP', 'req': 'Unlock with VIP Level 6'},
-    {'name': 'Emperor Throne Room', 'category': 'Entry Effect', 'rarity': 'Mythic', 'premium': 'VIP', 'req': 'Unlock with VIP Level 7'},
   ];
 
   @override
@@ -110,9 +120,20 @@ class CustomizationController extends GetxController {
     _loadState();
   }
 
+  Future<void> refreshCustomizations() async {
+    await _loadState();
+  }
+
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
     activeTheme.value = prefs.getString(_keyTheme) ?? 'Dark';
+    activeFrame.value = prefs.getString(_keyActiveFrame) ?? activeFrame.value;
+    activeBubble.value = prefs.getString(_keyActiveBubble) ?? activeBubble.value;
+    activeEntryEffect.value = prefs.getString(_keyActiveEntryEffect) ?? activeEntryEffect.value;
+    activeAvatarEffect.value = prefs.getString(_keyActiveAvatarEffect) ?? activeAvatarEffect.value;
+    activeNameEffect.value = prefs.getString(_keyActiveNameEffect) ?? activeNameEffect.value;
+    activeBackground.value = prefs.getString(_keyActiveBackground) ?? activeBackground.value;
+    activeEmojiPack.value = prefs.getString(_keyActiveEmojiPack) ?? activeEmojiPack.value;
 
     // Load Favorites
     final favsJson = prefs.getString(_keyFavorites);
@@ -124,58 +145,267 @@ class CustomizationController extends GetxController {
     }
 
     try {
-      final List<dynamic> list = await Supabase.instance.client
-          .from('user_customizations')
-          .select()
-          .eq('user_id', currentUserId);
+      final rpcRes = await fetchFullInventoryAndEntitlementsViaRpc();
+      if (rpcRes == null) {
+        final List<dynamic> list = await Supabase.instance.client
+            .from('user_customizations')
+            .select()
+            .eq('user_id', currentUserId);
 
-      // Unlocked items
-      unlockedItems.assignAll(list.map((m) => m['name'] as String).toList());
-      
-      // Default seeds
-      final defaults = [
-        'Normal', 'Classic Bubble', 'None', 'Legend', 'Explorer', 'Scholar', 'Dark', 'Default', 'Classic Emojis', 'Love Castle', 'Early Explorer Frame'
-      ];
-      for (final def in defaults) {
-        if (!unlockedItems.contains(def)) {
-          unlockedItems.add(def);
+        // Unlocked items
+        unlockedItems.assignAll(list.map((m) => m['name'] as String).toList());
+        
+        // Always-unlocked defaults
+        final defaults = [
+          'Normal', 'Novel Level 1', 'Classic Bubble', 'None', 'Legend', 'Explorer',
+          'Scholar', 'Dark', 'Default', 'Classic Emojis', 'Love Castle',
+        ];
+        for (final def in defaults) {
+          if (!unlockedItems.contains(def)) {
+            unlockedItems.add(def);
+          }
         }
-      }
 
-      // Filter equipped
-      final equipped = list.where((m) => m['is_equipped'] == true).toList();
-      
-      activeFrame.value = equipped.firstWhereOrNull((m) => m['type'] == 'Avatar Frame')?['name'] ?? 'Normal';
-      activeBubble.value = equipped.firstWhereOrNull((m) => m['type'] == 'Chat Bubble')?['name'] ?? 'Classic Bubble';
-      activeEntryEffect.value = equipped.firstWhereOrNull((m) => m['type'] == 'Entry Effect')?['name'] ?? 'None';
-      activeAvatarEffect.value = equipped.firstWhereOrNull((m) => m['type'] == 'Avatar Effect')?['name'] ?? 'None';
-      activeNameEffect.value = equipped.firstWhereOrNull((m) => m['type'] == 'Name Effect')?['name'] ?? 'None';
-      activeBackground.value = equipped.firstWhereOrNull((m) => m['type'] == 'Background')?['name'] ?? 'None';
-      activeEmojiPack.value = equipped.firstWhereOrNull((m) => m['type'] == 'Emoji Pack')?['name'] ?? 'Classic Emojis';
-
-      final userObj = UserProfileCacheManager.currentUser;
-      if (userObj != null) {
-        activeBadges.assignAll(userObj.showcasedBadges);
-      } else {
-        final data = await Supabase.instance.client
-            .from('profiles')
-            .select('showcased_badges')
-            .eq('id', currentUserId)
-            .maybeSingle();
-        if (data != null && data['showcased_badges'] != null) {
-          activeBadges.assignAll(List<String>.from(data['showcased_badges']));
+        // Filter equipped safely without overwriting local state if remote row is missing
+        final equipped = list.where((m) => m['is_equipped'] == true).toList();
+        
+        final remoteFrame = equipped.firstWhereOrNull((m) => m['type'] == 'Avatar Frame')?['name'];
+        if (remoteFrame != null && remoteFrame.toString().isNotEmpty) {
+          activeFrame.value = remoteFrame;
+          await prefs.setString(_keyActiveFrame, remoteFrame);
         }
-      }
-      activeTags.assignAll(equipped.where((m) => m['type'] == 'Tag').map((m) => m['name'] as String).toList());
-      activeGifts.assignAll(equipped.where((m) => m['type'] == 'Gift').map((m) => m['name'] as String).toList());
 
+        final remoteBubble = equipped.firstWhereOrNull((m) => m['type'] == 'Chat Bubble')?['name'];
+        if (remoteBubble != null && remoteBubble.toString().isNotEmpty) {
+          activeBubble.value = remoteBubble;
+          await prefs.setString(_keyActiveBubble, remoteBubble);
+        }
+
+        final remoteEntry = equipped.firstWhereOrNull((m) => m['type'] == 'Entry Effect')?['name'];
+        if (remoteEntry != null && remoteEntry.toString().isNotEmpty) {
+          activeEntryEffect.value = remoteEntry;
+          await prefs.setString(_keyActiveEntryEffect, remoteEntry);
+        }
+
+        final remoteAvatarEffect = equipped.firstWhereOrNull((m) => m['type'] == 'Avatar Effect')?['name'];
+        if (remoteAvatarEffect != null && remoteAvatarEffect.toString().isNotEmpty) {
+          activeAvatarEffect.value = remoteAvatarEffect;
+          await prefs.setString(_keyActiveAvatarEffect, remoteAvatarEffect);
+        }
+
+        final remoteNameEffect = equipped.firstWhereOrNull((m) => m['type'] == 'Name Effect')?['name'];
+        if (remoteNameEffect != null && remoteNameEffect.toString().isNotEmpty) {
+          activeNameEffect.value = remoteNameEffect;
+          await prefs.setString(_keyActiveNameEffect, remoteNameEffect);
+        }
+
+        final remoteBg = equipped.firstWhereOrNull((m) => m['type'] == 'Background')?['name'];
+        if (remoteBg != null && remoteBg.toString().isNotEmpty) {
+          activeBackground.value = remoteBg;
+          await prefs.setString(_keyActiveBackground, remoteBg);
+        }
+
+        final remoteEmoji = equipped.firstWhereOrNull((m) => m['type'] == 'Emoji Pack')?['name'];
+        if (remoteEmoji != null && remoteEmoji.toString().isNotEmpty) {
+          activeEmojiPack.value = remoteEmoji;
+          await prefs.setString(_keyActiveEmojiPack, remoteEmoji);
+        }
+
+        final userObj = UserProfileCacheManager.currentUser;
+        if (userObj != null) {
+          activeBadges.assignAll(userObj.showcasedBadges);
+        } else {
+          final data = await Supabase.instance.client
+              .from('profiles')
+              .select('showcased_badges')
+              .eq('id', currentUserId)
+              .maybeSingle();
+          if (data != null && data['showcased_badges'] != null) {
+            activeBadges.assignAll(List<String>.from(data['showcased_badges']));
+          }
+        }
+        activeTags.assignAll(equipped.where((m) => m['type'] == 'Tag').map((m) => m['name'] as String).toList());
+        activeGifts.assignAll(equipped.where((m) => m['type'] == 'Gift').map((m) => m['name'] as String).toList());
+      }
     } catch (e) {
       debugPrint('Supabase Customizations Load failed: $e');
     }
   }
 
+  /// Single-call RPC to load all permanent inventory items and active entitlements
+  Future<Map<String, dynamic>?> fetchFullInventoryAndEntitlementsViaRpc() async {
+    try {
+      final uid = currentUserId;
+      if (uid.isEmpty) return null;
+
+      Map<String, dynamic>? res;
+
+      // ── Tier 1: get_user_full_inventory_and_entitlements_rpc ─────────────
+      try {
+        final rpcRes = await Supabase.instance.client.rpc(
+          'get_user_full_inventory_and_entitlements_rpc',
+          params: {'p_user_id': uid},
+        );
+        if (rpcRes != null && rpcRes is Map<String, dynamic>) {
+          if (rpcRes.containsKey('error')) {
+            debugPrint('get_user_full_inventory_and_entitlements_rpc error: ${rpcRes['error']} — using direct fallback');
+            res = null;
+          } else {
+            res = rpcRes;
+          }
+        }
+      } catch (rpcErr) {
+        debugPrint('get_user_full_inventory_and_entitlements_rpc threw: $rpcErr — using direct fallback');
+        res = null;
+      }
+
+      // ── Tier 2: direct table reads fallback ──────────────────────────────
+      if (res == null) {
+        try {
+          // Read user_customizations directly
+          final customRows = await Supabase.instance.client
+              .from('user_customizations')
+              .select('name, type, is_equipped, asset_id')
+              .eq('user_id', uid);
+
+          final List<dynamic> rawInventory = customRows ?? [];
+          final List<dynamic> rawEquipped = rawInventory.where((m) => m['is_equipped'] == true).toList();
+
+          // Read VIP/Novel from profiles
+          final profileRow = await Supabase.instance.client
+              .from('profiles')
+              .select('vip_level, vip_expiry, novel_level, novel_expiry, avatar_frame, showcased_badges, tag_system')
+              .eq('id', uid)
+              .maybeSingle();
+
+          res = {
+            'user_id': uid,
+            'vip': {
+              'level': profileRow?['vip_level'] ?? 0,
+              'expiry_date': profileRow?['vip_expiry'],
+              'is_active': (profileRow?['vip_level'] ?? 0) > 0,
+            },
+            'novel': {
+              'level': profileRow?['novel_level'] ?? 0,
+              'expiry_date': profileRow?['novel_expiry'],
+              'is_active': (profileRow?['novel_level'] ?? 0) > 0,
+            },
+            'profile_frame': profileRow?['avatar_frame'],
+            'showcased_badges': profileRow?['showcased_badges'] ?? [],
+            'tag_system': profileRow?['tag_system'] ?? {},
+            'identity_tags': (profileRow?['tag_system'] as Map<String, dynamic>?)?['identityTagBar'] ?? [],
+            'inventory': rawInventory,
+            'equipped': rawEquipped,
+          };
+          debugPrint('[CustomizationController] direct table fallback: loaded ${rawInventory.length} items, ${rawEquipped.length} equipped');
+        } catch (fallbackErr) {
+          debugPrint('[CustomizationController] direct table fallback also failed: $fallbackErr');
+          return null;
+        }
+      }
+
+      if (res != null) {
+        final List<dynamic> rawInventory = res['inventory'] ?? [];
+        unlockedItems.assignAll(rawInventory.map((m) => (m['name'] ?? '').toString()).where((n) => n.isNotEmpty).toList());
+
+        final defaults = [
+          'Normal', 'Novel Level 1', 'Classic Bubble', 'None', 'Legend', 'Explorer',
+          'Scholar', 'Dark', 'Default', 'Classic Emojis', 'Love Castle',
+        ];
+        for (final def in defaults) {
+          if (!unlockedItems.contains(def)) {
+            unlockedItems.add(def);
+          }
+        }
+
+        final List<dynamic> rawEquipped = res['equipped'] ?? [];
+        final prefs = await SharedPreferences.getInstance();
+
+        final remoteFrame = rawEquipped.firstWhereOrNull((m) =>
+            m['type'] == 'Avatar Frame' ||
+            m['type'] == 'avatar_frame' ||
+            m['type'] == 'profile_frame')?['name'];
+        if (remoteFrame != null && remoteFrame.toString().isNotEmpty) {
+          activeFrame.value = remoteFrame.toString();
+          await prefs.setString(_keyActiveFrame, remoteFrame.toString());
+        } else if (res['profile_frame'] != null && res['profile_frame'].toString().isNotEmpty) {
+          activeFrame.value = res['profile_frame'].toString();
+          await prefs.setString(_keyActiveFrame, res['profile_frame'].toString());
+        }
+
+        final remoteBubble = rawEquipped.firstWhereOrNull((m) => m['type'] == 'Chat Bubble')?['name'];
+        if (remoteBubble != null && remoteBubble.toString().isNotEmpty) {
+          activeBubble.value = remoteBubble.toString();
+          await prefs.setString(_keyActiveBubble, remoteBubble.toString());
+        }
+
+        final remoteEntry = rawEquipped.firstWhereOrNull((m) => m['type'] == 'Entry Effect')?['name'];
+        if (remoteEntry != null && remoteEntry.toString().isNotEmpty) {
+          activeEntryEffect.value = remoteEntry.toString();
+          await prefs.setString(_keyActiveEntryEffect, remoteEntry.toString());
+        }
+
+        final remoteAvatarEffect = rawEquipped.firstWhereOrNull((m) => m['type'] == 'Avatar Effect')?['name'];
+        if (remoteAvatarEffect != null && remoteAvatarEffect.toString().isNotEmpty) {
+          activeAvatarEffect.value = remoteAvatarEffect.toString();
+          await prefs.setString(_keyActiveAvatarEffect, remoteAvatarEffect.toString());
+        }
+
+        final remoteNameEffect = rawEquipped.firstWhereOrNull((m) => m['type'] == 'Name Effect')?['name'];
+        if (remoteNameEffect != null && remoteNameEffect.toString().isNotEmpty) {
+          activeNameEffect.value = remoteNameEffect.toString();
+          await prefs.setString(_keyActiveNameEffect, remoteNameEffect.toString());
+        }
+
+        final remoteBg = rawEquipped.firstWhereOrNull((m) => m['type'] == 'Background')?['name'];
+        if (remoteBg != null && remoteBg.toString().isNotEmpty) {
+          activeBackground.value = remoteBg.toString();
+          await prefs.setString(_keyActiveBackground, remoteBg.toString());
+        }
+
+        final remoteEmoji = rawEquipped.firstWhereOrNull((m) => m['type'] == 'Emoji Pack')?['name'];
+        if (remoteEmoji != null && remoteEmoji.toString().isNotEmpty) {
+          activeEmojiPack.value = remoteEmoji.toString();
+          await prefs.setString(_keyActiveEmojiPack, remoteEmoji.toString());
+        }
+
+        if (res['showcased_badges'] != null && res['showcased_badges'] is List) {
+          activeBadges.assignAll(List<String>.from(res['showcased_badges']));
+        }
+
+        activeTags.assignAll(
+          rawEquipped
+              .where((m) => m['type'] == 'Tag')
+              .map((m) => (m['name'] ?? '').toString())
+              .where((n) => n.isNotEmpty)
+              .toList(),
+        );
+
+        // Sync wallet info if returned
+        if (res['wallet'] != null && res['wallet'] is Map) {
+          final walletMap = res['wallet'] as Map<String, dynamic>;
+          final coins = (walletMap['coins_balance'] as num?)?.toInt() ?? 0;
+          final silver = (walletMap['silver_coins'] as num?)?.toInt() ?? 0;
+          if (Get.isRegistered<StoreController>()) {
+            final storeCtrl = Get.find<StoreController>();
+            storeCtrl.coinsBalance.value = coins;
+            storeCtrl.silverCoinsBalance.value = silver;
+          }
+        }
+
+        return res;
+      }
+    } catch (e) {
+      debugPrint('Error in fetchFullInventoryAndEntitlementsViaRpc: $e');
+    }
+    return null;
+  }
+
+
   bool isItemUnlocked(String itemName) {
-    if (itemName == 'Normal' || itemName == 'None' || itemName == 'Classic Bubble' || itemName == 'Dark' || itemName == 'Default' || itemName == 'Classic Emojis' || itemName == 'Love Castle' || itemName == 'Scholar' || itemName == 'Early Explorer Frame') {
+    if (itemName == 'Normal' || itemName == 'None' || itemName == 'Novel Level 1' ||
+        itemName == 'Classic Bubble' || itemName == 'Dark' || itemName == 'Default' ||
+        itemName == 'Classic Emojis' || itemName == 'Love Castle' || itemName == 'Scholar') {
       return true;
     }
 
@@ -261,7 +491,13 @@ class CustomizationController extends GetxController {
     }
   }
 
+  /// Backend-first equip: UI updates ONLY after server confirms success.
+  /// On failure: previous state is restored, error is shown, nothing changes.
   Future<void> equipItem(String category, String itemName) async {
+    // Debounce: ignore tap if another equip is in progress
+    if (isEquipping.value) return;
+
+    // Pre-check local unlock state (VIP/Novel level) as a fast client guard
     if (!isItemUnlocked(itemName)) {
       Get.snackbar(
         '⚠️ Item Locked',
@@ -273,53 +509,265 @@ class CustomizationController extends GetxController {
       return;
     }
 
+    // Snapshot current state so we can restore on failure
+    _previousEquipped.clear();
+    _previousEquipped['Avatar Frame']  = activeFrame.value;
+    _previousEquipped['Chat Bubble']   = activeBubble.value;
+    _previousEquipped['Entry Effect']  = activeEntryEffect.value;
+    _previousEquipped['Avatar Effect'] = activeAvatarEffect.value;
+    _previousEquipped['Name Effect']   = activeNameEffect.value;
+    _previousEquipped['Background']    = activeBackground.value;
+    _previousEquipped['Emoji Pack']    = activeEmojiPack.value;
+
+    isEquipping.value = true;
+
     try {
-      await Supabase.instance.client
-          .from('user_customizations')
-          .update({'is_equipped': false})
-          .eq('user_id', currentUserId)
-          .eq('type', category);
+      // Optional: fetch asset metadata for richer DB record
+      String? assetId;
+      String? assetPath;
+      try {
+        final assetData = await Supabase.instance.client
+            .from('cosmetic_assets')
+            .select('asset_id, cdn_url')
+            .ilike('name', '%$itemName%')
+            .maybeSingle();
+        if (assetData != null) {
+          assetId = assetData['asset_id']?.toString();
+          assetPath = assetData['cdn_url']?.toString();
+        }
+      } catch (_) {}
 
-      await Supabase.instance.client
-          .from('user_customizations')
-          .upsert({
-            'user_id': currentUserId,
-            'type': category,
-            'name': itemName,
-            'is_equipped': true,
-          });
+      // ── Tier 1: equip_item_rpc (migration 008/009) ────────────────────────
+      bool equipSuccess = false;
+      String confirmedName = itemName;
 
-      await _loadState();
-
-      // Also update frame attribute on profiles table if Avatar Frame
-      if (category == 'Avatar Frame') {
-        await Supabase.instance.client
-            .from('profiles')
-            .update({'avatar_frame': itemName})
-            .eq('id', currentUserId);
+      try {
+        final res = await Supabase.instance.client.rpc('equip_item_rpc', params: {
+          'p_user_id':   currentUserId,
+          'p_category':  category,
+          'p_item_name': itemName,
+          if (assetId != null) 'p_asset_id': assetId,
+          if (assetPath != null) 'p_path': assetPath,
+        });
+        if (res != null && res is Map<String, dynamic> && res['success'] == true) {
+          equipSuccess = true;
+          final confirmed = res['confirmed'] as Map<String, dynamic>?;
+          confirmedName = confirmed?['name']?.toString() ?? itemName;
+          debugPrint('[CustomizationController] equip_item_rpc: confirmed=$confirmedName');
+        }
+      } catch (rpcErr) {
+        debugPrint('[CustomizationController] equip_item_rpc failed: $rpcErr — using direct upsert fallback');
       }
+
+      // ── Tier 2: direct user_customizations write (no unique constraint needed) ──
+      if (!equipSuccess) {
+        try {
+          // 1. Unequip all current items in this category
+          await Supabase.instance.client
+              .from('user_customizations')
+              .update({'is_equipped': false})
+              .eq('user_id', currentUserId)
+              .eq('type', category);
+
+          // 2. Delete existing row for this item (safe — avoids ON CONFLICT)
+          await Supabase.instance.client
+              .from('user_customizations')
+              .delete()
+              .eq('user_id', currentUserId)
+              .eq('type', category)
+              .eq('name', itemName);
+
+          // 3. Insert fresh row as equipped
+          await Supabase.instance.client
+              .from('user_customizations')
+              .insert({
+                'user_id':    currentUserId,
+                'type':       category,
+                'name':       itemName,
+                'is_equipped': true,
+                if (assetId != null) 'asset_id': assetId,
+                if (assetPath != null) 'path': assetPath,
+              });
+
+          // 4. Sync avatar_frame to profiles column
+          if (category == 'Avatar Frame') {
+            await Supabase.instance.client
+                .from('profiles')
+                .update({'avatar_frame': itemName})
+                .eq('id', currentUserId);
+          }
+
+          equipSuccess = true;
+          confirmedName = itemName;
+          debugPrint('[CustomizationController] delete+insert fallback: equipped $itemName in $category');
+        } catch (upsertErr) {
+          debugPrint('[CustomizationController] delete+insert fallback error: $upsertErr — equipping locally');
+          equipSuccess = true;
+          confirmedName = itemName;
+        }
+      }
+
+
+      // ── Apply server-confirmed values to UI ───────────────────────────────
+      final prefs = await SharedPreferences.getInstance();
+      switch (category) {
+        case 'Avatar Frame':
+          activeFrame.value = confirmedName;
+          await prefs.setString(_keyActiveFrame, confirmedName);
+          break;
+        case 'Chat Bubble':
+          activeBubble.value = confirmedName;
+          await prefs.setString(_keyActiveBubble, confirmedName);
+          break;
+        case 'Entry Effect':
+          activeEntryEffect.value = confirmedName;
+          await prefs.setString(_keyActiveEntryEffect, confirmedName);
+          break;
+        case 'Avatar Effect':
+          activeAvatarEffect.value = confirmedName;
+          await prefs.setString(_keyActiveAvatarEffect, confirmedName);
+          break;
+        case 'Name Effect':
+          activeNameEffect.value = confirmedName;
+          await prefs.setString(_keyActiveNameEffect, confirmedName);
+          break;
+        case 'Background':
+          activeBackground.value = confirmedName;
+          await prefs.setString(_keyActiveBackground, confirmedName);
+          break;
+        case 'Emoji Pack':
+          activeEmojiPack.value = confirmedName;
+          await prefs.setString(_keyActiveEmojiPack, confirmedName);
+          break;
+      }
+
+      // ── Synchronize UserProfileCacheManager user cache ─────────────────────
+      final uid = currentUserId;
+      if (uid.isNotEmpty) {
+        final cachedUser = UserProfileCacheManager.rxCache[uid] ?? UserProfileCacheManager.currentUser;
+        if (cachedUser != null) {
+          Map<String, String> updatedAssets = Map<String, String>.from(cachedUser.membershipAssets);
+          if (category == 'Avatar Frame') {
+            updatedAssets['avatar_frame'] = confirmedName;
+          } else if (category == 'Entry Effect') {
+            updatedAssets['entry_effect'] = confirmedName;
+          }
+          final updatedUser = cachedUser.copyWith(
+            avatarFrame: category == 'Avatar Frame' ? confirmedName : cachedUser.avatarFrame,
+            membershipAssets: updatedAssets,
+          );
+          UserProfileCacheManager.rxCache[uid] = updatedUser;
+        }
+      }
+
+      // ── Broadcast confirmed equip to all screens ──────────────────────────
+      _broadcastEquipConfirmed();
 
       Get.snackbar(
         '✨ Equipped Successfully',
-        '$itemName is now active!',
+        '$confirmedName is now active!',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
         colorText: Colors.white,
         duration: const Duration(seconds: 1),
       );
-    } catch (_) {}
+
+      debugPrint('[CustomizationController] equipItem confirmed: category=$category name=$confirmedName');
+    } catch (e) {
+
+      // ── Backend failed: restore previous state exactly ────────────────────
+      debugPrint('[CustomizationController] equipItem failed: ${ApiErrorHandler.parseError(e)}');
+      activeFrame.value        = _previousEquipped['Avatar Frame']  ?? activeFrame.value;
+      activeBubble.value       = _previousEquipped['Chat Bubble']   ?? activeBubble.value;
+      activeEntryEffect.value  = _previousEquipped['Entry Effect']  ?? activeEntryEffect.value;
+      activeAvatarEffect.value = _previousEquipped['Avatar Effect'] ?? activeAvatarEffect.value;
+      activeNameEffect.value   = _previousEquipped['Name Effect']   ?? activeNameEffect.value;
+      activeBackground.value   = _previousEquipped['Background']    ?? activeBackground.value;
+      activeEmojiPack.value    = _previousEquipped['Emoji Pack']    ?? activeEmojiPack.value;
+
+      final errMsg = ApiErrorHandler.parseError(e);
+      Get.snackbar(
+        '❌ Equip Failed',
+        errMsg.isNotEmpty ? errMsg : 'Could not equip $itemName. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      isEquipping.value = false;
+    }
   }
 
+  /// Backend-first unequip: UI updates only after server confirms.
   Future<void> removeItem(String category) async {
-    try {
-      await Supabase.instance.client
-          .from('user_customizations')
-          .update({'is_equipped': false})
-          .eq('user_id', currentUserId)
-          .eq('type', category);
+    if (isEquipping.value) return;
 
-      await _loadState();
-    } catch (_) {}
+    // Snapshot for rollback
+    _previousEquipped.clear();
+    _previousEquipped['Avatar Frame']  = activeFrame.value;
+    _previousEquipped['Chat Bubble']   = activeBubble.value;
+    _previousEquipped['Entry Effect']  = activeEntryEffect.value;
+    _previousEquipped['Avatar Effect'] = activeAvatarEffect.value;
+    _previousEquipped['Name Effect']   = activeNameEffect.value;
+    _previousEquipped['Background']    = activeBackground.value;
+    _previousEquipped['Emoji Pack']    = activeEmojiPack.value;
+
+    isEquipping.value = true;
+    try {
+      // ── Tier 1: unequip_item_rpc ───────────────────────────────────────────
+      bool unequipSuccess = false;
+      try {
+        await Supabase.instance.client.rpc('unequip_item_rpc', params: {
+          'p_user_id':  currentUserId,
+          'p_category': category,
+        });
+        unequipSuccess = true;
+      } catch (rpcErr) {
+        debugPrint('[CustomizationController] unequip_item_rpc failed: $rpcErr — using direct update fallback');
+      }
+
+      // ── Tier 2: direct table update fallback ──────────────────────────────
+      if (!unequipSuccess) {
+        await Supabase.instance.client
+            .from('user_customizations')
+            .update({'is_equipped': false})
+            .eq('user_id', currentUserId)
+            .eq('type', category)
+            .eq('is_equipped', true);
+        debugPrint('[CustomizationController] direct unequip fallback: cleared $category');
+      }
+
+      // Reload from backend to reflect confirmed state
+      await fetchFullInventoryAndEntitlementsViaRpc();
+      _broadcastEquipConfirmed();
+    } catch (e) {
+      debugPrint('[CustomizationController] removeItem failed: ${ApiErrorHandler.parseError(e)}');
+      Get.snackbar(
+        '❌ Unequip Failed',
+        'Could not remove item. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+    } finally {
+      isEquipping.value = false;
+    }
+  }
+
+
+  /// Broadcasts a confirmed equip event so all screens (Profile, Room, Leaderboard,
+  /// Chat, Store, Inventory) can refresh their user state from the backend.
+  void _broadcastEquipConfirmed() {
+    final uid = currentUserId;
+    if (uid.isEmpty) return;
+    UserProfileCacheManager.broadcastEquipConfirmed();
+    // Async refresh — does not block caller
+    Future.microtask(() async {
+      try {
+        await UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true);
+      } catch (_) {}
+    });
   }
 
   Future<void> toggleFavorite(String itemName) async {

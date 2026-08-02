@@ -14,6 +14,7 @@ import 'room_profile_screen.dart';
 import 'voice_room_call_screen.dart';
 import '../../widgets/custom_avatar_frame.dart';
 import '../../widgets/premium_name_widget.dart';
+import '../../widgets/wallet_header_pill.dart';
 import '../../models/user_model.dart';
 
 class RoomsScreen extends StatefulWidget {
@@ -581,48 +582,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             ],
           ),
           const Spacer(),
-          // Wallet indicator (gold coins)
-          GestureDetector(
-            onTap: () => _controller.walletBalance.value += 100, // cheat coin add
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: context.secondaryBackgroundColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.amber.withOpacity(0.3)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.amber.withOpacity(0.1),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                  )
-                ],
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-                  SizedBox(width: 4),
-                  Obx(() => Text(
-                        '${_controller.walletBalance.value}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      )),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(width: 12),
-          // Create Arena button (plus)
-          IconButton(
-            onPressed: () => _checkCreationAndNavigate(context),
-            icon: Icon(Icons.add_circle, color: Color(0xFF8B5CF6), size: 28),
-            tooltip: 'Create Arena',
-            constraints: const BoxConstraints(),
-            padding: EdgeInsets.zero,
-          ),
+          // Server-Authoritative Read-Only Wallet Header Pill & Plus Button
+          const WalletHeaderPill(),
         ],
       ),
     );

@@ -1,16 +1,18 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'signup_flow_screen.dart';
-import 'forgot_password_screen.dart';
-import 'phone_auth_screen.dart';
+import 'terms_screen.dart';
 import '../home/main_screen.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../../services/user_progress_sync_service.dart';
+import '../../core/api_error_handler.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -22,13 +24,17 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with TickerProviderStateMixin {
   final _emailCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _socialEmailCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _otpSent = false;
+  bool _isPasswordVisible = false;
+  bool _usePasswordLogin = true;
   bool _showEmailForm = false; // Toggle between selector and email form
+  StreamSubscription<AuthState>? _authSubscription;
 
   late AnimationController _bgAnimCtrl;
   late AnimationController _fadeCtrl;
@@ -48,11 +54,21 @@ class _LoginScreenState extends State<LoginScreen>
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.forward();
+
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+      if (event == AuthChangeEvent.signedIn && session != null) {
+        _checkProfileAndNavigate(session.user.id);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _emailCtrl.dispose();
+    _otpCtrl.dispose();
     _passCtrl.dispose();
     _socialEmailCtrl.dispose();
     _bgAnimCtrl.dispose();
@@ -60,11 +76,23 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  bool _isValidUuid(String? id) {
+    if (id == null || id.isEmpty) return false;
+    final regExp = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    );
+    return regExp.hasMatch(id);
+  }
+
   void _checkProfileAndNavigate(String userId) async {
+    if (!_isValidUuid(userId)) {
+      Get.offAll(() => SignupFlowScreen(userId: null, startStep: 1));
+      return;
+    }
     try {
       final res = await Supabase.instance.client
           .from('profiles')
-          .select('username, display_name, interests, status, is_banned, ban_reason')
+          .select('username, display_name, interests, status, is_banned, ban_reason, signup_status, age, gender, avatar_url, bio')
           .eq('id', userId)
           .maybeSingle();
 
@@ -86,6 +114,33 @@ class _LoginScreenState extends State<LoginScreen>
         return;
       }
 
+      final signupStatus = res['signup_status'] as String? ?? 'completed';
+      if (signupStatus != 'completed') {
+        int startStep = 1;
+        final username = res['username'] ?? '';
+        final interests = List<String>.from(res['interests'] ?? []);
+        final age = res['age'] as int? ?? 0;
+        final gender = res['gender'] as String?;
+        final avatar = res['avatar_url'] as String?;
+        final bio = res['bio'] as String?;
+
+        if (username.isNotEmpty && !username.startsWith('user_')) {
+          if (age == 0 || gender == null || gender.isEmpty) {
+            startStep = 2;
+          } else if (avatar == null || avatar.isEmpty) {
+            startStep = 3;
+          } else if (bio == null || bio.isEmpty) {
+            startStep = 4;
+          } else if (interests.isEmpty) {
+            startStep = 5;
+          } else {
+            startStep = 6;
+          }
+        }
+        Get.offAll(() => SignupFlowScreen(userId: userId, startStep: startStep));
+        return;
+      }
+
       // Force refresh profile and progress cache from Supabase
       await UserProfileCacheManager.getOrFetchCanonicalId();
       await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
@@ -104,7 +159,45 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  void _handleLogin() async {
+  void _handlePasswordLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final email = _emailCtrl.text.trim();
+      final password = _passCtrl.text;
+
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = response.user;
+      if (user != null) {
+        _checkProfileAndNavigate(user.id);
+      } else {
+        throw Exception("Login failed. Please check credentials.");
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      Get.snackbar(
+        'Authentication Failed ⚠️',
+        e.toString().replaceAll('AuthException: ', ''),
+        backgroundColor: context.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  void _showForgotPasswordBottomSheet() {
+    Get.bottomSheet(
+      const ForgotPasswordBottomSheet(),
+      isScrollControlled: true,
+    );
+  }
+
+  void _sendLoginOTP() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     
@@ -144,21 +237,65 @@ class _LoginScreenState extends State<LoginScreen>
                 },
                 child: Text('Create New Account', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white)),
               ),
-              SizedBox(height: 12),
-              TextButton(
-                onPressed: null, // Disabled Forgot Password since account doesn't exist
-                child: Text('Forgot Password?', style: GoogleFonts.poppins(color: context.caption)),
-              ),
             ],
           ),
         );
         return;
       }
 
-      // 2. Perform Login
-      final response = await Supabase.instance.client.auth.signInWithPassword(
+      // 2. Send 6-digit OTP to Email
+      await Supabase.instance.client.auth.signInWithOtp(
         email: email,
-        password: _passCtrl.text.trim(),
+        shouldCreateUser: false,
+        emailRedirectTo: 'io.supabase.flutter://login-callback/',
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _otpSent = true;
+      });
+
+      Get.snackbar(
+        'OTP Sent ✉️',
+        'Please check your email for the login verification code.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: context.accentOrange.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      
+      String errMsg = e.toString().replaceAll('AuthException: ', '');
+      if (errMsg.toLowerCase().contains('rate limit') || errMsg.toLowerCase().contains('429')) {
+        errMsg = "Email rate limit exceeded.\nPlease wait a few minutes before trying again.";
+      }
+
+      Get.snackbar(
+        'Failed to Send OTP ⚠️',
+        errMsg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: context.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void _verifyLoginOTP() async {
+    final otpCode = _otpCtrl.text.trim();
+    if (otpCode.isEmpty) {
+      Get.snackbar('Error', 'Please enter the verification code');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final email = _emailCtrl.text.trim();
+    try {
+      final response = await Supabase.instance.client.auth.verifyOTP(
+        type: OtpType.email,
+        token: otpCode,
+        email: email,
       );
 
       if (!mounted) return;
@@ -170,16 +307,9 @@ class _LoginScreenState extends State<LoginScreen>
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      
-      final errStr = e.toString().toLowerCase();
-      String finalMsg = e.toString().replaceAll('AuthException: ', '');
-      if (errStr.contains('invalid login credentials') || errStr.contains('invalid_credentials')) {
-        finalMsg = 'Incorrect password.';
-      }
-
       Get.snackbar(
-        'Login Failed ⚠️',
-        finalMsg,
+        'Verification Failed ⚠️',
+        e.toString().replaceAll('AuthException: ', ''),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
@@ -188,133 +318,30 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _handleSocialLogin(String provider) async {
-    // Show input dialog to simulate OAuth flow email
-    Get.defaultDialog(
-      title: 'Simulate $provider Sign In',
-      titleStyle: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold),
-      backgroundColor: context.secondaryBackgroundColor,
-      contentPadding: EdgeInsets.all(20),
-      content: Column(
-        children: [
-          Text(
-            'Enter the $provider account email to simulate the OAuth authentication:',
-            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16),
-          TextField(
-            controller: _socialEmailCtrl,
-            style: TextStyle(color: context.textPrimary),
-            decoration: const InputDecoration(
-              hintText: 'user@domain.com',
-            ),
-          ),
-        ],
-      ),
-      textConfirm: 'Continue',
-      confirmTextColor: Colors.white,
-      buttonColor: context.primaryColor,
-      textCancel: 'Cancel',
-      cancelTextColor: context.textSecondary,
-      onConfirm: () {
-        final email = _socialEmailCtrl.text.trim();
-        if (email.isEmpty || !email.contains('@')) {
-          Get.snackbar('Error', 'Please enter a valid email');
-          return;
-        }
-        Get.back(); // Close input dialog
-        _processSocialLogin(provider, email);
-      }
-    );
-  }
-
-  void _processSocialLogin(String provider, String email) async {
     setState(() => _isLoading = true);
     try {
-      final providerColumn = provider.toLowerCase() == 'google' ? 'google_provider_id' : 'apple_provider_id';
-      
-      // Check if both provider ID and email are completely new
-      final res = await Supabase.instance.client
-          .from('profiles')
-          .select('id, email, google_provider_id, apple_provider_id')
-          .or('email.eq.$email,$providerColumn.eq.$email')
-          .maybeSingle();
+      final targetProvider =
+          provider.toLowerCase() == 'facebook' ? OAuthProvider.facebook : OAuthProvider.google;
 
-      if (res == null) {
-        setState(() => _isLoading = false);
-        // Both provider ID and email are completely new: show "No account found..."
-        Get.defaultDialog(
-          title: 'Account Not Found ⚠️',
-          titleStyle: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold),
-          backgroundColor: context.secondaryBackgroundColor,
-          contentPadding: EdgeInsets.all(20),
-          content: Column(
-            children: [
-              Text(
-                'No account found with this $provider account.',
-                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: context.primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                onPressed: () {
-                  Get.back();
-                  Get.to(() => SignupFlowScreen(
-                    startStep: 0, 
-                    prefilledEmail: email,
-                    prefilledProvider: provider,
-                  ));
-                },
-                child: Text('Create Account', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white)),
-              ),
-              SizedBox(height: 12),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  side: BorderSide(color: context.borderColor),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                onPressed: () => Get.back(),
-                child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.white)),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
-      // If exists, perform sandbox password reset and sign in to link the provider
-      // Set the password to 'SocialPassword123!' so we can sign in
-      await Supabase.instance.client.rpc('dev_reset_password', params: {
-        'user_email': email,
-        'user_phone': '',
-        'new_password': 'SocialPassword123!',
-      });
-
-      // Sign In with mock OAuth credentials
-      final response = await Supabase.instance.client.auth.signInWithPassword(
-        email: email,
-        password: 'SocialPassword123!',
+      final success = await Supabase.instance.client.auth.signInWithOAuth(
+        targetProvider,
+        redirectTo: 'io.supabase.flutter://login-callback/',
       );
-
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-
-      if (response.user != null) {
-        _checkProfileAndNavigate(response.user!.id);
+      if (!success) {
+        setState(() => _isLoading = false);
+        Get.snackbar(
+          'OAuth Error ⚠️',
+          'Failed to open the browser for social authentication.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: context.errorColor.withOpacity(0.9),
+          colorText: Colors.white,
+        );
       }
     } catch (e) {
-      if (!mounted) return;
       setState(() => _isLoading = false);
       Get.snackbar(
-        'Social Auth Failed ⚠️',
-        e.toString(),
+        'Social Login Failed ⚠️',
+        ApiErrorHandler.parseError(e),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: context.errorColor.withOpacity(0.9),
         colorText: Colors.white,
@@ -376,30 +403,6 @@ class _LoginScreenState extends State<LoginScreen>
                           child: _showEmailForm ? _buildEmailLoginForm() : _buildAuthSelector(),
                         ),
                       ),
-                      SizedBox(height: 24),
-
-                      // Terms & Policy
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 24),
-                        child: RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: GoogleFonts.poppins(color: context.caption, fontSize: 11, height: 1.5),
-                            children: [
-                              const TextSpan(text: 'By continuing, you agree to the '),
-                              TextSpan(
-                                text: 'Terms of Service',
-                                style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-                              ),
-                              const TextSpan(text: ' & '),
-                              TextSpan(
-                                text: 'Privacy Policy',
-                                style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -433,16 +436,9 @@ class _LoginScreenState extends State<LoginScreen>
         SizedBox(height: 12),
 
         _socialButton(
-          label: 'Continue with Apple',
-          icon: Icon(Icons.apple_rounded, color: Colors.white, size: 22),
-          onTap: () => _handleSocialLogin('Apple'),
-        ),
-        SizedBox(height: 12),
-
-        _socialButton(
-          label: 'Continue with Phone',
-          icon: Icon(Icons.phone_iphone_rounded, color: context.accentOrange, size: 22),
-          onTap: () => Get.to(() => const PhoneAuthScreen()),
+          label: 'Continue with Facebook',
+          icon: _facebookIcon(),
+          onTap: () => _handleSocialLogin('Facebook'),
         ),
         SizedBox(height: 12),
 
@@ -462,7 +458,7 @@ class _LoginScreenState extends State<LoginScreen>
           children: [
             Text("Don't have an account? ", style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13)),
             GestureDetector(
-              onTap: () => Get.to(() => const SignupFlowScreen(startStep: 0)),
+              onTap: () => Get.to(() => SignupFlowScreen(startStep: 0)),
               child: Text(
                 'Sign Up',
                 style: GoogleFonts.poppins(
@@ -488,67 +484,194 @@ class _LoginScreenState extends State<LoginScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Welcome Back', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: context.textPrimary)),
+              Text(
+                _otpSent
+                    ? 'Enter OTP'
+                    : (_usePasswordLogin ? 'Password Login' : 'Email OTP Login'),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: context.textPrimary,
+                ),
+              ),
               IconButton(
                 icon: Icon(Icons.arrow_back_rounded, color: context.textPrimary),
                 onPressed: () {
                   setState(() {
-                    _showEmailForm = false;
+                    if (_otpSent) {
+                      _otpSent = false;
+                      _otpCtrl.clear();
+                    } else {
+                      _showEmailForm = false;
+                    }
                   });
                 },
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
+
+          if (!_otpSent) ...[
+            // Tab Toggle
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _usePasswordLogin = true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: _usePasswordLogin ? context.primaryColor : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Password',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: _usePasswordLogin ? FontWeight.bold : FontWeight.normal,
+                          color: _usePasswordLogin ? context.textPrimary : context.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _usePasswordLogin = false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: !_usePasswordLogin ? context.primaryColor : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Email OTP',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: !_usePasswordLogin ? FontWeight.bold : FontWeight.normal,
+                          color: !_usePasswordLogin ? context.textPrimary : context.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
 
           _buildLabel('Email Address'),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           _buildTextField(
             controller: _emailCtrl,
             hint: 'name@domain.com',
             icon: Icons.alternate_email_rounded,
             keyboardType: TextInputType.emailAddress,
+            enabled: !_otpSent,
             validator: (v) {
               if (v == null || v.trim().isEmpty) return 'Email is required';
               if (!v.contains('@')) return 'Enter a valid email';
               return null;
             },
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-          _buildLabel('Password'),
-          SizedBox(height: 8),
-          _buildTextField(
-            controller: _passCtrl,
-            hint: '••••••••',
-            icon: Icons.lock_outline_rounded,
-            isPassword: true,
-            isPasswordVisible: _isPasswordVisible,
-            onTogglePassword: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Password is required';
-              return null;
-            },
-          ),
-          SizedBox(height: 12),
-
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: () => Get.to(() => const ForgotPasswordScreen()),
-              child: Text(
-                'Forgot Password?',
-                style: GoogleFonts.poppins(color: context.primaryColor, fontSize: 12, fontWeight: FontWeight.w600),
+          if (_otpSent) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildLabel('OTP Code'),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _otpSent = false;
+                      _otpCtrl.clear();
+                    });
+                  },
+                  child: Text(
+                    'Change Email',
+                    style: GoogleFonts.poppins(
+                      color: context.primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _otpCtrl,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              style: const TextStyle(color: Colors.white, letterSpacing: 8, fontSize: 18),
+              textAlign: TextAlign.center,
+              decoration: const InputDecoration(
+                hintText: '••••••',
+                counterText: '',
               ),
             ),
-          ),
-          SizedBox(height: 24),
-
-          _buildPrimaryButton(
-            label: 'Login',
-            isLoading: _isLoading,
-            onTap: _handleLogin,
-          ),
+            const SizedBox(height: 24),
+            _buildPrimaryButton(
+              label: 'Verify OTP & Login',
+              isLoading: _isLoading,
+              onTap: _verifyLoginOTP,
+            ),
+          ] else ...[
+            if (_usePasswordLogin) ...[
+              _buildLabel('Password'),
+              const SizedBox(height: 8),
+              _buildTextField(
+                controller: _passCtrl,
+                hint: '••••••••',
+                icon: Icons.lock_outline_rounded,
+                isPassword: true,
+                isPasswordVisible: _isPasswordVisible,
+                onTogglePassword: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Password is required';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _showForgotPasswordBottomSheet,
+                  child: Text(
+                    'Forgot Password?',
+                    style: GoogleFonts.poppins(
+                      color: context.primaryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildPrimaryButton(
+                label: 'Login with Password',
+                isLoading: _isLoading,
+                onTap: _handlePasswordLogin,
+              ),
+            ] else ...[
+              _buildPrimaryButton(
+                label: 'Send 6-digit OTP',
+                isLoading: _isLoading,
+                onTap: _sendLoginOTP,
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -640,12 +763,14 @@ class _LoginScreenState extends State<LoginScreen>
     bool isPasswordVisible = false,
     VoidCallback? onTogglePassword,
     String? Function(String?)? validator,
+    bool enabled = true,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword && !isPasswordVisible,
       keyboardType: keyboardType,
       validator: validator,
+      enabled: enabled,
       style: TextStyle(color: context.textPrimary, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
@@ -732,43 +857,340 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _googleIcon() {
-    return CustomPaint(
-      size: const Size(20, 20),
-      painter: _GoogleLogoPainter(),
+    return SvgPicture.string(
+      '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>''',
+      width: 22,
+      height: 22,
+    );
+  }
+
+  Widget _facebookIcon() {
+    return SvgPicture.string(
+      '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+        <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+      </svg>''',
+      width: 22,
+      height: 22,
     );
   }
 }
 
-class _GoogleLogoPainter extends CustomPainter {
+class ForgotPasswordBottomSheet extends StatefulWidget {
+  const ForgotPasswordBottomSheet({Key? key}) : super(key: key);
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final r = size.width / 2;
-    final paint = Paint()..style = PaintingStyle.fill;
+  State<ForgotPasswordBottomSheet> createState() => _ForgotPasswordBottomSheetState();
+}
 
-    paint.color = Color(0xFF4285F4);
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r), -1.047, 2.094, true, paint);
+class _ForgotPasswordBottomSheetState extends State<ForgotPasswordBottomSheet> {
+  final _emailCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  final _confirmPassCtrl = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
-    paint.color = Color(0xFF34A853);
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r), 0.524, 1.047, true, paint);
+  bool _otpSent = false;
+  bool _isLoading = false;
+  bool _obscurePass = true;
+  bool _obscureConfirmPass = true;
 
-    paint.color = Color(0xFFFBBC05);
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r), 2.094, 1.047, true, paint);
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _otpCtrl.dispose();
+    _passCtrl.dispose();
+    _confirmPassCtrl.dispose();
+    super.dispose();
+  }
 
-    paint.color = Color(0xFFEA4335);
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r), 3.142, 1.047, true, paint);
+  void _sendRecoveryOTP() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      Get.snackbar('Error', 'Please enter a valid email address');
+      return;
+    }
 
-    paint.color = Colors.white;
-    canvas.drawCircle(Offset(cx, cy), r * 0.6, paint);
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email,
+      );
+      setState(() {
+        _isLoading = false;
+        _otpSent = true;
+      });
+      Get.snackbar(
+        'OTP Sent ✉️',
+        'Verification code has been sent to your email.',
+        backgroundColor: Colors.orange.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      Get.snackbar(
+        'Error ⚠️',
+        e.toString().replaceAll('AuthException: ', ''),
+        backgroundColor: Colors.red.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
 
-    paint.color = Color(0xFF4285F4);
-    canvas.drawRect(Rect.fromLTRB(cx, cy - r * 0.14, cx + r, cy + r * 0.14), paint);
+  void _resetPassword() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    paint.color = Colors.white;
-    canvas.drawCircle(Offset(cx, cy), r * 0.38, paint);
+    final email = _emailCtrl.text.trim();
+    final otpCode = _otpCtrl.text.trim();
+    final newPassword = _passCtrl.text;
+    final confirmPassword = _confirmPassCtrl.text;
+
+    if (otpCode.isEmpty || otpCode.length < 6) {
+      Get.snackbar('Error', 'Please enter the 6-digit verification code');
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      Get.snackbar('Error', 'Passwords do not match');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final response = await Supabase.instance.client.auth.verifyOTP(
+        type: OtpType.recovery,
+        token: otpCode,
+        email: email,
+      );
+
+      if (response.user != null) {
+        await Supabase.instance.client.auth.updateUser(
+          UserAttributes(password: newPassword),
+        );
+
+        setState(() => _isLoading = false);
+        Get.back();
+        Get.snackbar(
+          'Password Changed 🎉',
+          'Your password has been successfully updated. Logging you in...',
+          backgroundColor: Colors.green.withOpacity(0.9),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      } else {
+        throw Exception("Verification failed");
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      Get.snackbar(
+        'Reset Failed ⚠️',
+        e.toString().replaceAll('AuthException: ', ''),
+        backgroundColor: Colors.red.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      decoration: BoxDecoration(
+        color: context.secondaryBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border.all(color: context.borderColor),
+      ),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _otpSent ? 'Reset Password' : 'Forgot Password',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: context.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: context.textPrimary),
+                    onPressed: () => Get.back(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (!_otpSent) ...[
+                Text(
+                  'Enter your email address associated with your account, and we will send you a 6-digit recovery code to reset your password.',
+                  style: GoogleFonts.poppins(
+                    color: context.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Email Address',
+                  style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _emailCtrl,
+                  style: TextStyle(color: context.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'name@domain.com',
+                    prefixIcon: Icon(Icons.alternate_email_rounded, color: context.caption),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Email is required';
+                    if (!v.contains('@')) return 'Enter a valid email';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _sendRecoveryOTP,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: context.primaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Text(
+                            'Send Code',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                  ),
+                ),
+              ] else ...[
+                Text(
+                  'Enter the 6-digit reset code sent to your email along with your new password.',
+                  style: GoogleFonts.poppins(
+                    color: context.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  '6-digit Reset Code',
+                  style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _otpCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: context.textPrimary, letterSpacing: 8, fontSize: 18),
+                  decoration: const InputDecoration(
+                    hintText: '••••••',
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'New Password',
+                  style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _passCtrl,
+                  obscureText: _obscurePass,
+                  style: TextStyle(color: context.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: '••••••••',
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: context.caption),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePass ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        color: context.caption,
+                      ),
+                      onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                    ),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'New password is required';
+                    if (v.length < 6) return 'Password must be at least 6 characters';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Confirm New Password',
+                  style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _confirmPassCtrl,
+                  obscureText: _obscureConfirmPass,
+                  style: TextStyle(color: context.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: '••••••••',
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: context.caption),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPass ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        color: context.caption,
+                      ),
+                      onPressed: () => setState(() => _obscureConfirmPass = !_obscureConfirmPass),
+                    ),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Confirm password is required';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _resetPassword,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: context.primaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Text(
+                            'Reset & Login',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

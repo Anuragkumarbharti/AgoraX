@@ -129,7 +129,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
   // New reactive variables for active room state
   final RxList<RoomMember> activeMembers = <RoomMember>[].obs;
-  final RxList<Map<String, dynamic>> activeRequests = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> activeRequests =
+      <Map<String, dynamic>>[].obs;
   final RxList<Map<String, dynamic>> activePolls = <Map<String, dynamic>>[].obs;
   final RxMap<String, bool> currentPermissions = <String, bool>{}.obs;
   final RxBool isMutedByModerator = false.obs;
@@ -139,11 +140,16 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   final Rxn<Map<String, dynamic>> rxEntranceEvent = Rxn<Map<String, dynamic>>();
 
   // Room Progression System states
-  final RxMap<String, RoomLevelProgress> roomLevelProgresses = <String, RoomLevelProgress>{}.obs;
-  final RxMap<String, RoomStatistics> roomStats = <String, RoomStatistics>{}.obs;
-  final RxMap<String, List<RoomDailyTask>> roomDailyTaskLists = <String, List<RoomDailyTask>>{}.obs;
-  final RxMap<String, List<Map<String, dynamic>>> roomSeatsInfo = <String, List<Map<String, dynamic>>>{}.obs;
-  final RxMap<String, int> roomSeatGiftsCounters = <String, int>{}.obs; // key: room_id:seat_index -> silver_gift_count
+  final RxMap<String, RoomLevelProgress> roomLevelProgresses =
+      <String, RoomLevelProgress>{}.obs;
+  final RxMap<String, RoomStatistics> roomStats =
+      <String, RoomStatistics>{}.obs;
+  final RxMap<String, List<RoomDailyTask>> roomDailyTaskLists =
+      <String, List<RoomDailyTask>>{}.obs;
+  final RxMap<String, List<Map<String, dynamic>>> roomSeatsInfo =
+      <String, List<Map<String, dynamic>>>{}.obs;
+  final RxMap<String, int> roomSeatGiftsCounters =
+      <String, int>{}.obs; // key: room_id:seat_index -> silver_gift_count
   final RxList<String> marqueeAnnouncementsQueue = <String>[].obs;
 
   RealtimeChannel? _roomProgressionChannel;
@@ -158,24 +164,30 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   // roomId -> list of muted user IDs
   final RxMap<String, List<String>> mutedUsers = <String, List<String>>{}.obs;
   // roomId -> list of chat muted user IDs
-  final RxMap<String, List<String>> mutedChatUsers = <String, List<String>>{}.obs;
+  final RxMap<String, List<String>> mutedChatUsers =
+      <String, List<String>>{}.obs;
   // roomId -> list of banned user IDs
   final RxMap<String, List<String>> bannedUsers = <String, List<String>>{}.obs;
 
   // roomId -> { userId -> { 'duration': String, 'timestamp': DateTime, 'unbanTime': DateTime? } }
-  final RxMap<String, Map<String, Map<String, dynamic>>> roomBannedUsersDetailed = <String, Map<String, Map<String, dynamic>>>{}.obs;
+  final RxMap<String, Map<String, Map<String, dynamic>>>
+      roomBannedUsersDetailed =
+      <String, Map<String, Map<String, dynamic>>>{}.obs;
 
   // Favorites and Recents tracking for discovery
   final RxList<String> favoriteRoomIds = <String>[].obs;
   final RxList<String> recentRoomIds = <String>[].obs;
 
   // Room Chat messages (roomId -> list of messages)
-  final RxMap<String, RxList<RoomChatMessage>> roomChats = <String, RxList<RoomChatMessage>>{}.obs;
-  final Rxn<Map<String, dynamic>> activeGiftNotification = Rxn<Map<String, dynamic>>();
+  final RxMap<String, RxList<RoomChatMessage>> roomChats =
+      <String, RxList<RoomChatMessage>>{}.obs;
+  final Rxn<Map<String, dynamic>> activeGiftNotification =
+      Rxn<Map<String, dynamic>>();
   final RxList<String> bottomSystemNotifications = <String>[].obs;
   final RxnString activeSystemNotification = RxnString();
   final RxMap<String, bool> roomActivityQueuesBusy = <String, bool>{}.obs;
-  final RxMap<String, List<Map<String, dynamic>>> roomActivityQueues = <String, List<Map<String, dynamic>>>{}.obs;
+  final RxMap<String, List<Map<String, dynamic>>> roomActivityQueues =
+      <String, List<Map<String, dynamic>>>{}.obs;
 
   Timer? _progressionTimer;
   int _minutesInRoom = 0;
@@ -183,12 +195,13 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   void startProgressionTimer(String roomId) {
     _progressionTimer?.cancel();
     _minutesInRoom = 0;
-    _progressionTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
+    _progressionTimer =
+        Timer.periodic(const Duration(minutes: 1), (timer) async {
       if (activeRoomId != roomId) {
         timer.cancel();
         return;
       }
-      
+
       // Determine if sitting on a seat (hosting/co-hosting)
       bool isSitting = false;
       final seats = roomSeatsInfo[roomId];
@@ -206,7 +219,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       } catch (e) {
         debugPrint('RoomController progression timer error: $e');
       }
-      
+
       _minutesInRoom++;
     });
   }
@@ -224,8 +237,6 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     subscribeToRoomsList();
   }
 
-
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.detached) {
@@ -241,19 +252,26 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       if (roomId != null) {
         final seats = roomSeatsInfo[roomId];
         if (seats != null) {
-          final seat = seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
+          final seat =
+              seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
           if (seat != null) {
             final seatIdx = seat['seatIndex'] as int;
-            Supabase.instance.client.rpc('leave_room_seat', params: {
-              'p_room_id': roomId,
-              'p_seat_index': seatIdx,
-            }).then((_) => null).catchError((_) => null);
+            Supabase.instance.client
+                .rpc('leave_room_seat', params: {
+                  'p_room_id': roomId,
+                  'p_seat_index': seatIdx,
+                })
+                .then((_) => null)
+                .catchError((_) => null);
           }
         }
-        
-        Supabase.instance.client.rpc('leave_room', params: {
-          'p_room_id': roomId,
-        }).then((_) => null).catchError((_) => null);
+
+        Supabase.instance.client
+            .rpc('leave_room', params: {
+              'p_room_id': roomId,
+            })
+            .then((_) => null)
+            .catchError((_) => null);
       }
 
       RoomVoiceManager().leaveRoom();
@@ -296,23 +314,28 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         final bool wasLeave = last.text.contains('left the room');
 
         if ((isEntry && wasEntry) || (isLeave && wasLeave)) {
-          final String keyword = isEntry ? ' entered the room.' : ' left the room.';
+          final String keyword =
+              isEntry ? ' entered the room.' : ' left the room.';
           final String emoji = isEntry ? '🟢 ' : '👋 ';
 
           // Clean names
-          final lastClean = last.text.replaceFirst(emoji, '').replaceFirst(keyword, '');
-          final newClean = message.text.replaceFirst(emoji, '').replaceFirst(keyword, '');
+          final lastClean =
+              last.text.replaceFirst(emoji, '').replaceFirst(keyword, '');
+          final newClean =
+              message.text.replaceFirst(emoji, '').replaceFirst(keyword, '');
 
           // Get names set
           final Set<String> names = lastClean.split(', ').toSet();
           if (!names.contains(newClean)) {
             names.add(newClean);
             final updatedText = '$emoji${names.join(', ')}$keyword';
-            messages[messages.length - 1] = last.copyWith(text: updatedText, repeatCount: last.repeatCount + 1);
+            messages[messages.length - 1] = last.copyWith(
+                text: updatedText, repeatCount: last.repeatCount + 1);
             return;
           } else {
             // Already contains name, merge by incrementing repeat count or just ignore
-            messages[messages.length - 1] = last.copyWith(repeatCount: last.repeatCount + 1);
+            messages[messages.length - 1] =
+                last.copyWith(repeatCount: last.repeatCount + 1);
             return;
           }
         }
@@ -320,7 +343,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         // 2. Merge consecutive identical gift messages
         // Format: "🎁 {Username} sent {Gift Name} × {Count} to {Receiver}."
         if (message.text.startsWith('🎁') && last.text.startsWith('🎁')) {
-          final giftRegex = RegExp(r'^🎁\s+(.*?)\s+sent\s+(.*?)\s+×\s+(\d+)\s+to\s+(.*?)\.$');
+          final giftRegex =
+              RegExp(r'^🎁\s+(.*?)\s+sent\s+(.*?)\s+×\s+(\d+)\s+to\s+(.*?)\.$');
           final matchLast = giftRegex.firstMatch(last.text);
           final matchNew = giftRegex.firstMatch(message.text);
 
@@ -335,9 +359,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
             final countNew = int.tryParse(matchNew.group(3) ?? '1') ?? 1;
             final receiverNew = matchNew.group(4);
 
-            if (senderLast == senderNew && giftLast == giftNew && receiverLast == receiverNew) {
+            if (senderLast == senderNew &&
+                giftLast == giftNew &&
+                receiverLast == receiverNew) {
               final totalCount = countLast + countNew;
-              final updatedText = '🎁 $senderNew sent $giftNew × $totalCount to $receiverNew.';
+              final updatedText =
+                  '🎁 $senderNew sent $giftNew × $totalCount to $receiverNew.';
               messages[messages.length - 1] = last.copyWith(text: updatedText);
               return;
             }
@@ -374,10 +401,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
   Future<void> deleteRoomMessage(String roomId, String messageId) async {
     try {
-      await Supabase.instance.client
-          .from('room_messages')
-          .delete()
-          .eq('id', messageId);
+      // Session-based message deletion, broadcast to other users
+      await _roomMessagesChannel?.sendBroadcastMessage(
+        event: 'delete_message',
+        payload: {'message_id': messageId},
+      );
+      roomChats[roomId]?.removeWhere((msg) => msg.id == messageId);
     } catch (e) {
       debugPrint('Error deleting room message: $e');
     }
@@ -450,29 +479,68 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   }) async {
     try {
       final uid = senderId ?? UserProfileCacheManager.currentUserId;
-      final metadata = {
+      final msgId = DateTime.now().microsecondsSinceEpoch.toString();
+
+      // Resolve avatar frame if available in rxCache
+      final u = UserProfileCacheManager.rxCache[uid];
+      final avatarFrame = u?.avatarFrame;
+
+      final payload = {
+        'id': msgId,
+        'sender_id': uid,
+        'sender_name': senderName ?? 'Creania Student',
+        'text': text,
         'sender_role': senderRole ?? 'Listener',
-        'reply_to_message_id': replyToMessageId,
+        'sender_avatar': senderAvatar,
+        'timestamp': DateTime.now().toIso8601String(),
+        'sender_level': senderLevel ?? '1',
+        'vip_label': vipLabel,
+        'novel_label': novelLabel,
         'community_tag': communityTag,
         'role_tag': roleTag,
         'is_active_speaker': isActiveSpeaker,
+        'reply_to_message_id': replyToMessageId,
+        'avatar_frame': avatarFrame,
       };
 
-      await Supabase.instance.client.from('room_messages').insert({
-        'room_id': roomId,
-        'sender_id': uid,
-        'content': text,
-        'message_type': 'text',
-        'metadata': metadata,
-      });
+      // Add to local chat list immediately for optimistic UI rendering
+      final localMessage = RoomChatMessage(
+        id: msgId,
+        senderId: uid,
+        senderName: senderName ?? 'Creania Student',
+        text: text,
+        senderRole: senderRole ?? 'Listener',
+        senderAvatar: senderAvatar,
+        timestamp: DateTime.now(),
+        replyToMessageId: replyToMessageId,
+        senderLevel: senderLevel ?? '1',
+        vipLabel: vipLabel,
+        novelLabel: novelLabel,
+        communityTag: communityTag,
+        roleTag: roleTag,
+        isActiveSpeaker: isActiveSpeaker,
+        avatarFrame: avatarFrame,
+      );
+
+      if (roomChats[roomId] == null) {
+        roomChats[roomId] = <RoomChatMessage>[].obs;
+      }
+      roomChats[roomId]!.add(localMessage);
+
+      // Broadcast message via Supabase Realtime Broadcast Channel
+      await _roomMessagesChannel?.sendBroadcastMessage(
+        event: 'chat_message',
+        payload: payload,
+      );
     } catch (e) {
-      debugPrint('Error sending room message: $e');
+      debugPrint('Error sending broadcast room message: $e');
     }
   }
 
   Future<void> setTypingStatus(String roomId, bool isTyping) async {
     try {
-      final username = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+      final username =
+          UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
       await _roomMessagesChannel?.sendBroadcastMessage(
         event: 'typing_indicator',
         payload: {
@@ -507,6 +575,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       );
     }
   }
+
   void addRecentRoom(String roomId) {
     recentRoomIds.remove(roomId); // Bring to top
     recentRoomIds.insert(0, roomId);
@@ -519,7 +588,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     try {
       final response = await Supabase.instance.client
           .from('rooms')
-          .select('*, profiles:host_id(id, username, avatar_url, avatar_frame, level, vip_level, novel_level)')
+          .select(
+              '*, profiles:host_id(id, username, avatar_url, avatar_frame, level, vip_level, novel_level)')
           .or('status.eq.live,status.eq.scheduled')
           .order('created_at', ascending: false);
 
@@ -527,7 +597,9 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       for (final item in response as List) {
         loaded.add(VoiceRoom.fromJson(item));
         final hostData = item['profiles'];
-        if (hostData != null && hostData is Map<String, dynamic> && hostData['id'] != null) {
+        if (hostData != null &&
+            hostData is Map<String, dynamic> &&
+            hostData['id'] != null) {
           try {
             final userObj = User.fromJson(hostData);
             UserProfileCacheManager.rxCache[userObj.id] = userObj;
@@ -550,7 +622,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     try {
       final response = await Supabase.instance.client
           .from('rooms')
-          .select('*, profiles:host_id(id, username, avatar_url, avatar_frame, level, vip_level, novel_level)')
+          .select(
+              '*, profiles:host_id(id, username, avatar_url, avatar_frame, level, vip_level, novel_level)')
           .or('id.eq.${query.trim()},name.ilike.%$query%')
           .order('created_at', ascending: false);
 
@@ -558,7 +631,9 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       for (final item in response as List) {
         loaded.add(VoiceRoom.fromJson(item));
         final hostData = item['profiles'];
-        if (hostData != null && hostData is Map<String, dynamic> && hostData['id'] != null) {
+        if (hostData != null &&
+            hostData is Map<String, dynamic> &&
+            hostData['id'] != null) {
           try {
             final userObj = User.fromJson(hostData);
             UserProfileCacheManager.rxCache[userObj.id] = userObj;
@@ -577,15 +652,32 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     final idx = rooms.indexWhere((r) => r.id == roomId);
     if (idx != -1) {
       final oldRoom = rooms[idx];
-      
-      final String hostId = members.firstWhereOrNull((m) => m.role == 'Host')?.userId ?? oldRoom.hostId;
-      final List<String> coOwnerIds = members.where((m) => m.role == 'Co-Host').map((m) => m.userId).toList();
-      final List<String> adminIds = members.where((m) => m.role == 'Moderator').map((m) => m.userId).toList();
-      final List<String> starMemberIds = members.where((m) => m.role == 'Speaker').map((m) => m.userId).toList();
-      
+
+      final String hostId =
+          members.firstWhereOrNull((m) => m.role == 'Host')?.userId ??
+              oldRoom.hostId;
+      final List<String> coOwnerIds = members
+          .where((m) => m.role == 'Co-Host')
+          .map((m) => m.userId)
+          .toList();
+      final List<String> adminIds = members
+          .where((m) => m.role == 'Moderator')
+          .map((m) => m.userId)
+          .toList();
+      final List<String> starMemberIds = members
+          .where((m) => m.role == 'Speaker')
+          .map((m) => m.userId)
+          .toList();
+
       final List<String> speakerIds = [hostId, ...coOwnerIds, ...starMemberIds];
-      final List<String> listenerIds = members.where((m) => m.role == 'Moderator' || m.role == 'Listener' || m.role == 'Guest').map((m) => m.userId).toList();
-      
+      final List<String> listenerIds = members
+          .where((m) =>
+              m.role == 'Moderator' ||
+              m.role == 'Listener' ||
+              m.role == 'Guest')
+          .map((m) => m.userId)
+          .toList();
+
       final updatedRoom = VoiceRoom(
         id: oldRoom.id,
         name: oldRoom.name,
@@ -658,7 +750,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         pinnedAnnouncement: oldRoom.pinnedAnnouncement,
         currentDebateRound: oldRoom.currentDebateRound,
       );
-      
+
       rooms[idx] = updatedRoom;
     }
   }
@@ -667,8 +759,11 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     try {
       activeRoomId = roomId;
 
-      // Clear previous room session chats from memory
+      // Clear previous room session chats and notifications from memory
       roomChats[roomId]?.clear();
+      bottomSystemNotifications.clear();
+      marqueeAnnouncementsQueue.clear();
+      activeSystemNotification.value = null;
 
       // Invoke join_room RPC function
       final response = await Supabase.instance.client.rpc('join_room', params: {
@@ -678,15 +773,16 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       debugPrint('Join room response: $response');
 
-      // Fetch initial room settings, members, permissions, chat messages
-      await fetchRoomPermissions(roomId);
-      await fetchRoomMembers(roomId);
-      await fetchRoomChatMessages(roomId);
-      await fetchRoomRequests(roomId);
-      await fetchRoomPolls(roomId);
+      // Fetch initial room settings, members, permissions, and profile in parallel (Skip DB chat history query)
+      final parallelResults = await Future.wait<dynamic>([
+        fetchRoomPermissions(roomId),
+        fetchRoomMembers(roomId),
+        fetchRoomRequests(roomId),
+        fetchRoomPolls(roomId),
+        UserProfileCacheManager.fetchUserProfile(currentUserId),
+      ]);
 
-      // Emit join event with custom role greetings
-      final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
+      final profile = parallelResults[4] as User?;
       final uName = profile?.username ?? 'Creania Student';
       final uLevel = profile?.level ?? 1;
       final vipLevel = profile?.vipLevel ?? 0;
@@ -701,10 +797,18 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       } else if (nobleLevel > 0) {
         greetingMsg = '👑 Noble $uName has arrived.';
       } else if (vipLevel > 0) {
-        greetingMsg = '💎 VIP $uName entered the arena. Give them a warm welcome!';
+        greetingMsg =
+            '💎 VIP $uName entered the arena. Give them a warm welcome!';
       } else if (uLevel >= 50) {
         greetingMsg = '🔥 Level $uLevel $uName entered the arena.';
       }
+
+      String? equippedEntryEffect;
+      try {
+        if (Get.isRegistered<CustomizationController>()) {
+          equippedEntryEffect = Get.find<CustomizationController>().activeEntryEffect.value;
+        }
+      } catch (_) {}
 
       await emitRoomActivityEvent(
         roomId: roomId,
@@ -716,6 +820,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           'level': uLevel,
           'vip_level': vipLevel,
           'noble_level': nobleLevel,
+          'entry_effect': equippedEntryEffect,
         },
       );
 
@@ -748,7 +853,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       // Gracefully vacate seat in DB if current user is sitting on one
       final seats = roomSeatsInfo[roomId];
       if (seats != null) {
-        final seat = seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
+        final seat =
+            seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
         if (seat != null) {
           final seatIdx = seat['seatIndex'] as int;
           await Supabase.instance.client.rpc('leave_room_seat', params: {
@@ -773,7 +879,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       isMutedByModerator.value = false;
       roomChats[roomId]?.clear();
 
-      final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
+      final profile =
+          await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creania Student';
       final exitMsgs = [
         '👋 $uName left the arena.',
@@ -799,7 +906,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
   Future<void> fetchRoomPermissions(String roomId) async {
     try {
-      final response = await Supabase.instance.client.rpc('get_room_permissions', params: {
+      final response =
+          await Supabase.instance.client.rpc('get_room_permissions', params: {
         'p_room_id': roomId,
       });
       if (response != null) {
@@ -820,21 +928,22 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           .from('room_members')
           .select()
           .eq('room_id', roomId);
-      
-      final List<RoomMember> members = (response as List)
-          .map((m) => RoomMember.fromJson(m))
-          .toList();
-      
+
+      final List<RoomMember> members =
+          (response as List).map((m) => RoomMember.fromJson(m)).toList();
+
       activeMembers.assignAll(members);
 
       // Enforce mute from backend
-      final myMember = members.firstWhereOrNull((m) => m.userId == currentUserId);
+      final myMember =
+          members.firstWhereOrNull((m) => m.userId == currentUserId);
       if (myMember != null) {
         isMutedByModerator.value = myMember.isMuted;
       }
 
       // Check if we are kicked/removed
-      if (activeRoomId == roomId && !members.any((m) => m.userId == currentUserId)) {
+      if (activeRoomId == roomId &&
+          !members.any((m) => m.userId == currentUserId)) {
         Get.back();
         Get.snackbar(
           'Removed from Room',
@@ -852,53 +961,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> fetchRoomChatMessages(String roomId) async {
-    try {
-      final response = await Supabase.instance.client
-          .from('room_messages')
-          .select('*, profiles:sender_id(*)')
-          .eq('room_id', roomId)
-          .order('created_at', ascending: true)
-          .limit(50);
-
-      final List<RoomChatMessage> list = [];
-      for (var row in response) {
-        final profile = row['profiles'] as Map<String, dynamic>?;
-        final senderId = row['sender_id'] as String;
-        final uName = profile?['username'] as String? ?? 'Creania Student';
-        final uAvatar = profile?['avatar'] as String?;
-        final vip = profile?['vip_level'] as int? ?? 0;
-        final novel = profile?['novel_level'] as int? ?? 0;
-        final uLevel = profile?['level'] as int? ?? 1;
-
-        final text = row['content'] as String? ?? '';
-        final msgId = row['id'] as String;
-        final timestamp = DateTime.parse(row['created_at'] as String);
-        final meta = row['metadata'] as Map<String, dynamic>? ?? {};
-
-        list.add(RoomChatMessage(
-          id: msgId,
-          senderId: senderId,
-          senderName: uName,
-          text: text,
-          senderRole: meta['sender_role'] as String? ?? 'Listener',
-          senderAvatar: uAvatar,
-          timestamp: timestamp,
-          replyToMessageId: meta['reply_to_message_id'] as String?,
-          senderLevel: uLevel.toString(),
-          vipLabel: vip > 0 ? 'VIP $vip' : null,
-          novelLabel: novel > 0 ? 'Noble $novel' : null,
-          communityTag: meta['community_tag'] as String?,
-          roleTag: meta['role_tag'] as String?,
-          isActiveSpeaker: meta['is_active_speaker'] == true,
-          avatarFrame: profile?['avatar_frame'] as String?,
-        ));
-      }
-
-      roomChats[roomId] = list.obs;
-    } catch (e) {
-      debugPrint('Error fetching room messages: $e');
-      roomChats[roomId] = <RoomChatMessage>[].obs;
-    }
+    // Session-based chats, do not fetch history from database
+    roomChats[roomId] = <RoomChatMessage>[].obs;
   }
 
   Future<void> emitRoomActivityEvent({
@@ -938,8 +1002,10 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  void _processActivityEventPayload(String roomId, Map<String, dynamic> payload) {
-    final eventId = payload['event_id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString();
+  void _processActivityEventPayload(
+      String roomId, Map<String, dynamic> payload) {
+    final eventId = payload['event_id'] as String? ??
+        DateTime.now().microsecondsSinceEpoch.toString();
     final eventType = payload['event_type'] as String? ?? 'activity';
     final senderId = payload['user_id'] as String?;
     final senderName = payload['username'] as String? ?? 'System';
@@ -949,8 +1015,10 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     // Filter and queue real-time marquee announcements
     bool shouldAnnounce = false;
     if (eventType == 'room_join' || eventType == 'seat_join') {
-      final vipLevel = int.tryParse(metadata['vip_level']?.toString() ?? '0') ?? 0;
-      final nobleLevel = int.tryParse(metadata['noble_level']?.toString() ?? '0') ?? 0;
+      final vipLevel =
+          int.tryParse(metadata['vip_level']?.toString() ?? '0') ?? 0;
+      final nobleLevel =
+          int.tryParse(metadata['noble_level']?.toString() ?? '0') ?? 0;
       if (vipLevel >= 5 || nobleLevel >= 2) {
         shouldAnnounce = true;
       }
@@ -965,7 +1033,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     if (shouldAnnounce) {
       marqueeAnnouncementsQueue.add(message);
     }
-    
+
     if (eventType == 'room_banner_changed') {
       Supabase.instance.client
           .from('rooms')
@@ -973,96 +1041,98 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           .eq('id', roomId)
           .maybeSingle()
           .then((data) {
-            if (data != null && data['banner'] != null) {
-              final bUrl = data['banner'] as String;
-              final idx = rooms.indexWhere((r) => r.id == roomId);
-              if (idx != -1) {
-                final old = rooms[idx];
-                rooms[idx] = VoiceRoom(
-                  id: old.id,
-                  name: old.name,
-                  username: old.username,
-                  description: old.description,
-                  hostId: old.hostId,
-                  communityId: old.communityId,
-                  type: old.type,
-                  isLive: old.isLive,
-                  participantCount: old.participantCount,
-                  maxParticipants: old.maxParticipants,
-                  speakerIds: old.speakerIds,
-                  listenerIds: old.listenerIds,
-                  recordingUrl: old.recordingUrl,
-                  allowRecording: old.allowRecording,
-                  allowScreenShare: old.allowScreenShare,
-                  createdAt: old.createdAt,
-                  startedAt: old.startedAt,
-                  endedAt: old.endedAt,
-                  avatar: old.avatar,
-                  banner: bUrl,
-                  ownerName: old.ownerName,
-                  category: old.category,
-                  country: old.country,
-                  language: old.language,
-                  tags: old.tags,
-                  rules: old.rules,
-                  level: old.level,
-                  xp: old.xp,
-                  badges: old.badges,
-                  totalMembers: old.totalMembers,
-                  totalFollowers: old.totalFollowers,
-                  totalGiftsReceived: old.totalGiftsReceived,
-                  isPermanent: old.isPermanent,
-                  entryPermission: old.entryPermission,
-                  coOwnerIds: old.coOwnerIds,
-                  adminIds: old.adminIds,
-                  starMemberIds: old.starMemberIds,
-                  extraCoOwnerSlots: old.extraCoOwnerSlots,
-                  extraAdminSlots: old.extraAdminSlots,
-                  extraStarMemberSlots: old.extraStarMemberSlots,
-                  todayRoomXp: old.todayRoomXp,
-                  totalRoomGifts: old.totalRoomGifts,
-                  todayRoomGifts: old.todayRoomGifts,
-                  totalRoomStars: old.totalRoomStars,
-                  todayRoomStars: old.todayRoomStars,
-                  founderId: old.founderId,
-                  managerIds: old.managerIds,
-                  moderatorIds: old.moderatorIds,
-                  hostIds: old.hostIds,
-                  mentorIds: old.mentorIds,
-                  judgeIds: old.judgeIds,
-                  performerIds: old.performerIds,
-                  eliteMemberIds: old.eliteMemberIds,
-                  vipMemberIds: old.vipMemberIds,
-                  memberIds: old.memberIds,
-                  visitorIds: old.visitorIds,
-                  bulletin: old.bulletin,
-                  greetings: old.greetings,
-                  roomTheme: old.roomTheme,
-                  wordFilter: old.wordFilter,
-                  muteAll: old.muteAll,
-                  blockList: old.blockList,
-                  whoCanJoin: old.whoCanJoin,
-                  whoCanSpeak: old.whoCanSpeak,
-                  seatPermissions: old.seatPermissions,
-                  invitePermissions: old.invitePermissions,
-                  giftSettings: old.giftSettings,
-                  recommendationSettings: old.recommendationSettings,
-                  musicSettings: old.musicSettings,
-                  recordingSettings: old.recordingSettings,
-                  eventSettings: old.eventSettings,
-                  autoModeration: old.autoModeration,
-                  activeMode: old.activeMode,
-                  pinnedAnnouncement: old.pinnedAnnouncement,
-                  currentDebateRound: old.currentDebateRound,
-                );
-                rooms.refresh();
-              }
-            }
-          });
+        if (data != null && data['banner'] != null) {
+          final bUrl = data['banner'] as String;
+          final idx = rooms.indexWhere((r) => r.id == roomId);
+          if (idx != -1) {
+            final old = rooms[idx];
+            rooms[idx] = VoiceRoom(
+              id: old.id,
+              name: old.name,
+              username: old.username,
+              description: old.description,
+              hostId: old.hostId,
+              communityId: old.communityId,
+              type: old.type,
+              isLive: old.isLive,
+              participantCount: old.participantCount,
+              maxParticipants: old.maxParticipants,
+              speakerIds: old.speakerIds,
+              listenerIds: old.listenerIds,
+              recordingUrl: old.recordingUrl,
+              allowRecording: old.allowRecording,
+              allowScreenShare: old.allowScreenShare,
+              createdAt: old.createdAt,
+              startedAt: old.startedAt,
+              endedAt: old.endedAt,
+              avatar: old.avatar,
+              banner: bUrl,
+              ownerName: old.ownerName,
+              category: old.category,
+              country: old.country,
+              language: old.language,
+              tags: old.tags,
+              rules: old.rules,
+              level: old.level,
+              xp: old.xp,
+              badges: old.badges,
+              totalMembers: old.totalMembers,
+              totalFollowers: old.totalFollowers,
+              totalGiftsReceived: old.totalGiftsReceived,
+              isPermanent: old.isPermanent,
+              entryPermission: old.entryPermission,
+              coOwnerIds: old.coOwnerIds,
+              adminIds: old.adminIds,
+              starMemberIds: old.starMemberIds,
+              extraCoOwnerSlots: old.extraCoOwnerSlots,
+              extraAdminSlots: old.extraAdminSlots,
+              extraStarMemberSlots: old.extraStarMemberSlots,
+              todayRoomXp: old.todayRoomXp,
+              totalRoomGifts: old.totalRoomGifts,
+              todayRoomGifts: old.todayRoomGifts,
+              totalRoomStars: old.totalRoomStars,
+              todayRoomStars: old.todayRoomStars,
+              founderId: old.founderId,
+              managerIds: old.managerIds,
+              moderatorIds: old.moderatorIds,
+              hostIds: old.hostIds,
+              mentorIds: old.mentorIds,
+              judgeIds: old.judgeIds,
+              performerIds: old.performerIds,
+              eliteMemberIds: old.eliteMemberIds,
+              vipMemberIds: old.vipMemberIds,
+              memberIds: old.memberIds,
+              visitorIds: old.visitorIds,
+              bulletin: old.bulletin,
+              greetings: old.greetings,
+              roomTheme: old.roomTheme,
+              wordFilter: old.wordFilter,
+              muteAll: old.muteAll,
+              blockList: old.blockList,
+              whoCanJoin: old.whoCanJoin,
+              whoCanSpeak: old.whoCanSpeak,
+              seatPermissions: old.seatPermissions,
+              invitePermissions: old.invitePermissions,
+              giftSettings: old.giftSettings,
+              recommendationSettings: old.recommendationSettings,
+              musicSettings: old.musicSettings,
+              recordingSettings: old.recordingSettings,
+              eventSettings: old.eventSettings,
+              autoModeration: old.autoModeration,
+              activeMode: old.activeMode,
+              pinnedAnnouncement: old.pinnedAnnouncement,
+              currentDebateRound: old.currentDebateRound,
+            );
+            rooms.refresh();
+          }
+        }
+      });
     }
 
     // Formulate bottom toast notifications
-    if (eventType == 'room_join' || eventType == 'room_leave' || eventType.startsWith('seat_')) {
+    if (eventType == 'room_join' ||
+        eventType == 'room_leave' ||
+        eventType.startsWith('seat_')) {
       bottomSystemNotifications.add(message);
       activeSystemNotification.value = message;
     }
@@ -1072,16 +1142,21 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       final amount = int.tryParse(metadata['amount']?.toString() ?? '1') ?? 1;
       final isGold = metadata['is_gold'] == true;
       final receiverName = metadata['receiver_name'] ?? 'someone';
-      
+
       Future.microtask(() async {
-        final senderProfile = senderId != null ? await UserProfileCacheManager.fetchUserProfile(senderId) : null;
+        final senderProfile = senderId != null
+            ? await UserProfileCacheManager.fetchUserProfile(senderId)
+            : null;
         final senderAvatar = senderProfile?.avatar;
 
         String? receiverAvatar;
         final seats = roomSeatsInfo[roomId] ?? [];
-        final targetSeat = seats.firstWhereOrNull((s) => s['name'] == receiverName);
+        final targetSeat =
+            seats.firstWhereOrNull((s) => s['name'] == receiverName);
         if (targetSeat != null && targetSeat['userId'] != null) {
-          final receiverProfile = await UserProfileCacheManager.fetchUserProfile(targetSeat['userId']);
+          final receiverProfile =
+              await UserProfileCacheManager.fetchUserProfile(
+                  targetSeat['userId']);
           receiverAvatar = receiverProfile?.avatar;
         }
 
@@ -1106,6 +1181,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         'vip_level': metadata['vip_level'],
         'noble_level': metadata['noble_level'],
         'level': metadata['level'],
+        'entry_effect': metadata['entry_effect'],
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
     }
@@ -1115,7 +1191,9 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       senderId: senderId ?? 'system',
       senderName: senderName,
       text: message,
-      timestamp: payload['created_at'] != null ? DateTime.parse(payload['created_at'] as String) : DateTime.now(),
+      timestamp: payload['created_at'] != null
+          ? DateTime.parse(payload['created_at'] as String)
+          : DateTime.now(),
       isSystem: true,
       messageType: 'activity',
       eventType: eventType,
@@ -1127,7 +1205,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     if (roomChats[roomId] == null) {
       roomChats[roomId] = <RoomChatMessage>[].obs;
     }
-    
+
     roomChats[roomId]!.add(systemMessage);
     if (roomChats[roomId]!.length > 200) {
       roomChats[roomId]!.removeAt(0);
@@ -1141,7 +1219,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           .select('*, profiles:user_id(username, avatar_url)')
           .eq('room_id', roomId)
           .eq('status', 'pending');
-      
+
       activeRequests.assignAll(List<Map<String, dynamic>>.from(response));
     } catch (e) {
       debugPrint('Error fetching room requests: $e');
@@ -1155,7 +1233,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           .select()
           .eq('room_id', roomId)
           .eq('is_active', true);
-      
+
       activePolls.assignAll(List<Map<String, dynamic>>.from(response));
     } catch (e) {
       debugPrint('Error fetching room polls: $e');
@@ -1172,7 +1250,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
             schema: 'public',
             table: 'rooms',
             callback: (payload) {
-              debugPrint('[RoomController] Realtime rooms table change: ${payload.eventType}');
+              debugPrint(
+                  '[RoomController] Realtime rooms table change: ${payload.eventType}');
               fetchRooms();
             },
           );
@@ -1189,68 +1268,73 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     try {
       final client = Supabase.instance.client;
 
-      _roomMembersChannel = client
-          .channel('room_members:$roomId')
-          .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'room_members',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'room_id',
-              value: roomId,
-            ),
-            callback: (payload) async {
-              if (payload.eventType == PostgresChangeEvent.insert) {
-                final newRecord = payload.newRecord;
-                final String? uId = newRecord?['user_id'];
-                if (uId != null && uId != currentUserId) {
-                  animatingJoinUserIds.add(uId);
-                  final profile = await UserProfileCacheManager.fetchUserProfile(uId);
-                  final String uName = profile?.username ?? 'Creania Student';
-                  final String? uAvatar = profile?.avatar;
-                  try {
-                    final custResponse = await Supabase.instance.client
-                        .from('user_customizations')
-                        .select('name')
-                        .eq('user_id', uId)
-                        .eq('type', 'entry_effect')
-                        .eq('is_equipped', true)
-                        .maybeSingle();
-                    final String? entryEffect = custResponse != null ? custResponse['name'] : null;
-                    entranceEvent.value = {
-                      'userId': uId,
-                      'userName': uName,
-                      'avatarUrl': uAvatar,
-                      'entryEffect': entryEffect,
-                      'timestamp': DateTime.now().millisecondsSinceEpoch,
-                    };
-                  } catch (_) {
-                    entranceEvent.value = {
-                      'userId': uId,
-                      'userName': uName,
-                      'avatarUrl': uAvatar,
-                      'entryEffect': null,
-                      'timestamp': DateTime.now().millisecondsSinceEpoch,
-                    };
+      _roomMembersChannel =
+          client.channel('room_members:$roomId').onPostgresChanges(
+                event: PostgresChangeEvent.all,
+                schema: 'public',
+                table: 'room_members',
+                filter: PostgresChangeFilter(
+                  type: PostgresChangeFilterType.eq,
+                  column: 'room_id',
+                  value: roomId,
+                ),
+                callback: (payload) async {
+                  if (payload.eventType == PostgresChangeEvent.insert) {
+                    final newRecord = payload.newRecord;
+                    final String? uId = newRecord?['user_id'];
+                    if (uId != null && uId != currentUserId) {
+                      animatingJoinUserIds.add(uId);
+                      final profile =
+                          await UserProfileCacheManager.fetchUserProfile(uId);
+                      final String uName =
+                          profile?.username ?? 'Creania Student';
+                      final String? uAvatar = profile?.avatar;
+                      try {
+                        final custResponse = await Supabase.instance.client
+                            .from('user_customizations')
+                            .select('name')
+                            .eq('user_id', uId)
+                            .eq('type', 'entry_effect')
+                            .eq('is_equipped', true)
+                            .maybeSingle();
+                        final String? entryEffect =
+                            custResponse != null ? custResponse['name'] : null;
+                        entranceEvent.value = {
+                          'userId': uId,
+                          'userName': uName,
+                          'avatarUrl': uAvatar,
+                          'entryEffect': entryEffect,
+                          'timestamp': DateTime.now().millisecondsSinceEpoch,
+                        };
+                      } catch (_) {
+                        entranceEvent.value = {
+                          'userId': uId,
+                          'userName': uName,
+                          'avatarUrl': uAvatar,
+                          'entryEffect': null,
+                          'timestamp': DateTime.now().millisecondsSinceEpoch,
+                        };
+                      }
+                    }
                   }
-                }
-              }
-              await fetchRoomMembers(roomId);
-              await fetchRoomPermissions(roomId);
-            },
-          );
+                  await fetchRoomMembers(roomId);
+                  await fetchRoomPermissions(roomId);
+                },
+              );
 
       Timer? reconnectTimer;
 
       _roomMembersChannel?.subscribe((status, [error]) {
-        debugPrint('[RoomController] Channel status for room $roomId: $status, error: $error');
+        debugPrint(
+            '[RoomController] Channel status for room $roomId: $status, error: $error');
         if (status == 'channelError' || status == 'timedOut') {
           if (reconnectTimer == null) {
-            debugPrint('[RoomController] Connection lost. Reconnection timer started (20s).');
+            debugPrint(
+                '[RoomController] Connection lost. Reconnection timer started (20s).');
             reconnectTimer = Timer(const Duration(seconds: 20), () async {
               if (activeRoomId == roomId) {
-                debugPrint('[RoomController] Reconnection timed out. Exiting room.');
+                debugPrint(
+                    '[RoomController] Reconnection timed out. Exiting room.');
                 _cleanupLocalResources();
                 Get.snackbar(
                   'Connection Lost 📡',
@@ -1266,13 +1350,13 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           if (reconnectTimer != null) {
             reconnectTimer!.cancel();
             reconnectTimer = null;
-            debugPrint('[RoomController] Connection restored successfully within 20s!');
+            debugPrint(
+                '[RoomController] Connection restored successfully within 20s!');
           }
-          // Re-fetch all room state to ensure synchronization upon reconnection
+          // Re-fetch all room state to ensure synchronization upon reconnection (skip DB chat history query)
           Future.microtask(() async {
             await fetchRoomPermissions(roomId);
             await fetchRoomMembers(roomId);
-            await fetchRoomChatMessages(roomId);
             await fetchRoomRequests(roomId);
             await fetchRoomPolls(roomId);
             await fetchRoomProgression(roomId);
@@ -1282,65 +1366,43 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       _roomMessagesChannel = client
           .channel('room_messages:$roomId')
-          .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'room_messages',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'room_id',
-              value: roomId,
-            ),
+          .onBroadcast(
+            event: 'chat_message',
             callback: (payload) async {
-              if (payload.eventType == PostgresChangeEvent.insert) {
-                final newRecord = payload.newRecord;
-                final senderId = newRecord['sender_id'] as String;
-                final msgId = newRecord['id'] as String;
+              final senderId = payload['sender_id'] as String;
+              if (senderId == currentUserId)
+                return; // Already rendered optimistically
 
-                // Fetch profile to resolve username & avatar reactively
-                final profile = await UserProfileCacheManager.fetchUserProfile(senderId);
-                final uName = profile?.username ?? 'Creania Student';
-                final uAvatar = profile?.avatar;
-                final vip = profile?.vipLevel ?? 0;
-                final novel = profile?.novelLevel ?? 0;
-                final uLevel = profile?.level ?? 1;
+              final msgId = payload['id'] as String;
+              final text = payload['text'] as String? ?? '';
+              final timestamp = DateTime.parse(payload['timestamp'] as String);
 
-                final text = newRecord['content'] as String? ?? '';
-                final timestamp = DateTime.parse(newRecord['created_at'] as String);
-                final meta = newRecord['metadata'] as Map<String, dynamic>? ?? {};
+              final message = RoomChatMessage(
+                id: msgId,
+                senderId: senderId,
+                senderName:
+                    payload['sender_name'] as String? ?? 'Creania Student',
+                text: text,
+                senderRole: payload['sender_role'] as String? ?? 'Listener',
+                senderAvatar: payload['sender_avatar'] as String?,
+                timestamp: timestamp,
+                replyToMessageId: payload['reply_to_message_id'] as String?,
+                senderLevel: payload['sender_level']?.toString() ?? '1',
+                vipLabel: payload['vip_label'] as String?,
+                novelLabel: payload['novel_label'] as String?,
+                communityTag: payload['community_tag'] as String?,
+                roleTag: payload['role_tag'] as String?,
+                isActiveSpeaker: payload['is_active_speaker'] == true,
+                avatarFrame: payload['avatar_frame'] as String?,
+              );
 
-                final message = RoomChatMessage(
-                  id: msgId,
-                  senderId: senderId,
-                  senderName: uName,
-                  text: text,
-                  senderRole: meta['sender_role'] as String? ?? 'Listener',
-                  senderAvatar: uAvatar,
-                  timestamp: timestamp,
-                  replyToMessageId: meta['reply_to_message_id'] as String?,
-                  senderLevel: uLevel.toString(),
-                  vipLabel: vip > 0 ? 'VIP $vip' : null,
-                  novelLabel: novel > 0 ? 'Noble $novel' : null,
-                  communityTag: meta['community_tag'] as String?,
-                  roleTag: meta['role_tag'] as String?,
-                  isActiveSpeaker: meta['is_active_speaker'] == true,
-                  avatarFrame: profile?.avatarFrame,
-                );
+              if (roomChats[roomId] == null) {
+                roomChats[roomId] = <RoomChatMessage>[].obs;
+              }
 
-                if (roomChats[roomId] == null) {
-                  roomChats[roomId] = <RoomChatMessage>[].obs;
-                }
-                
-                // Avoid duplicates
-                if (!roomChats[roomId]!.any((m) => m.id == msgId)) {
-                  roomChats[roomId]!.add(message);
-                }
-              } else if (payload.eventType == PostgresChangeEvent.delete) {
-                final oldRecord = payload.oldRecord;
-                final msgId = oldRecord['id'] as String?;
-                if (msgId != null) {
-                  roomChats[roomId]?.removeWhere((msg) => msg.id == msgId);
-                }
+              // Avoid duplicates
+              if (!roomChats[roomId]!.any((m) => m.id == msgId)) {
+                roomChats[roomId]!.add(message);
               }
             },
           )
@@ -1356,7 +1418,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
                   final idx = chatList.indexWhere((msg) => msg.id == msgId);
                   if (idx != -1) {
                     final msg = chatList[idx];
-                    final currentReactions = Map<String, List<String>>.from(msg.reactions);
+                    final currentReactions =
+                        Map<String, List<String>>.from(msg.reactions);
                     if (currentReactions[reactionType] == null) {
                       currentReactions[reactionType] = [];
                     }
@@ -1401,38 +1464,36 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           );
       _roomMessagesChannel?.subscribe();
 
-      _roomRequestsChannel = client
-          .channel('room_requests:$roomId')
-          .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'room_requests',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'room_id',
-              value: roomId,
-            ),
-            callback: (payload) {
-              fetchRoomRequests(roomId);
-            },
-          );
+      _roomRequestsChannel =
+          client.channel('room_requests:$roomId').onPostgresChanges(
+                event: PostgresChangeEvent.all,
+                schema: 'public',
+                table: 'room_requests',
+                filter: PostgresChangeFilter(
+                  type: PostgresChangeFilterType.eq,
+                  column: 'room_id',
+                  value: roomId,
+                ),
+                callback: (payload) {
+                  fetchRoomRequests(roomId);
+                },
+              );
       _roomRequestsChannel?.subscribe();
 
-      _roomPollsChannel = client
-          .channel('room_polls:$roomId')
-          .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'room_polls',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'room_id',
-              value: roomId,
-            ),
-            callback: (payload) {
-              fetchRoomPolls(roomId);
-            },
-          );
+      _roomPollsChannel =
+          client.channel('room_polls:$roomId').onPostgresChanges(
+                event: PostgresChangeEvent.all,
+                schema: 'public',
+                table: 'room_polls',
+                filter: PostgresChangeFilter(
+                  type: PostgresChangeFilterType.eq,
+                  column: 'room_id',
+                  value: roomId,
+                ),
+                callback: (payload) {
+                  fetchRoomPolls(roomId);
+                },
+              );
       _roomPollsChannel?.subscribe();
 
       _roomProgressionChannel = client
@@ -1448,7 +1509,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
             ),
             callback: (payload) {
               if (payload.newRecord != null) {
-                roomLevelProgresses[roomId] = RoomLevelProgress.fromJson(payload.newRecord);
+                roomLevelProgresses[roomId] =
+                    RoomLevelProgress.fromJson(payload.newRecord);
               }
             },
           )
@@ -1508,17 +1570,15 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           );
       _roomProgressionChannel?.subscribe();
 
-      _roomActivityEventsChannel = client
-          .channel('room_activity_events:$roomId')
-          .onBroadcast(
-            event: 'room_activity_event',
-            callback: (payload) {
-              if (payload['user_id'] == currentUserId) return;
-              _processActivityEventPayload(roomId, payload);
-            },
-          );
+      _roomActivityEventsChannel =
+          client.channel('room_activity_events:$roomId').onBroadcast(
+                event: 'room_activity_event',
+                callback: (payload) {
+                  if (payload['user_id'] == currentUserId) return;
+                  _processActivityEventPayload(roomId, payload);
+                },
+              );
       _roomActivityEventsChannel?.subscribe();
-
     } catch (e) {
       debugPrint('Error subscribing to room realtime: $e');
     }
@@ -1577,7 +1637,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> moderateSpeakerRequest(String roomId, String userId, String action) async {
+  Future<void> moderateSpeakerRequest(
+      String roomId, String userId, String action) async {
     try {
       await Supabase.instance.client.rpc('moderate_request', params: {
         'p_room_id': roomId,
@@ -1619,7 +1680,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> moderateBanUser(String roomId, String userId, String reason, {String? duration}) async {
+  Future<void> moderateBanUser(String roomId, String userId, String reason,
+      {String? duration}) async {
     try {
       await Supabase.instance.client.rpc('moderate_user_ban', params: {
         'p_room_id': roomId,
@@ -1641,11 +1703,13 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       });
     } catch (e) {
       debugPrint('Error transferring host: $e');
-      Get.snackbar('Transfer Failed', e.toString().replaceAll('Exception: ', ''));
+      Get.snackbar(
+          'Transfer Failed', e.toString().replaceAll('Exception: ', ''));
     }
   }
 
-  Future<void> changeMemberRole(String roomId, String userId, String newRole) async {
+  Future<void> changeMemberRole(
+      String roomId, String userId, String newRole) async {
     try {
       await Supabase.instance.client.rpc('change_member_role', params: {
         'p_room_id': roomId,
@@ -1654,7 +1718,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       });
     } catch (e) {
       debugPrint('Error changing role: $e');
-      Get.snackbar('Role Change Failed', e.toString().replaceAll('Exception: ', ''));
+      Get.snackbar(
+          'Role Change Failed', e.toString().replaceAll('Exception: ', ''));
     }
   }
 
@@ -1666,34 +1731,41 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       rooms.removeWhere((r) => r.id == roomId);
     } catch (e) {
       debugPrint('Error ending room: $e');
-      Get.snackbar('End Room Failed', e.toString().replaceAll('Exception: ', ''));
+      Get.snackbar(
+          'End Room Failed', e.toString().replaceAll('Exception: ', ''));
     }
   }
 
   bool canEditRoom() => currentPermissions['can_edit_room'] ?? false;
   bool canDeleteRoom() => currentPermissions['can_delete_room'] ?? false;
   bool canInviteUsers() => currentPermissions['can_invite_users'] ?? false;
-  bool canManageSpeakers() => currentPermissions['can_manage_speakers'] ?? false;
-  bool canManageListeners() => currentPermissions['can_manage_listeners'] ?? false;
+  bool canManageSpeakers() =>
+      currentPermissions['can_manage_speakers'] ?? false;
+  bool canManageListeners() =>
+      currentPermissions['can_manage_listeners'] ?? false;
   bool canManageChat() => currentPermissions['can_manage_chat'] ?? false;
   bool canManageGifts() => currentPermissions['can_manage_gifts'] ?? false;
   bool canManagePolls() => currentPermissions['can_manage_polls'] ?? false;
   bool canRecordRoom() => currentPermissions['can_record_room'] ?? false;
   bool canTransferHost() => currentPermissions['can_transfer_host'] ?? false;
   bool canLockRoom() => currentPermissions['can_lock_room'] ?? false;
-  bool canChangeSettings() => currentPermissions['can_change_settings'] ?? false;
+  bool canChangeSettings() =>
+      currentPermissions['can_change_settings'] ?? false;
 
   void _loadInitialRooms() {}
   Future<void> _saveRooms() async {}
   Future<void> _loadSavedRooms() async {}
 
-
   void changeUserRole(String roomId, String userId, String newRole) {
     String dbRole = newRole;
-    if (newRole == 'Owner') dbRole = 'Host';
-    else if (newRole == 'Co-owner') dbRole = 'Co-Host';
-    else if (newRole == 'Admin') dbRole = 'Moderator';
-    else if (newRole == 'Star Member') dbRole = 'Speaker';
+    if (newRole == 'Owner')
+      dbRole = 'Host';
+    else if (newRole == 'Co-owner')
+      dbRole = 'Co-Host';
+    else if (newRole == 'Admin')
+      dbRole = 'Moderator';
+    else if (newRole == 'Star Member')
+      dbRole = 'Speaker';
     else if (newRole == 'Guest') dbRole = 'Listener';
 
     changeMemberRole(roomId, userId, dbRole);
@@ -1701,7 +1773,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
   void removeUserRole(String roomId, String userId) {
     changeUserRole(roomId, userId, 'Visitor');
-    addSystemActivity(roomId, '🔄 $userId switched to Seat 0.', messageType: 'activity');
+    addSystemActivity(roomId, '🔄 $userId switched to Seat 0.',
+        messageType: 'activity');
   }
 
   void toggleMuteAll(String roomId) {
@@ -1709,7 +1782,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     if (index != -1) {
       final old = rooms[index];
       final bool newMuteAll = !old.muteAll;
-      
+
       rooms[index] = VoiceRoom(
         id: old.id,
         name: old.name,
@@ -1784,7 +1857,9 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       Get.snackbar(
         'Room Setting Changed',
-        newMuteAll ? 'All speakers have been muted by management.' : 'Speakers can now unmute.',
+        newMuteAll
+            ? 'All speakers have been muted by management.'
+            : 'Speakers can now unmute.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orange.withOpacity(0.8),
         colorText: Colors.white,
@@ -1887,7 +1962,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         seatPermissions: seatPermissions ?? old.seatPermissions,
         invitePermissions: invitePermissions ?? old.invitePermissions,
         giftSettings: giftSettings ?? old.giftSettings,
-        recommendationSettings: recommendationSettings ?? old.recommendationSettings,
+        recommendationSettings:
+            recommendationSettings ?? old.recommendationSettings,
         musicSettings: musicSettings ?? old.musicSettings,
         recordingSettings: recordingSettings ?? old.recordingSettings,
         eventSettings: eventSettings ?? old.eventSettings,
@@ -1901,29 +1977,39 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       );
 
       if (bulletin != null || pinnedAnnouncement != null) {
-        addSystemActivity(roomId, '📢 Host updated the room announcement.', messageType: 'activity');
+        addSystemActivity(roomId, '📢 Host updated the room announcement.',
+            messageType: 'activity');
       }
       if (eventSettings != null) {
         addSystemActivity(
           roomId,
-          eventSettings == 'Enabled' ? '🎊 Room event has started.' : '✅ Room event has ended.',
+          eventSettings == 'Enabled'
+              ? '🎊 Room event has started.'
+              : '✅ Room event has ended.',
           messageType: 'activity',
-         );
+        );
       }
-      
-      Supabase.instance.client.from('rooms').update({
-        if (name != null) 'name': name,
-        if (description != null) 'description': description,
-        if (avatar != null) 'avatar': avatar,
-        if (avatar != null) 'banner': avatar,
-        if (roomCoverUrl != null) 'room_cover_url': roomCoverUrl,
-        if (coHostCanEditCover != null) 'co_host_can_edit_cover': coHostCanEditCover,
-        if (adminCanEditCover != null) 'admin_can_edit_cover': adminCanEditCover,
-      }).eq('id', roomId).then((_) {
-        debugPrint('Room settings updated in Supabase.');
-      }).catchError((err) {
-        debugPrint('Failed to update room settings in Supabase: $err');
-      });
+
+      Supabase.instance.client
+          .from('rooms')
+          .update({
+            if (name != null) 'name': name,
+            if (description != null) 'description': description,
+            if (avatar != null) 'avatar': avatar,
+            if (avatar != null) 'banner': avatar,
+            if (roomCoverUrl != null) 'room_cover_url': roomCoverUrl,
+            if (coHostCanEditCover != null)
+              'co_host_can_edit_cover': coHostCanEditCover,
+            if (adminCanEditCover != null)
+              'admin_can_edit_cover': adminCanEditCover,
+          })
+          .eq('id', roomId)
+          .then((_) {
+            debugPrint('Room settings updated in Supabase.');
+          })
+          .catchError((err) {
+            debugPrint('Failed to update room settings in Supabase: $err');
+          });
 
       Get.snackbar(
         'Success',
@@ -1939,16 +2025,17 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     try {
       final client = Supabase.instance.client;
       final fileExtension = file.path.split('.').last;
-      final fileName = '${roomId}_cover_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
-      
+      final fileName =
+          '${roomId}_cover_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+
       await client.storage.from('avatars').uploadBinary(
-        fileName,
-        await file.readAsBytes(),
-        fileOptions: const FileOptions(upsert: true),
-      );
+            fileName,
+            await file.readAsBytes(),
+            fileOptions: const FileOptions(upsert: true),
+          );
 
       final publicUrl = client.storage.from('avatars').getPublicUrl(fileName);
-      
+
       await client.from('rooms').update({
         'avatar': publicUrl,
         'room_cover_url': publicUrl,
@@ -2059,7 +2146,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     String? banner,
   }) async {
     try {
-      final response = await Supabase.instance.client.rpc('create_room', params: {
+      final response =
+          await Supabase.instance.client.rpc('create_room', params: {
         'p_name': name,
         'p_username': username,
         'p_description': description,
@@ -2103,7 +2191,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     required String creationMethod,
   }) async {
     try {
-      final response = await Supabase.instance.client.rpc('create_arena', params: {
+      final response =
+          await Supabase.instance.client.rpc('create_arena', params: {
         'p_name': name,
         'p_username': username,
         'p_description': description,
@@ -2223,10 +2312,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     } catch (e) {
       debugPrint('Search rooms failed: $e');
     }
-    return rooms.where((r) =>
-        r.name.toLowerCase().contains(query.toLowerCase()) ||
-        r.username.toLowerCase().contains(query.toLowerCase()) ||
-        r.id.toLowerCase().contains(query.toLowerCase())).toList();
+    return rooms
+        .where((r) =>
+            r.name.toLowerCase().contains(query.toLowerCase()) ||
+            r.username.toLowerCase().contains(query.toLowerCase()) ||
+            r.id.toLowerCase().contains(query.toLowerCase()))
+        .toList();
   }
 
   Future<bool> sendStarGiftToRoom({
@@ -2246,7 +2337,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       if (room == null) return false;
 
       // 1. Database RPC
-      final response = await Supabase.instance.client.rpc('send_star_gift', params: {
+      final response =
+          await Supabase.instance.client.rpc('send_star_gift', params: {
         'p_room_id': roomId,
         'p_receiver_ids': targetUserIds,
         'p_gift_id': giftId,
@@ -2270,12 +2362,14 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
         // Handle Magic Gift lottery outcomes
         final magicResult = response['magic_result'];
-        if (magicResult != null && magicResult['payout_type'] != null && magicResult['payout_type'] != 'nothing') {
+        if (magicResult != null &&
+            magicResult['payout_type'] != null &&
+            magicResult['payout_type'] != 'nothing') {
           final String type = magicResult['payout_type'];
           final int coinsBack = magicResult['coins_back'] ?? 0;
           final int silverAmount = magicResult['silver_reward'] ?? 0;
           final String vaultName = magicResult['vault_item_name'] ?? '';
-          
+
           String outcomeText = '';
           if (type == 'coin_back') {
             outcomeText = '🔮 Lucky Draw! You got $coinsBack Gold Coins Back!';
@@ -2284,7 +2378,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           } else if (type == 'vault_reward') {
             outcomeText = '🔮 Lucky Draw! You won a $vaultName!';
           }
-          
+
           Get.snackbar(
             'Magic Gift Reward! 🔮',
             outcomeText,
@@ -2296,20 +2390,22 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         }
 
         // Resolve sender profile info
-        final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
+        final profile =
+            await UserProfileCacheManager.fetchUserProfile(currentUserId);
         final uName = profile?.username ?? 'Creania Student';
 
         // Formulate chat/banner message body matching required structure
         String messageBody;
         if (targetUserIds.length == 1) {
           final targetName = targetUserNames[0];
-          messageBody = count > 1 
-              ? '$uName sent $count× 🌹 $giftName to $targetName' 
+          messageBody = count > 1
+              ? '$uName sent $count× 🌹 $giftName to $targetName'
               : '$uName sent 🌹 $giftName to $targetName';
         } else if (targetUserIds.length >= 10) {
           messageBody = '$uName gifted everyone with $giftName';
         } else {
-          messageBody = '$uName sent $giftName to ${targetUserIds.length} selected users';
+          messageBody =
+              '$uName sent $giftName to ${targetUserIds.length} selected users';
         }
 
         // 2. Broadcast event to update other users real-time UI/Animations
@@ -2381,7 +2477,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       }
 
       // Catalog UUID mapping
-      String matchedGiftId = 'a1000000-0000-0000-0000-000000000001'; // Default Rose
+      String matchedGiftId =
+          'a1000000-0000-0000-0000-000000000001'; // Default Rose
       if (giftName.contains('Heart')) {
         matchedGiftId = 'a1000000-0000-0000-0000-000000000002';
       } else if (giftName.contains('Crown')) {
@@ -2406,8 +2503,16 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         matchedGiftId = 'a1000000-0000-0000-0000-000000000016';
       }
 
-      String currencyType = giftName.startsWith('Vault:') ? 'vault' : 
-          ((giftName.contains('Like') || giftName.contains('Coffee') || giftName.contains('Chocolate') || giftName.contains('Flower') || giftName.contains('Cake') || giftName.contains('Small Heart')) ? 'silver' : 'gold');
+      String currencyType = giftName.startsWith('Vault:')
+          ? 'vault'
+          : ((giftName.contains('Like') ||
+                  giftName.contains('Coffee') ||
+                  giftName.contains('Chocolate') ||
+                  giftName.contains('Flower') ||
+                  giftName.contains('Cake') ||
+                  giftName.contains('Small Heart'))
+              ? 'silver'
+              : 'gold');
 
       return await sendStarGiftToRoom(
         roomId: roomId,
@@ -2546,10 +2651,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     final list = mutedUsers[roomId] ?? [];
     if (list.contains(userId)) {
       list.remove(userId);
-      addSystemActivity(roomId, '🔊 $userId was unmuted by Host.', messageType: 'activity');
+      addSystemActivity(roomId, '🔊 $userId was unmuted by Host.',
+          messageType: 'activity');
     } else {
       list.add(userId);
-      addSystemActivity(roomId, '🔇 $userId was muted by Host.', messageType: 'activity');
+      addSystemActivity(roomId, '🔇 $userId was muted by Host.',
+          messageType: 'activity');
     }
     mutedUsers[roomId] = List<String>.from(list);
   }
@@ -2559,10 +2666,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     final list = mutedChatUsers[roomId] ?? [];
     if (list.contains(userId)) {
       list.remove(userId);
-      addSystemActivity(roomId, '🔊 $userId chat was unmuted by Host.', messageType: 'activity');
+      addSystemActivity(roomId, '🔊 $userId chat was unmuted by Host.',
+          messageType: 'activity');
     } else {
       list.add(userId);
-      addSystemActivity(roomId, '🔇 $userId chat was muted by Host.', messageType: 'activity');
+      addSystemActivity(roomId, '🔇 $userId chat was muted by Host.',
+          messageType: 'activity');
     }
     mutedChatUsers[roomId] = List<String>.from(list);
   }
@@ -2573,13 +2682,15 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     if (!list.contains(userId)) {
       list.add(userId);
       bannedUsers[roomId] = List<String>.from(list);
-      
+
       final int index = rooms.indexWhere((r) => r.id == roomId);
       if (index != -1) {
         final old = rooms[index];
-        final List<String> newSpeakers = List<String>.from(old.speakerIds)..remove(userId);
-        final List<String> newListeners = List<String>.from(old.listenerIds)..remove(userId);
-        
+        final List<String> newSpeakers = List<String>.from(old.speakerIds)
+          ..remove(userId);
+        final List<String> newListeners = List<String>.from(old.listenerIds)
+          ..remove(userId);
+
         rooms[index] = VoiceRoom(
           id: old.id,
           name: old.name,
@@ -2653,7 +2764,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         );
       }
 
-      addSystemActivity(roomId, '🚫 $userId was removed from the room.', messageType: 'activity');
+      addSystemActivity(roomId, '🚫 $userId was removed from the room.',
+          messageType: 'activity');
     }
   }
 
@@ -2697,7 +2809,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     final int index = rooms.indexWhere((r) => r.id == roomId);
     if (index != -1) {
       final old = rooms[index];
-      final List<String> newBlockList = List<String>.from(old.blockList)..remove(userId);
+      final List<String> newBlockList = List<String>.from(old.blockList)
+        ..remove(userId);
       rooms[index] = VoiceRoom(
         id: old.id,
         name: old.name,
@@ -2770,7 +2883,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         currentDebateRound: old.currentDebateRound,
       );
       rooms.refresh();
-      addSystemActivity(roomId, '🔓 Room has been unlocked.', messageType: 'activity');
+      addSystemActivity(roomId, '🔓 Room has been unlocked.',
+          messageType: 'activity');
     }
   }
 
@@ -2850,7 +2964,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         pinnedAnnouncement: old.pinnedAnnouncement,
         currentDebateRound: old.currentDebateRound,
       );
-      Get.snackbar('Room joined', 'You are now a member of ${old.name}', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Room joined', 'You are now a member of ${old.name}',
+          snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -2999,14 +3114,18 @@ class RoomController extends GetxController with WidgetsBindingObserver {
                 onTap: () {
                   hidePipBubble();
                   final currentUid = UserProfileCacheManager.currentUserId;
-                  final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'anurag_kumar';
+                  final currentUsername =
+                      UserProfileCacheManager.currentUser?.username ??
+                          'anurag_kumar';
                   Get.to(
                     () => VoiceRoomCallScreen(
                       roomId: roomId,
                       roomName: roomName,
                       userId: currentUid,
                       userName: currentUsername,
-                      isHost: roomId == '#VX100001' || rooms.any((r) => r.id == roomId && r.hostId == currentUid),
+                      isHost: roomId == '#VX100001' ||
+                          rooms.any(
+                              (r) => r.id == roomId && r.hostId == currentUid),
                     ),
                   );
                 },
@@ -3029,19 +3148,26 @@ class RoomController extends GetxController with WidgetsBindingObserver {
                         height: 54,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.pinkAccent, width: 2),
+                          border:
+                              Border.all(color: Colors.pinkAccent, width: 2),
                           boxShadow: const [
-                            BoxShadow(color: Colors.black38, blurRadius: 6, offset: Offset(0, 3)),
+                            BoxShadow(
+                                color: Colors.black38,
+                                blurRadius: 6,
+                                offset: Offset(0, 3)),
                           ],
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(27),
                           child: Image.network(
-                            avatarUrl.isNotEmpty ? avatarUrl : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
+                            avatarUrl.isNotEmpty
+                                ? avatarUrl
+                                : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
                               color: Colors.pinkAccent,
-                              child: Icon(Icons.music_note, color: Colors.white, size: 24),
+                              child: Icon(Icons.music_note,
+                                  color: Colors.white, size: 24),
                             ),
                           ),
                         ),
@@ -3055,7 +3181,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.green,
-                            border: Border.all(color: Colors.black87, width: 1.5),
+                            border:
+                                Border.all(color: Colors.black87, width: 1.5),
                           ),
                         ),
                       ),
@@ -3098,39 +3225,37 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     try {
       final client = Supabase.instance.client;
 
-      // 1. Fetch level progress
-      final progressResp = await client
-          .from('room_level_progress')
-          .select()
-          .eq('room_id', roomId)
-          .maybeSingle();
+      // Execute all 6 queries in parallel
+      final results = await Future.wait<dynamic>([
+        client.from('room_level_progress').select().eq('room_id', roomId).maybeSingle(),
+        client.from('room_statistics').select().eq('room_id', roomId).maybeSingle(),
+        client.from('room_daily_tasks').select(),
+        client.from('room_daily_task_progress').select().eq('room_id', roomId),
+        client.from('room_seats').select().eq('room_id', roomId).order('seat_index', ascending: true),
+        client.from('room_seat_gifts').select().eq('room_id', roomId),
+      ]);
+
+      // 1. Process level progress
+      final progressResp = results[0];
       if (progressResp != null) {
-        roomLevelProgresses[roomId] = RoomLevelProgress.fromJson(progressResp);
+        roomLevelProgresses[roomId] = RoomLevelProgress.fromJson(progressResp as Map<String, dynamic>);
       }
 
-      // 2. Fetch stats
-      final statsResp = await client
-          .from('room_statistics')
-          .select()
-          .eq('room_id', roomId)
-          .maybeSingle();
+      // 2. Process stats
+      final statsResp = results[1];
       if (statsResp != null) {
-        roomStats[roomId] = RoomStatistics.fromJson(statsResp);
+        roomStats[roomId] = RoomStatistics.fromJson(statsResp as Map<String, dynamic>);
       }
 
-      // 3. Fetch tasks & progress
-      final tasksResp = await client.from('room_daily_tasks').select();
-      final progressListResp = await client
-          .from('room_daily_task_progress')
-          .select()
-          .eq('room_id', roomId);
+      // 3. Process tasks & progress
+      final tasksResp = results[2] as List;
+      final progressListResp = results[3] as List;
 
       final progressMap = {
-        for (var p in progressListResp)
-          p['task_key'] as String: p
+        for (var p in progressListResp) p['task_key'] as String: p
       };
 
-      final List<RoomDailyTask> mergedTasks = (tasksResp as List).map((t) {
+      final List<RoomDailyTask> mergedTasks = (tasksResp).map((t) {
         final key = t['task_key'] as String;
         final prog = progressMap[key];
         return RoomDailyTask(
@@ -3148,35 +3273,45 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       roomDailyTaskLists[roomId] = mergedTasks;
 
-      // 4. Fetch seats & seat gifts
-      final seatsResp = await client
-          .from('room_seats')
-          .select()
-          .eq('room_id', roomId)
-          .order('seat_index', ascending: true);
-
-      final giftsResp = await client
-          .from('room_seat_gifts')
-          .select()
-          .eq('room_id', roomId);
+      // 4. Process seats & seat gifts
+      final seatsResp = results[4] as List;
+      final giftsResp = results[5] as List;
 
       final giftMap = {
         for (var g in giftsResp)
           g['seat_index'] as int: g['silver_gift_count'] as int
       };
 
+      // Collect missing occupant profile IDs to fetch them in parallel
+      final Set<String> userIdsToFetch = {};
+      for (var s in seatsResp) {
+        final uId = s['user_id'] as String?;
+        if (uId != null && uId.isNotEmpty) {
+          if (UserProfileCacheManager.getCachedUser(uId) == null) {
+            userIdsToFetch.add(uId);
+          }
+        }
+      }
+
+      // Concurrent fetch for all missing seat profiles
+      if (userIdsToFetch.isNotEmpty) {
+        await Future.wait(
+          userIdsToFetch.map((id) => UserProfileCacheManager.fetchUserProfile(id)),
+        );
+      }
+
       final List<Map<String, dynamic>> seatsList = [];
-      for (var s in seatsResp as List) {
+      for (var s in seatsResp) {
         final idx = s['seat_index'] as int;
         final uId = s['user_id'] as String?;
         final giftsCount = giftMap[idx] ?? 0;
-        
+
         roomSeatGiftsCounters['$roomId:$idx'] = giftsCount;
 
         String? username;
         String? avatar;
         if (uId != null) {
-          final profile = await UserProfileCacheManager.fetchUserProfile(uId);
+          final profile = UserProfileCacheManager.getCachedUser(uId);
           username = profile?.username;
           avatar = profile?.avatar;
         }
@@ -3218,9 +3353,11 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> sendRoomGift(String roomId, int seatIndex, int amount, bool isGold) async {
+  Future<void> sendRoomGift(
+      String roomId, int seatIndex, int amount, bool isGold) async {
     try {
-      final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
+      final profile =
+          await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creania Student';
 
       await Supabase.instance.client.rpc('send_room_gift', params: {
@@ -3231,10 +3368,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       });
 
       // Find occupant of seat Index to output user names
-      final seatInfo = roomSeatsInfo[roomId]?.firstWhereOrNull((s) => s['seatIndex'] == seatIndex);
+      final seatInfo = roomSeatsInfo[roomId]
+          ?.firstWhereOrNull((s) => s['seatIndex'] == seatIndex);
       final String receiverName = seatInfo?['name'] ?? 'Seat #${seatIndex + 1}';
 
-      final String message = '🎁 $uName sent $amount ${isGold ? 'Gold Coins' : 'Silver Coins'} to $receiverName.';
+      final String message =
+          '🎁 $uName sent $amount ${isGold ? 'Gold Coins' : 'Silver Coins'} to $receiverName.';
 
       await emitRoomActivityEvent(
         roomId: roomId,
@@ -3268,9 +3407,10 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       final seats = roomSeatsInfo[roomId];
       if (seats != null) {
         final List<Map<String, dynamic>> updatedSeats = List.from(seats);
-        
+
         // 1. Remove current user from any previous seat
-        final prevIdx = updatedSeats.indexWhere((s) => s['userId'] == currentUserId);
+        final prevIdx =
+            updatedSeats.indexWhere((s) => s['userId'] == currentUserId);
         if (prevIdx != -1) {
           updatedSeats[prevIdx] = {
             ...updatedSeats[prevIdx],
@@ -3280,12 +3420,14 @@ class RoomController extends GetxController with WidgetsBindingObserver {
             'isSpeaking': false,
           };
         }
-        
+
         // 2. Fetch current user profile details
-        final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
-        
+        final profile =
+            await UserProfileCacheManager.fetchUserProfile(currentUserId);
+
         // 3. Put current user on new seat
-        final targetIdx = updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
+        final targetIdx =
+            updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
         if (targetIdx != -1) {
           updatedSeats[targetIdx] = {
             ...updatedSeats[targetIdx],
@@ -3298,7 +3440,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
             'isSpeaking': false,
           };
         }
-        
+
         roomSeatsInfo[roomId] = updatedSeats;
       }
 
@@ -3307,7 +3449,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         'p_seat_index': seatIndex,
       });
 
-      final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
+      final profile =
+          await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creania Student';
 
       final seatJoinMsgs = [
@@ -3343,7 +3486,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       final seats = roomSeatsInfo[roomId];
       if (seats != null) {
         final List<Map<String, dynamic>> updatedSeats = List.from(seats);
-        final targetIdx = updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
+        final targetIdx =
+            updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
         if (targetIdx != -1) {
           updatedSeats[targetIdx] = {
             ...updatedSeats[targetIdx],
@@ -3361,7 +3505,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         'p_seat_index': seatIndex,
       });
 
-      final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
+      final profile =
+          await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creania Student';
 
       final seatLeaveMsgs = [
@@ -3390,16 +3535,17 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     try {
       final client = Supabase.instance.client;
       final fileExtension = file.path.split('.').last;
-      final fileName = '${roomId}_banner_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
-      
+      final fileName =
+          '${roomId}_banner_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+
       await client.storage.from('banners').uploadBinary(
-        fileName,
-        await file.readAsBytes(),
-        fileOptions: const FileOptions(upsert: true),
-      );
+            fileName,
+            await file.readAsBytes(),
+            fileOptions: const FileOptions(upsert: true),
+          );
 
       final publicUrl = client.storage.from('banners').getPublicUrl(fileName);
-      
+
       await client.from('rooms').update({
         'avatar': publicUrl,
         'banner': publicUrl,
@@ -3487,8 +3633,9 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         );
         rooms.refresh();
       }
-      
-      final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
+
+      final profile =
+          await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creania Student';
       await emitRoomActivityEvent(
         roomId: roomId,
@@ -3499,7 +3646,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       );
 
       await fetchRoomProgression(roomId);
-      
+
       return publicUrl;
     } catch (e) {
       debugPrint('Error uploading room banner: $e');
@@ -3510,15 +3657,18 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
   Future<void> sendRoomBroadcastMessage(String roomId, String text) async {
     try {
-      final profile = await UserProfileCacheManager.fetchUserProfile(currentUserId);
+      final profile =
+          await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creania Student';
 
       final seatsList = roomSeatsInfo[roomId] ?? [];
-      final mySeat = seatsList.firstWhereOrNull((s) => s['userId'] == currentUserId);
+      final mySeat =
+          seatsList.firstWhereOrNull((s) => s['userId'] == currentUserId);
       String role = 'Audience';
       if (mySeat != null) {
         final seatIndex = mySeat['seatIndex'] as int;
-        role = seatIndex == 0 ? 'Host' : (seatIndex == 1 ? 'Co-Host' : 'Speaker');
+        role =
+            seatIndex == 0 ? 'Host' : (seatIndex == 1 ? 'Co-Host' : 'Speaker');
       }
 
       String? equippedFrame;
@@ -3549,10 +3699,14 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         'sender_avatar': profile?.avatar,
         'timestamp': DateTime.now().toIso8601String(),
         'sender_level': profile?.level?.toString() ?? '1',
-        'vip_label': (profile?.vipLevel ?? 0) > 0 ? 'VIP ${profile?.vipLevel}' : null,
-        'novel_label': (profile?.novelLevel ?? 0) > 0 ? 'Novel ${profile?.novelLevel}' : null,
+        'vip_label':
+            (profile?.vipLevel ?? 0) > 0 ? 'VIP ${profile?.vipLevel}' : null,
+        'novel_label': (profile?.novelLevel ?? 0) > 0
+            ? 'Novel ${profile?.novelLevel}'
+            : null,
         'avatar_frame': equippedFrame,
-        'noble_label': (profile?.vipLevel ?? 0) > 0 ? 'Noble ${profile?.vipLevel}' : null,
+        'noble_label':
+            (profile?.vipLevel ?? 0) > 0 ? 'Noble ${profile?.vipLevel}' : null,
       };
 
       // Add to local chat list immediately for optimistic UI rendering
@@ -3586,7 +3740,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> sendRoomReactionBroadcast(String roomId, String messageId, String reactionType) async {
+  Future<void> sendRoomReactionBroadcast(
+      String roomId, String messageId, String reactionType) async {
     try {
       final payload = {
         'message_id': messageId,
@@ -3599,7 +3754,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         final idx = chatList.indexWhere((msg) => msg.id == messageId);
         if (idx != -1) {
           final msg = chatList[idx];
-          final currentReactions = Map<String, List<String>>.from(msg.reactions);
+          final currentReactions =
+              Map<String, List<String>>.from(msg.reactions);
           if (currentReactions[reactionType] == null) {
             currentReactions[reactionType] = [];
           }
@@ -3671,19 +3827,24 @@ class LevelUpDialog extends StatelessWidget {
             Text(
               'ROOM LEVEL UP! 🎉',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.amber,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ) ?? TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold),
+                        color: Colors.amber,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ) ??
+                  TextStyle(
+                      color: Colors.amber,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 12),
             Text(
               roomName,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ) ?? TextStyle(color: Colors.white, fontSize: 16),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ) ??
+                  TextStyle(color: Colors.white, fontSize: 16),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 24),
@@ -3694,7 +3855,8 @@ class LevelUpDialog extends StatelessWidget {
                 SizedBox(width: 16),
                 Icon(Icons.arrow_forward, color: Colors.white54, size: 28),
                 SizedBox(width: 16),
-                _buildLevelCircle(context, newLevel.toString(), 'Level', isNew: true),
+                _buildLevelCircle(context, newLevel.toString(), 'Level',
+                    isNew: true),
               ],
             ),
             SizedBox(height: 24),
@@ -3710,7 +3872,8 @@ class LevelUpDialog extends StatelessWidget {
                 backgroundColor: Colors.amber,
                 foregroundColor: Colors.black87,
                 padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
               ),
               child: Text(
                 'Awesome!',
@@ -3723,7 +3886,8 @@ class LevelUpDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildLevelCircle(BuildContext context, String text, String label, {bool isNew = false}) {
+  Widget _buildLevelCircle(BuildContext context, String text, String label,
+      {bool isNew = false}) {
     return Column(
       children: [
         Container(
@@ -3764,4 +3928,3 @@ class LevelUpDialog extends StatelessWidget {
     );
   }
 }
-

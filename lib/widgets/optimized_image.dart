@@ -39,6 +39,7 @@ class OptimizedImage extends StatelessWidget {
       fit: fit,
       width: width,
       height: height,
+      filterQuality: FilterQuality.medium,
       memCacheWidth: quality == ImageQuality.thumbnail ? 150 : (quality == ImageQuality.medium ? 600 : null),
       placeholder: (context, url) => placeholder ?? _buildShimmerPlaceholder(),
       errorWidget: (context, url, error) => errorWidget ?? _buildErrorWidget(),

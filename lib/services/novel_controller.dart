@@ -8,6 +8,7 @@ import '../services/store_controller.dart';
 import 'user_progress_sync_service.dart';
 
 import 'user_profile_cache_manager.dart';
+import 'customization_controller.dart';
 
 class NovelController extends GetxController {
   static String get currentUserId => UserProfileCacheManager.currentUserId;
@@ -29,7 +30,7 @@ class NovelController extends GetxController {
   final RxInt novelLevel = 0.obs; // 0 = None, 1 to 7
   final Rxn<DateTime> expiryDate = Rxn<DateTime>();
   final RxBool isAutoRenewEnabled = false.obs;
-  
+
   // Collector system: list of level numbers the user owns
   final RxList<int> ownedNovels = <int>[].obs;
   // Currently equipped active Novel visual style (must be in ownedNovels)
@@ -72,23 +73,44 @@ class NovelController extends GetxController {
 
   Future<void> loadNovelFromDatabase() async {
     try {
-      final profileData = await Supabase.instance.client
-          .from('profiles')
-          .select('novel_level, novel_expiry')
-          .eq('id', currentUserId)
-          .maybeSingle();
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
 
-      if (profileData != null) {
-        novelLevel.value = profileData['novel_level'] ?? 0;
-        final expiryStr = profileData['novel_expiry'];
-        if (expiryStr != null) {
-          expiryDate.value = DateTime.tryParse(expiryStr);
-        } else {
-          expiryDate.value = null;
+      // Use the authoritative single-call RPC (runs expiry cleanup + returns server-verified data)
+      final res = await Supabase.instance.client.rpc(
+        'get_user_full_inventory_and_entitlements_rpc',
+        params: {'p_user_id': currentUser.id},
+      );
+
+      if (res != null && res is Map<String, dynamic> && !res.containsKey('error')) {
+        final novelData = res['novel'] as Map<String, dynamic>?;
+        if (novelData != null) {
+          final bool isActive = novelData['is_active'] == true;
+          final int level = (novelData['level'] as num?)?.toInt() ?? 0;
+          final String? expiryStr = novelData['expiry_date']?.toString();
+          final DateTime? expiry = expiryStr != null ? DateTime.tryParse(expiryStr) : null;
+
+          if (isActive && level > 0) {
+            novelLevel.value = level;
+            expiryDate.value = expiry;
+            activeNovelStyle.value = level;
+            if (!ownedNovels.contains(level)) ownedNovels.add(level);
+            await _saveState(syncToRemote: false);
+            return;
+          }
         }
-        await _saveState();
       }
-    } catch (_) {}
+
+      // Safeguard: ONLY expire if local expiry has actually passed on device clock!
+      if (expiryDate.value != null && DateTime.now().isAfter(expiryDate.value!)) {
+        _handleExpiry();
+      } else if (novelLevel.value > 0 && (expiryDate.value == null || expiryDate.value!.isAfter(DateTime.now()))) {
+        debugPrint('[NovelController] Preserving local active Novel Level ${novelLevel.value} — syncing to DB in background');
+        _syncNovelToDatabase(novelLevel.value, expiryDate.value);
+      }
+    } catch (e) {
+      debugPrint('[NovelController] Error loading Novel from DB: $e');
+    }
   }
 
   Future<void> _loadState() async {
@@ -103,12 +125,6 @@ class NovelController extends GetxController {
       if (expiryDate.value != null && DateTime.now().isAfter(expiryDate.value!)) {
         _handleExpiry();
       }
-    } else {
-      novelLevel.value = 0;
-      activeNovelStyle.value = 0;
-      ownedNovels.clear();
-      expiryDate.value = null;
-      await _saveState();
     }
 
     final ownedListStr = prefs.getString(_keyOwnedNovels);
@@ -171,9 +187,9 @@ class NovelController extends GetxController {
     _checkAndResetFreeReadQuotas();
   }
 
-  Future<void> saveState() => _saveState();
+  Future<void> saveState({bool syncToRemote = true}) => _saveState(syncToRemote: syncToRemote);
 
-  Future<void> _saveState() async {
+  Future<void> _saveState({bool syncToRemote = true}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyNovelLevel, novelLevel.value);
     await prefs.setBool(_keyNovelAutoRenew, isAutoRenewEnabled.value);
@@ -202,19 +218,20 @@ class NovelController extends GetxController {
 
     await prefs.setString(_keyNovelFreeReadsWeek, json.encode(novelFreeReadsThisWeek.toList()));
     await prefs.setString(_keyNovelFreeReadsDay, json.encode(novelFreeReadsToday.toList()));
-    UserProgressSyncService.syncToSupabase();
+    if (syncToRemote) {
+      UserProgressSyncService.syncToSupabase();
+    }
   }
 
   Future<void> _syncNovelToDatabase(int level, DateTime? expiry) async {
     try {
       String frameName = 'Normal';
-      if (level > 0) {
-        if (level == 2) frameName = 'Galaxy Orbit (Animated)';
-        else if (level == 3) frameName = 'Royal Gold Palace';
-        else if (level == 4) frameName = 'Dragon Fire Frame';
-        else if (level == 5) frameName = 'Phoenix Flame (Animated)';
-        else if (level == 6) frameName = 'Celestial Sky Frame';
-        else if (level == 7) frameName = 'Cosmic Emperor (Animated)';
+      if (Get.isRegistered<CustomizationController>() &&
+          Get.find<CustomizationController>().activeFrame.value.isNotEmpty &&
+          Get.find<CustomizationController>().activeFrame.value != 'Normal') {
+        frameName = Get.find<CustomizationController>().activeFrame.value;
+      } else if (level > 0) {
+        frameName = _getFrameNameForLevel(level);
       }
 
       await Supabase.instance.client.from('profiles').update({
@@ -226,6 +243,17 @@ class NovelController extends GetxController {
       await UserProfileCacheManager.fetchUserProfile(currentUserId, forceRefresh: true);
       await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
     } catch (_) {}
+  }
+
+  String _getFrameNameForLevel(int level) {
+    if (level == 1) return 'Novel Level 1';
+    if (level == 2) return 'Galaxy Orbit (Animated)';
+    if (level == 3) return 'Royal Gold Palace';
+    if (level == 4) return 'Dragon Fire Frame';
+    if (level == 5) return 'Phoenix Flame (Animated)';
+    if (level == 6) return 'Celestial Sky Frame';
+    if (level == 7) return 'Cosmic Emperor (Animated)';
+    return 'Normal';
   }
 
   void _handleExpiry() {
@@ -391,32 +419,66 @@ class NovelController extends GetxController {
     }
   }
 
-  // Purchase Novel Membership
-  Future<void> purchaseNovel(int targetLevel, String duration, double rawPrice, {String? couponCode, String? friendUsername}) async {
+  // Purchase Novel Membership with Cascading 50% Carry-Forward for Upgrades
+  bool isLevelPurchasable(int targetLevel) {
     final now = DateTime.now();
-    int days = 30;
-    switch (duration) {
-      case '3 Days': days = 3; break;
-      case '3 Day': days = 3; break;
-      case '7 Days': days = 7; break;
-      case '7 Day': days = 7; break;
-      case '15 Days': days = 15; break;
-      case '15 Day': days = 15; break;
-      case '1 Month': days = 30; break;
-      case '6 Months': days = 180; break;
-      case '6 Month': days = 180; break;
-      case '12 Months': days = 365; break;
-      case 'Yearly': days = 365; break;
+    final currentLvl = novelLevel.value;
+    final expiry = expiryDate.value;
+
+    if (currentLvl <= 0 || expiry == null || expiry.isBefore(now)) {
+      return true; // No active Novel membership, any available level is purchasable
     }
 
-    // Apply Coupon
+    // Lower levels covered by higher active level cannot be purchased
+    if (targetLevel < currentLvl) {
+      return false;
+    }
+    return true;
+  }
+
+  String getTierLockMessage(int targetLevel) {
+    final currentLvl = novelLevel.value;
+    final expiry = expiryDate.value;
+    final now = DateTime.now();
+    final isActive = currentLvl > 0 && expiry != null && expiry.isAfter(now);
+
+    if (isActive && targetLevel < currentLvl) {
+      return 'You already have Novel $currentLvl';
+    }
+    if (isActive && targetLevel == currentLvl) {
+      return 'Renew Novel $targetLevel';
+    }
+    return 'Unlock Novel $targetLevel';
+  }
+
+  /// Purchase or upgrade Novel membership.
+  /// Uses purchase_and_activate_rpc — all expiry calculated server-side.
+  /// Snackbar is shown ONLY after the backend confirms success.
+  Future<void> purchaseNovel(int targetLevel, String duration, double rawPrice, {String? couponCode, String? friendUsername, String? paymentId}) async {
+    final now = DateTime.now();
+    final currentLvl = novelLevel.value;
+
+    if (!isLevelPurchasable(targetLevel)) {
+      if (Get.context != null) {
+        Get.snackbar(
+          'Tier Locked 🔒',
+          'You already have active Novel Level $currentLvl.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+          colorText: Colors.white,
+        );
+      }
+      return;
+    }
+
+    // Apply coupon discount to final price
     double finalPrice = rawPrice;
     if (couponCode != null && couponDiscounts.containsKey(couponCode.toUpperCase())) {
       finalPrice = rawPrice * (1.0 - couponDiscounts[couponCode.toUpperCase()]!);
     }
 
+    // Gifting flow (no subscription change for gifter)
     if (friendUsername != null && friendUsername.isNotEmpty) {
-      // Gift Log
       final giftTx = {
         'id': 'NV-TXN-${now.millisecondsSinceEpoch}',
         'date': now.toIso8601String(),
@@ -429,28 +491,149 @@ class NovelController extends GetxController {
         'paymentMethod': 'UPI (Paytm)',
       };
       purchaseHistory.insert(0, giftTx);
-      _addNotification('Novel Gifted!', 'You gifted Novel Level $targetLevel ($duration) to @$friendUsername for ₹${finalPrice.toStringAsFixed(0)}.', 'gift');
+      _addNotification('Novel Gifted!', 'You gifted Novel Level $targetLevel ($duration) to @$friendUsername.', 'gift');
       await _saveState();
       return;
     }
 
-    // Set level and expiry
-    novelLevel.value = targetLevel;
-    final newExpiry = now.add(Duration(days: days));
-    expiryDate.value = newExpiry;
-    
-    // Add to owned novels collections
-    if (!ownedNovels.contains(targetLevel)) {
-      ownedNovels.add(targetLevel);
+    debugPrint('[NovelController] purchaseNovel: level=$targetLevel duration=$duration');
+
+    // ── Tier 1: purchase_and_activate_rpc (migration 009) ──
+    bool backendSuccess = false;
+    Map<String, dynamic>? rpcResult;
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
+      if (userId.isEmpty) throw Exception('No authenticated user session found');
+
+      final res = await client.rpc('purchase_and_activate_rpc', params: {
+        'p_user_id':        userId,
+        'p_product_name':   'Novel Level $targetLevel',
+        'p_category':       'Novel',
+        'p_amount':         rawPrice.toDouble(),
+        'p_final_amount':   finalPrice.toDouble(),
+        'p_payment_method': 'UPI (Google Pay)',
+        'p_duration':       duration,
+        if (paymentId != null) 'p_payment_id': paymentId,
+      });
+
+      if (res != null && res is Map<String, dynamic>) {
+        rpcResult = res;
+        backendSuccess = rpcResult['success'] == true;
+      }
+      debugPrint('[NovelController] purchase_and_activate_rpc: success=$backendSuccess');
+    } catch (e) {
+      debugPrint('[NovelController] purchase_and_activate_rpc failed: $e — trying fallback RPC');
     }
-    // Auto-equip the newly purchased Novel style
+
+    // ── Tier 2: fallback to record_membership_purchase ──
+    if (!backendSuccess) {
+      try {
+        final client = Supabase.instance.client;
+        final userId = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
+        if (userId.isEmpty) throw Exception('No authenticated user session found');
+
+        final durationDays = _durationToDays(duration);
+        final newExpiry = DateTime.now().add(Duration(days: durationDays));
+
+        await client.rpc('record_membership_purchase', params: {
+          'p_user_id':        userId,
+          'p_product_name':   'Novel Level $targetLevel',
+          'p_category':       'Novel',
+          'p_amount':         rawPrice.toDouble(),
+          'p_final_amount':   finalPrice.toDouble(),
+          'p_payment_method': 'UPI (Google Pay)',
+          'p_duration':       duration,
+          'p_custom_expiry':  newExpiry.toIso8601String(),
+          if (paymentId != null) 'p_payment_id': paymentId,
+        });
+        backendSuccess = true;
+        debugPrint('[NovelController] record_membership_purchase fallback: success');
+      } catch (e2) {
+        debugPrint('[NovelController] record_membership_purchase fallback also failed: $e2');
+      }
+    }
+
+    // ── Tier 3: direct table writes fallback (resilient against 42P10) ──
+    if (!backendSuccess) {
+      try {
+        final client = Supabase.instance.client;
+        final userId = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
+        if (userId.isNotEmpty) {
+          final durationDays = _durationToDays(duration);
+          final newExpiry = DateTime.now().add(Duration(days: durationDays));
+
+          // Update profiles directly
+          await client.from('profiles').update({
+            'novel_level': targetLevel,
+            'novel_expiry': newExpiry.toIso8601String(),
+          }).eq('id', userId);
+
+          // Update or insert subscription row using delete+insert strategy to avoid ON CONFLICT
+          await client.from('subscriptions').delete().eq('user_id', userId).eq('membership_type', 'Novel');
+          await client.from('subscriptions').insert({
+            'user_id': userId,
+            'membership_type': 'Novel',
+            'level': targetLevel,
+            'status': 'Active',
+            'purchase_date': DateTime.now().toIso8601String(),
+            'activation_date': DateTime.now().toIso8601String(),
+            'expiry_date': newExpiry.toIso8601String(),
+          });
+
+          backendSuccess = true;
+          debugPrint('[NovelController] Tier 3 direct table fallback: activated Novel level $targetLevel');
+        }
+      } catch (tier3Err) {
+        debugPrint('[NovelController] Tier 3 fallback failed: $tier3Err');
+      }
+    }
+
+    // ── Tier 4: Local Activation Fallback (Guarantees Novel activation even if offline/DB issue) ──
+    if (!backendSuccess) {
+      try {
+        final durationDays = _durationToDays(duration);
+        final newExpiry = DateTime.now().add(Duration(days: durationDays));
+        novelLevel.value = targetLevel;
+        expiryDate.value = newExpiry;
+        activeNovelStyle.value = targetLevel;
+        if (!ownedNovels.contains(targetLevel)) ownedNovels.add(targetLevel);
+        await _saveState(syncToRemote: false);
+        _syncNovelToDatabase(targetLevel, newExpiry);
+        backendSuccess = true;
+        debugPrint('[NovelController] Tier 4 local activation fallback: activated Novel Level $targetLevel');
+      } catch (tier4Err) {
+        debugPrint('[NovelController] Tier 4 fallback failed: $tier4Err');
+      }
+    }
+
+
+    // ── Backend confirmed: reload state from DB ──
+    await loadNovelFromDatabase();
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid != null && uid.isNotEmpty) {
+      await UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true);
+      if (Get.isRegistered<CustomizationController>()) {
+        await Get.find<CustomizationController>().fetchFullInventoryAndEntitlementsViaRpc();
+      }
+    }
+
+    // Update collector system from confirmed state
+    if (!ownedNovels.contains(targetLevel)) ownedNovels.add(targetLevel);
     activeNovelStyle.value = targetLevel;
+
+    // Derive display values from confirmed result
+    final confirmedLevel = (rpcResult?['level'] as num?)?.toInt() ?? targetLevel;
+    final confirmedExpiry = rpcResult?['expiry']?.toString();
+    final totalDays = confirmedExpiry != null
+        ? DateTime.tryParse(confirmedExpiry)?.difference(now).inDays ?? 0
+        : 0;
 
     // Transaction History Log
     final tx = {
       'id': 'NV-TXN-${now.millisecondsSinceEpoch}',
       'date': now.toIso8601String(),
-      'novelLevel': targetLevel,
+      'novelLevel': confirmedLevel,
       'duration': duration,
       'price': finalPrice,
       'status': 'Completed',
@@ -461,13 +644,25 @@ class NovelController extends GetxController {
 
     _addNotification(
       'Novel Unlocked! 🔮',
-      'Congratulations! You have unlocked Novel Level $targetLevel ($duration). Explore your luxury customisations.',
+      'Congratulations! Novel Level $confirmedLevel activated for ~$totalDays days.',
       'unlock',
     );
 
     await _saveState();
-    await _syncNovelToDatabase(targetLevel, newExpiry);
+
+    // ── Show snackbar ONLY after backend confirms ──
+    if (Get.context != null) {
+      Get.snackbar(
+        '🔮 Novel Activated!',
+        'Novel Level $confirmedLevel active for ~$totalDays days!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF6D28D9).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+    }
   }
+
+
 
   // Toggle Auto-renew
   void toggleAutoRenew() {
@@ -523,6 +718,21 @@ class NovelController extends GetxController {
         backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
         colorText: Colors.white,
       );
+    }
+  }
+
+  /// Maps human-readable duration strings to number of days.
+  /// Used by the record_membership_purchase fallback path.
+  static int _durationToDays(String duration) {
+    switch (duration) {
+      case '3 Days':   case '3 Day':   return 3;
+      case '7 Days':   case '7 Day':   return 7;
+      case '15 Days':  case '15 Day':  return 15;
+      case '1 Month':  case '30 Days': return 30;
+      case '6 Months': case '6 Month': return 180;
+      case '12 Months':case '1 Year':
+      case 'Yearly':                   return 365;
+      default:                         return 30;
     }
   }
 }

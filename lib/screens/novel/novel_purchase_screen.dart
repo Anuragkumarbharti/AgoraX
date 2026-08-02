@@ -43,30 +43,6 @@ class _NovelPurchaseScreenState extends State<NovelPurchaseScreen> {
       '3 Days': 999, '7 Days': 1999, '15 Days': 2999, '1 Month': 4999,
       '3 Months': 13999, '6 Months': 24999, '12 Months': 44999,
     },
-    2: {
-      '3 Days': 1999, '7 Days': 3999, '15 Days': 5999, '1 Month': 8999,
-      '3 Months': 24999, '6 Months': 44999, '12 Months': 79999,
-    },
-    3: {
-      '3 Days': 2999, '7 Days': 5999, '15 Days': 8999, '1 Month': 12999,
-      '3 Months': 34999, '6 Months': 64999, '12 Months': 119999,
-    },
-    4: {
-      '3 Days': 4999, '7 Days': 8999, '15 Days': 12999, '1 Month': 18999,
-      '3 Months': 49999, '6 Months': 89999, '12 Months': 169999,
-    },
-    5: {
-      '3 Days': 6999, '7 Days': 12999, '15 Days': 18999, '1 Month': 27999,
-      '3 Months': 74999, '6 Months': 139999, '12 Months': 249999,
-    },
-    6: {
-      '3 Days': 9999, '7 Days': 18999, '15 Days': 27999, '1 Month': 39999,
-      '3 Months': 109999, '6 Months': 199999, '12 Months': 349999,
-    },
-    7: {
-      '3 Days': 19999, '7 Days': 34999, '15 Days': 49999, '1 Month': 79999,
-      '3 Months': 249999, '6 Months': 499999, '12 Months': 999999,
-    },
   };
 
   // Level Names & Theme colors
@@ -156,36 +132,50 @@ class _NovelPurchaseScreenState extends State<NovelPurchaseScreen> {
     }
   }
 
-  void _processPayment({String? giftFriend}) {
+  void _processPayment({String? giftFriend}) async {
     final rawPrice = pricingMatrix[selectedLevel]![selectedDuration]!;
-    final finalPrice = rawPrice * (1.0 - discountPercentage);
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        Future.delayed(const Duration(seconds: 2), () {
-          Navigator.pop(context); // dismiss gateway dialog
-          
-          _novelCtrl.purchaseNovel(
-            selectedLevel,
-            selectedDuration,
-            rawPrice,
-            couponCode: discountPercentage > 0 ? appliedCoupon : null,
-            friendUsername: giftFriend,
-          );
-          if (RoomController.to.activeRoomId != null) {
-            RoomController.to.addSystemActivity(
-              RoomController.to.activeRoomId!,
-              '📚 Anurag Kumar unlocked Novel $selectedLevel.',
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFFFFDB3C)),
+      ),
+    );
+
+    try {
+      await _novelCtrl.purchaseNovel(
+        selectedLevel,
+        selectedDuration,
+        rawPrice,
+        couponCode: discountPercentage > 0 ? appliedCoupon : null,
+        friendUsername: giftFriend,
+      );
+      try {
+        if (Get.isRegistered<RoomController>()) {
+          final roomCtrl = Get.find<RoomController>();
+          if (roomCtrl.activeRoomId != null) {
+            roomCtrl.addSystemActivity(
+              roomCtrl.activeRoomId!,
+              '📚 Student unlocked Novel $selectedLevel.',
               activityKey: 'novel-unlock',
             );
           }
+        }
+      } catch (_) {}
+    } catch (e) {
+      debugPrint('[NovelPurchaseScreen] Error processing novel purchase: $e');
+    }
 
-          // Success Dialog
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
+    if (mounted) {
+      Navigator.pop(context); // dismiss progress indicator
+    }
+
+    if (mounted) {
+      // Success Dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
               backgroundColor: const Color(0xFF1E293B),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: Row(
@@ -215,34 +205,8 @@ class _NovelPurchaseScreenState extends State<NovelPurchaseScreen> {
                 ),
               ],
             ),
-          );
-        });
-
-        return Dialog(
-          backgroundColor: const Color(0xFF0F172A).withOpacity(0.95),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(color: Color(0xFFFFD700)),
-                const SizedBox(height: 24),
-                Text(
-                  'Simulating Luxury Gateway...',
-                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Securing transaction of ₹${finalPrice.toStringAsFixed(0)}',
-                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+      );
+    }
   }
 
   void _showGiftingSheet() {
@@ -737,7 +701,7 @@ class _NovelPurchaseScreenState extends State<NovelPurchaseScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: 7,
+        itemCount: 1,
         itemBuilder: (context, index) {
           final lvl = index + 1;
           final isSel = selectedLevel == lvl;

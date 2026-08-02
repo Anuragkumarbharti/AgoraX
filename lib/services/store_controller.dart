@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'user_progress_sync_service.dart';
 import 'user_profile_cache_manager.dart';
+import 'fcm_notification_service.dart';
 import 'dart:math';
 import 'dart:async';
 import '../core/theme.dart';
@@ -93,7 +94,7 @@ class LuckyDrawReward {
   });
 }
 
-class StoreController extends GetxController {
+class StoreController extends GetxController with WidgetsBindingObserver {
   static StoreController get to => Get.find<StoreController>();
 
   final RxInt coinsBalance = 0.obs;
@@ -101,6 +102,9 @@ class StoreController extends GetxController {
   final RxInt diamondsBalance = 0.obs;
   final RxDouble availableIncomeBalance = 0.00.obs;
   
+  DateTime _lastSyncTime = DateTime.fromMillisecondsSinceEpoch(0);
+  static const Duration _syncDebounceDuration = Duration(milliseconds: 500);
+
   // Lists and Histories
   final RxList<StoreOrderItem> orderHistory = <StoreOrderItem>[].obs;
   final RxList<CoinTransaction> coinTransactions = <CoinTransaction>[].obs;
@@ -162,41 +166,64 @@ class StoreController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
-    syncWithDatabase();
+    syncWithDatabase(force: true);
     _startDailyDealsTimer();
 
-    // Auto-save balances whenever they change
-    ever(coinsBalance, (_) => _saveData());
-    ever(silverCoinsBalance, (_) => _saveData());
-    ever(diamondsBalance, (_) => _saveData());
-    ever(availableIncomeBalance, (_) => _saveData());
+    // Auto-save local display cache whenever balances change
+    ever(coinsBalance, (_) => _saveDataLocalOnly());
+    ever(silverCoinsBalance, (_) => _saveDataLocalOnly());
+    ever(diamondsBalance, (_) => _saveDataLocalOnly());
+    ever(availableIncomeBalance, (_) => _saveDataLocalOnly());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      syncWithDatabase(force: true);
+    }
   }
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _dealTimer?.cancel();
     super.onClose();
   }
 
-  Future<void> syncWithDatabase() async {
+  /// Server-authoritative fetch for wallet balance from Supabase database
+  Future<void> syncWithDatabase({bool force = false}) async {
+    final now = DateTime.now();
+    if (!force && now.difference(_lastSyncTime) < _syncDebounceDuration) return;
+    _lastSyncTime = now;
+
     try {
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser == null) return;
       
       final canonicalId = await UserProfileCacheManager.getOrFetchCanonicalId();
+      if (canonicalId.isEmpty) return;
+
       final walletData = await Supabase.instance.client
           .from('wallets')
-          .select()
+          .select('coins_balance, gold_coins, silver_coins, withdrawable_balance')
           .eq('id', canonicalId)
           .maybeSingle();
 
       if (walletData != null) {
-        coinsBalance.value = walletData['coins_balance'] ?? 0;
-        availableIncomeBalance.value = (walletData['withdrawable_balance'] as num?)?.toDouble() ?? 0.00;
-        _saveDataLocalOnly();
+        final int fetchedCoins = (walletData['coins_balance'] ?? walletData['gold_coins'] ?? 0) as int;
+        final int fetchedSilver = (walletData['silver_coins'] ?? 0) as int;
+        final double fetchedIncome = ((walletData['withdrawable_balance'] ?? 0.0) as num).toDouble();
+
+        coinsBalance.value = fetchedCoins;
+        silverCoinsBalance.value = fetchedSilver;
+        availableIncomeBalance.value = fetchedIncome;
+        await _saveDataLocalOnly();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[StoreController] Balance sync error: $e');
+    }
   }
 
   void _loadData() async {
@@ -213,23 +240,6 @@ class StoreController extends GetxController {
     await prefs.setInt('store_silver_balance', silverCoinsBalance.value);
     await prefs.setInt('store_diamonds_balance', diamondsBalance.value);
     await prefs.setDouble('store_income_balance', availableIncomeBalance.value);
-  }
-
-  void _saveData() async {
-    await _saveDataLocalOnly();
-    
-    // Sync with Supabase wallets table
-    try {
-      final currentUser = Supabase.instance.client.auth.currentUser;
-      if (currentUser != null) {
-        final canonicalId = await UserProfileCacheManager.getOrFetchCanonicalId();
-        await Supabase.instance.client.from('wallets').update({
-          'coins_balance': coinsBalance.value,
-          'withdrawable_balance': availableIncomeBalance.value,
-        }).eq('id', canonicalId);
-      }
-    } catch (_) {}
-    UserProgressSyncService.syncToSupabase();
   }
 
   void _startDailyDealsTimer() {
@@ -281,37 +291,25 @@ class StoreController extends GetxController {
 
   // Coin Purchase / Gifting Operations
   void addCoins(int amount, String description) {
-    coinsBalance.value += amount;
-    coinTransactions.insert(0, CoinTransaction(
-      type: 'Purchased',
-      amount: amount,
-      description: description,
-      dateTime: DateTime.now(),
-    ));
-    _saveData();
+    debugPrint('[StoreController] Requesting server balance sync after addCoins ($description)');
+    syncWithDatabase(force: true);
   }
 
   void addReceivedCoins(int amount, String description) {
-    coinsBalance.value += amount;
-    coinTransactions.insert(0, CoinTransaction(
-      type: 'Received',
-      amount: amount,
-      description: description,
-      dateTime: DateTime.now(),
-    ));
-    _saveData();
+    debugPrint('[StoreController] Requesting server balance sync after addReceivedCoins ($description)');
+    syncWithDatabase(force: true);
   }
 
   bool deductCoins(int amount, String description) {
     if (coinsBalance.value >= amount) {
-      coinsBalance.value -= amount;
       coinTransactions.insert(0, CoinTransaction(
         type: 'Used',
         amount: amount,
         description: description,
         dateTime: DateTime.now(),
       ));
-      _saveData();
+      _saveDataLocalOnly();
+      syncWithDatabase(force: true);
       return true;
     }
     return false;
@@ -339,7 +337,7 @@ class StoreController extends GetxController {
       'date': DateTime.now().toString(),
     });
     
-    _saveData();
+    _saveDataLocalOnly();
   }
 
   // --- WITHDRAWAL SYSTEM ---
@@ -371,7 +369,22 @@ class StoreController extends GetxController {
         duration: 'One-Time',
       ));
       
-      _saveData();
+      try {
+        final client = Supabase.instance.client;
+        if (client.auth.currentUser != null) {
+          client.from('wallet_transactions').insert({
+            'wallet_id': UserProfileCacheManager.currentUserId,
+            'amount': rupeesWithdrawn,
+            'currency': 'INR',
+            'type': 'Withdrawal',
+            'status': 'Completed',
+            'reference_id': orderId,
+            'details': 'Withdrawal of $diamondAmount Diamonds',
+          }).then((_) {}).catchError((_) {});
+        }
+      } catch (_) {}
+
+      _saveDataLocalOnly();
       return true;
     } else {
       Get.snackbar('Withdrawal Error ⚠️', 'Insufficient Diamonds balance.', backgroundColor: const Color(0xFFEF4444), colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
@@ -384,7 +397,7 @@ class StoreController extends GetxController {
     if (inrAmount <= 0) return;
     int coinsAdded = (inrAmount * 0.50).round();
     
-    coinsBalance.value += coinsAdded;
+    syncWithDatabase(force: true);
     
     final orderId = 'RCG-${Random().nextInt(90000) + 10000}-PAY';
     orderHistory.insert(0, StoreOrderItem(
@@ -423,11 +436,11 @@ class StoreController extends GetxController {
       }
     } catch (_) {}
     
-    _saveData();
+    _saveDataLocalOnly();
   }
 
-  // Place Order / Mock Payments
-  Future<bool> processPurchaseOrder({
+  // Place Order / Gold Coins Payments
+  Future<Map<String, dynamic>> processPurchaseOrder({
     required String name,
     required String category,
     required double basePrice,
@@ -440,7 +453,18 @@ class StoreController extends GetxController {
     DateTime? scheduledDate,
     String purchaseMethod = 'INR',
   }) async {
-    if (category == 'Coins' && purchaseMethod == 'Gold') {
+    if (purchaseMethod != 'Gold') {
+      Get.snackbar(
+        'Purchase Failed ⚠️',
+        'Real-money purchases must proceed via Razorpay Secure Gateway.',
+        backgroundColor: const Color(0xFFEF4444),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return {'success': false, 'error': 'Real-money purchases must proceed via Razorpay Secure Gateway.'};
+    }
+
+    if (category == 'Coins') {
       Get.snackbar(
         'Purchase Failed ⚠️',
         'Coins cannot be purchased using other coins.',
@@ -448,23 +472,47 @@ class StoreController extends GetxController {
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
-      return false;
+      return {'success': false, 'error': 'Coins cannot be purchased using other coins.'};
     }
 
-    await Future.delayed(const Duration(milliseconds: 1800)); // simulation latency
-
-    final orderId = 'AGX-${Random().nextInt(90000) + 10000}-${category.toUpperCase().substring(0, min(3, category.length))}';
     final discount = basePrice * activeCouponDiscount.value + (isFlashSaleActive.value ? basePrice * flashSaleDiscount.value : 0.0);
-    final finalBase = basePrice - discount;
-    
-    // In our new pricing system, displayed price is final (inclusive of taxes). GST is 0 in display breakdown.
-    final finalAmount = finalBase;
+    final finalAmount = basePrice - discount;
 
-    if (purchaseMethod == 'Gold') {
-      // Proportional conversion: ₹100 = 50 Gold Coins.
-      // So GoldPrice = INRPrice * 0.50
-      int goldPrice = (finalAmount * 0.50).round();
-      if (coinsBalance.value < goldPrice) {
+    // Proportional conversion: ₹100 = 50 Gold Coins.
+    int goldPrice = (finalAmount * 0.50).round();
+    if (coinsBalance.value < goldPrice) {
+      Get.snackbar(
+        'Purchase Failed ⚠️',
+        'Insufficient Gold Coins balance.',
+        backgroundColor: const Color(0xFFEF4444),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return {'success': false, 'error': 'Insufficient Gold Coins balance.'};
+    }
+
+    try {
+      final client = Supabase.instance.client;
+      final uid = client.auth.currentUser?.id;
+      if (uid != null) {
+        // Execute atomic purchase and balance check on database
+        final response = await client.rpc('purchase_item_with_coins_rpc', params: {
+          'p_user_id': uid,
+          'p_item_name': name,
+          'p_item_type': category,
+          'p_coin_amount': goldPrice,
+          'p_duration': duration,
+        });
+
+        if (response != true) {
+          throw Exception('Database purchase function returned false');
+        }
+      } else {
+        throw Exception('No authenticated user session found');
+      }
+    } catch (e) {
+      debugPrint('[StoreController] purchase_item_with_coins_rpc failed: $e');
+      if (e.toString().contains('Insufficient')) {
         Get.snackbar(
           'Purchase Failed ⚠️',
           'Insufficient Gold Coins balance.',
@@ -472,79 +520,83 @@ class StoreController extends GetxController {
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
         );
-        return false;
+        return {'success': false, 'error': 'Insufficient Gold Coins balance.'};
       }
-      
-      // Deduct coins
-      coinsBalance.value -= goldPrice;
-      
+
+      // Resilient local fallback if RPC fails on unmigrated remote database
       try {
-        final client = Supabase.instance.client;
-        if (client.auth.currentUser != null) {
-          await client.from('wallet_transactions').insert({
-            'wallet_id': UserProfileCacheManager.currentUserId,
-            'amount': goldPrice.toDouble(),
-            'currency': 'Gold Coins',
-            'type': 'Purchase',
-            'status': 'Completed',
-            'details': 'Purchased $name',
-          });
+        if (coinsBalance.value >= goldPrice) {
+          debugPrint('[StoreController] Executing local fallback for coin purchase: $name ($category)');
+          if (category == 'VIP') {
+            final match = RegExp(r'(\d+)').firstMatch(name);
+            final lvl = match != null ? (int.tryParse(match.group(1)!) ?? 1) : 1;
+            await Get.find<VipController>().purchaseVip(lvl, duration, goldPrice.toDouble(), paymentMethod: 'Gold Coins');
+          } else if (category == 'Novel') {
+            final match = RegExp(r'(\d+)').firstMatch(name);
+            final lvl = match != null ? (int.tryParse(match.group(1)!) ?? 1) : 1;
+            await Get.find<NovelController>().purchaseNovel(lvl, duration, goldPrice.toDouble(), paymentId: 'coin_pay_${DateTime.now().millisecondsSinceEpoch}');
+          } else {
+            // Cosmetic or Frame fallback purchase
+            final uid = Supabase.instance.client.auth.currentUser?.id;
+            if (uid != null) {
+              await Supabase.instance.client.from('user_customizations').delete().eq('user_id', uid).eq('type', category).eq('name', name);
+              await Supabase.instance.client.from('user_customizations').insert({
+                'user_id': uid,
+                'type': category == 'Frame' ? 'Avatar Frame' : category,
+                'name': name,
+                'is_equipped': false,
+              });
+              if (Get.isRegistered<CustomizationController>()) {
+                Get.find<CustomizationController>().unlockedItems.add(name);
+              }
+            }
+          }
 
-          await client.from('purchase_history').insert({
-            'user_id': UserProfileCacheManager.currentUserId,
-            'item_id': name,
-            'item_type': category,
-            'price': goldPrice.toDouble(),
-            'currency': 'Coins',
-            'duration': duration,
-          });
+          await syncWithDatabase(force: true);
+          return {'success': true, 'error': null};
         }
-      } catch (_) {}
+      } catch (fallbackErr) {
+        debugPrint('[StoreController] Local fallback error: $fallbackErr');
+      }
 
-      coinTransactions.insert(0, CoinTransaction(
-        type: 'Used',
-        amount: goldPrice,
-        description: 'Purchased $name',
-        dateTime: DateTime.now(),
-      ));
-      _saveData();
+      Get.snackbar(
+        'Purchase Failed ⚠️',
+        'Purchase failed. Please try again.',
+        backgroundColor: const Color(0xFFEF4444),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return {'success': false, 'error': 'Purchase failed. Please try again.'};
     }
 
+    // Sync authoritative balance from server database
+    await syncWithDatabase(force: true);
+
+    // Log transaction locally
+    coinTransactions.insert(0, CoinTransaction(
+      type: 'Used',
+      amount: goldPrice,
+      description: 'Purchased $name',
+      dateTime: DateTime.now(),
+    ));
+
+    final orderId = 'AGX-${Random().nextInt(90000) + 10000}-${category.toUpperCase().substring(0, min(3, category.length))}';
     final newOrder = StoreOrderItem(
       orderId: orderId,
       name: name,
       category: category,
-      amount: purchaseMethod == 'Gold' ? (basePrice * 0.50).roundToDouble() : basePrice,
-      discount: purchaseMethod == 'Gold' ? (discount * 0.50).roundToDouble() : discount,
-      gst: 0.0, // Taxes are already included, hidden from breakdown
-      finalAmount: purchaseMethod == 'Gold' ? (finalAmount * 0.50).roundToDouble() : finalAmount,
+      amount: goldPrice.toDouble(),
+      discount: (discount * 0.50).roundToDouble(),
+      gst: 0.0,
+      finalAmount: goldPrice.toDouble(),
       dateTime: DateTime.now(),
-      paymentMethod: purchaseMethod == 'Gold' ? 'Gold Coins Wallet' : paymentMethod,
+      paymentMethod: 'Gold Coins Wallet',
       status: 'Completed',
       duration: duration,
       couponApplied: activeCouponCode.isNotEmpty ? activeCouponCode.value : null,
     );
 
     orderHistory.insert(0, newOrder);
-
-    // Update Stats for Admin Panel
-    if (purchaseMethod == 'INR') {
-      totalRevenue.value += finalAmount;
-      
-      try {
-        final client = Supabase.instance.client;
-        if (client.auth.currentUser != null) {
-          await client.from('purchase_history').insert({
-            'user_id': UserProfileCacheManager.currentUserId,
-            'item_id': name,
-            'item_type': category,
-            'price': finalAmount,
-            'currency': 'INR',
-            'duration': duration,
-          });
-        }
-      } catch (_) {}
-    }
     totalSalesCount.value++;
 
     if (giftToFriend && friendUsername != null) {
@@ -565,62 +617,46 @@ class StoreController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     } else {
-      // ── Backend-first purchase (NO optimistic local state mutations) ──────
-      // The backend is the single source of truth. After the RPC succeeds:
-      //   subscriptions table INSERT/UPDATE fires tr_on_subscription_change
-      //   → recompute_user_entitlements → inventory → auto-equip
-      //   → rebuild_user_tag_system → profiles.membership_assets + tag_system
-      // We then force-refresh the profile cache from Supabase so the UI
-      // reflects exactly what the backend computed.
       if (category == 'VIP' || category == 'Novel') {
-        final client = Supabase.instance.client;
-        final uid = client.auth.currentUser?.id;
+        // Gold Coins purchase: delegate to VipController / NovelController
+        // which have the full two-tier fallback (purchase_and_activate_rpc → record_membership_purchase)
+        final uid = Supabase.instance.client.auth.currentUser?.id;
         if (uid != null) {
-          try {
-            await client.rpc('record_membership_purchase', params: {
-              'p_user_id': uid,
-              'p_product_name': name,
-              'p_category': category,
-              'p_amount': (basePrice * 0.50).roundToDouble(),
-              'p_final_amount': (finalAmount * 0.50).roundToDouble(),
-              'p_payment_method': 'Gold Coins Wallet',
-              'p_duration': duration,
-            });
-            // Force-refresh profile → UI reads membership_assets + tag_system from DB
-            await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
-            // Also refresh membership controllers from DB (not from local vars)
-            if (category == 'VIP') {
-              try { Get.find<VipController>().loadVipFromDatabase(); } catch (_) {}
-            } else {
-              try { Get.find<NovelController>().loadNovelFromDatabase(); } catch (_) {}
+          if (category == 'VIP') {
+            try {
+              final vipCtrl = Get.find<VipController>();
+              final vipLevel = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+              await vipCtrl.purchaseVip(
+                vipLevel, duration, goldPrice.toDouble(),
+                paymentMethod: 'Gold Coins Wallet',
+              );
+            } catch (e) {
+              debugPrint('[StoreController] VIP Gold Coins purchase failed: $e');
             }
-            debugPrint('[StoreController] $category purchase successful, profile refreshed from backend.');
-          } catch (e) {
-            debugPrint('[StoreController] record_membership_purchase RPC failed: $e');
-            Get.snackbar(
-              'Purchase Failed',
-              'Could not complete purchase. Please try again.',
-              snackPosition: SnackPosition.BOTTOM,
-            );
-            return false;
+          } else {
+            try {
+              final novelCtrl = Get.find<NovelController>();
+              final novelLevel = int.tryParse(name.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+              await novelCtrl.purchaseNovel(
+                novelLevel, duration, goldPrice.toDouble(),
+              );
+            } catch (e) {
+              debugPrint('[StoreController] Novel Gold Coins purchase failed: $e');
+            }
           }
         }
-      } else if (category == 'Coins') {
-        final coinMatch = RegExp(r'(\d+,?\d*) Coins').firstMatch(name);
-        if (coinMatch != null) {
-          final amt = int.parse(coinMatch.group(1)!.replaceAll(',', ''));
-          addCoins(amt, 'Pack Purchase: $name');
-        }
+
       } else if (category == 'Frame') {
-        final cust = Get.find<CustomizationController>();
-        cust.itemExpiries[name] = DateTime.now().add(const Duration(days: 30));
-        cust.unlockedItems.add(name);
-        cust.activeFrame.value = name;
+        try {
+          final cust = Get.find<CustomizationController>();
+          cust.unlockedItems.add(name);
+        } catch (_) {}
       }
     }
 
-    removeCoupon(); // Clear active coupon after purchase
-    return true;
+
+    removeCoupon();
+    return {'success': true, 'error': null};
   }
 
   // Lucky Draw spin simulation

@@ -1,7 +1,50 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:video_player/video_player.dart';
 import 'vip_badge_widget.dart';
+
+// ============================================================
+//  VipVideoPreloader — helper for caching and pre-warming VIP video
+// ============================================================
+class VipVideoPreloader {
+  static VideoPlayerController? _prewarmedCtrl;
+  static bool _isPreloaded = false;
+  static bool _isPreloading = false;
+
+  /// Asynchronously preloads and pre-warms the VIP entry effect video asset.
+  static Future<void> preload() async {
+    if (_isPreloaded || _isPreloading) return;
+    _isPreloading = true;
+
+    try {
+      if (_prewarmedCtrl == null) {
+        final ctrl = VideoPlayerController.asset(
+          'assets/entryeffect/vip/vip2.mov',
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+        await ctrl.initialize();
+        ctrl.setVolume(0.0);
+        ctrl.setLooping(false);
+        _prewarmedCtrl = ctrl;
+      }
+      _isPreloaded = true;
+      _isPreloading = false;
+      debugPrint('VIP 2 Entry Effect local video asset pre-warmed successfully.');
+      return;
+    } catch (e) {
+      debugPrint('Error pre-warming VIP 2 local video asset: $e');
+      _isPreloading = false;
+    }
+  }
+
+  static VideoPlayerController? consumePrewarmedCtrl() {
+    final ctrl = _prewarmedCtrl;
+    _prewarmedCtrl = null;
+    _isPreloaded = false;
+    return ctrl;
+  }
+}
 
 class EntryParticlePainter extends CustomPainter {
   final double progress;
@@ -18,7 +61,8 @@ class EntryParticlePainter extends CustomPainter {
     for (int i = 0; i < 10; i++) {
       final double localProgress = (progress + (i * 0.15)) % 1.0;
       final double x = size.width * localProgress;
-      final double y = (size.height / 2) + 14 * math.sin(localProgress * 3 * math.pi + i);
+      final double y =
+          (size.height / 2) + 14 * math.sin(localProgress * 3 * math.pi + i);
       final double radius = 1.5 + 2.0 * (1.0 - localProgress);
       canvas.drawCircle(Offset(x, y), radius, paint);
     }
@@ -42,6 +86,37 @@ class VipEntryAnimation extends StatefulWidget {
     this.onFinished,
   }) : super(key: key);
 
+  static OverlayEntry? _activeEntry;
+
+  static void show(
+    BuildContext context, {
+    required String username,
+    String? avatarUrl,
+    required int vipLevel,
+    required VoidCallback onFinished,
+  }) {
+    _activeEntry?.remove();
+    _activeEntry = null;
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => VipEntryAnimation(
+        username: username,
+        avatarUrl: avatarUrl,
+        vipLevel: vipLevel,
+        onFinished: () {
+          entry.remove();
+          if (_activeEntry == entry) {
+            _activeEntry = null;
+          }
+          onFinished();
+        },
+      ),
+    );
+    _activeEntry = entry;
+    overlay.insert(entry);
+  }
+
   @override
   State<VipEntryAnimation> createState() => _VipEntryAnimationState();
 }
@@ -52,15 +127,24 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
   late AnimationController _shineController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
-  
+
   // Staggered Opacities & Scales
   late Animation<double> _usernameOpacity;
   late Animation<double> _avatarScale;
 
+  // Video Controller for Full-Screen VIP 2 Entry Effect (vip2.mov)
+  VideoPlayerController? _videoCtrl;
+  bool _videoInitialized = false;
+  late AnimationController _masterCtrl;
+  late Animation<double> _fadeIn;
+  late Animation<double> _fadeOut;
+
+  bool get _isFullScreen => widget.vipLevel == 2;
+
   @override
   void initState() {
     super.initState();
-    
+
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 1400),
       vsync: this,
@@ -103,21 +187,120 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
       curve: const Interval(0.7, 1.0, curve: Curves.elasticOut),
     ));
 
-    // Slide in, pause, then slide out
-    _slideController.forward().then((_) async {
-      await Future.delayed(const Duration(milliseconds: 2500));
-      if (mounted) {
-        _slideController.reverse().then((_) {
-          if (widget.onFinished != null) {
-            widget.onFinished!();
-          }
-        });
+    if (_isFullScreen) {
+      _masterCtrl = AnimationController(
+        duration: const Duration(milliseconds: 3500),
+        vsync: this,
+      );
+
+      _fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(
+          parent: _masterCtrl,
+          curve: const Interval(0.0, 0.12, curve: Curves.easeOut),
+        ),
+      );
+
+      _fadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
+        CurvedAnimation(
+          parent: _masterCtrl,
+          curve: const Interval(0.85, 1.0, curve: Curves.easeIn),
+        ),
+      );
+
+      _masterCtrl.addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          widget.onFinished?.call();
+        }
+      });
+
+      _initVideo();
+    } else {
+      // Slide in, pause, then slide out for pill card
+      _slideController.forward().then((_) async {
+        await Future.delayed(const Duration(milliseconds: 2500));
+        if (mounted) {
+          _slideController.reverse().then((_) {
+            widget.onFinished?.call();
+          });
+        }
+      });
+    }
+  }
+
+  void _initVideo() async {
+    if (!_isFullScreen) return;
+
+    VideoPlayerController? ctrl;
+    bool success = false;
+
+    // 1. Check pre-warmed VIP 2 video controller
+    try {
+      final prewarmed = VipVideoPreloader.consumePrewarmedCtrl();
+      if (prewarmed != null && prewarmed.value.isInitialized) {
+        ctrl = prewarmed;
+        success = true;
+        debugPrint("VIP Entry Effect: Used pre-warmed vip2.mov video controller.");
       }
-    });
+    } catch (e) {
+      debugPrint("VIP Entry Effect: Error checking pre-warmed controller: $e");
+    }
+
+    // 2. Primary local asset source (assets/entryeffect/vip/vip2.mov)
+    if (!success && mounted) {
+      try {
+        ctrl = VideoPlayerController.asset(
+          'assets/entryeffect/vip/vip2.mov',
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+        await ctrl.initialize();
+        success = true;
+        debugPrint("VIP Entry Effect: Initialized local asset vip2.mov.");
+      } catch (e) {
+        debugPrint("VIP Entry Effect: Error initializing vip2.mov: $e");
+      }
+    }
+
+    // 3. Fallback to novel1.mp4 if vip2.mp4 fails
+    if (!success && mounted) {
+      try {
+        ctrl = VideoPlayerController.asset(
+          'assets/entryeffect/novel/novel1.mp4',
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
+        await ctrl.initialize();
+        success = true;
+      } catch (e) {
+        debugPrint("VIP Entry Effect: Fallback video initialization error: $e");
+      }
+    }
+
+    if (mounted) {
+      if (success && ctrl != null) {
+        try {
+          ctrl.setVolume(0.0);
+          ctrl.setLooping(false);
+          await ctrl.seekTo(Duration.zero);
+          await ctrl.play();
+
+          setState(() {
+            _videoCtrl = ctrl;
+            _videoInitialized = true;
+          });
+        } catch (e) {
+          debugPrint("VIP Entry Effect: Error playing video: $e");
+        }
+      }
+
+      _masterCtrl.forward();
+    }
   }
 
   @override
   void dispose() {
+    _videoCtrl?.dispose();
+    if (_isFullScreen) {
+      _masterCtrl.dispose();
+    }
     _slideController.dispose();
     _shineController.dispose();
     super.dispose();
@@ -150,6 +333,164 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
       return const SizedBox.shrink();
     }
 
+    return _isFullScreen ? _buildFullScreen(context) : _buildPillCard(context);
+  }
+
+  // ==========================================================================
+  //  FULL-SCREEN VIP VIDEO ENTRY (Level 2: vip2.mov)
+  // ==========================================================================
+  Widget _buildFullScreen(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final accentColor = _getVipAccentColor();
+
+    return AnimatedBuilder(
+      animation: _masterCtrl,
+      builder: (context, _) {
+        final mo = (_fadeIn.value * _fadeOut.value).clamp(0.0, 1.0);
+        if (mo == 0) return const SizedBox.shrink();
+
+        return Material(
+          color: Colors.black.withOpacity(0.65),
+          child: SizedBox.expand(
+            child: Opacity(
+              opacity: mo,
+              child: Stack(
+                children: [
+                  // 1. Fullscreen MP4/MOV Video Layer (vip2.mov)
+                  if (_videoInitialized && _videoCtrl != null)
+                    Positioned.fill(
+                      child: FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _videoCtrl!.value.size.width > 0
+                              ? _videoCtrl!.value.size.width
+                              : size.width,
+                          height: _videoCtrl!.value.size.height > 0
+                              ? _videoCtrl!.value.size.height
+                              : size.height,
+                          child: VideoPlayer(_videoCtrl!),
+                        ),
+                      ),
+                    )
+                  else
+                    // Fallback animated particles background
+                    Positioned.fill(
+                      child: AnimatedBuilder(
+                        animation: _shineController,
+                        builder: (context, child) {
+                          return CustomPaint(
+                            painter: EntryParticlePainter(
+                              progress: _shineController.value,
+                              color: accentColor,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                  // 2. VIP User Card Overlay Details
+                  Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
+                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.75),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: accentColor.withOpacity(0.8),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withOpacity(0.4),
+                            blurRadius: 20,
+                            spreadRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // User Avatar
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: accentColor, width: 2),
+                              image: widget.avatarUrl != null &&
+                                      widget.avatarUrl!.isNotEmpty
+                                  ? DecorationImage(
+                                      image: NetworkImage(widget.avatarUrl!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: widget.avatarUrl == null ||
+                                    widget.avatarUrl!.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      '👑',
+                                      style: TextStyle(fontSize: 28),
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(height: 12),
+
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              VipBadgeWidget(
+                                  level: widget.vipLevel, fontSize: 11),
+                              const SizedBox(width: 8),
+                              ShaderMask(
+                                shaderCallback: (bounds) {
+                                  return LinearGradient(
+                                    colors: [Colors.white, accentColor],
+                                  ).createShader(bounds);
+                                },
+                                child: Text(
+                                  widget.username,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+
+                          Text(
+                            'Has entered the room as VIP 2! 👑',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.white.withOpacity(0.9),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ==========================================================================
+  //  PILL CARD (Standard VIP Entrance Card)
+  // ==========================================================================
+  Widget _buildPillCard(BuildContext context) {
     final accentColor = _getVipAccentColor();
 
     return SlideTransition(
@@ -197,7 +538,8 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(left: 12, right: 24, top: 4, bottom: 4),
+                        padding: const EdgeInsets.only(
+                            left: 12, right: 24, top: 4, bottom: 4),
                         child: Row(
                           children: [
                             // Avatar Circle
@@ -208,14 +550,19 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
                                 height: 44,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: accentColor.withOpacity(0.6), width: 1.5),
-                                  image: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+                                  border: Border.all(
+                                      color: accentColor.withOpacity(0.6),
+                                      width: 1.5),
+                                  image: widget.avatarUrl != null &&
+                                          widget.avatarUrl!.isNotEmpty
                                       ? DecorationImage(
-                                          image: NetworkImage(widget.avatarUrl!),
+                                          image:
+                                              NetworkImage(widget.avatarUrl!),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
-                                  gradient: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
+                                  gradient: widget.avatarUrl == null ||
+                                          widget.avatarUrl!.isEmpty
                                       ? SweepGradient(
                                           colors: [
                                             accentColor,
@@ -225,7 +572,8 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
                                         )
                                       : null,
                                 ),
-                                child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
+                                child: widget.avatarUrl == null ||
+                                        widget.avatarUrl!.isEmpty
                                     ? const Center(
                                         child: Text(
                                           '🌟',
@@ -247,7 +595,9 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
                                   children: [
                                     Row(
                                       children: [
-                                        VipBadgeWidget(level: widget.vipLevel, fontSize: 10),
+                                        VipBadgeWidget(
+                                            level: widget.vipLevel,
+                                            fontSize: 10),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: ShaderMask(
@@ -259,7 +609,10 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
                                                         Color(0xFFFFBF00),
                                                         Color(0xFF00F0FF),
                                                       ]
-                                                    : [Colors.white, accentColor],
+                                                    : [
+                                                        Colors.white,
+                                                        accentColor
+                                                      ],
                                               ).createShader(bounds);
                                             },
                                             child: Text(
@@ -310,7 +663,8 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
                       heightFactor: 1.0,
                       child: ShaderMask(
                         shaderCallback: (bounds) {
-                          final double slideVal = _shineController.value * 2 - 0.5;
+                          final double slideVal =
+                              _shineController.value * 2 - 0.5;
                           return LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,

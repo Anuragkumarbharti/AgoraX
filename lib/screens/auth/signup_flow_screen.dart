@@ -9,12 +9,16 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:creania/core/theme.dart';
+import 'terms_screen.dart';
+import 'dart:async';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../models/user_model.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../../services/user_progress_sync_service.dart';
 import '../home/main_screen.dart';
 import 'login_screen.dart';
 import '../../services/email_validation_service.dart';
+import '../../core/api_error_handler.dart';
 import '../../widgets/custom_image_editor.dart';
 
 class SignupFlowScreen extends StatefulWidget {
@@ -48,6 +52,9 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
   bool _isPhoneAuth = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _agreeToTerms = false;
+  bool _showEmailForm = false;
+  StreamSubscription<AuthState>? _authSubscription;
 
   // Step 2 Controllers
   final _usernameCtrl = TextEditingController();
@@ -91,6 +98,9 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     super.initState();
     _currentStep = widget.startStep;
     _userId = widget.userId ?? '';
+    if (_userId.isNotEmpty) {
+      _loadExistingProfileData();
+    }
     if (widget.prefilledEmail != null) {
       _emailPhoneCtrl.text = widget.prefilledEmail!;
       _isPhoneAuth = false;
@@ -99,10 +109,29 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         _confirmPasswordCtrl.text = 'SocialPassword123!';
       }
     }
+
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+      if (event == AuthChangeEvent.signedIn && session != null) {
+        try {
+          await Supabase.instance.client
+              .from('profiles')
+              .update({'signup_status': 'otp_verified'})
+              .eq('id', session.user.id);
+        } catch (_) {}
+
+        setState(() {
+          _userId = session.user.id;
+          _currentStep = 1; // Move to Step 2 (Choose Username)
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _emailPhoneCtrl.dispose();
     _otpCtrl.dispose();
     _passwordCtrl.dispose();
@@ -121,10 +150,130 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     return hasUppercase && hasLowercase && hasDigits && hasSpecialCharacters;
   }
 
+  bool _isValidUuid(String? id) {
+    if (id == null || id.isEmpty) return false;
+    final regExp = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    );
+    return regExp.hasMatch(id);
+  }
+
+  String _mapAuthError(dynamic e) {
+    final errString = e.toString().toLowerCase();
+    final cleanMsg = e.toString().replaceAll('AuthException: ', '');
+    
+    if (errString.contains('authretryablefetchexception') ||
+        errString.contains('500') ||
+        errString.contains('504') ||
+        errString.contains('timeout')) {
+      return 'Unable to create account. Please try again in a moment.\nDetails: $cleanMsg';
+    }
+    
+    if (errString.contains('smtp') || 
+        errString.contains('email provider') || 
+        errString.contains('failed to send email') ||
+        errString.contains('confirmation email')) {
+      return 'Unable to send verification email. Please try again later.\nDetails: $cleanMsg';
+    }
+
+    if (errString.contains('database') || 
+        errString.contains('postgres') || 
+        errString.contains('uuid') || 
+        errString.contains('profiles') || 
+        errString.contains('22p02')) {
+      return 'Profile setup failed.\nDetails: $cleanMsg';
+    }
+
+    return 'Unable to create account.\nDetails: $cleanMsg';
+  }
+
+  Future<AuthResponse> _signUpWithRetry({required String email, required String password}) async {
+    try {
+      return await Supabase.instance.client.auth.signUp(
+        email: email,
+        password: password,
+        emailRedirectTo: 'io.supabase.flutter://login-callback/',
+      ).timeout(const Duration(seconds: 10));
+    } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('timeout') || errStr.contains('authretryablefetchexception') || errStr.contains('504')) {
+        await Future.delayed(const Duration(seconds: 1));
+        return await Supabase.instance.client.auth.signUp(
+          email: email,
+          password: password,
+          emailRedirectTo: 'io.supabase.flutter://login-callback/',
+        ).timeout(const Duration(seconds: 15));
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _resendWithRetry({required String email, required OtpType type}) async {
+    try {
+      await Supabase.instance.client.auth.resend(
+        type: type,
+        email: email,
+        emailRedirectTo: 'io.supabase.flutter://login-callback/',
+      ).timeout(const Duration(seconds: 10));
+    } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('timeout') || errStr.contains('authretryablefetchexception') || errStr.contains('504')) {
+        await Future.delayed(const Duration(seconds: 1));
+        await Supabase.instance.client.auth.resend(
+          type: type,
+          email: email,
+          emailRedirectTo: 'io.supabase.flutter://login-callback/',
+        ).timeout(const Duration(seconds: 15));
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  void _loadExistingProfileData() async {
+    if (!_isValidUuid(_userId)) return;
+    try {
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('username, dob, age, gender, country, bio, interests')
+          .eq('id', _userId)
+          .maybeSingle();
+
+      if (res != null) {
+        setState(() {
+          if (res['username'] != null && !res['username'].toString().startsWith('user_')) {
+            _usernameCtrl.text = res['username'].toString();
+          }
+          if (res['dob'] != null) {
+            _dob = DateTime.tryParse(res['dob'].toString());
+          }
+          _calculatedAge = res['age'] ?? 0;
+          if (res['gender'] != null) {
+            _selectedGender = res['gender'].toString();
+          }
+          if (res['country'] != null) {
+            _selectedCountry = res['country'].toString();
+          }
+          if (res['bio'] != null) {
+            _bioCtrl.text = res['bio'].toString();
+          }
+          if (res['interests'] != null) {
+            final list = List<String>.from(res['interests']);
+            _selectedInterests.addAll(list);
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
   // --- Step 1: Verify Email/Phone (OTP) ---
   void _sendOTP() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
     final value = _emailPhoneCtrl.text.trim();
     if (value.isEmpty) {
+      setState(() => _isLoading = false);
       Get.snackbar('Required', 'Please enter Email or Phone Number');
       return;
     }
@@ -133,16 +282,19 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     final confirmPassword = _confirmPasswordCtrl.text;
 
     if (password.isEmpty) {
+      setState(() => _isLoading = false);
       Get.snackbar('Required', 'Please enter a password');
       return;
     }
 
     if (password != confirmPassword) {
+      setState(() => _isLoading = false);
       Get.snackbar('Validation Error', 'Passwords do not match');
       return;
     }
 
     if (!_isPasswordStrong(password)) {
+      setState(() => _isLoading = false);
       Get.snackbar(
         'Weak Password ⚠️',
         'Password must be at least 8 characters long, and contain uppercase, lowercase, a number, and a special character.',
@@ -157,6 +309,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
     // Check Cooldown
     if (await validator.isCoolingDown()) {
+      setState(() => _isLoading = false);
       Get.snackbar(
         'Too many attempts ⚠️',
         'Too many failures. Please wait before trying again.',
@@ -171,6 +324,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       // 1. Format validation
       if (!validator.isValidFormat(value)) {
         await validator.logFailure();
+        setState(() => _isLoading = false);
         Get.snackbar(
           'Invalid Email ⚠️',
           'Please enter a valid email address format.',
@@ -184,6 +338,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       // 2. Disposable Email Check
       if (await validator.isDisposable(value)) {
         await validator.logFailure();
+        setState(() => _isLoading = false);
         Get.snackbar(
           'Disposable Email Blocked 🚫',
           'This temporary email address is not allowed. Please use your real email.',
@@ -196,7 +351,6 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       }
 
       // 3. Deliverability / MX Check
-      setState(() => _isLoading = true);
       final deliverable = await validator.isDeliverable(value);
       if (!deliverable) {
         setState(() => _isLoading = false);
@@ -251,88 +405,135 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
     try {
-      final column = _isPhoneAuth ? 'phone' : 'email';
       final existing = await Supabase.instance.client
           .from('profiles')
-          .select('id')
-          .eq(column, value)
+          .select('id, signup_status')
+          .eq('email', value)
           .maybeSingle();
 
       if (existing != null) {
-        setState(() => _isLoading = false);
+        final signupStatus = existing['signup_status'] as String? ?? 'completed';
+        if (signupStatus == 'completed') {
+          setState(() => _isLoading = false);
+          Get.snackbar(
+            'Account Exists ⚠️',
+            'This email already has an account. Please sign in.',
+            backgroundColor: context.errorColor.withOpacity(0.9),
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          Future.delayed(const Duration(seconds: 2), () {
+            Get.offAll(() => const LoginScreen());
+          });
+          return;
+        } else {
+          // Incomplete signup: resend OTP and continue
+          await _resendWithRetry(email: value, type: OtpType.signup);
+          if (!mounted) return;
+          setState(() {
+            _isLoading = false;
+            _otpSent = true;
+          });
+          Get.snackbar(
+            'Verification Required ✉️',
+            'Resent verification code to continue your signup.',
+            backgroundColor: context.accentOrange.withOpacity(0.9),
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          return;
+        }
+      }
+
+      final response = await _signUpWithRetry(email: value, password: password);
+
+      if (response.session != null) {
+        final user = response.user;
+        setState(() {
+          _userId = user?.id ?? '';
+          _isLoading = false;
+          _currentStep = 1; // Move to Step 2
+        });
         Get.snackbar(
-          'Account Exists ⚠️',
-          _isPhoneAuth
-              ? 'This phone number already has an account. Please sign in.'
-              : 'This email already has an account. Please sign in.',
-          backgroundColor: context.errorColor.withOpacity(0.9),
+          'Success 🎉',
+          'Successfully registered!',
+          backgroundColor: context.successColor.withOpacity(0.9),
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
         );
-        Future.delayed(const Duration(seconds: 2), () {
-          Get.offAll(() => const LoginScreen());
+      } else {
+        // Verification is required, OTP sent
+        setState(() {
+          _isLoading = false;
+          _otpSent = true;
         });
-        return;
+
+        Get.snackbar(
+          'OTP Sent ✉️',
+          'Please check your email for the verification code.',
+          backgroundColor: context.accentOrange.withOpacity(0.9),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
       }
-    } catch (_) {}
-
-    await Future.delayed(const Duration(seconds: 1)); // Simulate networking
-    setState(() {
-      _isLoading = false;
-      _otpSent = true;
-    });
-
-    Get.snackbar(
-      'OTP Sent ✉️',
-      'Use code 0 to verify (Sandbox mode)',
-      backgroundColor: context.accentOrange.withOpacity(0.9),
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      Get.snackbar(
+        'Auth Error ⚠️',
+        _mapAuthError(e),
+        backgroundColor: context.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 8),
+      );
+    }
   }
 
   void _verifyOTP() async {
-    if (_otpCtrl.text.trim() != '0') {
-      Get.snackbar('Error', 'Invalid verification code');
+    if (_isLoading) return;
+    final otpCode = _otpCtrl.text.trim();
+    if (otpCode.isEmpty) {
+      Get.snackbar('Error', 'Please enter the verification code');
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       final rawVal = _emailPhoneCtrl.text.trim();
-      final mockEmail = _isPhoneAuth 
-          ? '${rawVal.replaceAll('+', '')}@creania.com' 
-          : rawVal;
       
-      AuthResponse response;
-      try {
-        response = await Supabase.instance.client.auth.signUp(
-          email: mockEmail,
-          password: _passwordCtrl.text,
-        );
-      } catch (_) {
-        response = await Supabase.instance.client.auth.signInWithPassword(
-          email: mockEmail,
-          password: _passwordCtrl.text,
-        );
-      }
+      final response = await Supabase.instance.client.auth.verifyOTP(
+        type: OtpType.signup,
+        token: otpCode,
+        email: rawVal,
+      ).timeout(const Duration(seconds: 10));
 
       final user = response.user;
-      if (user != null) {
+      if (user != null && _isValidUuid(user.id)) {
+        try {
+          await Supabase.instance.client
+              .from('profiles')
+              .update({'signup_status': 'otp_verified'})
+              .eq('id', user.id);
+        } catch (_) {}
+
         setState(() {
           _userId = user.id;
           _isLoading = false;
           _currentStep = 1; // Move to Step 2
         });
       } else {
-        throw Exception("Authentication session creation failed");
+        throw Exception("Authentication session creation failed or invalid user ID.");
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      Get.snackbar('Auth Error', e.toString().replaceAll('AuthException: ', ''));
+      Get.snackbar(
+        'Verification Failed ⚠️',
+        _mapAuthError(e),
+        backgroundColor: context.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
@@ -467,12 +668,31 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
   // --- Step 8: Save & Finish ---
   void _completeOnboardingFlow() async {
+    if (_isLoading) return;
     setState(() => _isLoading = true);
     try {
       final currentAuthUser = Supabase.instance.client.auth.currentUser;
-      final rawUserId = _userId.isEmpty ? (currentAuthUser?.id ?? 'temp_uid') : _userId;
+      final rawUserId = _userId.isEmpty ? (currentAuthUser?.id ?? '') : _userId;
+
+      if (!_isValidUuid(rawUserId)) {
+        throw Exception("Invalid user ID. Please log in again.");
+      }
 
       String userIdToUse = rawUserId;
+      try {
+        final mappingRes = await Supabase.instance.client
+            .from('user_auth_mappings')
+            .select('canonical_id')
+            .eq('auth_id', rawUserId)
+            .maybeSingle();
+        if (mappingRes != null && mappingRes['canonical_id'] != null) {
+          userIdToUse = mappingRes['canonical_id'] as String;
+        }
+      } catch (_) {}
+
+      if (!_isValidUuid(userIdToUse)) {
+        throw Exception("Invalid profile ID. Please log in again.");
+      }
 
       // 1. Upload photo if selected
       String? uploadedUrl;
@@ -489,7 +709,6 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           uploadedUrl = Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
         } catch (storageError) {
           debugPrint('Storage Upload Warning: $storageError');
-          // Fallback to default dicebear avatar on RLS / storage exception
           uploadedUrl = 'https://api.dicebear.com/7.x/bottts/png?seed=${_usernameCtrl.text.trim()}';
         }
       }
@@ -513,6 +732,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         'verification_method': _isPhoneAuth ? 'SMS' : 'OTP',
         'last_verification_date': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
+        'signup_status': 'completed',
       });
 
       // 3. Grant Reward Coins (100 coins)
@@ -540,12 +760,73 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       Get.offAll(() => const MainScreen());
     } catch (e) {
       setState(() => _isLoading = false);
-      Get.snackbar('Error saving profile', e.toString());
+      Get.snackbar(
+        'Profile Setup Failed ⚠️',
+        _mapAuthError(e),
+        backgroundColor: context.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  void _saveOnboardingState() async {
+    final currentAuthUser = Supabase.instance.client.auth.currentUser;
+    final rawUserId = _userId.isEmpty ? (currentAuthUser?.id ?? '') : _userId;
+    if (!_isValidUuid(rawUserId)) return;
+
+    String userIdToUse = rawUserId;
+    try {
+      final mappingRes = await Supabase.instance.client
+          .from('user_auth_mappings')
+          .select('canonical_id')
+          .eq('auth_id', rawUserId)
+          .maybeSingle();
+      if (mappingRes != null && mappingRes['canonical_id'] != null) {
+        userIdToUse = mappingRes['canonical_id'] as String;
+      }
+    } catch (_) {}
+
+    if (!_isValidUuid(userIdToUse)) return;
+
+    try {
+      final Map<String, dynamic> updates = {};
+      
+      if (_dob != null) {
+        updates['dob'] = _dob!.toIso8601String();
+        updates['age'] = _calculatedAge;
+      }
+      if (_selectedGender != null && _selectedGender!.isNotEmpty) {
+        updates['gender'] = _selectedGender;
+      }
+      if (_selectedCountry != null && _selectedCountry!.isNotEmpty) {
+        updates['country'] = _selectedCountry;
+      }
+      if (_bioCtrl.text.trim().isNotEmpty) {
+        updates['bio'] = _bioCtrl.text.trim();
+      }
+      if (_selectedInterests.isNotEmpty) {
+        updates['interests'] = _selectedInterests.toList();
+      }
+
+      if (_currentStep >= 2) {
+        updates['signup_status'] = 'onboarding_in_progress';
+      }
+
+      if (updates.isNotEmpty) {
+        await Supabase.instance.client
+            .from('profiles')
+            .update(updates)
+            .eq('id', userIdToUse);
+      }
+    } catch (e) {
+      debugPrint('[SignupFlow] Error auto-saving onboarding state: $e');
     }
   }
 
   void _nextStep() {
     if (_currentStep < 7) {
+      _saveOnboardingState();
       setState(() => _currentStep++);
     }
   }
@@ -714,63 +995,78 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
   // --- Step 1 Layout ---
   Widget _buildStep1Verify() {
+    if (!_showEmailForm) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Sign Up', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('Choose how you want to sign up on Creania.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+          const SizedBox(height: 32),
+
+          _socialButton(
+            label: 'Continue with Google',
+            icon: _googleIcon(),
+            onTap: () => _handleSocialSignUp('Google'),
+          ),
+          const SizedBox(height: 12),
+
+          _socialButton(
+            label: 'Continue with Facebook',
+            icon: _facebookIcon(),
+            onTap: () => _handleSocialSignUp('Facebook'),
+          ),
+          const SizedBox(height: 12),
+
+          _socialButton(
+            label: 'Continue with Email',
+            icon: Icon(Icons.email_outlined, color: context.primaryColor, size: 22),
+            onTap: () {
+              setState(() {
+                _showEmailForm = true;
+              });
+            },
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Verify Account', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
-        SizedBox(height: 8),
-        Text('Enter email or phone to receive a verification OTP code.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
-        SizedBox(height: 32),
-
         Row(
           children: [
-            Expanded(
-              child: ChoiceChip(
-                label: Text('Email'),
-                selected: !_isPhoneAuth,
-                onSelected: (val) {
-                  setState(() {
-                    _isPhoneAuth = false;
-                    _emailPhoneCtrl.clear();
-                  });
-                },
-                selectedColor: context.primaryColor.withOpacity(0.2),
-                labelStyle: TextStyle(color: !_isPhoneAuth ? Colors.white : context.caption),
-              ),
+            IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.textPrimary, size: 20),
+              onPressed: () {
+                setState(() {
+                  _showEmailForm = false;
+                });
+              },
             ),
-            SizedBox(width: 12),
-            Expanded(
-              child: ChoiceChip(
-                label: Text('Phone'),
-                selected: _isPhoneAuth,
-                onSelected: (val) {
-                  setState(() {
-                    _isPhoneAuth = true;
-                    _emailPhoneCtrl.clear();
-                  });
-                },
-                selectedColor: context.primaryColor.withOpacity(0.2),
-                labelStyle: TextStyle(color: _isPhoneAuth ? Colors.white : context.caption),
-              ),
-            ),
+            const SizedBox(width: 8),
+            Text('Verify Account', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
           ],
         ),
-        SizedBox(height: 24),
+        const SizedBox(height: 8),
+        Text('Enter your email to receive a verification OTP code.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        const SizedBox(height: 32),
 
-        Text(_isPhoneAuth ? 'Phone Number' : 'Email Address', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
-        SizedBox(height: 8),
+        Text('Email Address', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        const SizedBox(height: 8),
         TextField(
           controller: _emailPhoneCtrl,
-          keyboardType: _isPhoneAuth ? TextInputType.phone : TextInputType.emailAddress,
+          keyboardType: TextInputType.emailAddress,
           style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
-            hintText: _isPhoneAuth ? '+91 98765 43210' : 'name@domain.com',
-            prefixIcon: Icon(_isPhoneAuth ? Icons.phone_android_rounded : Icons.email_outlined, color: context.caption),
+            hintText: 'name@domain.com',
+            prefixIcon: Icon(Icons.email_outlined, color: context.caption),
           ),
           enabled: !_otpSent,
         ),
+        const SizedBox(height: 20),
         Text('Password', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         TextField(
           controller: _passwordCtrl,
           obscureText: _obscurePassword,
@@ -784,11 +1080,13 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
             ),
           ),
           enabled: !_otpSent,
+          onChanged: (val) => setState(() {}),
         ),
-        SizedBox(height: 20),
+        _buildPasswordStrengthTip(),
+        const SizedBox(height: 20),
 
         Text('Confirm Password', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         TextField(
           controller: _confirmPasswordCtrl,
           obscureText: _obscureConfirmPassword,
@@ -803,7 +1101,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           ),
           enabled: !_otpSent,
         ),
-        SizedBox(height: 24),
+        const SizedBox(height: 24),
 
         if (_otpSent) ...[
           Row(
@@ -818,25 +1116,25 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                   });
                 },
                 child: Text(
-                  'Change ${_isPhoneAuth ? 'Phone' : 'Email'}',
+                  'Change Email',
                   style: GoogleFonts.poppins(color: context.primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           TextField(
             controller: _otpCtrl,
             keyboardType: TextInputType.number,
             maxLength: 6,
-            style: TextStyle(color: Colors.white, letterSpacing: 8, fontSize: 18),
+            style: const TextStyle(color: Colors.white, letterSpacing: 8, fontSize: 18),
             textAlign: TextAlign.center,
             decoration: const InputDecoration(
               hintText: '••••••',
               counterText: '',
             ),
           ),
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           _buildActionButton('Verify OTP', _verifyOTP),
         ] else ...[
           _buildActionButton('Send Verification Code', _sendOTP),
@@ -902,8 +1200,20 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           ),
         ],
 
-        SizedBox(height: 40),
+        const SizedBox(height: 24),
+        _buildTermsRow(),
+        const SizedBox(height: 24),
         _buildActionButton('Continue', () async {
+          if (!_agreeToTerms) {
+            Get.snackbar(
+              'Agreement Required ⚠️',
+              'Please agree to the Terms of Service & Privacy Policy to proceed.',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: context.errorColor.withOpacity(0.9),
+              colorText: Colors.white,
+            );
+            return;
+          }
           final username = _usernameCtrl.text.trim().toLowerCase();
           if (username.isEmpty) {
             Get.snackbar('Error', 'Username cannot be empty');
@@ -928,8 +1238,12 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 .maybeSingle();
 
             final currentAuthUser = Supabase.instance.client.auth.currentUser;
-            final rawUserId = _userId.isEmpty ? (currentAuthUser?.id ?? 'temp_uid') : _userId;
+            final rawUserId = _userId.isEmpty ? (currentAuthUser?.id ?? '') : _userId;
             
+            if (!_isValidUuid(rawUserId)) {
+              throw Exception("Invalid user ID. Please log in again.");
+            }
+
             String userIdToUse = rawUserId;
             try {
               final mappingRes = await Supabase.instance.client
@@ -941,6 +1255,10 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 userIdToUse = mappingRes['canonical_id'] as String;
               }
             } catch (_) {}
+
+            if (!_isValidUuid(userIdToUse)) {
+              throw Exception("Invalid profile ID. Please log in again.");
+            }
 
             if (res != null && res['id'] != userIdToUse) {
               setState(() {
@@ -955,6 +1273,16 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               });
               Get.snackbar('Error', 'Please choose an available username');
             } else {
+              try {
+                await Supabase.instance.client
+                    .from('profiles')
+                    .update({
+                      'username': username,
+                      'signup_status': 'profile_created',
+                    })
+                    .eq('id', userIdToUse);
+              } catch (_) {}
+              
               setState(() {
                 _usernameAvailable = true;
                 _usernameChecked = true;
@@ -964,7 +1292,13 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
             }
           } catch (e) {
             setState(() => _isLoading = false);
-            _nextStep();
+            Get.snackbar(
+              'Profile Setup Failed ⚠️',
+              _mapAuthError(e),
+              backgroundColor: context.errorColor.withOpacity(0.9),
+              colorText: Colors.white,
+              snackPosition: SnackPosition.BOTTOM,
+            );
           }
         }),
       ],
@@ -1421,6 +1755,231 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         child: _isLoading 
             ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
             : Text(label, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+      ),
+    );
+  }
+
+  void _handleSocialSignUp(String provider) async {
+    setState(() => _isLoading = true);
+    try {
+      final targetProvider =
+          provider.toLowerCase() == 'facebook' ? OAuthProvider.facebook : OAuthProvider.google;
+
+      final success = await Supabase.instance.client.auth.signInWithOAuth(
+        targetProvider,
+        redirectTo: 'io.supabase.flutter://login-callback/',
+      );
+      if (!success) {
+        setState(() => _isLoading = false);
+        Get.snackbar(
+          'OAuth Error ⚠️',
+          'Failed to open the browser for social authentication.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: context.errorColor.withOpacity(0.9),
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      Get.snackbar(
+        'Social SignUp Failed ⚠️',
+        ApiErrorHandler.parseError(e),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: context.errorColor.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Widget _socialButton({
+    required String label,
+    required Widget icon,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: context.borderColor),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: context.secondaryBackgroundColor,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            icon,
+            SizedBox(width: 12),
+            Text(
+              label,
+              style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _googleIcon() {
+    return SvgPicture.string(
+      '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>''',
+      width: 22,
+      height: 22,
+    );
+  }
+
+  Widget _facebookIcon() {
+    return SvgPicture.string(
+      '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+        <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+      </svg>''',
+      width: 22,
+      height: 22,
+    );
+  }
+
+  Widget _buildTermsRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: _agreeToTerms,
+              onChanged: (v) {
+                setState(() {
+                  _agreeToTerms = v ?? false;
+                });
+              },
+              activeColor: context.primaryColor,
+              checkColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              side: BorderSide(color: context.borderColor.withOpacity(0.5), width: 1.5),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, height: 1.5),
+                children: [
+                  const TextSpan(text: 'I agree to the '),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: GestureDetector(
+                      onTap: () => Get.to(() => const TermsScreen()),
+                      child: Text(
+                        'Terms of Service',
+                        style: TextStyle(
+                          color: context.primaryColor,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const TextSpan(text: ' & '),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: GestureDetector(
+                      onTap: () => Get.to(() => const TermsScreen()),
+                      child: Text(
+                        'Privacy Policy',
+                        style: TextStyle(
+                          color: context.primaryColor,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasswordStrengthTip() {
+    final password = _passwordCtrl.text;
+    
+    // Evaluate requirements
+    final hasLength = password.length >= 8;
+    final hasLowercase = password.contains(RegExp(r'[a-z]'));
+    final hasUppercase = password.contains(RegExp(r'[A-Z]'));
+    final hasDigit = password.contains(RegExp(r'[0-9]'));
+    final hasSymbol = password.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'));
+    
+    Widget requirementRow(String text, bool isMet) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          children: [
+            Icon(
+              isMet ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+              color: isMet ? context.successColor : context.textSecondary.withOpacity(0.4),
+              size: 14,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: isMet ? context.textPrimary : context.textSecondary.withOpacity(0.7),
+                  fontWeight: isMet ? FontWeight.w500 : FontWeight.normal,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.borderColor.withOpacity(0.3), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.shield_outlined, color: context.accentOrange, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                'Password Security Requirements:',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: context.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          requirementRow('At least 8 characters long', hasLength),
+          requirementRow('Contains uppercase & lowercase letters', hasUppercase && hasLowercase),
+          requirementRow('Contains at least one digit (0-9)', hasDigit),
+          requirementRow('Contains at least one symbol (!@#\$%...)', hasSymbol),
+        ],
       ),
     );
   }

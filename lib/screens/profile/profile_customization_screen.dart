@@ -1187,35 +1187,46 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         );
 
       case 'Avatar Frame':
-        final childWidget = Icon(Icons.person, color: Colors.white30, size: 24);
+        final childWidget = const Icon(Icons.person, color: Colors.white30, size: 24);
+        // ✅ ACTIVE: Novel Level 1 — gold crown PNG
+        if (name == 'Novel Level 1' || name.contains('Novel Level 1') || name.contains('Novel 1')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        }
+        // ✅ ACTIVE: VIP Level 1 — sapphire blue crown PNG
         if (name == 'Royal Frame') {
           return VipAvatarDecorator(level: 1, size: 50, child: childWidget);
-        } else if (name.contains('Neon Frame')) {
-          return VipAvatarDecorator(level: 2, size: 50, child: childWidget);
-        } else if (name.contains('Gold Glow Frame')) {
-          return VipAvatarDecorator(level: 3, size: 50, child: childWidget);
-        } else if (name.contains('Diamond Frame')) {
-          return VipAvatarDecorator(level: 4, size: 50, child: childWidget);
-        } else if (name.contains('Crystal Cyan Frame')) {
-          return VipAvatarDecorator(level: 5, size: 50, child: childWidget);
-        } else if (name.contains('Rainbow Frame')) {
-          return VipAvatarDecorator(level: 6, size: 50, child: childWidget);
-        } else if (name.contains('Royal Crown')) {
-          return VipAvatarDecorator(level: 7, size: 50, child: childWidget);
-        } else if (name.contains('Galaxy Orbit')) {
-          return NovelAvatarDecorator(level: 2, size: 50, child: childWidget);
-        } else if (name.contains('Royal Gold Palace')) {
-          return NovelAvatarDecorator(level: 3, size: 50, child: childWidget);
-        } else if (name.contains('Dragon Fire Frame') || name.contains('Dragon Frame')) {
-          return NovelAvatarDecorator(level: 4, size: 50, child: childWidget);
-        } else if (name.contains('Phoenix Flame')) {
-          return NovelAvatarDecorator(level: 5, size: 50, child: childWidget);
-        } else if (name.contains('Celestial Sky Frame') || name.contains('Celestial Sky')) {
-          return NovelAvatarDecorator(level: 6, size: 50, child: childWidget);
-        } else if (name.contains('Cosmic Emperor') || name.contains('Immortal Frame')) {
-          return NovelAvatarDecorator(level: 7, size: 50, child: childWidget);
         }
-        return Icon(Icons.portrait_rounded, size: 48, color: Colors.white30);
+        // ✅ ACTIVE: VIP Level 2 — mystic purple crown PNG
+        if (name.contains('Neon Frame')) {
+          return VipAvatarDecorator(level: 2, size: 50, child: childWidget);
+        }
+        // ── DISABLED frames (kept for future restoration) ──
+        if (name.contains('Gold Glow Frame')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Diamond Frame')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Crystal Cyan Frame')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Rainbow Frame')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Royal Crown')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Galaxy Orbit')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Royal Gold Palace')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Dragon Fire Frame') || name.contains('Dragon Frame')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Phoenix Flame')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Celestial Sky Frame') || name.contains('Celestial Sky')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        } else if (name.contains('Cosmic Emperor') || name.contains('Immortal Frame')) {
+          return NovelAvatarDecorator(level: 1, size: 50, child: childWidget);
+        }
+        return const Icon(Icons.portrait_rounded, size: 48, color: Colors.white30);
+
+
 
       case 'Chat Bubble':
         return Container(
@@ -1237,7 +1248,26 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
         );
 
       case 'Entry Effect':
-        return Text('⚡', style: TextStyle(fontSize: 28));
+        // Map effect name to its tool image asset (VIP 1, VIP 2, Novel 1 only)
+        String? previewAsset;
+        if (name == 'Novel Level 1' || name.toLowerCase().contains('novel')) {
+          previewAsset = 'assets/tools_images/entry_effect_image/novel1entry.jpeg';
+        } else if (name == 'Royal Portal') {
+          previewAsset = 'assets/entryeffect/vip/vip1_preview.png';
+        } else if (name == 'Neon Gateway' || name.contains('VIP Level 2') || name.contains('VIP 2')) {
+          previewAsset = 'assets/tools_images/entry_effect_image/vip2toolentry.jpeg';
+        }
+        if (previewAsset != null) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              previewAsset,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Text('⚡', style: TextStyle(fontSize: 28)),
+            ),
+          );
+        }
+        return const Text('⚡', style: TextStyle(fontSize: 28));
       case 'Entry Animation':
         return Text('🎬', style: TextStyle(fontSize: 28));
       case 'Avatar Effect':

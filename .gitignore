@@ -91,3 +91,7 @@ lib/generated_plugin_registrant.dart
 /dist/
 *.tgz
 *.tar.gz
+node_modules/
+**/node_modules/
+analyze_*.txt
+analyze_out.txt

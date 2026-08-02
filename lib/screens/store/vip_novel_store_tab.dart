@@ -328,7 +328,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
           height: 60,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: _vipPlans.isNotEmpty ? _vipPlans.length : 2,
+            itemCount: _vipPlans.isNotEmpty ? _vipPlans.length.clamp(1, 2) : 2,
             itemBuilder: (context, index) {
               final lvl = index + 1;
               final isSel = _selectedVipLevel == lvl;
@@ -378,7 +378,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
           height: 60,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: _novelPlans.isNotEmpty ? _novelPlans.length : 1,
+            itemCount: 1,
             itemBuilder: (context, index) {
               final lvl = index + 1;
               final isSel = _selectedNovelLevel == lvl;
@@ -707,7 +707,7 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
               },
               child: Text(
                 isLocked
-                    ? 'Locked'
+                    ? (isVip ? 'You already have VIP $activeLvl' : 'You already have Novel $activeLvl')
                     : isActive 
                         ? 'Renew Now' 
                         : 'Upgrade',

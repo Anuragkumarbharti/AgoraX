@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:creania/core/theme.dart';
 import '../onboarding/onboarding_screen.dart';
-import '../auth/login_screen.dart';
+import '../auth/index.dart';
 import '../home/main_screen.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../../services/user_progress_sync_service.dart';
@@ -73,14 +73,38 @@ class _SplashScreenState extends State<SplashScreen>
         if (!firstLaunchDone) {
           Get.offAll(() => const OnboardingScreen());
         } else if (isLoggedIn) {
-          final isValid = await UserProfileCacheManager.validateCurrentUserSession();
+          final isValid = await UserProfileCacheManager.validateCurrentUserSession()
+              .timeout(const Duration(seconds: 4), onTimeout: () => false);
           if (isValid) {
             try {
               await UserProfileCacheManager.getOrFetchCanonicalId();
-              await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
-              await UserProgressSyncService.syncFromSupabase();
+              final profile = await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true)
+                  .timeout(const Duration(seconds: 4), onTimeout: () => UserProfileCacheManager.currentUser!);
+              await UserProgressSyncService.syncFromSupabase()
+                  .timeout(const Duration(seconds: 4), onTimeout: () {});
+
+              if (profile != null && profile.signupStatus != 'completed') {
+                int startStep = 1;
+                if (profile.username.isNotEmpty && !profile.username.startsWith('user_')) {
+                  if (profile.age == 0 || (profile.gender?.isEmpty ?? true)) {
+                    startStep = 2; // Step 3
+                  } else if (profile.avatar?.isEmpty ?? true) {
+                    startStep = 3; // Step 4
+                  } else if (profile.bio?.isEmpty ?? true) {
+                    startStep = 4; // Step 5
+                  } else if (profile.interests.isEmpty) {
+                    startStep = 5; // Step 6
+                  } else {
+                    startStep = 6; // Step 7
+                  }
+                }
+                Get.offAll(() => SignupFlowScreen(userId: profile.id, startStep: startStep));
+                return;
+              }
             } catch (_) {}
             Get.offAll(() => const MainScreen());
+          } else {
+            Get.offAll(() => const LoginScreen());
           }
         } else {
           Get.offAll(() => const LoginScreen());

@@ -32,6 +32,13 @@ class VoiceService {
     await ZegoExpressEngine.instance.enableAEC(true); // Echo Cancellation
     await ZegoExpressEngine.instance.enableANS(true); // Noise Suppression
     await ZegoExpressEngine.instance.enableAGC(true); // Automatic Gain Control
+
+    // Enable hardware acceleration for audio/video decoding and encoding
+    await ZegoExpressEngine.instance.enableHardwareDecoder(true);
+    await ZegoExpressEngine.instance.enableHardwareEncoder(true);
+
+    // Enable adaptive bitrate traffic control to adjust dynamically based on network quality
+    await ZegoExpressEngine.instance.enableTrafficControl(true, ZegoTrafficControlProperty.Basic);
     
     // Configure stable bitrate & sample rate
     ZegoAudioConfig audioConfig = ZegoAudioConfig(48000, ZegoAudioChannel.Mono, ZegoAudioCodecID.Default);
@@ -100,6 +107,8 @@ class VoiceService {
     debugPrint('[VoiceService] Stopping local stream publishing...');
     await ZegoExpressEngine.instance.stopPublishingStream();
     await ZegoExpressEngine.instance.muteMicrophone(true);
+    // Pause hardware audio capture when not publishing to save CPU & battery
+    await ZegoExpressEngine.instance.enableAudioCaptureDevice(false);
     
     final controller = Get.find<VoiceController>();
     controller.publishedStreamId.value = '';
@@ -111,6 +120,8 @@ class VoiceService {
     if (!_isEngineCreated) return;
     debugPrint('[VoiceService] Setting mic mute state: $isMuted');
     await ZegoExpressEngine.instance.muteMicrophone(isMuted);
+    // Pause hardware audio capture when muted to save CPU & battery
+    await ZegoExpressEngine.instance.enableAudioCaptureDevice(!isMuted);
     
     final controller = Get.find<VoiceController>();
     controller.isMicEnabled.value = !isMuted;
@@ -171,7 +182,10 @@ class VoiceService {
             continue; // Ignore our own published stream
           }
           debugPrint('[VoiceService] Playing remote stream: ${stream.streamID}');
-          await ZegoExpressEngine.instance.startPlayingStream(stream.streamID);
+          ZegoPlayerConfig playerConfig = ZegoPlayerConfig.defaultConfig();
+          // Use OnlyRTC to ensure minimum latency
+          playerConfig.resourceMode = ZegoStreamResourceMode.OnlyRTC;
+          await ZegoExpressEngine.instance.startPlayingStream(stream.streamID, config: playerConfig);
         }
       } else {
         for (var stream in streamList) {
@@ -182,6 +196,44 @@ class VoiceService {
             final userId = parts.sublist(1).join('_');
             controller.userSoundLevels.remove(userId);
           }
+        }
+      }
+    };
+
+    // Register audio packet event callbacks for latency monitoring
+    ZegoExpressEngine.onPlayerRecvAudioFirstFrame = (streamId) {
+      debugPrint('[VoiceService] First remote audio frame received for stream: $streamId');
+      if (Get.isRegistered<VoiceController>()) {
+        final ctrl = Get.find<VoiceController>();
+        if (ctrl.firstAudioPacketTime.value == null) {
+          ctrl.firstAudioPacketTime.value = DateTime.now();
+        }
+      }
+    };
+
+    ZegoExpressEngine.onPublisherCapturedAudioFirstFrame = () {
+      debugPrint('[VoiceService] First local audio frame captured.');
+    };
+
+    ZegoExpressEngine.onPublisherSendAudioFirstFrame = (channel) {
+      debugPrint('[VoiceService] First local audio frame sent on channel: $channel');
+      if (Get.isRegistered<VoiceController>()) {
+        final ctrl = Get.find<VoiceController>();
+        if (ctrl.firstAudioPacketTime.value == null) {
+          ctrl.firstAudioPacketTime.value = DateTime.now();
+        }
+      }
+    };
+
+    // Monitor network quality and log poor network conditions
+    ZegoExpressEngine.onNetworkQuality = (userID, upstreamQuality, downstreamQuality) {
+      if (kDebugMode && userID.isNotEmpty) {
+        debugPrint('[VoiceService] NetworkQuality for remote user $userID - Upstream: ${upstreamQuality.index}, Downstream: ${downstreamQuality.index}');
+      }
+      if (userID.isEmpty) { // Local user quality
+        if (upstreamQuality.index >= ZegoStreamQualityLevel.Bad.index || 
+            downstreamQuality.index >= ZegoStreamQualityLevel.Bad.index) {
+          debugPrint('[VoiceService] WARNING: Poor local network connection detected!');
         }
       }
     };

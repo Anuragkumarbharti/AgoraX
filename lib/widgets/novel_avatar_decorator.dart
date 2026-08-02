@@ -17,13 +17,15 @@ class NovelAvatarDecorator extends StatefulWidget {
   State<NovelAvatarDecorator> createState() => _NovelAvatarDecoratorState();
 }
 
-class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with TickerProviderStateMixin {
+class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _rotationController;
   late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
@@ -42,7 +44,21 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _rotationController.stop();
+      _pulseController.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      if (!_rotationController.isAnimating) _rotationController.repeat();
+      if (!_pulseController.isAnimating) _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _rotationController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -71,38 +87,94 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
 
     switch (widget.level) {
       case 1:
-        // Novel 1 (Classic Royal Blue Border with rotating soft sweep)
+        // Novel Level 1 — Animated gold glow + shimmer sweep + sparkle particles
         return AnimatedBuilder(
           animation: Listenable.merge([_rotationController, _pulseController]),
-          builder: (context, child) {
-            final pulseVal = 0.8 + (0.2 * _pulseController.value);
-            return Container(
-              width: widget.size,
-              height: widget.size,
-              padding: const EdgeInsets.all(3.5),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: SweepGradient(
-                  colors: [
-                    const Color(0xFF2563EB),
-                    const Color(0xFF1E40AF).withOpacity(pulseVal),
-                    const Color(0xFF2563EB),
-                  ],
-                  transform: GradientRotation(_rotationController.value * 2 * math.pi),
+          builder: (context, _) {
+            final pulse = _pulseController.value;         // 0.0 → 1.0
+            final rot   = _rotationController.value;     // 0.0 → 1.0
+            final glowR = 12.0 + (10.0 * pulse);
+            final glowO = 0.35 + (0.25 * pulse);
+
+            return Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // ── 1. Outer pulsing gold glow aura ──────────────────────────
+                Container(
+                  width: widget.size + 8,
+                  height: widget.size + 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFD97706).withOpacity(glowO),
+                        blurRadius: glowR,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFFFBBF24).withOpacity(glowO * 0.5),
+                        blurRadius: glowR * 2,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2563EB).withOpacity(0.2 + 0.15 * _pulseController.value),
-                    blurRadius: 6.0 + (4.0 * _pulseController.value),
-                    spreadRadius: 1,
-                  )
-                ],
-              ),
-              child: Container(
-                decoration: const BoxDecoration(color: Color(0xFF09090B), shape: BoxShape.circle),
-                padding: const EdgeInsets.all(1),
-                child: mainAvatar,
-              ),
+
+                // ── 2. Rotating shimmer sweep ring behind the frame ──────────
+                Container(
+                  width: widget.size,
+                  height: widget.size,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: SweepGradient(
+                      colors: [
+                        const Color(0xFFD97706).withOpacity(0.0),
+                        const Color(0xFFFBBF24).withOpacity(0.6 * pulse),
+                        const Color(0xFFD97706).withOpacity(0.0),
+                        const Color(0xFFD97706).withOpacity(0.0),
+                      ],
+                      transform: GradientRotation(rot * 2 * math.pi),
+                    ),
+                  ),
+                ),
+
+                // ── 3. Avatar clipped to circle ───────────────────────────────
+                SizedBox(
+                  width: widget.size * 0.78,
+                  height: widget.size * 0.78,
+                  child: ClipOval(child: widget.child),
+                ),
+
+                // ── 4. Novel 1 PNG frame on top ───────────────────────────────
+                IgnorePointer(
+                  child: Image.asset(
+                    'assets/avtarframes/novel/novel_1.png',
+                    width: widget.size,
+                    height: widget.size,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: widget.size,
+                      height: widget.size,
+                      padding: const EdgeInsets.all(3.5),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: SweepGradient(
+                          colors: [
+                            const Color(0xFFD97706),
+                            const Color(0xFFFBBF24),
+                            const Color(0xFFD97706),
+                          ],
+                          transform: GradientRotation(rot * 2 * math.pi),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ── 5. Orbiting sparkle particles ────────────────────────────
+                ..._buildSparkles(rot, widget.size),
+              ],
             );
           },
         );
@@ -459,7 +531,37 @@ class _NovelAvatarDecoratorState extends State<NovelAvatarDecorator> with Ticker
         return mainAvatar;
     }
   }
+
+  /// Builds orbiting sparkle star widgets around the frame at evenly-spaced angles.
+  List<Widget> _buildSparkles(double rotValue, double size) {
+    const int count = 6;
+    final double radius = size * 0.52; // orbit just outside frame edge
+    final List<String> icons = ['✨', '⭐', '✨', '💫', '✨', '⭐'];
+    final List<double> speeds = [1.0, 0.7, 1.3, 0.9, 1.1, 0.6]; // different angular speeds
+
+    return List.generate(count, (i) {
+      final baseAngle = (i / count) * 2 * math.pi;
+      final angle = baseAngle + rotValue * 2 * math.pi * speeds[i];
+      final dx = radius * math.cos(angle);
+      final dy = radius * math.sin(angle);
+
+      return Positioned(
+        left: size / 2 + dx - 6,
+        top:  size / 2 + dy - 6,
+        child: IgnorePointer(
+          child: Text(
+            icons[i],
+            style: TextStyle(
+              fontSize: i.isEven ? 9 : 7,
+              shadows: const [Shadow(color: Color(0xFFD97706), blurRadius: 6)],
+            ),
+          ),
+        ),
+      );
+    });
+  }
 }
+
 
 // ==========================================
 // Custom Painters for Premium Novel Effects

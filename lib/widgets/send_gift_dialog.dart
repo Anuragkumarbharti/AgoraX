@@ -206,6 +206,46 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     final gift = _selectedStandardGift;
     if (gift == null) return;
 
+    if (widget.roomId.isEmpty) {
+      // Direct Chat Gifting Logic
+      final totalCost = gift.cost * _selectedComboMultiplier;
+      final StoreController storeCtrl = Get.find<StoreController>();
+      final currentBalance = gift.currency == 'gold' ? storeCtrl.coinsBalance.value : storeCtrl.silverCoinsBalance.value;
+
+      if (currentBalance < totalCost) {
+        Get.snackbar(
+          'Insufficient Balance 🪙',
+          'You need $totalCost ${gift.currency == "gold" ? "Gold Coins" : "Silver Coins"} to send this gift. Current balance: $currentBalance',
+          backgroundColor: Colors.redAccent.withOpacity(0.9),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      }
+
+      // Sync balance with backend database
+      storeCtrl.syncWithDatabase(force: true);
+
+      if (widget.onGiftSent != null) {
+        widget.onGiftSent!(
+          gift.name,
+          gift.icon,
+          totalCost,
+          gift.currency,
+        );
+      }
+      Get.back();
+      Get.snackbar(
+        'Gift Sent! 🎁',
+        'Sent ${gift.icon} ${gift.name} to ${widget.targetUserName ?? "user"}!',
+        backgroundColor: const Color(0xFF10B981),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
     final receiversList = _giftAll 
         ? (_controller.roomSeatsInfo[widget.roomId] ?? [])
             .where((s) => s['userId'] != null)

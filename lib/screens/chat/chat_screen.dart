@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme.dart';
 import '../../models/chat_model.dart';
 import '../../services/chat_controller.dart';
@@ -14,6 +13,10 @@ import 'chat_settings_screen.dart';
 import '../../models/user_model.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../profile/profile_screen.dart';
+import '../../widgets/message_limit_dialog.dart';
+import '../../widgets/voice_message_player_widget.dart';
+import '../../widgets/send_gift_dialog.dart';
+import '../../widgets/chat_media_attachment_widget.dart';
 
 class ChatScreen extends StatefulWidget {
   final Conversation conversation;
@@ -24,7 +27,8 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
+class _ChatScreenState extends State<ChatScreen>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final ChatController _ctrl;
   final TextEditingController _msgCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
@@ -35,17 +39,23 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final RxBool _showEmojiPanel = false.obs;
   final RxBool _showAttachmentPanel = false.obs;
   final RxBool _isRecording = false.obs;
-  final RxBool _isRecordingLocked = false.obs;
   final RxInt _recordingSeconds = 0.obs;
 
   Timer? _recordingTimer;
   late final AnimationController _waveAnimCtrl;
 
-  // Custom mock reply state
   final Rxn<ChatMessage> _replyToMessage = Rxn<ChatMessage>();
   
   Timer? _typingTimer;
   bool _isTyping = false;
+  int _previousMessageCount = 0;
+
+  final RxBool _showScrollToBottom = false.obs;
+
+  String get _effectiveConvId => ChatController.getDeterministicConversationId(
+        UserProfileCacheManager.currentUserId,
+        widget.conversation.otherUserId,
+      );
 
   @override
   void initState() {
@@ -58,36 +68,80 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     _msgCtrl.addListener(() {
       _hasText.value = _msgCtrl.text.trim().isNotEmpty;
-      if (!_isTyping && _msgCtrl.text.isNotEmpty) {
+      if (!_isTyping && _msgCtrl.text.trim().isNotEmpty) {
         _isTyping = true;
-        _ctrl.setTyping(widget.conversation.id, true);
+        _ctrl.setTyping(_effectiveConvId, true, receiverId: widget.conversation.otherUserId);
       }
       _typingTimer?.cancel();
-      _typingTimer = Timer(const Duration(seconds: 1), () {
+      _typingTimer = Timer(const Duration(seconds: 3), () {
         if (_isTyping) {
           _isTyping = false;
-          _ctrl.setTyping(widget.conversation.id, false);
+          _ctrl.setTyping(_effectiveConvId, false, receiverId: widget.conversation.otherUserId);
         }
       });
     });
 
     _loadConversationMessages();
+    _ctrl.markConversationRead(_effectiveConvId);
     ChatSocketService.to.requestLastSeen(widget.conversation.otherUserId);
 
-    // Initial scroll to bottom
+    _scrollCtrl.addListener(() {
+      if (_scrollCtrl.position.pixels <= _scrollCtrl.position.minScrollExtent + 100) {
+        _ctrl.loadMoreMessages(widget.conversation.id);
+      }
+      final double maxScroll = _scrollCtrl.position.maxScrollExtent;
+      final double currentScroll = _scrollCtrl.position.pixels;
+      _showScrollToBottom.value = (maxScroll - currentScroll) > 300;
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _waveAnimCtrl.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      _waveAnimCtrl.repeat(reverse: true);
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _typingTimer?.cancel();
-    _ctrl.setTyping(widget.conversation.id, false);
+    if (_isTyping) {
+      _ctrl.setTyping(widget.conversation.id, false, receiverId: widget.conversation.otherUserId);
+    }
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     _focusNode.dispose();
     _waveAnimCtrl.dispose();
     _recordingTimer?.cancel();
     super.dispose();
+  }
+
+  void _openGiftDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => SendGiftDialog(
+        roomId: '', // Direct Chat Gifting
+        targetUserId: widget.conversation.otherUserId,
+        targetUserName: widget.conversation.otherUserName,
+        onGiftSent: (giftName, giftIcon, giftCost, currency) {
+          _ctrl.sendGiftMessage(
+            _effectiveConvId,
+            giftName,
+            giftIcon,
+            giftCost,
+            widget.conversation.otherUserId,
+          );
+        },
+      ),
+    );
   }
 
   void _scrollToBottom() {
@@ -101,55 +155,58 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _loadConversationMessages() {
-    final msgs = _ctrl.getMessages(widget.conversation.id);
-    if (msgs.isEmpty) {
-      if (widget.conversation.otherUserId == 'aisha_k' || widget.conversation.id.contains('aisha')) {
-        _ctrl.sendMessage(widget.conversation.id, 'Heyy! 😊');
-        _ctrl.sendMessage(widget.conversation.id, 'Hey Aisha! Kaisi ho?');
-        _ctrl.sendMessage(widget.conversation.id, 'Main theek hu, tum batao?');
-        _ctrl.sendMessage(widget.conversation.id, 'Main bhi theek hu 😊\nKal ka plan confirm?');
-        _ctrl.sendMessage(widget.conversation.id, 'Haan yaar, kal 5 baje cafe mein?');
-        _ctrl.sendMessage(widget.conversation.id, 'Done! Main 5 baje tak pahunch jaunga. 👍');
-        _ctrl.sendMessage(widget.conversation.id, 'Great! See you kal 😊');
-        _ctrl.sendMessage(widget.conversation.id, 'See you! Take care ✌️');
-      } else {
-        _ctrl.sendMessage(widget.conversation.id, 'Hey there! How are you doing today?');
-      }
-    }
+    _ctrl.getMessages(_effectiveConvId);
   }
 
-  void _sendMessage({String? text, MessageType type = MessageType.text, String? mediaUrl}) async {
+  void _sendMessage({
+    String? text,
+    MessageType type = MessageType.text,
+    String? mediaUrl,
+    int audioDuration = 0,
+    String? fileName,
+    int? fileSize,
+    String? thumbnailUrl,
+    double? locationLat,
+    double? locationLng,
+    String? locationName,
+    String? contactName,
+    String? contactPhone,
+  }) async {
     final body = text ?? _msgCtrl.text.trim();
-    if (body.isEmpty && mediaUrl == null) return;
+    if (body.isEmpty && mediaUrl == null && fileName == null && locationLat == null && contactPhone == null) return;
 
-    // Enforce 3-message limit without follow relationship
-    final prefs = await SharedPreferences.getInstance();
-    final followedIds = prefs.getStringList('followed_user_ids') ?? [];
-    final bool isFollowed = followedIds.contains(widget.conversation.otherUserId);
-    
-    if (!isFollowed) {
-      int outboundCount = 0;
-      for (int i = _messagesList.length - 1; i >= 0; i--) {
-        final m = _messagesList[i];
-        if (m.senderId != 'me') {
-          break; // Stop counting once they replied
-        }
-        outboundCount++;
-      }
-      if (outboundCount >= 3) {
-        Get.snackbar(
-          'Limit Exceeded 🔒',
-          'Follow the user to message freely, or wait for them to reply.',
-          backgroundColor: Colors.amber.withOpacity(0.95),
-          colorText: Colors.black,
-          snackPosition: SnackPosition.BOTTOM,
-        );
-        return;
-      }
+    final remainingQuota = _ctrl.getRemainingRequestQuota(_effectiveConvId, widget.conversation.otherUserId);
+    if (remainingQuota <= 0) {
+      MessageLimitDialog.show(
+        context: context,
+        targetUserId: widget.conversation.otherUserId,
+        targetUserName: widget.conversation.otherUserName,
+        conversationId: _effectiveConvId,
+        onGiftUnlocked: () {
+          setState(() {});
+        },
+        onFollowUpdated: () {
+          setState(() {});
+        },
+      );
+      return;
     }
 
-    // Send through ChatController which writes to Isar and relays over Socket
-    _ctrl.sendMessage(widget.conversation.id, body);
+    _ctrl.sendMessage(
+      _effectiveConvId,
+      body,
+      type: type,
+      audioDurationSeconds: audioDuration,
+      mediaUrl: mediaUrl,
+      fileName: fileName,
+      fileSize: fileSize,
+      thumbnailUrl: thumbnailUrl,
+      locationLat: locationLat,
+      locationLng: locationLng,
+      locationName: locationName,
+      contactName: contactName,
+      contactPhone: contactPhone,
+    );
 
     _msgCtrl.clear();
     _replyToMessage.value = null;
@@ -157,108 +214,100 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _scrollToBottom();
   }
 
-  void _simulateReply() {
-    if (!mounted) return;
-    Future.delayed(const Duration(seconds: 1), () {
-      final replyId = 'reply_${DateTime.now().millisecondsSinceEpoch}';
-      final replyMsg = ChatMessage(
-        id: replyId,
-        senderId: widget.conversation.otherUserId,
-        receiverId: 'me',
-        conversationId: widget.conversation.id,
-        content: 'Awesome! Got it. 😊',
-        timestamp: DateTime.now(),
-        status: MessageStatus.read,
-      );
-      _messagesList.add(replyMsg);
-      final idx = _ctrl.conversations.indexWhere((c) => c.id == widget.conversation.id);
-      if (idx != -1) {
-        final conv = _ctrl.conversations[idx];
-        _ctrl.conversations[idx] = Conversation(
-          id: conv.id,
-          otherUserId: conv.otherUserId,
-          otherUserName: conv.otherUserName,
-          otherUserAvatar: conv.otherUserAvatar,
-          otherUserOnline: conv.otherUserOnline,
-          isVerified: conv.isVerified,
-          lastMessage: 'Awesome! Got it. 😊',
-          lastMessageTime: DateTime.now(),
-          unreadCount: conv.unreadCount,
-          isPinned: conv.isPinned,
-          isMuted: conv.isMuted,
-          levelTitle: conv.levelTitle,
-          level: conv.level,
-          lastMessageSenderId: widget.conversation.otherUserId,
-        );
-        _ctrl.conversations.refresh();
-      }
-      _scrollToBottom();
-    });
-  }
-
   void _startVoiceRecording() {
+    final remainingQuota = _ctrl.getRemainingRequestQuota(_effectiveConvId, widget.conversation.otherUserId);
+    if (remainingQuota <= 0) {
+      MessageLimitDialog.show(
+        context: context,
+        targetUserId: widget.conversation.otherUserId,
+        targetUserName: widget.conversation.otherUserName,
+        conversationId: _effectiveConvId,
+        onGiftUnlocked: () {},
+        onFollowUpdated: () {},
+      );
+      return;
+    }
+
     _isRecording.value = true;
     _recordingSeconds.value = 0;
+    _recordingTimer?.cancel();
     _recordingTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       _recordingSeconds.value++;
     });
-    HapticFeedback.heavyImpact();
   }
 
-  void _stopVoiceRecording({required bool send}) {
+  void _stopVoiceRecording({bool send = true}) {
+    if (!_isRecording.value) return;
     _recordingTimer?.cancel();
-    if (send) {
-      _sendMessage(text: 'Audio Message (${_recordingSeconds.value}s)', type: MessageType.audio);
-    }
     _isRecording.value = false;
-    _isRecordingLocked.value = false;
-    _recordingSeconds.value = 0;
+
+    if (send && _recordingSeconds.value >= 1) {
+      _sendMessage(
+        text: '🎤 Voice Note (${_recordingSeconds.value}s)',
+        type: MessageType.audio,
+        audioDuration: _recordingSeconds.value,
+        mediaUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: const Color(0xFFF7F9FC), // Light surface background
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: _buildStitchTopAppBar(),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  _showEmojiPanel.value = false;
-                  _showAttachmentPanel.value = false;
-                  _focusNode.unfocus();
-                },
-                child: _buildChatArea(),
-              ),
-            ),
-            _buildInputContainer(),
-            Obx(() => _showEmojiPanel.value ? _buildEmojiSelectorPanel() : const SizedBox.shrink()),
-            Obx(() => _showAttachmentPanel.value ? _buildAttachmentMenuPanel() : const SizedBox.shrink()),
+            Expanded(child: _buildChatArea()),
+            _buildStitchBottomInputBar(),
+            Obx(() {
+              if (_showEmojiPanel.value) return _buildEmojiSelectorPanel();
+              if (_showAttachmentPanel.value) return _buildAttachmentMenuPanel();
+              return const SizedBox.shrink();
+            }),
           ],
         ),
       ),
+      floatingActionButton: Obx(() {
+        if (_showScrollToBottom.value) {
+          return FloatingActionButton.small(
+            onPressed: _scrollToBottom,
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFF006D2F),
+            elevation: 3,
+            child: const Icon(Icons.keyboard_arrow_down_rounded, size: 22),
+          );
+        }
+        return const SizedBox.shrink();
+      }),
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildStitchTopAppBar() {
     final conv = widget.conversation;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppTheme.bgLight,
-        border: Border(bottom: BorderSide(color: AppTheme.borderColor.withOpacity(0.5))),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFE0E3E6), width: 1),
+        ),
       ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.textPrimary, size: 20),
-            onPressed: () => Get.back(),
-          ),
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+      child: SafeArea(
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF191C1E), size: 22),
+              onPressed: () => Get.back(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
               onTap: () {
                 final cached = UserProfileCacheManager.getCachedUser(conv.otherUserId);
                 if (cached != null) {
@@ -289,32 +338,35 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   Stack(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(1.5),
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: (UserProfileCacheManager.getCachedUser(conv.otherUserId)?.vipLevel != null && UserProfileCacheManager.getCachedUser(conv.otherUserId)!.vipLevel > 0) ? AppTheme.accentColor : Colors.transparent,
+                            color: (UserProfileCacheManager.getCachedUser(conv.otherUserId)?.vipLevel != null && UserProfileCacheManager.getCachedUser(conv.otherUserId)!.vipLevel > 0) ? const Color(0xFFFFD700) : const Color(0xFFE0E3E6),
                             width: 1.5,
                           ),
                         ),
                         child: CircleAvatar(
-                          radius: 20,
-                          backgroundImage: NetworkImage(conv.otherUserAvatar),
+                          radius: 19,
+                          backgroundColor: const Color(0xFFECEEF1),
+                          backgroundImage: conv.otherUserAvatar.isNotEmpty ? NetworkImage(conv.otherUserAvatar) : null,
+                          child: conv.otherUserAvatar.isEmpty ? const Icon(Icons.person, color: Color(0xFF6C7B6B)) : null,
                         ),
                       ),
                       Obx(() {
-                        final isOnline = _ctrl.conversations.firstWhereOrNull((c) => c.id == conv.id)?.otherUserOnline ?? conv.otherUserOnline;
+                        final isOnline = _ctrl.userPresence[conv.otherUserId] ?? false;
                         if (isOnline) {
                           return Positioned(
-                            bottom: 0,
-                            right: 0,
+                            bottom: 1,
+                            right: 1,
                             child: Container(
                               width: 10,
                               height: 10,
                               decoration: BoxDecoration(
-                                color: AppTheme.successColor,
+                                color: const Color(0xFF25D366),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: AppTheme.bgDark, width: 1.5),
+                                border: Border.all(color: Colors.white, width: 1.5),
                               ),
                             ),
                           );
@@ -323,80 +375,103 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       }),
                     ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          conv.otherUserName,
-                          style: GoogleFonts.outfit(
-                            color: AppTheme.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Obx(() {
-                          final isTyping = _ctrl.typingState[conv.id] ?? false;
-                          final isOnline = _ctrl.conversations.firstWhereOrNull((c) => c.id == conv.id)?.otherUserOnline ?? conv.otherUserOnline;
-                          final lastSeenStr = _ctrl.userLastSeen[conv.otherUserId];
-                          
-                          String statusText = 'Offline';
-                          Color statusColor = AppTheme.textTertiary;
-                          
-                          if (isTyping) {
-                            statusText = 'Typing...';
-                            statusColor = AppTheme.primaryColor;
-                          } else if (isOnline) {
-                            statusText = 'Online';
-                            statusColor = AppTheme.successColor;
-                          } else if (lastSeenStr != null) {
-                            statusText = lastSeenStr;
-                          }
-        
-                          return Text(
-                            statusText,
-                            style: GoogleFonts.outfit(
-                              color: statusColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            conv.otherUserName,
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF191C1E),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
-                          );
-                        }),
-                      ],
-                    ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (conv.isVerified || (UserProfileCacheManager.getCachedUser(conv.otherUserId)?.isVerified ?? false)) ...[
+                            const SizedBox(width: 4),
+                            const Icon(Icons.verified_rounded, color: Colors.blueAccent, size: 15),
+                          ],
+                        ],
+                      ),
+                      Obx(() {
+                        final isTyping = _ctrl.typingState[conv.id] ?? false;
+                        final isOnline = _ctrl.userPresence[conv.otherUserId] ?? false;
+                        final lastSeenStr = _ctrl.userLastSeen[conv.otherUserId];
+                        
+                        String statusText = 'Offline';
+                        Color statusColor = const Color(0xFF6C7B6B);
+                        
+                        if (isTyping) {
+                          statusText = 'Typing...';
+                          statusColor = const Color(0xFF006D2F);
+                        } else if (isOnline) {
+                          statusText = 'Online';
+                          statusColor = const Color(0xFF006D2F);
+                        } else if (lastSeenStr != null) {
+                          statusText = lastSeenStr;
+                        }
+      
+                        return Text(
+                          statusText,
+                          style: GoogleFonts.inter(
+                            color: statusColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      }),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textPrimary, size: 20),
-            onPressed: () => Get.to(() => ChatSettingsScreen(
-                  userName: conv.otherUserName,
-                  userAvatar: conv.otherUserAvatar,
-                )),
-          ),
-        ],
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF191C1E), size: 22),
+              onPressed: () => Get.to(() => ChatSettingsScreen(
+                    conversationId: conv.id,
+                    userName: conv.otherUserName,
+                    userAvatar: conv.otherUserAvatar,
+                  )),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildChatArea() {
     return Obx(() {
-      final messages = _ctrl.getMessages(widget.conversation.id);
+      final messages = _ctrl.getMessages(_effectiveConvId);
+
+      if (messages.length > _previousMessageCount) {
+        _previousMessageCount = messages.length;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollCtrl.hasClients) {
+            final double distanceToBottom = _scrollCtrl.position.maxScrollExtent - _scrollCtrl.position.pixels;
+            if (distanceToBottom <= 250) {
+              _scrollToBottom();
+            }
+          }
+        });
+      }
+
       return ListView.builder(
         controller: _scrollCtrl,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        itemCount: messages.length + 1, // Add space for date separators & bottom typing
+        itemCount: messages.length + 1,
         itemBuilder: (context, index) {
           if (index == messages.length) {
-            return const SizedBox(height: 40);
+            return const SizedBox(height: 30);
           }
           final msg = messages[index];
-          final isMe = msg.senderId == 'me' || msg.senderId == ChatController.currentUserId;
+          final isMe = msg.senderId == UserProfileCacheManager.currentUserId;
 
-          // Simple date separator
           bool showDateSep = false;
           if (index == 0) {
             showDateSep = true;
@@ -409,8 +484,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
           return Column(
             children: [
-              if (showDateSep) _buildDateSeparator(msg.timestamp),
-              _buildMessageBubble(msg, isMe),
+              if (showDateSep) _buildStitchDateSeparator(msg.timestamp),
+              _buildStitchMessageBubble(msg, isMe),
             ],
           );
         },
@@ -418,7 +493,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     });
   }
 
-  Widget _buildDateSeparator(DateTime dt) {
+  Widget _buildStitchDateSeparator(DateTime dt) {
     String label = 'Today';
     final now = DateTime.now();
     if (dt.day == now.day - 1) {
@@ -429,220 +504,401 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     return Center(
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
-          color: AppTheme.bgLight.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xFFE0E3E6).withOpacity(0.6),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           label,
-          style: GoogleFonts.outfit(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+          style: GoogleFonts.inter(
+            color: const Color(0xFF3C4A3D),
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage msg, bool isMe) {
-    final senderUser = UserProfileCacheManager.getCachedUser(msg.senderId);
-    final String? bubbleUrl = senderUser?.membershipAssets['chat_bubble'];
-
+  Widget _buildStitchMessageBubble(ChatMessage msg, bool isMe) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.76),
-        decoration: BoxDecoration(
-          color: bubbleUrl != null ? null : (isMe ? null : AppTheme.bgLight),
-          gradient: bubbleUrl != null
-              ? null
-              : (isMe
-                  ? const LinearGradient(
-                      colors: [AppTheme.primaryColor, AppTheme.accentColor],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null),
-          image: bubbleUrl != null && bubbleUrl.isNotEmpty
-              ? DecorationImage(
-                  image: NetworkImage(bubbleUrl),
-                  fit: BoxFit.fill,
-                )
-              : null,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4),
-            bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            )
-          ],
-        ),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.80),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onLongPress: () => _showMessageActionMenu(msg),
             borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Reply Preview
-                  if (msg.replyToContent != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      margin: const EdgeInsets.only(bottom: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(width: 3, height: 24, color: AppTheme.primaryColor),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              msg.replyToContent!,
-                              style: const TextStyle(color: Colors.white70, fontSize: 11),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  // Main Content
-                  if (msg.type == MessageType.audio) ...[
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 100,
-                          height: 20,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: List.generate(
-                              12,
-                              (idx) => Container(
-                                width: 3,
-                                height: 5.0 + Random().nextInt(15),
-                                decoration: BoxDecoration(
-                                  color: Colors.white70,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '0:12',
-                          style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ] else ...[
-                    Text(
-                      msg.content,
-                      style: GoogleFonts.outfit(
-                        color: isMe ? Colors.white : AppTheme.textPrimary,
-                        fontSize: 14.5,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  // Time and Status Ticks
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Spacer(),
-                      if (msg.isEdited) ...[
-                        Text(
-                          'Edited  ',
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: isMe ? Colors.white70 : AppTheme.textTertiary,
-                          ),
-                        ),
-                      ],
-                      Text(
-                        DateFormat('h:mm a').format(msg.timestamp),
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: isMe ? Colors.white70 : AppTheme.textTertiary,
-                        ),
-                      ),
-                      if (isMe) ...[
-                        const SizedBox(width: 4),
-                        _buildDeliveryStatusTick(msg.status),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            child: msg.type == MessageType.gift
+                ? _buildStitchGiftMessageCard(msg, isMe)
+                : msg.type == MessageType.document || msg.type == MessageType.file
+                    ? _buildStitchDocumentCard(msg, isMe)
+                    : _buildStitchStandardBubble(msg, isMe),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDeliveryStatusTick(MessageStatus status) {
+  Widget _buildStitchStandardBubble(ChatMessage msg, bool isMe) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isMe ? const Color(0xFF25D366) : Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4),
+          bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16),
+        ),
+        border: isMe ? null : Border.all(color: const Color(0xFFE0E3E6).withOpacity(0.5), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Reply Preview
+          if (msg.replyToContent != null) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(bottom: 6),
+              decoration: BoxDecoration(
+                color: isMe ? Colors.black.withOpacity(0.08) : const Color(0xFFF2F4F7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 3, height: 22, color: isMe ? const Color(0xFF005523) : const Color(0xFF006D2F)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      msg.replyToContent!,
+                      style: GoogleFonts.inter(
+                        color: isMe ? const Color(0xFF005523) : const Color(0xFF191C1E),
+                        fontSize: 11.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          // Main Body
+          if (msg.type == MessageType.audio) ...[
+            VoiceMessagePlayerWidget(message: msg, isMe: isMe),
+          ] else if (msg.type == MessageType.image || msg.type == MessageType.video) ...[
+            ChatMediaAttachmentWidget(message: msg, isMe: isMe),
+          ] else ...[
+            Text(
+              msg.content,
+              style: GoogleFonts.inter(
+                color: isMe ? const Color(0xFF003916) : const Color(0xFF191C1E),
+                fontSize: 14.5,
+                height: 1.35,
+                fontWeight: isMe ? FontWeight.w500 : FontWeight.w400,
+              ),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Spacer(),
+              Text(
+                DateFormat('h:mm a').format(msg.timestamp),
+                style: GoogleFonts.inter(
+                  fontSize: 10.5,
+                  color: isMe ? const Color(0xFF005523).withOpacity(0.8) : const Color(0xFF6C7B6B),
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              if (isMe) ...[
+                const SizedBox(width: 4),
+                _buildDeliveryStatusTick(msg.status, isMe: true),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStitchGiftMessageCard(ChatMessage msg, bool isMe) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isMe ? const Color(0xFF25D366) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isMe ? const Color(0xFF005523).withOpacity(0.2) : const Color(0xFF25D366).withOpacity(0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: isMe ? const Color(0xFF005523).withOpacity(0.12) : const Color(0xFF25D366).withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.card_giftcard_rounded,
+              color: isMe ? const Color(0xFF004018) : const Color(0xFF006D2F),
+              size: 38,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            msg.content.isNotEmpty ? msg.content : 'A surprise for you!',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: isMe ? const Color(0xFF003916) : const Color(0xFF191C1E),
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Enjoy this little token of appreciation.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: isMe ? const Color(0xFF005523) : const Color(0xFF3C4A3D),
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: ElevatedButton(
+              onPressed: _openGiftDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isMe ? const Color(0xFF004018) : const Color(0xFF25D366),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              child: Text(
+                'Open Gift',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                DateFormat('h:mm a').format(msg.timestamp),
+                style: GoogleFonts.inter(
+                  fontSize: 10.5,
+                  color: isMe ? const Color(0xFF005523).withOpacity(0.8) : const Color(0xFF6C7B6B),
+                ),
+              ),
+              if (isMe) ...[
+                const SizedBox(width: 4),
+                _buildDeliveryStatusTick(msg.status, isMe: true),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStitchDocumentCard(ChatMessage msg, bool isMe) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isMe ? const Color(0xFF25D366) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: isMe ? null : Border.all(color: const Color(0xFFE0E3E6).withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isMe ? Colors.black.withOpacity(0.08) : const Color(0xFFF2F4F7),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 32),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        msg.fileName ?? msg.content,
+                        style: GoogleFonts.inter(
+                          color: isMe ? const Color(0xFF003916) : const Color(0xFF191C1E),
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        msg.fileSize != null ? '${(msg.fileSize! / (1024 * 1024)).toStringAsFixed(1)} MB • PDF' : 'DOCUMENT',
+                        style: GoogleFonts.inter(
+                          color: isMe ? const Color(0xFF005523) : const Color(0xFF6C7B6B),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.download_rounded, color: isMe ? const Color(0xFF003916) : const Color(0xFF191C1E), size: 22),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                DateFormat('h:mm a').format(msg.timestamp),
+                style: GoogleFonts.inter(
+                  fontSize: 10.5,
+                  color: isMe ? const Color(0xFF005523).withOpacity(0.8) : const Color(0xFF6C7B6B),
+                ),
+              ),
+              if (isMe) ...[
+                const SizedBox(width: 4),
+                _buildDeliveryStatusTick(msg.status, isMe: true),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeliveryStatusTick(MessageStatus status, {bool isMe = false}) {
+    final color = isMe ? const Color(0xFF004018) : const Color(0xFF006D2F);
     switch (status) {
       case MessageStatus.sending:
-        return const Icon(Icons.access_time_rounded, size: 10, color: Colors.white60);
+        return Icon(Icons.access_time_rounded, size: 12, color: color.withOpacity(0.6));
       case MessageStatus.sent:
-        return const Icon(Icons.done_rounded, size: 11, color: Colors.white60);
+        return Icon(Icons.done_rounded, size: 13, color: color.withOpacity(0.8));
       case MessageStatus.delivered:
-        return const Icon(Icons.done_all_rounded, size: 11, color: Colors.white60);
+        return Icon(Icons.done_all_rounded, size: 13, color: color.withOpacity(0.8));
       case MessageStatus.read:
-        return const Icon(Icons.done_all_rounded, size: 11, color: Color(0xFF60A5FA));
+        return Icon(Icons.done_all_rounded, size: 13, color: color);
     }
   }
 
-  Widget _buildInputContainer() {
+  Widget _buildStitchBottomInputBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      color: AppTheme.bgLight,
+      padding: const EdgeInsets.only(left: 12, right: 12, top: 10, bottom: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE0E3E6), width: 1),
+        ),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Reply Box banner if active
+          Obx(() {
+            final isMutual = _ctrl.isMutualFollower(widget.conversation.otherUserId);
+            if (isMutual) return const SizedBox.shrink();
+
+            final remaining = _ctrl.getRemainingRequestQuota(_effectiveConvId, widget.conversation.otherUserId);
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade300, width: 1),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '💬 You have $remaining request message(s). Get a reply or send a gift to continue chatting.',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF5D4037),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+
           Obx(() {
             if (_replyToMessage.value != null) {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                margin: const EdgeInsets.only(bottom: 6),
+                margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: AppTheme.bgDark.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8),
+                  color: const Color(0xFFECEEF1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.reply, size: 16, color: AppTheme.primaryColor),
+                    const Icon(Icons.reply, size: 16, color: Color(0xFF006D2F)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Replying to: ${_replyToMessage.value!.content}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                        style: GoogleFonts.inter(color: const Color(0xFF191C1E), fontSize: 12),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 16, color: AppTheme.textTertiary),
+                      icon: const Icon(Icons.close, size: 16, color: Color(0xFF6C7B6B)),
                       onPressed: () => _replyToMessage.value = null,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
@@ -650,44 +906,47 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             }
             return const SizedBox.shrink();
           }),
+
           Row(
             children: [
               IconButton(
-                icon: Obx(() => Icon(
-                      _showEmojiPanel.value ? Icons.keyboard_rounded : Icons.sentiment_satisfied_alt_rounded,
-                      color: AppTheme.textSecondary,
+                icon: Obx(() => AnimatedRotation(
+                      turns: _showAttachmentPanel.value ? 0.125 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.add_rounded, color: Color(0xFF3C4A3D), size: 28),
                     )),
                 onPressed: () {
-                  _showEmojiPanel.value = !_showEmojiPanel.value;
-                  _showAttachmentPanel.value = false;
-                  if (_showEmojiPanel.value) {
+                  _showAttachmentPanel.value = !_showAttachmentPanel.value;
+                  _showEmojiPanel.value = false;
+                  if (_showAttachmentPanel.value) {
                     _focusNode.unfocus();
-                  } else {
-                    _focusNode.requestFocus();
                   }
                 },
               ),
+              const SizedBox(width: 4),
               Expanded(
                 child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppTheme.bgDark,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppTheme.borderColor),
+                    color: const Color(0xFFF2F4F7),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0xFFE0E3E6)),
                   ),
                   child: Row(
                     children: [
-                      const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
                           controller: _msgCtrl,
                           focusNode: _focusNode,
-                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                          style: GoogleFonts.inter(color: const Color(0xFF191C1E), fontSize: 14.5),
                           maxLines: 4,
                           minLines: 1,
-                          decoration: const InputDecoration(
-                            hintText: 'Type a message...',
-                            hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Type a message',
+                            hintStyle: GoogleFonts.inter(color: const Color(0xFF6C7B6B).withOpacity(0.7), fontSize: 14),
                             border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                           onTap: () {
                             _showEmojiPanel.value = false;
@@ -695,57 +954,47 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                           },
                         ),
                       ),
+                      const SizedBox(width: 4),
                       IconButton(
-                        icon: const Icon(Icons.attach_file_rounded, color: AppTheme.textSecondary, size: 20),
-                        onPressed: () {
-                          _showAttachmentPanel.value = !_showAttachmentPanel.value;
-                          _showEmojiPanel.value = false;
-                          _focusNode.unfocus();
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.camera_alt_outlined, color: AppTheme.textSecondary, size: 20),
-                        onPressed: () => _sendMessage(text: '📷 Photo message', type: MessageType.image),
+                        icon: const Icon(Icons.card_giftcard_rounded, color: Color(0xFF006D2F), size: 22),
+                        onPressed: _openGiftDialog,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
-              // Mic / Send toggle
+              const SizedBox(width: 8),
               Obx(() {
                 final hasTxt = _hasText.value;
-                if (hasTxt) {
-                  return GestureDetector(
-                    onTap: () => _sendMessage(),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                return GestureDetector(
+                  onTap: hasTxt ? () => _sendMessage() : null,
+                  onLongPressStart: hasTxt ? null : (_) => _startVoiceRecording(),
+                  onLongPressEnd: hasTxt ? null : (_) => _stopVoiceRecording(send: true),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF006D2F),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x33006D2F),
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
                     ),
-                  );
-                } else {
-                  // Interactive recording button
-                  return GestureDetector(
-                    onLongPressStart: (_) => _startVoiceRecording(),
-                    onLongPressEnd: (_) => _stopVoiceRecording(send: true),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        shape: BoxShape.circle,
+                    child: Center(
+                      child: Icon(
+                        hasTxt ? Icons.send_rounded : Icons.mic_rounded,
+                        color: Colors.white,
+                        size: 22,
                       ),
-                      child: Obx(() => Icon(
-                            _isRecording.value ? Icons.mic_off_rounded : Icons.mic_rounded,
-                            color: Colors.white,
-                            size: 20,
-                          )),
                     ),
-                  );
-                }
+                  ),
+                );
               }),
             ],
           ),
@@ -765,22 +1014,22 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       margin: const EdgeInsets.only(top: 8),
       decoration: BoxDecoration(
-        color: AppTheme.bgDark,
+        color: const Color(0xFFFFEBEE),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+        border: Border.all(color: Colors.red.shade200),
       ),
       child: Row(
         children: [
-          const Icon(Icons.fiber_manual_record_rounded, color: AppTheme.errorColor, size: 16),
+          const Icon(Icons.fiber_manual_record_rounded, color: Colors.redAccent, size: 16),
           const SizedBox(width: 8),
           Obx(() => Text(
                 'Recording: ${_recordingSeconds.value}s',
-                style: GoogleFonts.outfit(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                style: GoogleFonts.inter(color: Colors.red.shade900, fontSize: 13, fontWeight: FontWeight.bold),
               )),
           const Spacer(),
           Text(
             'Release to send • Slide Left to Cancel',
-            style: GoogleFonts.outfit(color: AppTheme.textTertiary, fontSize: 11),
+            style: GoogleFonts.inter(color: Colors.red.shade700, fontSize: 11),
           ),
         ],
       ),
@@ -791,7 +1040,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final List<String> dummyEmojis = ['😀', '😂', '😍', '👍', '🔥', '🎉', '❤️', '🙏', '🙌', '✨', '☕', '🎂', '🥳', '😎', '💀', '👀'];
     return Container(
       height: 200,
-      color: AppTheme.bgLight,
+      color: Colors.white,
       child: Column(
         children: [
           TabBar(
@@ -800,9 +1049,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               Tab(text: 'Stickers'),
               Tab(text: 'GIFs'),
             ],
-            indicatorColor: AppTheme.primaryColor,
-            labelColor: AppTheme.primaryColor,
-            unselectedLabelColor: AppTheme.textTertiary,
+            indicatorColor: const Color(0xFF006D2F),
+            labelColor: const Color(0xFF006D2F),
+            unselectedLabelColor: const Color(0xFF6C7B6B),
             controller: TabController(length: 3, vsync: this),
           ),
           Expanded(
@@ -827,35 +1076,75 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   Widget _buildAttachmentMenuPanel() {
     final items = [
-      {'name': 'Document', 'icon': Icons.description_rounded, 'color': Colors.blue},
-      {'name': 'Camera', 'icon': Icons.camera_alt_rounded, 'color': Colors.red},
-      {'name': 'Gallery', 'icon': Icons.image_rounded, 'color': Colors.purple},
-      {'name': 'Audio', 'icon': Icons.headphones_rounded, 'color': Colors.orange},
-      {'name': 'Location', 'icon': Icons.location_on_rounded, 'color': Colors.green},
-      {'name': 'Contact', 'icon': Icons.person_rounded, 'color': Colors.teal},
+      {'name': 'Gift', 'icon': Icons.card_giftcard_rounded, 'color': const Color(0xFF006D2F), 'type': 'gift'},
+      {'name': 'Document', 'icon': Icons.description_rounded, 'color': Colors.blue, 'type': 'document'},
+      {'name': 'Camera', 'icon': Icons.camera_alt_rounded, 'color': Colors.red, 'type': 'camera'},
+      {'name': 'Gallery', 'icon': Icons.image_rounded, 'color': Colors.purple, 'type': 'gallery'},
+      {'name': 'Audio', 'icon': Icons.headphones_rounded, 'color': Colors.orange, 'type': 'audio'},
+      {'name': 'Location', 'icon': Icons.location_on_rounded, 'color': Colors.green, 'type': 'location'},
+      {'name': 'Contact', 'icon': Icons.person_rounded, 'color': Colors.teal, 'type': 'contact'},
     ];
     return Container(
       height: 180,
-      color: AppTheme.bgLight,
+      color: Colors.white,
       padding: const EdgeInsets.all(16),
       child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 1.5),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, childAspectRatio: 1.3),
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index];
           return GestureDetector(
             onTap: () {
               _showAttachmentPanel.value = false;
-              _sendMessage(text: 'Sent standard ${item['name']}', type: MessageType.file);
+              final typeKey = item['type'] as String;
+              if (typeKey == 'gift') {
+                _openGiftDialog();
+              } else if (typeKey == 'document') {
+                _sendMessage(
+                  text: 'Quantum_Physics_Notes.pdf',
+                  type: MessageType.document,
+                  fileName: 'Quantum_Physics_Notes.pdf',
+                  fileSize: 2450000,
+                );
+              } else if (typeKey == 'camera' || typeKey == 'gallery') {
+                _sendMessage(
+                  text: '📷 Photo',
+                  type: MessageType.image,
+                  mediaUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800',
+                  fileName: 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+                );
+              } else if (typeKey == 'audio') {
+                _sendMessage(
+                  text: '🎤 Voice Note',
+                  type: MessageType.audio,
+                  audioDuration: 14,
+                  mediaUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+                );
+              } else if (typeKey == 'location') {
+                _sendMessage(
+                  text: '📍 Central Campus Library',
+                  type: MessageType.location,
+                  locationLat: 28.6139,
+                  locationLng: 77.2090,
+                  locationName: 'Central Campus Library, Block A',
+                );
+              } else if (typeKey == 'contact') {
+                _sendMessage(
+                  text: '👤 Academic Advisor',
+                  type: MessageType.contact,
+                  contactName: 'Dr. Sharma (Physics Dept)',
+                  contactPhone: '+91 98765 12345',
+                );
+              }
             },
             child: Column(
               children: [
                 CircleAvatar(
-                  backgroundColor: (item['color'] as Color).withOpacity(0.2),
+                  backgroundColor: (item['color'] as Color).withOpacity(0.12),
                   child: Icon(item['icon'] as IconData, color: item['color'] as Color),
                 ),
                 const SizedBox(height: 6),
-                Text(item['name'] as String, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
+                Text(item['name'] as String, style: GoogleFonts.inter(color: const Color(0xFF191C1E), fontSize: 11)),
               ],
             ),
           );
@@ -867,31 +1156,31 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   void _showMessageActionMenu(ChatMessage msg) {
     Get.bottomSheet(
       Container(
-        color: AppTheme.bgLight,
+        color: Colors.white,
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.reply_rounded, color: AppTheme.primaryColor),
-              title: const Text('Reply'),
+              leading: const Icon(Icons.reply_rounded, color: Color(0xFF006D2F)),
+              title: Text('Reply', style: GoogleFonts.inter(color: const Color(0xFF191C1E))),
               onTap: () {
                 _replyToMessage.value = msg;
                 Get.back();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.copy_rounded, color: AppTheme.primaryColor),
-              title: const Text('Copy Text'),
+              leading: const Icon(Icons.copy_rounded, color: Color(0xFF006D2F)),
+              title: Text('Copy Text', style: GoogleFonts.inter(color: const Color(0xFF191C1E))),
               onTap: () {
                 Clipboard.setData(ClipboardData(text: msg.content));
                 Get.back();
-                Get.snackbar('Copied', 'Message copied to clipboard', backgroundColor: AppTheme.bgLight);
+                Get.snackbar('Copied', 'Message copied to clipboard', backgroundColor: Colors.white);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorColor),
-              title: const Text('Delete Message'),
+              leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+              title: Text('Delete Message', style: GoogleFonts.inter(color: Colors.redAccent)),
               onTap: () {
                 _messagesList.removeWhere((m) => m.id == msg.id);
                 Get.back();

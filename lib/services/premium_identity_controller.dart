@@ -335,44 +335,32 @@ class PremiumIdentity {
       ),
     );
 
-    // 5. Community Tag
+    // 5. Community Tag (Official Community Tags: Connect, Campus, ArenaX, Studio, Origin)
     if (communityTag != null) {
       final ct = communityTag!;
-      Widget tagContent = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-        decoration: BoxDecoration(
-          color: ct.gradientColors.first.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: ct.gradientColors.first.withOpacity(0.5), width: 0.5),
-        ),
-        child: Text(
-          '${ct.role}',
-          style: GoogleFonts.poppins(
-            color: ct.gradientColors.first,
-            fontSize: fontSize - 1,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
+      final officialAsset = getOfficialCommunityTagAssetPath(ct.role) ??
+          getOfficialCommunityTagAssetPath(ct.name);
 
-      if (ct.isAnimated) {
+      Widget tagContent;
+      if (officialAsset != null) {
+        tagContent = Image.asset(
+          officialAsset,
+          height: 19,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        );
+      } else {
         tagContent = Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: ct.gradientColors),
+            color: ct.gradientColors.first.withOpacity(0.2),
             borderRadius: BorderRadius.circular(4),
-            boxShadow: [
-              BoxShadow(
-                color: ct.gradientColors.first.withOpacity(0.5),
-                blurRadius: 4,
-                spreadRadius: 0.5,
-              )
-            ],
+            border: Border.all(color: ct.gradientColors.first.withOpacity(0.5), width: 0.5),
           ),
           child: Text(
             '${ct.role}',
             style: GoogleFonts.poppins(
-              color: Colors.white,
+              color: ct.gradientColors.first,
               fontSize: fontSize - 1,
               fontWeight: FontWeight.bold,
             ),
@@ -385,14 +373,14 @@ class PremiumIdentity {
           onTap: () => showBadgeInfoDialog(
             context,
             title: '${ct.name} (${ct.role})',
-            description: 'Community ranking tag.',
+            description: 'Official Community Identity Tag.',
             color: ct.gradientColors.first,
             icon: '🏷️',
-            requirement: 'Assigned as a community organizer inside target guild/community.',
+            requirement: 'Official Community Member.',
             benefits: [
-              'Role title displayed inside community screens',
-              'Special community action powers',
-              'Exclusive level tag glows',
+              'Premium Identity Tag displayed across platform',
+              'Special community badge status',
+              'Exclusive identity presentation',
             ],
             status: 'Active',
           ),
@@ -544,6 +532,22 @@ class PremiumIdentity {
   }
 }
 
+String? getOfficialCommunityTagAssetPath(String tagLabel) {
+  final clean = tagLabel.trim().toLowerCase();
+  if (clean == 'connect' || clean == 'cannect' || clean.contains('connect') || clean.contains('cannect')) {
+    return 'assets/identity_tags/officialcomunity_tags/cannect.png';
+  } else if (clean == 'campus' || clean.contains('campus')) {
+    return 'assets/identity_tags/officialcomunity_tags/campus.png';
+  } else if (clean == 'arenax' || clean == 'arena x' || clean.contains('arenax') || clean.contains('arena x') || clean.contains('gamers')) {
+    return 'assets/identity_tags/officialcomunity_tags/arenax.png';
+  } else if (clean == 'studio' || clean.contains('studio') || clean.contains('creators')) {
+    return 'assets/identity_tags/officialcomunity_tags/studio.png';
+  } else if (clean == 'origin' || clean.contains('origin') || clean.contains('creania official') || clean == 'official' || clean.contains('official')) {
+    return 'assets/identity_tags/officialcomunity_tags/origin.png';
+  }
+  return null;
+}
+
 class PremiumIdentityController extends GetxController {
   final RxString currentVerification = 'Verified'.obs;
   final RxString currentOfficialTag = 'None'.obs;
@@ -559,7 +563,6 @@ class PremiumIdentityController extends GetxController {
     int? careerLevel,
     List<String>? badgesList,
   }) {
-    // Import user cache manager dynamically to avoid circular dependencies if any
     dynamic u;
     try {
       final currentUid = Supabase.instance.client.auth.currentUser?.id;
@@ -570,14 +573,27 @@ class PremiumIdentityController extends GetxController {
     } catch (_) {}
 
     int vip = vipLevel ?? u?.vipLevel ?? 0;
+    if (vipLevel == null && Get.isRegistered<VipController>()) {
+      final vc = Get.find<VipController>();
+      if (vc.vipLevel.value > vip) {
+        vip = vc.vipLevel.value;
+      }
+    }
+
     int novel = novelLevel ?? u?.novelLevel ?? 0;
+    if (novelLevel == null && Get.isRegistered<NovelController>()) {
+      final nc = Get.find<NovelController>();
+      if (nc.novelLevel.value > novel) {
+        novel = nc.novelLevel.value;
+      }
+    }
+
     int idLvl = idLevel ?? u?.level ?? 1;
     int careerLvl = careerLevel ?? u?.careerLevel ?? 1;
     List<String> userBadges = badgesList ?? u?.badges ?? [];
     List<String> tagLights = u?.tagLights ?? [];
     List<String> rTags = u?.rTags ?? [];
 
-    // Check if VIP or Novel has expired
     final now = DateTime.now();
     if (u != null) {
       if (u.vipExpiry != null && u.vipExpiry!.isBefore(now)) {
@@ -588,12 +604,12 @@ class PremiumIdentityController extends GetxController {
       }
     }
 
-    // Community Tag
     CommunityTag? commTag;
     String? activeCommTag;
     for (final tag in tagLights) {
-      if (tag == 'Origin' || tag == 'Studio' || tag == 'ArenaX' || tag == 'Campus') {
-        activeCommTag = tag;
+      final clean = tag.trim();
+      if (clean == 'Origin' || clean == 'Studio' || clean == 'ArenaX' || clean == 'Campus' || clean == 'Connect') {
+        activeCommTag = clean;
         break;
       }
     }
@@ -616,6 +632,9 @@ class PremiumIdentityController extends GetxController {
       } else if (activeCommTag == 'Campus') {
         commName = 'Creania Campus';
         colors = [const Color(0xFF10B981), const Color(0xFF047857)];
+      } else if (activeCommTag == 'Connect') {
+        commName = 'Creania Connect';
+        colors = [const Color(0xFF6366F1), const Color(0xFF4338CA)];
       }
 
       commTag = CommunityTag(
@@ -627,7 +646,6 @@ class PremiumIdentityController extends GetxController {
       );
     }
 
-    // Verification Badge
     UserVerification? verification;
     for (final b in userBadges) {
       final mappedVer = _mapVerification(b);
@@ -637,7 +655,6 @@ class PremiumIdentityController extends GetxController {
       }
     }
 
-    // Official Tag
     OfficialTag? officialTag;
     final priorityRoles = [
       'Founder',
@@ -661,7 +678,6 @@ class PremiumIdentityController extends GetxController {
       officialTag = _mapOfficialTag(highestRTag);
     }
 
-    // Achievement Tag
     String? achievementTag;
     for (final b in userBadges) {
       if (b.startsWith('🔥') || b.startsWith('🏆') || b.startsWith('⭐') || b.startsWith('💎') || b.startsWith('💡') || b.startsWith('🚀') || b.startsWith('👑') || b.startsWith('🏅') || b.contains('Top') || b.startsWith('🎯')) {
@@ -685,7 +701,6 @@ class PremiumIdentityController extends GetxController {
     );
   }
 
-  // Dynamic helper to resolve User from Cache Manager
   static dynamic rxCacheGet(String key) {
     try {
       return Get.find<dynamic>(tag: key); 

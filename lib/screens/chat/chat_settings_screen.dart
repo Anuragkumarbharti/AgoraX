@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
+import '../../services/chat_controller.dart';
 
 class ChatSettingsScreen extends StatefulWidget {
+  final String conversationId;
   final String userName;
   final String? userAvatar;
 
   const ChatSettingsScreen({
     Key? key,
+    required this.conversationId,
     required this.userName,
     this.userAvatar,
   }) : super(key: key);
@@ -124,7 +127,12 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                 title: 'Clear Chat?',
                 message: 'This will permanently delete all messages in this conversation. This action cannot be undone.',
                 confirmText: 'Clear',
-                onConfirm: () => _showSuccessToast('Chat cleared'),
+                onConfirm: () {
+                  if (Get.isRegistered<ChatController>()) {
+                    Get.find<ChatController>().clearChat(widget.conversationId);
+                  }
+                  _showSuccessToast('Chat cleared');
+                },
               ),
             ),
             _buildSettingsTile(
@@ -138,11 +146,16 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                 message: 'This will delete the conversation and all of its messages. This action is permanent.',
                 confirmText: 'Delete',
                 onConfirm: () {
+                  if (Get.isRegistered<ChatController>()) {
+                    Get.find<ChatController>().deleteConversation(widget.conversationId);
+                  }
                   _showSuccessToast('Chat deleted');
-                  Get.back(); // Go back to chats list
+                  Get.back();
+                  Get.back(); // Navigate back past chat screen
                 },
               ),
             ),
+
             _buildSettingsTile(
               'Block User',
               'Prevent this user from messaging or calling you',

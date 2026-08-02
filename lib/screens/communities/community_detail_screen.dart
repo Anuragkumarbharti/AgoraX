@@ -10,6 +10,7 @@ import '../../models/user_model.dart';
 import '../../services/community_controller.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../profile/profile_screen.dart';
+import '../../widgets/community_join_button.dart';
 
 class CommunityDetailScreen extends StatefulWidget {
   final String communityId;
@@ -308,97 +309,12 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
           Row(
             children: [
               Expanded(
-                child: isMember
-                    ? OutlinedButton(
-                        onPressed: () {
-                          if (role == 'Owner') {
-                            Get.snackbar('Action Denied', 'Owner cannot leave the community.');
-                          } else {
-                            Get.dialog(
-                              AlertDialog(
-                                backgroundColor: const Color(0xFF1B1D2A),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                title: const Text('Leave Family', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                content: const Text(
-                                  'Are you sure you want to leave this family?\n\nNote: You can only join or create another community 24 hours after leaving.',
-                                  style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.45),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Get.back(),
-                                    child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      Get.back();
-                                      _controller.leaveCommunity(comm.id);
-                                    },
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                                    child: const Text('Leave', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                        },
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: context.errorColor),
-                          foregroundColor: context.errorColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: Text('Leave Family'),
-                      )
-                    : Obx(() {
-                        final isApplied = _controller.pendingApplications.any((a) => a.communityId == comm.id);
-                        final user = UserProfileCacheManager.getCachedUser(CommunityController.currentUserId);
-                        final nextJoin = user?.communityNextJoinTime;
-                        final isCooldown = nextJoin != null && nextJoin.isAfter(DateTime.now());
-
-                        String formatCooldown(DateTime dt) {
-                          final diff = dt.difference(DateTime.now());
-                          if (diff.isNegative) return 'Join Family';
-                          final hrs = diff.inHours;
-                          final mins = diff.inMinutes % 60;
-                          return 'Cooldown ${hrs}h ${mins}m';
-                        }
-
-                        String buttonText = 'Join Family';
-                        if (isApplied) {
-                          buttonText = 'Applied';
-                        } else if (isCooldown) {
-                          buttonText = formatCooldown(nextJoin);
-                        }
-
-                        return ElevatedButton(
-                          onPressed: () {
-                            if (isApplied) {
-                              Get.snackbar(
-                                'Application Pending',
-                                'Your application is currently under review.',
-                                snackPosition: SnackPosition.BOTTOM,
-                              );
-                            } else if (isCooldown) {
-                              Get.snackbar(
-                                'Cooldown Active',
-                                'You recently left a community. You can join again in ${formatCooldown(nextJoin)}.',
-                                snackPosition: SnackPosition.BOTTOM,
-                              );
-                            } else {
-                              if (comm.joinMode == 'approval_required') {
-                                _showApplyDialog(context, comm, _controller);
-                              } else {
-                                _controller.joinCommunity(comm.id);
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isApplied || isCooldown ? Colors.white10 : context.primaryColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: Text(buttonText),
-                        );
-                      }),
+                child: CommunityJoinButton(
+                  community: comm,
+                  height: 40,
+                  borderRadius: 10.0,
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                ),
               ),
               if (isMember) ...[
                 SizedBox(width: 12),

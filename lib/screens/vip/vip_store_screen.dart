@@ -253,34 +253,53 @@ class _VipStoreScreenState extends State<VipStoreScreen>
                               ),
                             ),
 
-                            // CTA button
-                            if (isLocked)
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
-                                  borderRadius: BorderRadius.circular(8),
+                            // CTA & Preview buttons
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: itemColor,
+                                    side: BorderSide(color: itemColor.withOpacity(0.5)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: () => _showCosmeticPreviewModal(
+                                    context, category, name, desc, requiredLevel, itemColor, isActive, isLocked, itemId,
+                                  ),
+                                  icon: const Icon(Icons.visibility_rounded, size: 14),
+                                  label: Text('Preview', style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
-                                child: Text(
-                                  'Locked',
-                                  style: GoogleFonts.outfit(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold),
-                                ),
-                              )
-                            else
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isActive ? context.borderColor : itemColor,
-                                  foregroundColor: isActive ? context.caption : Colors.white,
-                                  elevation: 0,
-                                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                                onPressed: isActive ? null : () => _equipItem(category, itemId),
-                                child: Text(
-                                  isActive ? 'Equipped' : 'Equip',
-                                  style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold),
-                                ),
-                              ),
+                                const SizedBox(width: 8),
+                                if (isLocked)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'Locked',
+                                      style: GoogleFonts.outfit(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                  )
+                                else
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isActive ? context.borderColor : itemColor,
+                                      foregroundColor: isActive ? context.caption : Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    onPressed: isActive ? null : () => _equipItem(category, itemId),
+                                    child: Text(
+                                      isActive ? 'Equipped' : 'Equip',
+                                      style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
                       );
@@ -292,6 +311,208 @@ class _VipStoreScreenState extends State<VipStoreScreen>
           ],
         );
       }),
+    );
+  }
+
+  void _showCosmeticPreviewModal(
+    BuildContext context,
+    String category,
+    String name,
+    String desc,
+    int requiredLevel,
+    Color itemColor,
+    bool isActive,
+    bool isLocked,
+    String itemId,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String rarity = 'Epic';
+        if (requiredLevel == 0) rarity = 'Common';
+        else if (requiredLevel <= 2) rarity = 'Rare';
+        else if (requiredLevel <= 4) rarity = 'Epic';
+        else if (requiredLevel <= 6) rarity = 'Legendary';
+        else rarity = 'Mythic';
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
+            ),
+            border: Border.all(color: itemColor.withOpacity(0.3)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: context.borderColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Rarity Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: itemColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: itemColor.withOpacity(0.4)),
+                ),
+                child: Text(
+                  '$rarity • $category',
+                  style: GoogleFonts.outfit(
+                    color: itemColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Large Interactive Preview Image / Widget
+              Container(
+                width: 130,
+                height: 130,
+                decoration: BoxDecoration(
+                  color: context.secondaryBackgroundColor,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: itemColor.withOpacity(0.3), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: itemColor.withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: category == 'Borders' || category == 'Avatar Rings'
+                      ? VipAvatarDecorator(
+                          level: requiredLevel > 0 ? requiredLevel : 1,
+                          size: 85,
+                          child: const CircleAvatar(
+                            backgroundColor: Colors.white24,
+                            child: Icon(Icons.person, color: Colors.white70, size: 36),
+                          ),
+                        )
+                      : category == 'Chat Bubbles'
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: itemColor.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: itemColor),
+                              ),
+                              child: Text(
+                                'Chat Bubble Preview 💬',
+                                style: GoogleFonts.poppins(color: Colors.white, fontSize: 10),
+                              ),
+                            )
+                          : category == 'Name Colors'
+                              ? ShaderMask(
+                                  shaderCallback: (bounds) => LinearGradient(
+                                    colors: [Colors.white, itemColor],
+                                  ).createShader(bounds),
+                                  child: Text(
+                                    name,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text('✨', style: TextStyle(fontSize: 36)),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      name,
+                                      style: GoogleFonts.poppins(
+                                          color: Colors.white70, fontSize: 10),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Text(
+                name,
+                style: GoogleFonts.outfit(
+                  color: context.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                desc,
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 14),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _modalMetaCol(context, 'Duration', '30 Days'),
+                  _modalMetaCol(context, 'Status', isActive ? 'Equipped' : (isLocked ? 'Locked' : 'Unlocked')),
+                  _modalMetaCol(context, 'Requirement', requiredLevel > 0 ? 'VIP Level $requiredLevel' : 'Free'),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Action Button
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isLocked ? Colors.grey : itemColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: isLocked || isActive
+                      ? null
+                      : () {
+                          Get.back();
+                          _equipItem(category, itemId);
+                        },
+                  child: Text(
+                    isLocked
+                        ? 'Requires VIP Level $requiredLevel'
+                        : (isActive ? 'Currently Equipped' : 'Equip Cosmetic'),
+                    style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _modalMetaCol(BuildContext context, String label, String val) {
+    return Column(
+      children: [
+        Text(label, style: GoogleFonts.poppins(color: context.caption, fontSize: 10)),
+        const SizedBox(height: 2),
+        Text(val, style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 

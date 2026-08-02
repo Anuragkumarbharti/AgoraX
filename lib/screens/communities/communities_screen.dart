@@ -14,6 +14,7 @@ import '../../services/user_profile_cache_manager.dart';
 import '../profile/profile_screen.dart';
 import 'community_detail_screen.dart';
 import 'create_community_screen.dart';
+import '../../widgets/community_join_button.dart';
 
 class CommunitiesScreen extends StatefulWidget {
   const CommunitiesScreen({Key? key}) : super(key: key);
@@ -777,53 +778,25 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> with SingleTicker
                             ),
                           ],
                         ),
-                        SizedBox(
-                          height: 32,
-                          width: 120,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              if (isThisJoined) {
-                                Get.to(() => CommunityDetailScreen(communityId: comm.id));
-                              } else if (isOtherJoined) {
-                                Get.snackbar('Locked', 'You must leave your current Family before joining another.', backgroundColor: Colors.amber, colorText: Colors.black);
-                              } else if (isApplied) {
-                                Get.snackbar('Applied', 'Your application is currently pending approval.', backgroundColor: Colors.indigo, colorText: Colors.white);
-                              } else if (isCooldown) {
-                                Get.snackbar('Cooldown Active', 'You left a family recently. Cooldown: ${formatCooldown(nextJoin!)}', backgroundColor: Colors.amber, colorText: Colors.black);
-                              } else {
-                                if (comm.joinMode == 'approval_required') {
-                                  _showApplyDialog(context, comm, _controller);
-                                } else {
-                                  final err = await _controller.joinCommunity(comm.id);
-                                  if (err != null) {
-                                    Get.snackbar('Error', err, backgroundColor: Colors.redAccent, colorText: Colors.white);
-                                  } else {
-                                    Get.snackbar('Joined', 'Welcome to ${comm.name}!', backgroundColor: Colors.green, colorText: Colors.white);
-                                    _controller.syncFromSupabase();
-                                  }
-                                }
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isThisJoined
-                                  ? Colors.green
-                                  : (isOtherJoined || isCooldown ? Colors.white10 : context.primaryColor),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            child: Text(
-                              isThisJoined
-                                  ? 'Open'
-                                  : (isOtherJoined
-                                      ? 'Locked'
-                                      : (isApplied
-                                          ? 'Applied'
-                                          : (isCooldown ? formatCooldown(nextJoin!) : (comm.joinMode == 'approval_required' ? 'Apply' : 'Join')))),
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
+                        isThisJoined
+                            ? SizedBox(
+                                height: 32,
+                                width: 120,
+                                child: ElevatedButton(
+                                  onPressed: () => Get.to(() => CommunityDetailScreen(communityId: comm.id)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  child: const Text('Open', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                ),
+                              )
+                            : CommunityJoinButton(
+                                community: comm,
+                                height: 32,
+                                width: 120,
+                                borderRadius: 8.0,
+                              ),
                       ],
                     ),
                   ],
@@ -1174,42 +1147,25 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> with SingleTicker
             Container(
               padding: const EdgeInsets.all(16),
               color: const Color(0xFF161925),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    Get.back();
-                    if (isThisJoined) {
-                      Get.to(() => CommunityDetailScreen(communityId: comm.id));
-                    } else if (isOtherJoined) {
-                      Get.snackbar('Locked', 'You must leave your current Family first.', backgroundColor: Colors.amber, colorText: Colors.black);
-                    } else {
-                      if (comm.joinMode == 'approval_required') {
-                        _showApplyDialog(context, comm, _controller);
-                      } else {
-                        final err = await _controller.joinCommunity(comm.id);
-                        if (err != null) {
-                          Get.snackbar('Error', err, backgroundColor: Colors.redAccent, colorText: Colors.white);
-                        } else {
-                          Get.snackbar('Joined', 'Welcome to ${comm.name}!', backgroundColor: Colors.green, colorText: Colors.white);
-                          _controller.syncFromSupabase();
-                        }
-                      }
-                    }
-                  },
-                  child: Text(
-                    isThisJoined
-                        ? 'Open Family'
-                        : (isOtherJoined
-                            ? 'Already in another Family'
-                            : (isApplied
-                                ? 'Application Pending'
-                                : (comm.joinMode == 'approval_required' ? 'Apply to Join' : 'Join Family'))),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
+              child: isThisJoined
+                  ? SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Get.back();
+                          Get.to(() => CommunityDetailScreen(communityId: comm.id));
+                        },
+                        child: const Text('Open Family', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    )
+                  : CommunityJoinButton(
+                      community: comm,
+                      height: 48,
+                      width: double.infinity,
+                      borderRadius: 12.0,
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                    ),
             ),
           ],
         ),

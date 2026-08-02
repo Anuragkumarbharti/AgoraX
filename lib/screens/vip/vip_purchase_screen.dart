@@ -65,51 +65,6 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
       '6 Months': 12999,
       '12 Months': 22999,
     },
-    3: {
-      '3 Days': 999,
-      '7 Days': 1999,
-      '15 Days': 2999,
-      '1 Month': 3999,
-      '3 Months': 10999,
-      '6 Months': 19999,
-      '12 Months': 34999,
-    },
-    4: {
-      '3 Days': 1499,
-      '7 Days': 2999,
-      '15 Days': 4499,
-      '1 Month': 5999,
-      '3 Months': 16999,
-      '6 Months': 29999,
-      '12 Months': 54999,
-    },
-    5: {
-      '3 Days': 2499,
-      '7 Days': 4999,
-      '15 Days': 7499,
-      '1 Month': 9999,
-      '3 Months': 27999,
-      '6 Months': 49999,
-      '12 Months': 89999,
-    },
-    6: {
-      '3 Days': 3999,
-      '7 Days': 7999,
-      '15 Days': 11999,
-      '1 Month': 15999,
-      '3 Months': 44999,
-      '6 Months': 79999,
-      '12 Months': 139999,
-    },
-    7: {
-      '3 Days': 6999,
-      '7 Days': 12999,
-      '15 Days': 19999,
-      '1 Month': 29999,
-      '3 Months': 79999,
-      '6 Months': 149999,
-      '12 Months': 249999,
-    },
   };
 
   // Benefits List per Level
@@ -129,46 +84,6 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
       'Premium Chat Bubble',
       'Emoji Effects pack',
       'Premium Custom Reactions',
-    ],
-    3: [
-      'Golden Avatar Frame',
-      'Animated Chat Bubble styles',
-      'Badge and Tag Light upgrades',
-      'One-time Entry Effect',
-      'Gift Effect unlocks',
-      'Premium profile identity',
-    ],
-    4: [
-      'Diamond Avatar Frame',
-      'Animated Avatar Background',
-      'Profile Badge',
-      'Tag Light stack',
-      'VIP Gift Effects',
-      'Priority Customer Service Support',
-    ],
-    5: [
-      'Crystal Avatar Frame',
-      'Chat Bubble upgrade',
-      'Animated Tag Light',
-      'Profile Avatar Background',
-      'Emoji Effects unlock',
-      'Profile Spotlight Highlight effect',
-    ],
-    6: [
-      'Rainbow Avatar Frame',
-      'Exclusive Entry Effect',
-      'Community Tag Light access',
-      'Premium Gift Effect library',
-      'VIP-exclusive badge set',
-      'VIP Exclusive Events access',
-    ],
-    7: [
-      'Legendary Avatar Frame',
-      'Animated Avatar Background',
-      'Legendary Entry Effect',
-      'Premium Gift Effect set',
-      'Tag Light mastery',
-      'VIP 7 Hall of Fame Badge & dedicated Manager',
     ],
   };
 
@@ -221,8 +136,6 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                   _buildBenefitsCard(themeColor),
                   SizedBox(height: 18),
                   _buildPaymentSection(themeColor),
-                  SizedBox(height: 20),
-                  _buildSimulationDevTools(),
                 ] else ...[
                   _buildComingSoonWidget(themeColor),
                 ],
@@ -417,13 +330,6 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
     if (selectedLevel < currentLvl && currentLvl > 0) {
       return true;
     }
-    final expiry = _vipCtrl.expiryDate.value;
-    if (currentLvl == selectedLevel && expiry != null) {
-      final diff = expiry.difference(DateTime.now());
-      if (diff.inDays > 3) {
-        return true;
-      }
-    }
     return false;
   }
 
@@ -478,6 +384,8 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
   }
 
   Widget _buildLevelSelectors() {
+    final currentLvl = _vipCtrl.vipLevel.value;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -499,6 +407,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
             itemBuilder: (context, i) {
               final levelNum = i + 1;
               final isSel = selectedLevel == levelNum;
+              final isLocked = levelNum < currentLvl && currentLvl > 0;
               final lvlTheme = getLevelTheme(levelNum);
               final Color color = lvlTheme['color'] as Color;
 
@@ -512,7 +421,9 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                   duration: const Duration(milliseconds: 200),
                   width: 90,
                   decoration: BoxDecoration(
-                    color: isSel ? color.withOpacity(0.12) : context.surfaceColor,
+                    color: isSel
+                        ? color.withOpacity(0.12)
+                        : (isLocked ? Colors.black38 : context.surfaceColor),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSel ? color : context.borderColor,
@@ -523,20 +434,24 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(lvlTheme['emoji'] as String, style: TextStyle(fontSize: 22)),
+                      isLocked
+                          ? Icon(Icons.lock_rounded, color: Colors.white38, size: 22)
+                          : Text(lvlTheme['emoji'] as String, style: TextStyle(fontSize: 22)),
                       SizedBox(height: 4),
                       Text(
                         'VIP $levelNum',
                         style: GoogleFonts.outfit(
-                          color: isSel ? color : context.textSecondary,
+                          color: isLocked
+                              ? Colors.white38
+                              : (isSel ? color : context.textSecondary),
                           fontWeight: FontWeight.w900,
                           fontSize: 12,
                         ),
                       ),
                       Text(
-                        lvlTheme['name'].toString().split(' ')[0],
+                        isLocked ? 'Active: VIP $currentLvl' : lvlTheme['name'].toString().split(' ')[0],
                         style: GoogleFonts.poppins(
-                          color: isSel ? color : context.caption,
+                          color: isLocked ? Colors.redAccent.withOpacity(0.7) : (isSel ? color : context.caption),
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
                         ),
@@ -873,25 +788,41 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
           // Buy Button
           Obx(() {
             final restricted = _isPurchaseRestricted();
-            final expiry = _vipCtrl.expiryDate.value;
+            final currentLvl = _vipCtrl.vipLevel.value;
+            final isSameLevel = selectedLevel == currentLvl && currentLvl > 0;
+
+            String buttonText = 'Proceed Secure Payment';
+            if (restricted) {
+              buttonText = 'You already have VIP $currentLvl';
+            } else if (isSameLevel) {
+              buttonText = 'Renew VIP $selectedLevel • ₹${finalPrice.toInt()}';
+            } else if (currentLvl > 0 && selectedLevel > currentLvl) {
+              buttonText = 'Upgrade to VIP $selectedLevel • ₹${finalPrice.toInt()}';
+            } else {
+              buttonText = 'Unlock VIP $selectedLevel • ₹${finalPrice.toInt()}';
+            }
+
             return SizedBox(
               width: double.infinity,
               height: 46,
               child: ElevatedButton.icon(
                 onPressed: restricted
                     ? null
-                    : () async {
-                        _showPaymentOptionsBottomSheet(finalPrice);
+                    : () {
+                        Get.to(() => CheckoutScreen(
+                          productName: 'VIP Level $selectedLevel',
+                          category: 'VIP',
+                          basePrice: finalPrice,
+                          duration: selectedDuration == '1 Month' ? '30 Days' : selectedDuration,
+                        ));
                       },
                 icon: Icon(
-                  restricted ? Icons.lock_clock_rounded : Icons.security_rounded,
+                  restricted ? Icons.lock_rounded : Icons.security_rounded,
                   size: 16,
                   color: restricted ? Colors.white24 : Colors.white,
                 ),
                 label: Text(
-                  restricted
-                      ? 'Active (Renewal available in ${expiry!.difference(DateTime.now()).inDays - 3} days)'
-                      : 'Proceed Secure Payment',
+                  buttonText,
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
@@ -899,7 +830,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: restricted ? Colors.white.withOpacity(0.02) : themeColor,
+                  backgroundColor: restricted ? Colors.grey.withOpacity(0.3) : themeColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -910,295 +841,4 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
     );
   }
 
-  void _showPaymentOptionsBottomSheet(double price) {
-    final themeColor = getLevelTheme(selectedLevel)['color'] as Color;
-
-    Get.bottomSheet(
-      Container(
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Select Payment Mode',
-                  style: GoogleFonts.outfit(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close_rounded, color: context.caption),
-                  onPressed: () => Get.back(),
-                ),
-              ],
-            ),
-            Divider(color: context.borderColor),
-            SizedBox(height: 10),
-            _paymentTile('UPI / QR Code', 'Pay using Google Pay, PhonePe, Paytm or Scan QR Code', Icons.mobile_friendly_rounded, () => _startUpiQrPayment(price)),
-            _paymentTile('Credit / Debit Card', 'Visa, Mastercard, RuPay', Icons.credit_card_rounded, () => _completePurchase(price)),
-            _paymentTile('Net Banking', 'All Major Indian Banks Supported', Icons.account_balance_rounded, () => _completePurchase(price)),
-            _paymentTile('Wallet / Cash Cards', 'Paytm Wallet, Amazon Pay, Mobikwik', Icons.wallet_rounded, () => _completePurchase(price)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _paymentTile(String title, String desc, IconData icon, VoidCallback onTap) {
-    return ListTile(
-      leading: Container(
-        padding: EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: context.secondaryBackgroundColor,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: context.accentGold, size: 20),
-      ),
-      title: Text(title, style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
-      subtitle: Text(desc, style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 9)),
-      trailing: Icon(Icons.arrow_forward_ios_rounded, color: context.caption, size: 12),
-      onTap: onTap,
-    );
-  }
-
-  void _startUpiQrPayment(double price) async {
-    Get.back(); // close bottomsheet
-
-    // Show loading
-    Get.dialog(
-      Center(
-        child: Container(
-          padding: EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: context.surfaceColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: context.accentGold),
-              SizedBox(height: 16),
-              Text(
-                'Generating secure UPI QR Order...',
-                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, decoration: TextDecoration.none),
-              ),
-            ],
-          ),
-        ),
-      ),
-      barrierDismissible: false,
-    );
-
-    // Call service to create order
-    String orderId = 'order_VIP_MOCK_${DateTime.now().millisecondsSinceEpoch}';
-    try {
-      orderId = await Get.find<RazorpayBackendService>().createOrder(
-        amount: price,
-        product: 'VIP Level $selectedLevel ($selectedDuration)',
-        duration: selectedDuration,
-      );
-    } catch (e) {
-      debugPrint('Error creating VIP order: $e');
-    }
-
-    Get.back(); // close loading
-
-    // Open the QR dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return UpiQrDialogWidget(
-          amount: price,
-          productName: 'VIP Level $selectedLevel ($selectedDuration)',
-          orderId: orderId,
-          onSuccess: (paymentId, signature) async {
-            Get.back(); // close dialog
-            
-            // Show verification loading
-            Get.dialog(
-              Center(
-                child: Container(
-                  padding: EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: context.surfaceColor,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: context.borderColor),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(color: context.accentGold),
-                      SizedBox(height: 16),
-                      Text(
-                        'Verifying signature & activating VIP...',
-                        style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, decoration: TextDecoration.none),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              barrierDismissible: false,
-            );
-
-            // Verify with Razorpay backend
-            final verified = await Get.find<RazorpayBackendService>().verifyPaymentSignature(
-              orderId: orderId,
-              paymentId: paymentId,
-              signature: signature,
-            );
-
-            Get.back(); // close loading
-
-            if (verified) {
-              Get.snackbar(
-                'Success! 🎉',
-                'VIP Level $selectedLevel activated successfully!',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: Color(0xFF10B981).withOpacity(0.9),
-                colorText: Colors.white,
-              );
-              Get.back(); // exit VIP purchase screen
-            } else {
-              Get.snackbar(
-                'Activation Failed ⚠️',
-                'Signature Verification Failed. Please contact support.',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: Color(0xFFEF4444).withOpacity(0.9),
-                colorText: Colors.white,
-              );
-            }
-          },
-          onFailure: (errorMsg) {
-            Get.back(); // close dialog
-            Get.snackbar(
-              'Payment Failed ⚠️',
-              errorMsg,
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Color(0xFFEF4444).withOpacity(0.9),
-              colorText: Colors.white,
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _completePurchase(double price) async {
-    Get.back(); // close bottomsheet
-    Get.dialog(
-      Center(
-        child: Container(
-          padding: EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: context.surfaceColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: context.accentGold),
-              SizedBox(height: 16),
-              Text(
-                'Authorizing secure gateway...',
-                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, decoration: TextDecoration.none),
-              ),
-            ],
-          ),
-        ),
-      ),
-      barrierDismissible: false,
-    );
-
-    await Future.delayed(const Duration(seconds: 2));
-    Get.back(); // close loading dialog
-
-    await _vipCtrl.purchaseVip(selectedLevel, selectedDuration, price);
-    if (RoomController.to.activeRoomId != null) {
-      RoomController.to.addSystemActivity(
-        RoomController.to.activeRoomId!,
-        '💎 ${UserProfileCacheManager.currentUser?.username ?? 'Student'} unlocked VIP $selectedLevel.',
-        activityKey: 'vip-unlock',
-      );
-    }
-    Get.back(); // exit VIP purchase screen
-  }
-
-  Widget _buildSimulationDevTools() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: context.errorColor.withOpacity(0.15)),
-        boxShadow: context.smallShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '⚠️ Developer Sandbox Tools',
-            style: GoogleFonts.poppins(
-              color: context.errorColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-            ),
-          ),
-          SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    _vipCtrl.simulateExpiry();
-                    setState(() {});
-                  },
-                  icon: Icon(Icons.timer_off_rounded, size: 14),
-                  label: Text('Simulate Expiry', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.errorColor.withOpacity(0.15),
-                    foregroundColor: context.errorColor,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Get.snackbar(
-                      '🎁 Gift VIP Sim',
-                      'Successfully simulated gifting VIP Level $selectedLevel to friend!',
-                      snackPosition: SnackPosition.BOTTOM,
-                      backgroundColor: context.successColor.withOpacity(0.9),
-                      colorText: Colors.white,
-                    );
-                  },
-                  icon: Icon(Icons.card_giftcard_rounded, size: 14),
-                  label: Text('Simulate Gift', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.successColor.withOpacity(0.15),
-                    foregroundColor: context.successColor,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }

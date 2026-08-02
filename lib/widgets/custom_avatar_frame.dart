@@ -1,10 +1,11 @@
 import 'dart:io' as io;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/customization_controller.dart';
 import '../services/user_profile_cache_manager.dart';
-import 'vip_avatar_decorator.dart';
 import 'novel_avatar_decorator.dart';
+import 'vip_avatar_decorator.dart'; // VIP 1 & 2 active
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -16,6 +17,7 @@ class CustomAvatarFrame extends StatefulWidget {
   final int defaultVipLevel;
   final int defaultNovelLevel;
   final bool isSpeaking;
+  final double soundLevel;
   final String? role;
   final int? vipLevel;
   final int? novelLevel;
@@ -31,6 +33,7 @@ class CustomAvatarFrame extends StatefulWidget {
     this.defaultVipLevel = 0,
     this.defaultNovelLevel = 0,
     this.isSpeaking = false,
+    this.soundLevel = 0.0,
     this.role,
     this.vipLevel,
     this.novelLevel,
@@ -51,7 +54,7 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
     _glowAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
+    )..repeat();
     _resolveProfile();
   }
 
@@ -78,10 +81,90 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
     }
   }
 
+  Widget _buildEqualizerPill(double volumeFactor, double seatSize) {
+    final double scale = seatSize / 56.0;
+    final double pillWidth = 28.0 * scale;
+    final double pillHeight = 14.0 * scale;
+    final double barWidth = 2.0 * scale;
+    final double maxBarHeight = 8.0 * scale;
+    final double minBarHeight = 2.0 * scale;
+
+    double calculateBarHeight(double phaseOffset) {
+      final double bounce = (0.2 + 0.8 * math.sin((_glowAnimationController.value + phaseOffset) * 2 * math.pi).abs());
+      return minBarHeight + (maxBarHeight - minBarHeight) * volumeFactor * bounce;
+    }
+
+    return Container(
+      width: pillWidth,
+      height: pillHeight,
+      decoration: BoxDecoration(
+        color: const Color(0xFF09090B).withOpacity(0.85),
+        borderRadius: BorderRadius.circular(pillHeight / 2),
+        border: Border.all(
+          color: const Color(0xFF00FF66).withOpacity(0.4),
+          width: 0.8 * scale,
+        ),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 3.0 * scale),
+      child: AnimatedBuilder(
+        animation: _glowAnimationController,
+        builder: (context, _) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildBar(calculateBarHeight(0.0), barWidth),
+              _buildBar(calculateBarHeight(0.25), barWidth),
+              _buildBar(calculateBarHeight(0.55), barWidth),
+              _buildBar(calculateBarHeight(0.8), barWidth),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBar(double height, double width) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFF00FF66),
+        borderRadius: BorderRadius.circular(0.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
     final isMe = widget.userId == 'me' || widget.userId == currentUid || widget.userId == 'uid_anurag_101';
+
+    final double seatSize = widget.size;
+    final double avatarSize = seatSize * 0.96; // Avatar fills 96% of seat
+    final double frameSize = seatSize;         // Frame occupies 100% of seat
+
+    // Determine if frame is equipped
+    final resolvedId = (widget.userId == 'me' || widget.userId == 'uid_anurag_101' || widget.userId == currentUid)
+        ? (currentUid ?? '')
+        : widget.userId;
+
+    final u = UserProfileCacheManager.rxCache[resolvedId];
+    final String? dynamicFrameUrl = u?.membershipAssets['avatar_frame'];
+    final frame = u?.avatarFrame ?? UserProfileCacheManager.getCachedUser(resolvedId)?.avatarFrame;
+    final String lowerFrame = (frame ?? '').toLowerCase().trim();
+    
+    final int defaultVip = widget.vipLevel ?? widget.defaultVipLevel;
+    final int defaultNovel = widget.novelLevel ?? widget.defaultNovelLevel;
+
+    final bool hasFrame = (dynamicFrameUrl != null && dynamicFrameUrl.isNotEmpty) || 
+                         (frame != null && lowerFrame != 'normal' && lowerFrame != 'none' && lowerFrame.isNotEmpty) ||
+                         defaultVip > 0 ||
+                         defaultNovel > 0;
+
+    final double volumeFactor = widget.isSpeaking
+        ? (0.4 + 0.6 * (widget.soundLevel / 40.0).clamp(0.0, 1.0))
+        : 0.0;
 
     Widget mainWidget = Obx(() {
       final currentUid = Supabase.instance.client.auth.currentUser?.id;
@@ -94,15 +177,23 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
       
       final Widget reactiveAvatarChild;
       if (currentAvatarUrl.isNotEmpty) {
-        reactiveAvatarChild = ClipOval(
-          child: Image.network(
-            currentAvatarUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => widget.child,
+        reactiveAvatarChild = SizedBox(
+          width: avatarSize,
+          height: avatarSize,
+          child: ClipOval(
+            child: Image.network(
+              currentAvatarUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => widget.child,
+            ),
           ),
         );
       } else {
-        reactiveAvatarChild = widget.child;
+        reactiveAvatarChild = SizedBox(
+          width: avatarSize,
+          height: avatarSize,
+          child: ClipOval(child: widget.child),
+        );
       }
 
       final String? dynamicFrameUrl = u?.membershipAssets['avatar_frame'];
@@ -111,15 +202,15 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
           alignment: Alignment.center,
           children: [
             SizedBox(
-              width: widget.size * 0.85,
-              height: widget.size * 0.85,
+              width: avatarSize,
+              height: avatarSize,
               child: ClipOval(child: reactiveAvatarChild),
             ),
             IgnorePointer(
               child: Image.network(
                 dynamicFrameUrl,
-                width: widget.size,
-                height: widget.size,
+                width: frameSize,
+                height: frameSize,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
@@ -128,22 +219,34 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
         );
       }
 
-      final frame = u?.avatarFrame ?? UserProfileCacheManager.getCachedUser(resolvedId)?.avatarFrame;
-      if (frame != null) {
-        return _buildFrameWidget(frame, reactiveAvatarChild);
+      String? frame;
+      if (isMe && Get.isRegistered<CustomizationController>()) {
+        final active = Get.find<CustomizationController>().activeFrame.value;
+        if (active.isNotEmpty && active != 'Normal') {
+          frame = active;
+        }
+      }
+      frame ??= u?.avatarFrame ?? UserProfileCacheManager.getCachedUser(resolvedId)?.avatarFrame;
+
+      if (frame != null && frame.isNotEmpty && frame != 'Normal') {
+        return _buildFrameWidget(frame, reactiveAvatarChild, frameSize);
       }
 
       // Fallback behavior for other users based on default levels
       final defaultVip = widget.vipLevel ?? widget.defaultVipLevel;
       final defaultNovel = widget.novelLevel ?? widget.defaultNovelLevel;
       if (defaultNovel > 0) {
-        return NovelAvatarDecorator(level: defaultNovel, size: widget.size, child: reactiveAvatarChild);
+        return NovelAvatarDecorator(level: defaultNovel, size: frameSize, child: reactiveAvatarChild);
       } else if (defaultVip > 0) {
-        return VipAvatarDecorator(level: defaultVip, size: widget.size, child: reactiveAvatarChild);
+        // Route VIP 1 & 2 to their PNG frames; higher levels still use Novel 1 fallback
+        if (defaultVip <= 2) {
+          return VipAvatarDecorator(level: defaultVip, size: frameSize, child: reactiveAvatarChild);
+        }
+        return NovelAvatarDecorator(level: 1, size: frameSize, child: reactiveAvatarChild);
       } else {
         return Container(
-          width: widget.size,
-          height: widget.size,
+          width: avatarSize,
+          height: avatarSize,
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
@@ -154,66 +257,28 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
       }
     });
 
-    Widget speakingGlow = AnimatedBuilder(
-      animation: _glowAnimationController,
-      builder: (context, child) {
-        return Container(
-          width: widget.size + (8 * _glowAnimationController.value),
-          height: widget.size + (8 * _glowAnimationController.value),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFF00FF66).withOpacity(0.8 * (1 - _glowAnimationController.value)),
-              width: 2.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF00FF66).withOpacity(0.3 * (1 - _glowAnimationController.value)),
-                blurRadius: 6,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-        );
-      },
+    Widget seatBody = SizedBox(
+      width: seatSize,
+      height: seatSize,
+      child: mainWidget,
     );
 
     return Stack(
       alignment: Alignment.center,
       clipBehavior: Clip.none,
       children: [
-        // Speaking Effect (behind the avatar if speaking)
-        if (widget.isSpeaking) speakingGlow,
+        seatBody,
 
-        // Avatar & Frame
-        mainWidget,
-
-        // Speaking Live Audio Waveform (overlay on right side)
         if (widget.isSpeaking)
           Positioned(
-            right: -2,
-            bottom: widget.size * 0.1,
-            child: Container(
-              padding: const EdgeInsets.all(2.5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00FF66),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.black87, width: 1.0),
-              ),
-              child: const Icon(
-                Icons.waves_rounded,
-                color: Colors.white,
-                size: 8,
-              ),
-            ),
+            bottom: -6 * (seatSize / 56.0),
+            child: _buildEqualizerPill(volumeFactor, seatSize),
           ),
 
-        // Badges overlays (only if size is reasonable, e.g. >= 40)
-        if (widget.showBadges && widget.size >= 40) ...[
-          // Role Badge (Top Center)
+        if (widget.showBadges && seatSize >= 40) ...[
           if (widget.role != null && widget.role != 'Guest' && widget.role != 'Listener' && widget.role != 'Audience')
             Positioned(
-              top: -widget.size * 0.12,
+              top: -seatSize * 0.12,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                 decoration: BoxDecoration(
@@ -229,14 +294,13 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
               ),
             ),
 
-          // VIP Badge (Bottom Left)
           Obx(() {
             final u = UserProfileCacheManager.rxCache[widget.userId];
             final vip = widget.vipLevel ?? u?.vipLevel ?? UserProfileCacheManager.getCachedUser(widget.userId)?.vipLevel ?? 0;
             if (vip > 0) {
               return Positioned(
-                left: -widget.size * 0.05,
-                bottom: -widget.size * 0.05,
+                left: -seatSize * 0.05,
+                bottom: -seatSize * 0.05,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
                   decoration: BoxDecoration(
@@ -256,13 +320,12 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
             return const SizedBox.shrink();
           }),
 
-          // Level Badge (Bottom Right)
           Obx(() {
             final u = UserProfileCacheManager.rxCache[widget.userId];
             final lv = widget.level ?? u?.level ?? UserProfileCacheManager.getCachedUser(widget.userId)?.level ?? 1;
             return Positioned(
-              right: -widget.size * 0.05,
-              bottom: -widget.size * 0.05,
+              right: -seatSize * 0.05,
+              bottom: -seatSize * 0.05,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
                 decoration: BoxDecoration(
@@ -282,49 +345,47 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
     );
   }
 
-  Widget _buildFrameWidget(String frame, Widget avatarChild) {
+  Widget _buildFrameWidget(String frame, Widget avatarChild, double frameSize) {
     final String lowerFrame = frame.toLowerCase().trim();
     if (lowerFrame == 'normal' || lowerFrame == 'none' || lowerFrame.isEmpty) {
       return SizedBox(
-        width: widget.size,
-        height: widget.size,
+        width: frameSize,
+        height: frameSize,
         child: ClipOval(child: avatarChild),
       );
     }
 
-    if (frame.contains('Royal Frame')) {
-      return VipAvatarDecorator(level: 1, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Neon Frame')) {
-      return VipAvatarDecorator(level: 2, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Gold Glow Frame')) {
-      return VipAvatarDecorator(level: 3, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Diamond Frame')) {
-      return VipAvatarDecorator(level: 4, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Crystal Cyan Frame')) {
-      return VipAvatarDecorator(level: 5, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Rainbow Frame')) {
-      return VipAvatarDecorator(level: 6, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Royal Crown')) {
-      return VipAvatarDecorator(level: 7, size: widget.size, child: avatarChild);
+    // ✅ ACTIVE: Novel Level 1 — uses the official PNG asset
+    if (lowerFrame.contains('novel level 1') || lowerFrame.contains('novel 1')) {
+      return NovelAvatarDecorator(level: 1, size: frameSize, child: avatarChild);
     }
 
-    if (frame.contains('Galaxy Orbit') || frame.contains('Galaxy')) {
-      return NovelAvatarDecorator(level: 2, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Royal Gold Palace')) {
-      return NovelAvatarDecorator(level: 3, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Dragon Fire Frame') || frame.contains('Dragon')) {
-      return NovelAvatarDecorator(level: 4, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Phoenix Flame')) {
-      return NovelAvatarDecorator(level: 5, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Celestial Sky Frame')) {
-      return NovelAvatarDecorator(level: 6, size: widget.size, child: avatarChild);
-    } else if (frame.contains('Cosmic Emperor') || frame.contains('Immortal')) {
-      return NovelAvatarDecorator(level: 7, size: widget.size, child: avatarChild);
+    // ✅ ACTIVE: VIP Level 1 — Royal Blue Crown PNG
+    if (frame.contains('Royal Frame')) {
+      return VipAvatarDecorator(level: 1, size: frameSize, child: avatarChild);
+    }
+    // ✅ ACTIVE: VIP Level 2 — Mystic Purple Crown PNG
+    if (frame.contains('Neon Frame')) {
+      return VipAvatarDecorator(level: 2, size: frameSize, child: avatarChild);
+    }
+
+    // ── DISABLED VIP Frames (levels 3-7) — restore later ──
+    if (frame.contains('Gold Glow Frame') ||
+        frame.contains('Diamond Frame') || frame.contains('Crystal Cyan Frame') ||
+        frame.contains('Rainbow Frame') || frame.contains('Royal Crown')) {
+      return NovelAvatarDecorator(level: 1, size: frameSize, child: avatarChild);
+    }
+
+    // Novel Frames (levels 2-7) — disabled, restore later
+    if (frame.contains('Galaxy Orbit') || frame.contains('Royal Gold Palace') ||
+        frame.contains('Dragon Fire Frame') || frame.contains('Phoenix Flame') ||
+        frame.contains('Celestial Sky Frame') || frame.contains('Cosmic Emperor')) {
+      return NovelAvatarDecorator(level: 1, size: frameSize, child: avatarChild);
     }
 
     return Container(
-      width: widget.size,
-      height: widget.size,
+      width: frameSize,
+      height: frameSize,
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         shape: BoxShape.circle,

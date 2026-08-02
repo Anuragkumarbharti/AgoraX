@@ -211,13 +211,8 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
                       children: [
                         if (o.category != 'Coins' && !isRefunded)
                           TextButton(
-                            onPressed: () async {
-                              final done = await RazorpayBackendService.to.requestRefund(o.orderId);
-                              if (done) {
-                                Get.snackbar('Refund Approved', 'Refund request has been securely processed and settled.', snackPosition: SnackPosition.BOTTOM);
-                              } else {
-                                _storeCtrl.requestRefund(o.orderId);
-                              }
+                            onPressed: () {
+                              _storeCtrl.requestRefund(o.orderId);
                             },
                             child: Text('Request Refund', style: GoogleFonts.poppins(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                           ),

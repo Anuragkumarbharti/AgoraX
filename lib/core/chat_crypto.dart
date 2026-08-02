@@ -154,7 +154,7 @@ class ChatCrypto {
     if (ciphertextBase64.isEmpty) return '';
     try {
       final decoded = base64.decode(ciphertextBase64);
-      if (decoded.length <= 12) return '[Decryption Failed: Invalid Payload]';
+      if (decoded.length <= 12) return 'Encrypted message';
 
       final iv = decoded.sublist(0, 12);
       final ciphertextBytes = decoded.sublist(12);
@@ -171,9 +171,11 @@ class ChatCrypto {
       );
 
       final plaintextBytes = cipher.process(ciphertextBytes);
-      return utf8.decode(plaintextBytes);
-    } catch (e) {
-      return '[Encrypted Message: Decryption Failed]';
+      final decodedText = utf8.decode(plaintextBytes);
+      if (decodedText.isEmpty) return 'Encrypted message';
+      return decodedText;
+    } catch (_) {
+      return 'Encrypted message';
     }
   }
 

@@ -15,6 +15,9 @@ class VoiceController extends GetxController {
   final RxMap<String, double> userSoundLevels = <String, double>{}.obs;
   final RxList<ZegoUser> roomUsers = <ZegoUser>[].obs;
   final RxString publishedStreamId = ''.obs;
+  
+  // Track first audio packet arrival timestamp for performance monitoring
+  final Rxn<DateTime> firstAudioPacketTime = Rxn<DateTime>();
 
   void reset() {
     activeRoomId.value = '';
@@ -24,5 +27,6 @@ class VoiceController extends GetxController {
     userSoundLevels.clear();
     roomUsers.clear();
     publishedStreamId.value = '';
+    firstAudioPacketTime.value = null;
   }
 }

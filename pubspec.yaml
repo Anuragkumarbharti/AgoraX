@@ -47,6 +47,7 @@ dependencies:
   # Firebase for notifications
   firebase_core: ^4.11.0
   firebase_messaging: ^16.4.1
+  flutter_local_notifications: ^18.0.1
   
   # Image handling
   image_picker: ^1.0.7
@@ -110,3 +111,11 @@ flutter:
   assets:
     - assets/images/
     - assets/identity_tags/
+    - assets/identity_tags/officialcomunity_tags/
+    - assets/avtarframes/novel/
+    - assets/avtarframes/vip/
+    - assets/avtarframes/events/
+    - assets/entryeffect/novel/
+    - assets/entryeffect/vip/
+    - assets/entryeffect/event/
+    - assets/tools_images/entry_effect_image/

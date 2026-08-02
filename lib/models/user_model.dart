@@ -68,14 +68,17 @@ class User {
     this.membershipAssets = const {},
     this.communityLeaveTime,
     this.communityNextJoinTime,
+    this.signupStatus = 'completed',
     String? displayName,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     final String parsedId = json['id'] ?? '';
-    final String generatedSid = json['sid'] ?? (parsedId.hashCode.abs() % 900000 + 100000).toString();
-    final String parsedUid = (json['uid'] ?? json['uid_numeric'] ?? generatedSid).toString();
-    
+    final String generatedSid =
+        json['sid'] ?? (parsedId.hashCode.abs() % 900000 + 100000).toString();
+    final String parsedUid =
+        (json['uid'] ?? json['uid_numeric'] ?? generatedSid).toString();
+
     return User(
       id: parsedId,
       uid: parsedUid,
@@ -86,7 +89,9 @@ class User {
       avatar: json['avatar'] ?? json['profile_photo'] ?? json['avatar_url'],
       coverPhoto: json['coverPhoto'] ?? json['cover_photo'],
       bio: json['bio'],
-      dob: json['dob'] != null ? DateTime.tryParse(json['dob'].toString()) : null,
+      dob: json['dob'] != null
+          ? DateTime.tryParse(json['dob'].toString())
+          : null,
       age: json['age'] ?? 0,
       gender: json['gender'],
       country: json['country'],
@@ -117,10 +122,13 @@ class User {
       rTags: List<String>.from(json['r_tags'] ?? []),
       showcasedBadges: List<String>.from(json['showcased_badges'] ?? []),
       levelTitle: json['levelTitle'] ?? 'Newcomer',
-      selectedStudyCategory: json['selected_study_category'] ?? json['selectedStudyCategory'],
-      categoryLockExpiry: json['category_lock_expiry'] != null 
+      selectedStudyCategory:
+          json['selected_study_category'] ?? json['selectedStudyCategory'],
+      categoryLockExpiry: json['category_lock_expiry'] != null
           ? DateTime.tryParse(json['category_lock_expiry'].toString())
-          : (json['categoryLockExpiry'] != null ? DateTime.tryParse(json['categoryLockExpiry'].toString()) : null),
+          : (json['categoryLockExpiry'] != null
+              ? DateTime.tryParse(json['categoryLockExpiry'].toString())
+              : null),
       silverCoins: json['silverCoins'] ?? json['coins'] ?? 0,
       learningStreak: json['learningStreak'] ?? 0,
       vipLevel: json['vip_level'] ?? json['vipLevel'] ?? 0,
@@ -132,24 +140,48 @@ class User {
       roomsJoined: json['rooms_joined'] ?? json['roomsJoined'] ?? 0,
       eventsJoined: json['events_joined'] ?? json['eventsJoined'] ?? 0,
       onlineStatus: json['online_status'] ?? json['onlineStatus'] ?? false,
-      lastSeen: json['last_seen'] != null ? DateTime.tryParse(json['last_seen']) : null,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
-      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
+      lastSeen: json['last_seen'] != null
+          ? DateTime.tryParse(json['last_seen'])
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'])
+          : null,
       emailVerified: json['email_verified'] ?? json['emailVerified'] ?? false,
-      verificationTimestamp: json['verification_timestamp'] != null ? DateTime.tryParse(json['verification_timestamp'].toString()) : null,
-      verificationMethod: json['verification_method'] ?? json['verificationMethod'],
-      lastVerificationDate: json['last_verification_date'] != null ? DateTime.tryParse(json['last_verification_date'].toString()) : null,
-      totalStarsReceived: json['total_stars_received'] ?? json['totalStarsReceived'] ?? 0,
-      totalStarsGifted: json['total_stars_gifted'] ?? json['totalStarsGifted'] ?? 0,
-      vipExpiry: json['vip_expiry'] != null ? DateTime.tryParse(json['vip_expiry'].toString()) : null,
-      novelExpiry: json['novel_expiry'] != null ? DateTime.tryParse(json['novel_expiry'].toString()) : null,
-      communityLeaveTime: json['community_leave_time'] != null ? DateTime.tryParse(json['community_leave_time'].toString()) : null,
-      communityNextJoinTime: json['community_next_join_time'] != null ? DateTime.tryParse(json['community_next_join_time'].toString()) : null,
-      tagSystem: json['tag_system'] != null ? TagSystem.fromJson(json['tag_system'] as Map<String, dynamic>) : null,
+      verificationTimestamp: json['verification_timestamp'] != null
+          ? DateTime.tryParse(json['verification_timestamp'].toString())
+          : null,
+      verificationMethod:
+          json['verification_method'] ?? json['verificationMethod'],
+      lastVerificationDate: json['last_verification_date'] != null
+          ? DateTime.tryParse(json['last_verification_date'].toString())
+          : null,
+      totalStarsReceived:
+          json['total_stars_received'] ?? json['totalStarsReceived'] ?? 0,
+      totalStarsGifted:
+          json['total_stars_gifted'] ?? json['totalStarsGifted'] ?? 0,
+      vipExpiry: json['vip_expiry'] != null
+          ? DateTime.tryParse(json['vip_expiry'].toString())
+          : null,
+      novelExpiry: json['novel_expiry'] != null
+          ? DateTime.tryParse(json['novel_expiry'].toString())
+          : null,
+      communityLeaveTime: json['community_leave_time'] != null
+          ? DateTime.tryParse(json['community_leave_time'].toString())
+          : null,
+      communityNextJoinTime: json['community_next_join_time'] != null
+          ? DateTime.tryParse(json['community_next_join_time'].toString())
+          : null,
+      tagSystem: json['tag_system'] != null
+          ? TagSystem.fromJson(json['tag_system'] as Map<String, dynamic>)
+          : null,
       membershipAssets: json['membership_assets'] != null
-          ? Map<String, String>.from((json['membership_assets'] as Map).map(
-              (key, value) => MapEntry(key.toString(), value.toString())))
+          ? Map<String, String>.from((json['membership_assets'] as Map)
+              .map((key, value) => MapEntry(key.toString(), value.toString())))
           : const {},
+      signupStatus: json['signup_status'] ?? json['signupStatus'] ?? 'completed',
     );
   }
 
@@ -184,7 +216,7 @@ class User {
   final bool isPremium;
   final int reputation;
   final String sid;
-  
+
   // Gamification
   final int level;
   final int xp;
@@ -228,6 +260,7 @@ class User {
   final DateTime? communityNextJoinTime;
   final TagSystem? tagSystem;
   final Map<String, String> membershipAssets;
+  final String signupStatus;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -308,6 +341,7 @@ class User {
         'community_next_join_time': communityNextJoinTime?.toIso8601String(),
         'tag_system': tagSystem?.toJson(),
         'membership_assets': membershipAssets,
+        'signup_status': signupStatus,
       };
 
   User copyWith({
@@ -380,6 +414,7 @@ class User {
     Map<String, String>? membershipAssets,
     DateTime? communityLeaveTime,
     DateTime? communityNextJoinTime,
+    String? signupStatus,
   }) {
     return User(
       id: id ?? this.id,
@@ -422,7 +457,8 @@ class User {
       rTags: rTags ?? this.rTags,
       showcasedBadges: showcasedBadges ?? this.showcasedBadges,
       levelTitle: levelTitle ?? this.levelTitle,
-      selectedStudyCategory: selectedStudyCategory ?? this.selectedStudyCategory,
+      selectedStudyCategory:
+          selectedStudyCategory ?? this.selectedStudyCategory,
       categoryLockExpiry: categoryLockExpiry ?? this.categoryLockExpiry,
       silverCoins: silverCoins ?? this.silverCoins,
       learningStreak: learningStreak ?? this.learningStreak,
@@ -439,7 +475,8 @@ class User {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       emailVerified: emailVerified ?? this.emailVerified,
-      verificationTimestamp: verificationTimestamp ?? this.verificationTimestamp,
+      verificationTimestamp:
+          verificationTimestamp ?? this.verificationTimestamp,
       verificationMethod: verificationMethod ?? this.verificationMethod,
       lastVerificationDate: lastVerificationDate ?? this.lastVerificationDate,
       totalStarsReceived: totalStarsReceived ?? this.totalStarsReceived,
@@ -447,9 +484,11 @@ class User {
       vipExpiry: vipExpiry ?? this.vipExpiry,
       novelExpiry: novelExpiry ?? this.novelExpiry,
       communityLeaveTime: communityLeaveTime ?? this.communityLeaveTime,
-      communityNextJoinTime: communityNextJoinTime ?? this.communityNextJoinTime,
+      communityNextJoinTime:
+          communityNextJoinTime ?? this.communityNextJoinTime,
       tagSystem: tagSystem ?? this.tagSystem,
       membershipAssets: membershipAssets ?? this.membershipAssets,
+      signupStatus: signupStatus ?? this.signupStatus,
     );
   }
 }
@@ -471,17 +510,19 @@ class TagSystem {
     final List<dynamic> showcaseList = json['profileShowcase'] ?? [];
 
     return TagSystem(
-      identityTagBar: tagBarList.map((e) => IdentityTag.fromJson(Map<String, dynamic>.from(e))).toList(),
+      identityTagBar: tagBarList
+          .map((e) => IdentityTag.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
       officialStatus: OfficialStatus.fromJson(statusMap),
       profileShowcase: List<String>.from(showcaseList),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'identityTagBar': identityTagBar.map((e) => e.toJson()).toList(),
-    'officialStatus': officialStatus.toJson(),
-    'profileShowcase': profileShowcase,
-  };
+        'identityTagBar': identityTagBar.map((e) => e.toJson()).toList(),
+        'officialStatus': officialStatus.toJson(),
+        'profileShowcase': profileShowcase,
+      };
 }
 
 class IdentityTag {
@@ -522,16 +563,16 @@ class IdentityTag {
   }
 
   Map<String, dynamic> toJson() => {
-    'type': type,
-    'value': value,
-    'image_url': imageUrl,
-    'color': color,
-    'border': border,
-    'glow': glow,
-    'animation': animation,
-    'effects': effects,
-    'icon': icon,
-  };
+        'type': type,
+        'value': value,
+        'image_url': imageUrl,
+        'color': color,
+        'border': border,
+        'glow': glow,
+        'animation': animation,
+        'effects': effects,
+        'icon': icon,
+      };
 }
 
 class OfficialStatus {
@@ -548,7 +589,7 @@ class OfficialStatus {
   }
 
   Map<String, dynamic> toJson() => {
-    'verifiedTag': verifiedTag,
-    'roleTag': roleTag,
-  };
+        'verifiedTag': verifiedTag,
+        'roleTag': roleTag,
+      };
 }

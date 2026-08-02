@@ -10,6 +10,7 @@ import '../store/store_home_screen.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../../services/theme_controller.dart';
 import '../../services/community_controller.dart';
+import 'notification_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -118,12 +119,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // Preferences
             _buildSectionHeader('Preferences'),
-            _buildToggleSetting(
+            _buildSettingsTile(
+              context,
               'Push Notifications',
-              'Receive notifications for messages, events and updates',
-              Icons.notifications_none_rounded,
-              _notificationsEnabled,
-              (val) => setState(() => _notificationsEnabled = val),
+              'Manage alert channels, messages, voice room settings and mute preferences',
+              icon: Icons.notifications_none_rounded,
+              onTap: () => Get.to(() => const NotificationSettingsScreen()),
             ),
             Obx(() {
               final pref = ThemeController.to.currentThemePreference.value;
@@ -424,14 +425,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       middleTextStyle: GoogleFonts.poppins(color: context.textSecondary),
       confirm: ElevatedButton(
         onPressed: () async {
-          try {
-            await Supabase.instance.client.auth.signOut();
-          } catch (_) {}
-          Get.offAll(() => const LoginScreen());
+          await UserProfileCacheManager.forceLogout(message: "You have signed out.");
         },
         style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
         child: Text('Logout'),
       ),
+
       cancel: OutlinedButton(
         onPressed: () => Get.back(),
         child: Text('Cancel'),

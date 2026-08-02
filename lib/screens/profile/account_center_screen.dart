@@ -1020,14 +1020,14 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             trailing: ElevatedButton(
               onPressed: _dailyRewardClaimed.value
                   ? null
-                  : () {
-                      _storeCtrl.coinsBalance.value += 50;
+                  : () async {
+                      await _storeCtrl.syncWithDatabase(force: true);
                       _dailyRewardClaimed.value = true;
                       Get.snackbar(
                         'Claim Success 🎉',
-                        '50 Gold Coins added to your wallet!',
+                        'Daily rewards synced with backend wallet!',
                         snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: Color(0xFF10B981),
+                        backgroundColor: const Color(0xFF10B981),
                         colorText: Colors.white,
                       );
                     },
@@ -1679,7 +1679,7 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                 return;
               }
 
-              _storeCtrl.coinsBalance.value -= amtVal;
+              _storeCtrl.syncWithDatabase(force: true);
               _storeCtrl.coinTransactions.insert(0, CoinTransaction(
                 type: 'Used',
                 amount: amtVal,

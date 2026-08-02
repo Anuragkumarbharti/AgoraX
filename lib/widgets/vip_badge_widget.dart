@@ -17,13 +17,15 @@ class VipBadgeWidget extends StatefulWidget {
 }
 
 class _VipBadgeWidgetState extends State<VipBadgeWidget>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _shineController;
   late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
     _shineController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
@@ -36,7 +38,22 @@ class _VipBadgeWidgetState extends State<VipBadgeWidget>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Pause all animations when app is backgrounded — saves CPU & GPU
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _shineController.stop();
+      _pulseController.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      _shineController.repeat();
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _shineController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -89,7 +106,9 @@ class _VipBadgeWidgetState extends State<VipBadgeWidget>
     }
 
     final badgeChild = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      height: 19,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [startColor, endColor],
@@ -135,13 +154,13 @@ class _VipBadgeWidgetState extends State<VipBadgeWidget>
       ),
     );
 
-    // Apply Shining Sweep & Gold Shine Pulsing animations
+    // Isolated repaint layer — only this badge repaints, never the surrounding UI
     return RepaintBoundary(
       child: AnimatedBuilder(
         animation: Listenable.merge([_shineController, _pulseController]),
         builder: (context, child) {
           final pulseVal = 1.0 + (0.04 * _pulseController.value);
-          
+
           return Transform.scale(
             scale: pulseVal,
             child: ShaderMask(

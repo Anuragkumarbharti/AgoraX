@@ -17,13 +17,15 @@ class VipAvatarDecorator extends StatefulWidget {
   State<VipAvatarDecorator> createState() => _VipAvatarDecoratorState();
 }
 
-class _VipAvatarDecoratorState extends State<VipAvatarDecorator> with TickerProviderStateMixin {
+class _VipAvatarDecoratorState extends State<VipAvatarDecorator>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _rotationController;
   late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
@@ -43,7 +45,21 @@ class _VipAvatarDecoratorState extends State<VipAvatarDecorator> with TickerProv
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _rotationController.stop();
+      _pulseController.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      if (!_rotationController.isAnimating) _rotationController.repeat();
+      if (!_pulseController.isAnimating) _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _rotationController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -73,89 +89,174 @@ class _VipAvatarDecoratorState extends State<VipAvatarDecorator> with TickerProv
     // Apply specific level styling
     switch (widget.level) {
       case 1:
-        // Royal Collection: Velvet Blue Sweep with Floating Gold Sparkles
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            AnimatedBuilder(
-              animation: Listenable.merge([_rotationController, _pulseController]),
-              builder: (context, child) {
-                final pulseVal = 0.8 + (0.2 * _pulseController.value);
-                return Container(
+        // VIP Level 1 — Royal Blue Crown PNG + animated sapphire glow + particles
+        return AnimatedBuilder(
+          animation: Listenable.merge([_rotationController, _pulseController]),
+          builder: (context, _) {
+            final pulse = _pulseController.value;
+            final rot   = _rotationController.value;
+            final glowR = 10.0 + (10.0 * pulse);
+            final glowO = 0.40 + (0.25 * pulse);
+            return Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // 1. Pulsing sapphire blue outer glow
+                Container(
+                  width: widget.size + 8,
+                  height: widget.size + 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2563EB).withOpacity(glowO),
+                        blurRadius: glowR,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF60A5FA).withOpacity(glowO * 0.4),
+                        blurRadius: glowR * 2.2,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                ),
+                // 2. Rotating blue shimmer sweep
+                Container(
                   width: widget.size,
                   height: widget.size,
-                  padding: const EdgeInsets.all(3.5),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: SweepGradient(
                       colors: [
-                        const Color(0xFF2563EB),
-                        const Color(0xFF1E40AF).withOpacity(pulseVal),
-                        const Color(0xFFFFD700),
-                        const Color(0xFF2563EB),
+                        const Color(0xFF2563EB).withOpacity(0.0),
+                        const Color(0xFF60A5FA).withOpacity(0.55 * pulse),
+                        const Color(0xFF2563EB).withOpacity(0.0),
+                        const Color(0xFF2563EB).withOpacity(0.0),
                       ],
-                      transform: GradientRotation(_rotationController.value * 2 * math.pi),
+                      transform: GradientRotation(rot * 2 * math.pi),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF2563EB).withOpacity(0.4),
-                        blurRadius: 6,
-                        spreadRadius: 1,
-                      )
-                    ],
                   ),
-                  child: Container(
-                    decoration: const BoxDecoration(color: Color(0xFF09090B), shape: BoxShape.circle),
-                    padding: const EdgeInsets.all(1.5),
-                    child: mainAvatar,
-                  ),
-                );
-              },
-            ),
-            // Floating Gold Sparkles
-            Positioned.fill(
-              child: IgnorePointer(
-                child: AnimatedBuilder(
-                  animation: _rotationController,
-                  builder: (context, child) {
-                    return CustomPaint(
-                      painter: RoyalSparklePainter(animationValue: _rotationController.value),
-                    );
-                  },
                 ),
-              ),
-            ),
-          ],
+                // 3. Avatar clipped to circle
+                SizedBox(
+                  width: widget.size * 0.78,
+                  height: widget.size * 0.78,
+                  child: ClipOval(child: widget.child),
+                ),
+                // 4. VIP 1 PNG frame on top
+                IgnorePointer(
+                  child: Image.asset(
+                    'assets/avtarframes/vip/vip_1.png',
+                    width: widget.size,
+                    height: widget.size,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: widget.size,
+                      height: widget.size,
+                      padding: const EdgeInsets.all(3.5),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: SweepGradient(
+                          colors: const [Color(0xFF2563EB), Color(0xFF60A5FA), Color(0xFF2563EB)],
+                          transform: GradientRotation(rot * 2 * math.pi),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // 5. Orbiting diamond sparkles
+                ..._buildVipSparkles(rot, widget.size, const Color(0xFF60A5FA)),
+              ],
+            );
+          },
         );
 
+
       case 2:
-        // Neon Collection: Glowing Neon Hexagon
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: widget.size,
-              height: widget.size,
-              padding: const EdgeInsets.all(8),
-              child: mainAvatar,
-            ),
-            Positioned.fill(
-              child: IgnorePointer(
-                child: AnimatedBuilder(
-                  animation: Listenable.merge([_rotationController, _pulseController]),
-                  builder: (context, child) {
-                    return CustomPaint(
-                      painter: NeonHexagonPainter(
-                        rotationValue: _rotationController.value,
-                        pulseValue: _pulseController.value,
+        // VIP Level 2 — Mystic Purple Crown PNG + animated violet glow + particles
+        return AnimatedBuilder(
+          animation: Listenable.merge([_rotationController, _pulseController]),
+          builder: (context, _) {
+            final pulse = _pulseController.value;
+            final rot   = _rotationController.value;
+            final glowR = 10.0 + (12.0 * pulse);
+            final glowO = 0.40 + (0.28 * pulse);
+            return Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // 1. Pulsing violet outer glow
+                Container(
+                  width: widget.size + 8,
+                  height: widget.size + 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF7C3AED).withOpacity(glowO),
+                        blurRadius: glowR,
+                        spreadRadius: 2,
                       ),
-                    );
-                  },
+                      BoxShadow(
+                        color: const Color(0xFFA78BFA).withOpacity(glowO * 0.4),
+                        blurRadius: glowR * 2.2,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ],
+                // 2. Rotating purple shimmer sweep
+                Container(
+                  width: widget.size,
+                  height: widget.size,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: SweepGradient(
+                      colors: [
+                        const Color(0xFF7C3AED).withOpacity(0.0),
+                        const Color(0xFFA78BFA).withOpacity(0.6 * pulse),
+                        const Color(0xFF7C3AED).withOpacity(0.0),
+                        const Color(0xFF7C3AED).withOpacity(0.0),
+                      ],
+                      transform: GradientRotation(rot * 2 * math.pi),
+                    ),
+                  ),
+                ),
+                // 3. Avatar clipped to circle
+                SizedBox(
+                  width: widget.size * 0.78,
+                  height: widget.size * 0.78,
+                  child: ClipOval(child: widget.child),
+                ),
+                // 4. VIP 2 PNG frame on top
+                IgnorePointer(
+                  child: Image.asset(
+                    'assets/avtarframes/vip/vip_2.png',
+                    width: widget.size,
+                    height: widget.size,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: widget.size,
+                      height: widget.size,
+                      padding: const EdgeInsets.all(3.5),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: SweepGradient(
+                          colors: const [Color(0xFF7C3AED), Color(0xFFA78BFA), Color(0xFF7C3AED)],
+                          transform: GradientRotation(rot * 2 * math.pi),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // 5. Orbiting mystic sparkles (purple)
+                ..._buildVipSparkles(rot, widget.size, const Color(0xFFA78BFA)),
+              ],
+            );
+          },
         );
+
 
       case 3:
         // Golden Collection: Gilded Ring with Pulsating Top Star
@@ -458,7 +559,37 @@ class _VipAvatarDecoratorState extends State<VipAvatarDecorator> with TickerProv
         return mainAvatar;
     }
   }
+
+  /// Orbiting colored sparkles for VIP frames. Color tinted per level.
+  List<Widget> _buildVipSparkles(double rotValue, double size, Color sparkleColor) {
+    const int count = 5;
+    final double radius = size * 0.52;
+    final List<String> icons = ['💎', '✨', '💎', '⚡', '✨'];
+    final List<double> speeds = [1.0, 0.8, 1.2, 0.6, 1.4];
+
+    return List.generate(count, (i) {
+      final baseAngle = (i / count) * 2 * math.pi;
+      final angle = baseAngle + rotValue * 2 * math.pi * speeds[i];
+      final dx = radius * math.cos(angle);
+      final dy = radius * math.sin(angle);
+
+      return Positioned(
+        left: size / 2 + dx - 7,
+        top:  size / 2 + dy - 7,
+        child: IgnorePointer(
+          child: Text(
+            icons[i],
+            style: TextStyle(
+              fontSize: i.isEven ? 9 : 7,
+              shadows: [Shadow(color: sparkleColor, blurRadius: 8)],
+            ),
+          ),
+        ),
+      );
+    });
+  }
 }
+
 
 // ==========================================
 // Custom Painters for Premium VIP Effects

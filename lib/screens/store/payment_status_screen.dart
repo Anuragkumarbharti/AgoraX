@@ -56,10 +56,10 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
         speed: rand.nextDouble() * 1.5 + 0.5,
         angle: rand.nextDouble() * 2 * pi,
         color: rand.nextBool()
-            ? Color(0xFFFFD700)
+            ? const Color(0xFFFFD700)
             : rand.nextBool()
-                ? Color(0xFFD946EF)
-                : Color(0xFF8B5CF6),
+                ? const Color(0xFFD946EF)
+                : const Color(0xFF8B5CF6),
       ));
     }
   }
@@ -73,20 +73,20 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
 
   @override
   Widget build(BuildContext context) {
-    final Color mainColor = widget.isSuccess ? Color(0xFFFFD700) : Color(0xFFEF4444);
+    final Color mainColor = widget.isSuccess ? const Color(0xFFFFD700) : const Color(0xFFEF4444);
 
     return Scaffold(
-      backgroundColor: Color(0xFF07070A),
+      backgroundColor: const Color(0xFF07070A),
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 30.0),
+            padding: const EdgeInsets.symmetric(horizontal: 30.0),
             child: ScaleTransition(
               scale: CurvedAnimation(parent: _animCtrl, curve: Curves.elasticOut),
               child: Container(
-                padding: EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
                 decoration: BoxDecoration(
-                  color: context.secondaryBackgroundColor,
+                  color: const Color(0xFF14121F),
                   borderRadius: BorderRadius.circular(32),
                   border: Border.all(color: mainColor.withOpacity(0.2), width: 1.5),
                   boxShadow: [
@@ -97,34 +97,36 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
                     )
                   ],
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildAnimatedGraphic(mainColor),
-                    SizedBox(height: 28),
-                    Text(
-                      widget.isSuccess ? 'PURCHASE SUCCESSFUL! 🎉' : 'TRANSACTION FAILED ⚠️',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildAnimatedGraphic(mainColor),
+                      const SizedBox(height: 20),
+                      Text(
+                        widget.isSuccess ? 'PURCHASE SUCCESSFUL! 🎉' : 'TRANSACTION FAILED ⚠️',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      widget.isSuccess
-                          ? 'Thank you for upgrading! Your premium credentials are now active on your Creania profile.'
-                          : widget.errorMessage ?? 'Something went wrong while communicating with Razorpay security channels. No coins were deducted.',
-                      style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 24),
-                    _buildReceiptPanel(mainColor),
-                    SizedBox(height: 32),
-                    _buildActions(mainColor),
-                  ],
+                      const SizedBox(height: 10),
+                      Text(
+                        widget.isSuccess
+                            ? 'Thank you for upgrading! Your premium credentials are now active on your Creania profile.'
+                            : widget.errorMessage ?? 'Something went wrong while communicating with Razorpay security channels. No coins were deducted.',
+                        style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildReceiptPanel(mainColor),
+                      const SizedBox(height: 24),
+                      _buildActions(mainColor),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -168,7 +170,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
 
   Widget _buildReceiptPanel(Color mainColor) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.4),
         borderRadius: BorderRadius.circular(20),
@@ -186,7 +188,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
 
   Widget _receiptRow(String label, String val, {Color? valueColor}) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -225,7 +227,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
           ),
         ),
         if (!widget.isSuccess) ...[
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           TextButton(
             onPressed: () {
               Get.snackbar('Support Ticket', 'A payment support ticket was opened.', snackPosition: SnackPosition.BOTTOM);

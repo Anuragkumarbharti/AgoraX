@@ -58,7 +58,8 @@ class MiniProfileWidget extends StatefulWidget {
 class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   late bool _isFollowing;
 
-  User get _user => UserProfileCacheManager.rxCache[widget.user.id] ?? widget.user;
+  User get _user =>
+      UserProfileCacheManager.rxCache[widget.user.id] ?? widget.user;
 
   @override
   void initState() {
@@ -68,7 +69,9 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
 
   void _navigateToProfile() {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    final isMe = _user.id == 'me' || _user.id == 'uid_anurag_101' || (currentUid != null && _user.id == currentUid);
+    final isMe = _user.id == 'me' ||
+        _user.id == 'uid_anurag_101' ||
+        (currentUid != null && _user.id == currentUid);
     if (isMe) {
       Get.to(() => const ProfileScreen());
     } else {
@@ -127,7 +130,11 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   Widget _buildAvatar() {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
     final u = _user;
-    final isMe = u.id == 'me' || u.id == 'uid_anurag_101' || (currentUid != null && u.id == currentUid) || u.username == 'Anurag Kumar' || u.displayName == 'Anurag Kumar';
+    final isMe = u.id == 'me' ||
+        u.id == 'uid_anurag_101' ||
+        (currentUid != null && u.id == currentUid) ||
+        u.username == 'Anurag Kumar' ||
+        u.displayName == 'Anurag Kumar';
 
     int novelLevel = 0;
     int activeNovel = 0;
@@ -162,7 +169,7 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     }
 
     final custCtrl = Get.find<CustomizationController>();
-    final avatarUrl = isMe 
+    final avatarUrl = isMe
         ? custCtrl.getAvatarUrl(custCtrl.activeAvatar.value, u.avatar ?? '')
         : (u.avatar ?? '');
 
@@ -183,7 +190,8 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
                     ? CachedNetworkImage(
                         imageUrl: avatarUrl,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(color: context.secondaryBackgroundColor),
+                        placeholder: (context, url) =>
+                            Container(color: context.secondaryBackgroundColor),
                         errorWidget: (context, url, error) => _buildInitials(),
                       )
                     : Image.file(
@@ -235,50 +243,73 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     );
 
     if (vipLevel <= 0) {
-      return Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
+      return Text(text,
+          style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
     }
 
     switch (vipLevel) {
       case 1:
-        return Text(text, style: style.copyWith(color: Color(0xFF2563EB)), maxLines: 1, overflow: TextOverflow.ellipsis);
+        return Text(text,
+            style: style.copyWith(color: Color(0xFF2563EB)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis);
       case 2:
-        return Text(text, style: style.copyWith(color: Color(0xFF8B5CF6)), maxLines: 1, overflow: TextOverflow.ellipsis);
+        return Text(text,
+            style: style.copyWith(color: Color(0xFF8B5CF6)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis);
       case 3:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFFD700), Color(0xFFD97706)],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       case 4:
-        return Text(text, style: style.copyWith(color: Color(0xFFF1F5F9), shadows: [
-          Shadow(color: Colors.white30, blurRadius: 4),
-        ]), maxLines: 1, overflow: TextOverflow.ellipsis);
+        return Text(text,
+            style: style.copyWith(color: Color(0xFFF1F5F9), shadows: [
+              Shadow(color: Colors.white30, blurRadius: 4),
+            ]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis);
       case 5:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFF06B6D4), Color(0xFF22D3EE)],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       case 6:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFF007F), Color(0xFFFFBF00), Color(0xFF00F0FF)],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       case 7:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFFD700), Color(0xFF1C1917), Color(0xFFFFD700)],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white, shadows: [
-            Shadow(color: Color(0xFFD4AF37), blurRadius: 4),
-          ]), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white, shadows: [
+                Shadow(color: Color(0xFFD4AF37), blurRadius: 4),
+              ]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       default:
-        return Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
+        return Text(text,
+            style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
     }
   }
 
@@ -291,57 +322,79 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
 
     switch (novelLvl) {
       case 1:
-        return Text(text, style: style.copyWith(color: Color(0xFF2563EB)), maxLines: 1, overflow: TextOverflow.ellipsis);
+        return Text(text,
+            style: style.copyWith(color: Color(0xFF2563EB)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis);
       case 2:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFF7C3AED), Color(0xFFC084FC)],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       case 3:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFFD700), Color(0xFFD97706)],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       case 4:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white, shadows: [
-            Shadow(color: Colors.redAccent, blurRadius: 4),
-          ]), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white, shadows: [
+                Shadow(color: Colors.redAccent, blurRadius: 4),
+              ]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       case 5:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFF97316), Color(0xFFFDBA74)],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       case 6:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFF06B6D4), Color(0xFF22D3EE), Colors.white],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white, shadows: [
-            Shadow(color: Colors.cyanAccent, blurRadius: 6),
-          ]), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white, shadows: [
+                Shadow(color: Colors.cyanAccent, blurRadius: 6),
+              ]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       case 7:
         return ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Color(0xFFFFD700), Color(0xFF1C1917), Color(0xFFFFD700)],
           ).createShader(bounds),
-          child: Text(text, style: style.copyWith(color: Colors.white, shadows: [
-            Shadow(color: Color(0xFFFFD700), blurRadius: 8),
-          ]), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text,
+              style: style.copyWith(color: Colors.white, shadows: [
+                Shadow(color: Color(0xFFFFD700), blurRadius: 8),
+              ]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         );
       default:
-        return Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
+        return Text(text,
+            style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
     }
   }
 
@@ -351,7 +404,9 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     final u = _user;
 
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    if (u.id == 'me' || u.id == 'uid_anurag_101' || (currentUid != null && u.id == currentUid)) {
+    if (u.id == 'me' ||
+        u.id == 'uid_anurag_101' ||
+        (currentUid != null && u.id == currentUid)) {
       final novelCtrl = Get.find<NovelController>();
       novelLevel = novelCtrl.novelLevel.value;
       activeNovel = novelCtrl.activeNovelStyle.value;
@@ -374,7 +429,9 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     int vipLevel = 0;
     if (novelLevel <= 0) {
       final currentUid = Supabase.instance.client.auth.currentUser?.id;
-      if (u.id == 'me' || u.id == 'uid_anurag_101' || (currentUid != null && u.id == currentUid)) {
+      if (u.id == 'me' ||
+          u.id == 'uid_anurag_101' ||
+          (currentUid != null && u.id == currentUid)) {
         final vipCtrl = Get.find<VipController>();
         vipLevel = vipCtrl.vipLevel.value;
       } else if (u.isPremium) {
@@ -408,7 +465,8 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
         Text(
           u.id.hashCode % 2 == 0 ? '♂' : '♀',
           style: TextStyle(
-            color: u.id.hashCode % 2 == 0 ? Color(0xFF38BDF8) : Color(0xFFF43F5E),
+            color:
+                u.id.hashCode % 2 == 0 ? Color(0xFF38BDF8) : Color(0xFFF43F5E),
             fontSize: 11,
             fontWeight: FontWeight.bold,
           ),
@@ -418,7 +476,8 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   }
 
   Widget _buildTagRow() {
-    final identity = PremiumIdentityController.getIdentity(_user.id, _user.displayName);
+    final identity =
+        PremiumIdentityController.getIdentity(_user.id, _user.displayName);
     return _buildBadgesRowForVariant(identity);
   }
 
@@ -436,14 +495,37 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     final String cleanUrl = (imageUrl ?? '').trim().toLowerCase();
     final String cleanType = (type ?? '').trim().toLowerCase();
 
-    if (cleanUrl.contains('vip_1_tag.png') || cleanUrl.contains('vip_level_1.png') || cleanLabel == 'vip 1' || cleanLabel == 'vip1') {
+    if (cleanUrl.contains('vip_1_tag.png') ||
+        cleanUrl.contains('vip_level_1.png') ||
+        cleanLabel == 'vip 1' ||
+        cleanLabel == 'vip1') {
       localAsset = 'assets/identity_tags/vip_level_1.png';
-    } else if (cleanUrl.contains('vip_2_tag.png') || cleanUrl.contains('vip_level_2.png') || cleanLabel == 'vip 2' || cleanLabel == 'vip2') {
+    } else if (cleanUrl.contains('vip_2_tag.png') ||
+        cleanUrl.contains('vip_level_2.png') ||
+        cleanLabel == 'vip 2' ||
+        cleanLabel == 'vip2') {
       localAsset = 'assets/identity_tags/vip_level_2.png';
-    } else if (cleanUrl.contains('id_level_1.png') || (cleanType == 'id_level' && (cleanLabel.contains('1') || cleanLabel.contains('level 1') || cleanLabel.contains('lv.1') || cleanLabel.contains('lv. 1')))) {
+    } else if (cleanUrl.contains('id_level_1.png') ||
+        (cleanType == 'id_level' &&
+            (cleanLabel.contains('1') ||
+                cleanLabel.contains('level 1') ||
+                cleanLabel.contains('lv.1') ||
+                cleanLabel.contains('lv. 1')))) {
       localAsset = 'assets/identity_tags/id_level_1.png';
-    } else if (cleanUrl.contains('id_level_2.png') || (cleanType == 'id_level' && (cleanLabel.contains('2') || cleanLabel.contains('level 2') || cleanLabel.contains('lv.2') || cleanLabel.contains('lv. 2')))) {
+    } else if (cleanUrl.contains('id_level_2.png') ||
+        (cleanType == 'id_level' &&
+            (cleanLabel.contains('2') ||
+                cleanLabel.contains('level 2') ||
+                cleanLabel.contains('lv.2') ||
+                cleanLabel.contains('lv. 2')))) {
       localAsset = 'assets/identity_tags/id_level_2.png';
+    }
+
+    final String? officialCommAsset = getOfficialCommunityTagAssetPath(cleanLabel) ??
+        getOfficialCommunityTagAssetPath(cleanUrl) ??
+        getOfficialCommunityTagAssetPath(cleanType);
+    if (officialCommAsset != null) {
+      localAsset = officialCommAsset;
     }
 
     if (localAsset != null) {
@@ -473,7 +555,9 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
       }
     }
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      height: 19,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(6),
@@ -520,8 +604,10 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
         }
         return Obx(() {
           final otherId = _user.id;
-          final isFollowed = UserProfileCacheManager.followedUserIds.contains(otherId);
-          final isFollower = UserProfileCacheManager.followerUserIds.contains(otherId);
+          final isFollowed =
+              UserProfileCacheManager.followedUserIds.contains(otherId);
+          final isFollower =
+              UserProfileCacheManager.followerUserIds.contains(otherId);
 
           String buttonText = '+ Follow';
           if (isFollowed && isFollower) {
@@ -546,12 +632,15 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
                 if (widget.onFollowTap != null) widget.onFollowTap!();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: isF ? context.secondaryBackgroundColor : Color(0xFFEF408B),
+                backgroundColor:
+                    isF ? context.secondaryBackgroundColor : Color(0xFFEF408B),
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
-                  side: isF ? BorderSide(color: context.borderColor) : BorderSide.none,
+                  side: isF
+                      ? BorderSide(color: context.borderColor)
+                      : BorderSide.none,
                 ),
                 elevation: 0,
               ),
@@ -607,10 +696,12 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   String _formatCount(num count) {
     if (count >= 1000000) {
       double value = count / 1000000;
-      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) + 'M';
+      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) +
+          'M';
     } else if (count >= 1000) {
       double value = count / 1000;
-      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) + 'K';
+      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) +
+          'K';
     }
     return count.toString();
   }
@@ -626,14 +717,20 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
         SizedBox(width: 3),
         Text(
           'Gifts: $gifts',
-          style: GoogleFonts.poppins(color: Color(0xFFFFC107), fontSize: 9, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+              color: Color(0xFFFFC107),
+              fontSize: 9,
+              fontWeight: FontWeight.bold),
         ),
         SizedBox(width: 8),
         Icon(Icons.bolt, color: Color(0xFFD946EF), size: 12),
         SizedBox(width: 1),
         Text(
           'Contributed: $points',
-          style: GoogleFonts.poppins(color: Color(0xFFD946EF), fontSize: 9, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+              color: Color(0xFFD946EF),
+              fontSize: 9,
+              fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -713,61 +810,117 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
 
   Widget _vipBadge(int lvl, double fs) {
     return GestureDetector(
-      onTap: () => _showBadgeInfo('👑 VIP Level $lvl', 'Premium VIP status.', Color(0xFFFFD700), '👑', 'VIP level sub', ['rotating name borders']),
+      onTap: () => _showBadgeInfo('👑 VIP Level $lvl', 'Premium VIP status.',
+          Color(0xFFFFD700), '👑', 'VIP level sub', ['rotating name borders']),
       child: VipBadgeWidget(level: lvl, fontSize: fs),
     );
   }
+
   Widget _novelBadge(int lvl, double fs) {
     return GestureDetector(
-      onTap: () => _showBadgeInfo('📖 Novel Level $lvl', 'Collectible status.', Color(0xFFEA580C), '📖', 'Novel Level', ['Wings animations']),
+      onTap: () => _showBadgeInfo('📖 Novel Level $lvl', 'Collectible status.',
+          Color(0xFFEA580C), '📖', 'Novel Level', ['Wings animations']),
       child: NovelBadgeWidget(level: lvl, fontSize: fs),
     );
   }
+
   Widget _idBadge(int lvl, double fs) {
     return GestureDetector(
-      onTap: () => _showBadgeInfo('🆔 ID Level $lvl', 'Global progress.', Color(0xFF38BDF8), '🆔', 'Earn XP', ['Unlocks cosmetics']),
+      onTap: () => _showBadgeInfo('🆔 ID Level $lvl', 'Global progress.',
+          Color(0xFF38BDF8), '🆔', 'Earn XP', ['Unlocks cosmetics']),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
         decoration: BoxDecoration(
           color: Color(0xFF0284C7).withOpacity(0.2),
           borderRadius: BorderRadius.circular(3),
-          border: Border.all(color: Color(0xFF0284C7).withOpacity(0.5), width: 0.5),
+          border:
+              Border.all(color: Color(0xFF0284C7).withOpacity(0.5), width: 0.5),
         ),
-        child: Text('Lvl $lvl', style: GoogleFonts.poppins(color: Color(0xFF38BDF8), fontSize: fs - 1, fontWeight: FontWeight.bold)),
+        child: Text('Lvl $lvl',
+            style: GoogleFonts.poppins(
+                color: Color(0xFF38BDF8),
+                fontSize: fs - 1,
+                fontWeight: FontWeight.bold)),
       ),
     );
   }
+
   Widget _careerBadge(int lvl, double fs) {
     return GestureDetector(
-      onTap: () => _showBadgeInfo('💻 Career Level $lvl', 'Career Track level.', Color(0xFFFFB800), '💻', 'Complete career tasks', ['Official job titles']),
+      onTap: () => _showBadgeInfo(
+          '💻 Career Level $lvl',
+          'Career Track level.',
+          Color(0xFFFFB800),
+          '💻',
+          'Complete career tasks',
+          ['Official job titles']),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
         decoration: BoxDecoration(
           color: Color(0xFFD97706).withOpacity(0.2),
           borderRadius: BorderRadius.circular(3),
-          border: Border.all(color: Color(0xFFD97706).withOpacity(0.5), width: 0.5),
+          border:
+              Border.all(color: Color(0xFFD97706).withOpacity(0.5), width: 0.5),
         ),
-        child: Text('Career $lvl', style: GoogleFonts.poppins(color: Color(0xFFFBBF24), fontSize: fs - 1, fontWeight: FontWeight.bold)),
+        child: Text('Career $lvl',
+            style: GoogleFonts.poppins(
+                color: Color(0xFFFBBF24),
+                fontSize: fs - 1,
+                fontWeight: FontWeight.bold)),
       ),
     );
   }
+
   Widget _commBadge(CommunityTag ct, double fs) {
+    final officialAsset = getOfficialCommunityTagAssetPath(ct.role) ??
+        getOfficialCommunityTagAssetPath(ct.name);
+    if (officialAsset != null) {
+      return GestureDetector(
+        onTap: () => _showBadgeInfo(
+            '${ct.name} (${ct.role})',
+            'Official Community Identity Tag',
+            ct.gradientColors.first,
+            '🏷️',
+            'Official Community Member',
+            ['Premium Community status']),
+        child: Image.asset(
+          officialAsset,
+          height: 19,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
+      );
+    }
     return GestureDetector(
-      onTap: () => _showBadgeInfo('${ct.name} (${ct.role})', 'Community Rank.', ct.gradientColors.first, '🏷️', 'Assigned role', ['Special guild powers']),
+      onTap: () => _showBadgeInfo(
+          '${ct.name} (${ct.role})',
+          'Community Rank.',
+          ct.gradientColors.first,
+          '🏷️',
+          'Assigned role',
+          ['Special guild powers']),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
         decoration: BoxDecoration(
           color: ct.gradientColors.first.withOpacity(0.2),
           borderRadius: BorderRadius.circular(3),
-          border: Border.all(color: ct.gradientColors.first.withOpacity(0.5), width: 0.5),
+          border: Border.all(
+              color: ct.gradientColors.first.withOpacity(0.5), width: 0.5),
         ),
-        child: Text(ct.role, style: GoogleFonts.poppins(color: ct.gradientColors.first, fontSize: fs - 1, fontWeight: FontWeight.bold)),
+        child: Text(ct.role,
+            style: GoogleFonts.poppins(
+                color: ct.gradientColors.first,
+                fontSize: fs - 1,
+                fontWeight: FontWeight.bold)),
       ),
     );
   }
+
   Widget _verifBadge(UserVerification v, double fs) {
     return GestureDetector(
-      onTap: () => _showBadgeInfo(v.title, 'Verified status.', v.color, v.icon, v.requirement, v.benefits, date: v.date, status: v.status),
+      onTap: () => _showBadgeInfo(v.title, 'Verified status.', v.color, v.icon,
+          v.requirement, v.benefits,
+          date: v.date, status: v.status),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
         decoration: BoxDecoration(
@@ -780,15 +933,21 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
           children: [
             Text(v.icon, style: TextStyle(color: v.color, fontSize: fs - 2)),
             SizedBox(width: 2),
-            Text(v.title.split(' ')[0], style: GoogleFonts.poppins(color: v.color, fontSize: fs - 1, fontWeight: FontWeight.bold)),
+            Text(v.title.split(' ')[0],
+                style: GoogleFonts.poppins(
+                    color: v.color,
+                    fontSize: fs - 1,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     );
   }
+
   Widget _officialBadge(OfficialTag ot, double fs) {
     return GestureDetector(
-      onTap: () => _showBadgeInfo(ot.name, 'Official tag.', ot.color, ot.icon, 'Admin assign only', [ot.benefit]),
+      onTap: () => _showBadgeInfo(ot.name, 'Official tag.', ot.color, ot.icon,
+          'Admin assign only', [ot.benefit]),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
         decoration: BoxDecoration(
@@ -801,7 +960,11 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
           children: [
             Text(ot.icon, style: TextStyle(color: ot.color, fontSize: fs - 2)),
             SizedBox(width: 2),
-            Text(ot.name.split(' ').last, style: GoogleFonts.poppins(color: ot.color, fontSize: fs - 1, fontWeight: FontWeight.bold)),
+            Text(ot.name.split(' ').last,
+                style: GoogleFonts.poppins(
+                    color: ot.color,
+                    fontSize: fs - 1,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -810,7 +973,8 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
 
   Widget _officialStatusBadge(OfficialTag ot, double fs) {
     return GestureDetector(
-      onTap: () => _showBadgeInfo(ot.name, 'Official status.', ot.color, ot.icon, 'System assigned', [ot.benefit]),
+      onTap: () => _showBadgeInfo(ot.name, 'Official status.', ot.color,
+          ot.icon, 'System assigned', [ot.benefit]),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
         decoration: BoxDecoration(
@@ -823,14 +987,20 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
           children: [
             Text(ot.icon, style: TextStyle(color: ot.color, fontSize: fs - 2)),
             SizedBox(width: 2),
-            Text(ot.name.split(' ').last, style: GoogleFonts.poppins(color: ot.color, fontSize: fs - 1, fontWeight: FontWeight.bold)),
+            Text(ot.name.split(' ').last,
+                style: GoogleFonts.poppins(
+                    color: ot.color,
+                    fontSize: fs - 1,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     );
   }
 
-  void _showBadgeInfo(String title, String desc, Color color, String icon, String req, List<String> benefits, {String? date, String? status}) {
+  void _showBadgeInfo(String title, String desc, Color color, String icon,
+      String req, List<String> benefits,
+      {String? date, String? status}) {
     Get.dialog(
       AlertDialog(
         backgroundColor: Color(0xFF151518),
@@ -842,11 +1012,17 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
           children: [
             Container(
               padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                  color: color.withOpacity(0.12), shape: BoxShape.circle),
               child: Text(icon, style: TextStyle(fontSize: 22)),
             ),
             SizedBox(width: 12),
-            Expanded(child: Text(title, style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18))),
+            Expanded(
+                child: Text(title,
+                    style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18))),
           ],
         ),
         content: Column(
@@ -854,34 +1030,62 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (status != null) ...[
-              Text('STATUS', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold)),
-              Text(status, style: GoogleFonts.poppins(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text('STATUS',
+                  style: GoogleFonts.poppins(
+                      color: Colors.white38,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold)),
+              Text(status,
+                  style: GoogleFonts.poppins(
+                      color: color, fontSize: 12, fontWeight: FontWeight.bold)),
               SizedBox(height: 12),
             ],
             if (date != null) ...[
-              Text('DATE', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold)),
-              Text(date, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
+              Text('DATE',
+                  style: GoogleFonts.poppins(
+                      color: Colors.white38,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold)),
+              Text(date,
+                  style:
+                      GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
               SizedBox(height: 12),
             ],
-            Text('REQUIREMENT', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold)),
-            Text(req, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
+            Text('REQUIREMENT',
+                style: GoogleFonts.poppins(
+                    color: Colors.white38,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold)),
+            Text(req,
+                style:
+                    GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
             SizedBox(height: 12),
-            Text('BENEFITS & PERKS', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold)),
-            ...benefits.map((b) => Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Row(
-                children: [
-                  Text('• ', style: TextStyle(color: color)),
-                  Expanded(child: Text(b, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12))),
-                ],
-              ),
-            )).toList(),
+            Text('BENEFITS & PERKS',
+                style: GoogleFonts.poppins(
+                    color: Colors.white38,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold)),
+            ...benefits
+                .map((b) => Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          Text('• ', style: TextStyle(color: color)),
+                          Expanded(
+                              child: Text(b,
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.white70, fontSize: 12))),
+                        ],
+                      ),
+                    ))
+                .toList(),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text('Close', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+            child: Text('Close',
+                style: TextStyle(color: color, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

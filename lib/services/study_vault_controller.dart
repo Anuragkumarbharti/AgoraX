@@ -453,8 +453,8 @@ class StudyVaultController extends GetxController {
       return false;
     }
 
-    // Deduct coins from store balance
-    storeCtrl.coinsBalance.value -= goldCoinsPrice;
+    // Sync balance with server database
+    storeCtrl.syncWithDatabase(force: true);
     
     try {
       final client = Supabase.instance.client;

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import 'package:creania/core/theme.dart';
 import '../../services/store_controller.dart';
+import '../../widgets/wallet_header_pill.dart';
 import 'checkout_screen.dart';
 
 class CoinStoreScreen extends StatelessWidget {
@@ -74,22 +75,13 @@ class CoinStoreScreen extends StatelessWidget {
                       color: context.textPrimary,
                     ),
                   ),
-                  actions: [
-                    Obx(() => Container(
-                          margin: EdgeInsets.only(right: 16, top: 12, bottom: 12),
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: context.surfaceColor,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: context.borderColor),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '🪙 ${storeCtrl.coinsBalance.value}',
-                              style: GoogleFonts.poppins(color: context.accentGold, fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                          ),
-                        )),
+                  actions: const [
+                    Padding(
+                      padding: EdgeInsets.only(right: 16),
+                      child: Center(
+                        child: WalletHeaderPill(showPlusButton: false),
+                      ),
+                    ),
                   ],
                 ),
                 SliverToBoxAdapter(

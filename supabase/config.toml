@@ -26,5 +26,5 @@ file_size_limit = "50MB"
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/*"]
+additional_redirect_urls = ["http://localhost:3000/*", "io.supabase.flutter://login-callback/"]
 jwt_expiry = 3600

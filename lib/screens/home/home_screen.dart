@@ -10,6 +10,7 @@ import '../../services/event_controller.dart';
 import '../../services/community_controller.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/community_card.dart';
+import '../../widgets/community_join_button.dart';
 import '../communities/communities_screen.dart';
 import '../events/events_screen.dart';
 import '../events/event_detail_screen.dart';
@@ -18,6 +19,8 @@ import '../../services/study_category_controller.dart';
 import '../../services/study_vault_controller.dart';
 import '../study_vault/study_vault_home_screen.dart';
 import '../study_vault/book_details_screen.dart';
+import '../notifications/notification_history_screen.dart';
+import '../../services/fcm_notification_service.dart';
 
 
 
@@ -30,7 +33,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late ScrollController _scrollController;
-  bool _showFloatingButton = true;
+  final ValueNotifier<bool> _showFloatingButton = ValueNotifier(true);
   final EventController _eventController = Get.find<EventController>();
   final CommunityController _communityCtrl = Get.find<CommunityController>();
   List<Post> _posts = [];
@@ -41,9 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(() {
-      setState(() {
-        _showFloatingButton = _scrollController.offset < 100;
-      });
+      _showFloatingButton.value = _scrollController.offset < 100;
     });
     _fetchRecentPosts();
   }
@@ -51,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _showFloatingButton.dispose();
     super.dispose();
   }
 
@@ -178,41 +180,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showNotifications() {
-    Get.bottomSheet(
-      Container(
-        color: AppTheme.bgLight,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Notifications',
-                style: TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            _notificationItem('🏆 Weekly Coding Challenge starting in 30 min!', '10m ago'),
-            _notificationItem('🎉 You earned a "Top Contributor" badge!', '2h ago'),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _notificationItem(String text, String time) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: Text(text, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
-          Text(time, style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
-        ],
-      ),
-    );
+  void _showNotifications() async {
+    if (Get.isRegistered<FCMNotificationService>()) {
+      FCMNotificationService.to.unreadCount.value = 0;
+      FCMNotificationService.to.markAllAsRead();
+    }
+    Get.to(() => const NotificationHistoryScreen());
   }
 
   @override
@@ -238,10 +211,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: _showNotifications,
-          ),
+          Obx(() {
+            final unread = Get.isRegistered<FCMNotificationService>()
+                ? FCMNotificationService.to.unreadCount.value
+                : 0;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: _showNotifications,
+                ),
+                if (unread > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Center(
+                        child: Text(
+                          unread > 9 ? '9+' : '$unread',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }),
           IconButton(
             icon: const Icon(Icons.emoji_events_outlined),
             onPressed: () => Get.to(
@@ -446,13 +456,16 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     ),
-      floatingActionButton: _showFloatingButton
-          ? FloatingActionButton(
-              onPressed: _createNewPost,
-              backgroundColor: AppTheme.primaryColor,
-              child: const Icon(Icons.add),
-            )
-          : null,
+      floatingActionButton: ValueListenableBuilder<bool>(
+        valueListenable: _showFloatingButton,
+        builder: (context, show, _) => show
+            ? FloatingActionButton(
+                onPressed: _createNewPost,
+                backgroundColor: AppTheme.primaryColor,
+                child: const Icon(Icons.add),
+              )
+            : const SizedBox.shrink(),
+      ),
     );
 
   Widget _buildSectionHeader(BuildContext context, String title, {VoidCallback? onViewAll}) => Row(
@@ -587,38 +600,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     
-                    // Join Button
-                    SizedBox(
-                      width: double.infinity,
+                    CommunityJoinButton(
+                      community: comm,
                       height: 28,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (isJoined) {
-                            ctrl.leaveCommunity(comm.id);
-                          } else {
-                            ctrl.joinCommunity(comm.id);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isJoined ? Colors.transparent : const Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            side: BorderSide(
-                              color: isJoined ? Colors.white24 : Colors.transparent,
-                              width: 1,
-                            ),
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: Text(
-                          isJoined ? 'Joined' : 'Join',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      width: double.infinity,
+                      borderRadius: 6.0,
+                      textStyle: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
                     ),
                   ],

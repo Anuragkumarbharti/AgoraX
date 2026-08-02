@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'voice_service.dart';
@@ -22,6 +23,54 @@ class RoomVoiceManager {
   String? _activeUserId;
   String? _activeUserName;
 
+  // Cache token variables to prevent repeated token fetching (under 2 hour expiry)
+  String? _cachedToken;
+  DateTime? _cachedTokenExpiry;
+  int? _cachedAppId;
+  String? _cachedTokenUserId;
+
+  /// Helper to retry an operation with exponential backoff
+  Future<T> _retryWithBackoff<T>(
+    Future<T> Function() action, {
+    int maxRetries = 3,
+    Duration initialDelay = const Duration(seconds: 1),
+  }) async {
+    int attempt = 0;
+    while (true) {
+      try {
+        return await action();
+      } catch (e) {
+        attempt++;
+        if (attempt >= maxRetries) {
+          rethrow;
+        }
+        final delay = initialDelay * (pow(2, attempt) as int);
+        debugPrint('[RoomVoiceManager] Action failed: $e. Retrying in ${delay.inMilliseconds}ms (Attempt $attempt/$maxRetries)...');
+        await Future.delayed(delay);
+      }
+    }
+  }
+
+  /// Preload ZEGOCLOUD engine and fetch token in the background (after user login/app start)
+  Future<void> preloadEngine(String userId) async {
+    if (userId.trim().isEmpty) return;
+    try {
+      debugPrint('[RoomVoiceManager] Background engine preload started for user $userId...');
+      
+      final tokenData = await _voiceRepo.fetchVoiceToken(userId);
+      _cachedAppId = tokenData['appId'] as int;
+      _cachedToken = tokenData['token'] as String;
+      // Cache token for 90 minutes
+      _cachedTokenExpiry = DateTime.now().add(const Duration(minutes: 90));
+      _cachedTokenUserId = userId;
+
+      await _voiceService.createEngine(_cachedAppId!);
+      debugPrint('[RoomVoiceManager] Background engine preload completed successfully.');
+    } catch (e) {
+      debugPrint('[RoomVoiceManager] Background engine preload failed: $e');
+    }
+  }
+
   /// Join a voice room securely (STEP 5)
   Future<void> joinRoom({
     required String roomId,
@@ -35,19 +84,41 @@ class RoomVoiceManager {
       _activeUserId = userId;
       _activeUserName = userName;
 
-      // 1. Fetch mic permission
-      final hasPerm = await _permManager.checkMicrophonePermission();
-      if (!hasPerm && enableMic) {
-        final status = await _permManager.requestMicrophonePermission();
-        if (!status.isGranted) {
-          throw Exception('Microphone permission required to join stage');
+      // 1. Fetch mic permission only if mic is enabled (saving time for guests/listeners)
+      if (enableMic) {
+        final hasPerm = await _permManager.checkMicrophonePermission();
+        if (!hasPerm) {
+          final status = await _permManager.requestMicrophonePermission();
+          if (!status.isGranted) {
+            throw Exception('Microphone permission required to join stage');
+          }
         }
       }
 
-      // 2. Fetch token and AppID securely from Backend (STEP 12)
-      final tokenData = await _voiceRepo.fetchVoiceToken(userId);
-      final int appId = tokenData['appId'] as int;
-      final String token = tokenData['token'] as String;
+      // 2. Fetch token and AppID (check cache first to avoid repeated API requests)
+      int appId;
+      String token;
+
+      if (_cachedToken != null &&
+          _cachedAppId != null &&
+          _cachedTokenUserId == userId &&
+          _cachedTokenExpiry != null &&
+          _cachedTokenExpiry!.isAfter(DateTime.now())) {
+        appId = _cachedAppId!;
+        token = _cachedToken!;
+        debugPrint('[RoomVoiceManager] Token cache hit. Reusing cached token.');
+      } else {
+        debugPrint('[RoomVoiceManager] Token cache miss or expired. Fetching token...');
+        final tokenData = await _voiceRepo.fetchVoiceToken(userId);
+        appId = tokenData['appId'] as int;
+        token = tokenData['token'] as String;
+
+        // Update Cache
+        _cachedAppId = appId;
+        _cachedToken = token;
+        _cachedTokenExpiry = DateTime.now().add(const Duration(minutes: 90));
+        _cachedTokenUserId = userId;
+      }
 
       // 3. Initialize Voice Controller details
       if (!Get.isRegistered<VoiceController>()) {
@@ -61,8 +132,8 @@ class RoomVoiceManager {
       // 4. Initialize engine once (STEP 4)
       await _voiceService.createEngine(appId);
 
-      // 5. Login to ZEGO Room (STEP 5)
-      await _voiceService.loginRoom(roomId, token);
+      // 5. Login to ZEGO Room with retry (STEP 5)
+      await _retryWithBackoff(() => _voiceService.loginRoom(roomId, token));
 
       // 6. Manage stage seat publishing (STEP 5)
       if (enableMic) {

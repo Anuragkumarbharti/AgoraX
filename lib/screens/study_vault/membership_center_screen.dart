@@ -426,10 +426,12 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
           // Action Button
           Builder(
             builder: (context) {
-              final isLowerOrEqual = _selectedNovelLevel <= currentLevel;
+              final isLower = _selectedNovelLevel < currentLevel && currentLevel > 0;
+              final isSameLevel = _selectedNovelLevel == currentLevel && currentLevel > 0;
+              final price = novelPricing[_selectedNovelLevel]?[_selectedNovelDuration] ?? 0.0;
+
               return ElevatedButton(
-                onPressed: isLowerOrEqual ? null : () {
-                  final price = novelPricing[_selectedNovelLevel]?[_selectedNovelDuration] ?? 0.0;
+                onPressed: isLower ? null : () {
                   Get.toNamed(
                     '/checkout',
                     arguments: {
@@ -443,13 +445,15 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  backgroundColor: isLowerOrEqual ? Colors.grey : Color(0xFF10B981),
+                  backgroundColor: isLower ? Colors.grey : Color(0xFF10B981),
                 ),
                 child: Text(
-                  isLowerOrEqual
-                      ? 'Locked (Active: Novel $currentLevel)'
-                      : 'Unlock Novel $_selectedNovelLevel ($_selectedNovelDuration) • ₹${novelPricing[_selectedNovelLevel]?[_selectedNovelDuration]?.toStringAsFixed(0)}',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  isLower
+                      ? 'You already have Novel $currentLevel'
+                      : isSameLevel
+                          ? 'Renew Novel $_selectedNovelLevel ($_selectedNovelDuration) • ₹${price.toStringAsFixed(0)}'
+                          : 'Unlock Novel $_selectedNovelLevel ($_selectedNovelDuration) • ₹${price.toStringAsFixed(0)}',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
                 ),
               );
             }

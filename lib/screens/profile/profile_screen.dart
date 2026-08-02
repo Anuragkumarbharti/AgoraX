@@ -19,6 +19,9 @@ import '../settings/settings_screen.dart';
 import 'gifting_contribution_screen.dart';
 import '../../widgets/post_attachments_widget.dart';
 import '../../widgets/custom_avatar_frame.dart';
+import '../../widgets/network_error_widget.dart';
+import '../../widgets/profile_skeleton_widget.dart';
+import '../../core/api_error_handler.dart';
 
 import '../../services/store_controller.dart';
 import '../../services/vip_controller.dart';
@@ -56,6 +59,7 @@ import '../../models/room_model.dart';
 import '../../models/community_model.dart';
 import '../rooms/voice_room_call_screen.dart';
 import '../communities/community_detail_screen.dart';
+import '../home/main_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key, this.visitorUser}) : super(key: key);
@@ -66,16 +70,26 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with TickerProviderStateMixin {
   final StoreController _storeCtrl = Get.find<StoreController>();
   final VipController _vipCtrl = Get.find<VipController>();
   final NovelController _novelCtrl = Get.find<NovelController>();
   final CustomizationController _custCtrl = Get.find<CustomizationController>();
-  final StudyCategoryController _studyCtrl = Get.find<StudyCategoryController>();
-  final CareerProgressionController _careerCtrl = Get.find<CareerProgressionController>();
+  final StudyCategoryController _studyCtrl =
+      Get.find<StudyCategoryController>();
+  final CareerProgressionController _careerCtrl =
+      Get.find<CareerProgressionController>();
 
   late TabController _tabController;
-  late User _user;
+  User? _userNullable; // nullable to track initialization
+  bool _isUserInitialized = false;
+  User get _user => _userNullable!;
+  set _user(User u) {
+    _userNullable = u;
+    _isUserInitialized = true;
+  }
+
   bool _isLoadingProfile = true;
   String? _errorMessage;
   bool _isFollowing = false;
@@ -89,7 +103,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   // Reactive state lists for offline-first caching
   final RxList<VoiceRoom> _myArenas = <VoiceRoom>[].obs;
-  final RxList<Map<String, dynamic>> _joinedCommunities = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> _joinedCommunities =
+      <Map<String, dynamic>>[].obs;
   final RxBool _isLoadingArenas = true.obs;
   final RxBool _isLoadingJoinedCommunities = true.obs;
 
@@ -104,13 +119,24 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   late final Worker _giftStatsWorker;
 
-  bool get _isMe => widget.visitorUser == null || widget.visitorUser!.id == UserProfileCacheManager.currentUserId;
+  bool get _isMe =>
+      widget.visitorUser == null ||
+      widget.visitorUser!.id == UserProfileCacheManager.currentUserId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     UserProfileCacheManager.addListener(_onProfileCacheChanged);
+
+    // Pre-initialize _user from the visitor user or cached profile for safety
+    if (widget.visitorUser != null) {
+      _user = widget.visitorUser!;
+    } else {
+      final cached = UserProfileCacheManager.currentUser;
+      if (cached != null) _user = cached;
+    }
+
     _loadUserProfile();
 
     // Trigger offline-first cached fetches immediately, fresh in background
@@ -123,8 +149,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     }
 
     // Reactively refresh gift stats on new realtime transactions
-    _giftStatsWorker = ever(UserProfileCacheManager.giftTransactionsTrigger, (_) {
-      debugPrint('[ProfileScreen] Realtime gift transaction event triggered cache refresh.');
+    _giftStatsWorker =
+        ever(UserProfileCacheManager.giftTransactionsTrigger, (_) {
+      debugPrint(
+          '[ProfileScreen] Realtime gift transaction event triggered cache refresh.');
       _fetchGiftStatsBackground();
       _loadUserProfile();
     });
@@ -141,9 +169,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   // Offline-First Smart Data Fetchers
 
   Future<void> _fetchUserArenasBackground() async {
-    final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
+    final profileId =
+        _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
     if (profileId.isEmpty) return;
-    
+
     // 1. Load from Isar Cache
     try {
       final cachedList = await IsarStorageService.to.getCacheList<VoiceRoom>(
@@ -165,17 +194,17 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           .select()
           .eq('host_id', profileId)
           .neq('status', 'ended');
-      
+
       final List<VoiceRoom> loaded = [];
       if (response != null) {
         for (final item in response as List) {
           loaded.add(VoiceRoom.fromJson(item));
         }
       }
-      
+
       _myArenas.assignAll(loaded);
       _isLoadingArenas.value = false;
-      
+
       // Save cache
       await IsarStorageService.to.saveCacheList<VoiceRoom>(
         'my_arenas_cache:$profileId',
@@ -189,18 +218,21 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   }
 
   Future<void> _fetchUserJoinedCommunitiesBackground() async {
-    final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
+    final profileId =
+        _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
     if (profileId.isEmpty) return;
 
     // 1. Load from Isar Cache
     try {
-      final cachedPayload = await IsarStorageService.to.getCacheEntryPayload('joined_communities_cache:$profileId');
+      final cachedPayload = await IsarStorageService.to
+          .getCacheEntryPayload('joined_communities_cache:$profileId');
       if (cachedPayload != null && cachedPayload.isNotEmpty) {
         final List<dynamic> decoded = jsonDecode(cachedPayload);
         final List<Map<String, dynamic>> results = [];
         for (final row in decoded) {
           final role = row['role'] as String;
-          final community = Community.fromJson(row['community'] as Map<String, dynamic>);
+          final community =
+              Community.fromJson(row['community'] as Map<String, dynamic>);
           results.add({
             'role': role,
             'community': community,
@@ -219,7 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           .from('community_memberships')
           .select('role, communities(*)')
           .eq('user_id', profileId);
-      
+
       if (response != null) {
         final List<Map<String, dynamic>> results = [];
         final List<Map<String, dynamic>> cacheList = [];
@@ -227,7 +259,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           final role = row['role'] as String? ?? 'member';
           final communityData = row['communities'];
           if (communityData != null) {
-            final community = Community.fromJson(communityData as Map<String, dynamic>);
+            final community =
+                Community.fromJson(communityData as Map<String, dynamic>);
             results.add({
               'role': role,
               'community': community,
@@ -254,20 +287,28 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   }
 
   Future<void> _fetchGiftStatsBackground() async {
-    final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
+    final profileId =
+        _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
     if (profileId.isEmpty) return;
 
     // 1. Load from Isar Cache
     try {
-      final cachedPayload = await IsarStorageService.to.getCacheEntryPayload('gift_stats_cache:$profileId');
+      final cachedPayload = await IsarStorageService.to
+          .getCacheEntryPayload('gift_stats_cache:$profileId');
       if (cachedPayload != null && cachedPayload.isNotEmpty) {
         final Map<String, dynamic> decoded = jsonDecode(cachedPayload);
-        _giftLifetimeReceived.value = (decoded['lifetime_received'] as num?)?.toDouble() ?? 0.0;
-        _giftLifetimeSent.value = (decoded['lifetime_sent'] as num?)?.toDouble() ?? 0.0;
-        _giftMonthlyReceived.value = (decoded['monthly_received'] as num?)?.toDouble() ?? 0.0;
-        _giftMonthlySent.value = (decoded['monthly_sent'] as num?)?.toDouble() ?? 0.0;
-        _giftRecentReceivedAvatars.assignAll(List<String>.from(decoded['recent_received_avatars'] ?? []));
-        _giftRecentSentAvatars.assignAll(List<String>.from(decoded['recent_sent_avatars'] ?? []));
+        _giftLifetimeReceived.value =
+            (decoded['lifetime_received'] as num?)?.toDouble() ?? 0.0;
+        _giftLifetimeSent.value =
+            (decoded['lifetime_sent'] as num?)?.toDouble() ?? 0.0;
+        _giftMonthlyReceived.value =
+            (decoded['monthly_received'] as num?)?.toDouble() ?? 0.0;
+        _giftMonthlySent.value =
+            (decoded['monthly_sent'] as num?)?.toDouble() ?? 0.0;
+        _giftRecentReceivedAvatars.assignAll(
+            List<String>.from(decoded['recent_received_avatars'] ?? []));
+        _giftRecentSentAvatars
+            .assignAll(List<String>.from(decoded['recent_sent_avatars'] ?? []));
         _isLoadingGiftStats.value = false;
       }
     } catch (e) {
@@ -278,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     try {
       final response = await Supabase.instance.client
           .rpc('get_user_gift_stats_v2', params: {'p_user_id': profileId});
-      
+
       if (response != null) {
         final Map<String, dynamic> stats = Map<String, dynamic>.from(response);
 
@@ -291,12 +332,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               .eq('receiver_id', profileId);
           if (receivedData != null) {
             for (final item in receivedData as List<dynamic>) {
-              actualReceived += (item['stars_value'] as num?)?.toDouble() ?? 0.0;
+              actualReceived +=
+                  (item['stars_value'] as num?)?.toDouble() ?? 0.0;
             }
           }
         } catch (e) {
           debugPrint('Error calculating actual received stars: $e');
-          actualReceived = (stats['lifetime_received'] as num?)?.toDouble() ?? 0.0;
+          actualReceived =
+              (stats['lifetime_received'] as num?)?.toDouble() ?? 0.0;
         }
 
         // Calculate actual gold coins sent from transactions
@@ -309,9 +352,11 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           if (sentData != null) {
             for (final item in sentData as List<dynamic>) {
               final catalog = item['gift_catalog'];
-              final currency = catalog != null ? catalog['currency'] as String? : 'gold';
+              final currency =
+                  catalog != null ? catalog['currency'] as String? : 'gold';
               if (currency == 'gold') {
-                actualSentGold += (item['stars_value'] as num?)?.toDouble() ?? 0.0;
+                actualSentGold +=
+                    (item['stars_value'] as num?)?.toDouble() ?? 0.0;
               }
             }
           }
@@ -322,10 +367,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
         _giftLifetimeReceived.value = actualReceived;
         _giftLifetimeSent.value = actualSentGold;
-        _giftMonthlyReceived.value = (stats['monthly_received'] as num?)?.toDouble() ?? 0.0;
-        _giftMonthlySent.value = (stats['monthly_sent'] as num?)?.toDouble() ?? 0.0;
-        _giftRecentReceivedAvatars.assignAll(List<String>.from(stats['recent_received_avatars'] ?? []));
-        _giftRecentSentAvatars.assignAll(List<String>.from(stats['recent_sent_avatars'] ?? []));
+        _giftMonthlyReceived.value =
+            (stats['monthly_received'] as num?)?.toDouble() ?? 0.0;
+        _giftMonthlySent.value =
+            (stats['monthly_sent'] as num?)?.toDouble() ?? 0.0;
+        _giftRecentReceivedAvatars.assignAll(
+            List<String>.from(stats['recent_received_avatars'] ?? []));
+        _giftRecentSentAvatars
+            .assignAll(List<String>.from(stats['recent_sent_avatars'] ?? []));
         _isLoadingGiftStats.value = false;
 
         // Save cache
@@ -337,7 +386,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           'recent_received_avatars': stats['recent_received_avatars'],
           'recent_sent_avatars': stats['recent_sent_avatars'],
         };
-        await IsarStorageService.to.saveCacheEntry('gift_stats_cache:$profileId', jsonEncode(cacheStats));
+        await IsarStorageService.to.saveCacheEntry(
+            'gift_stats_cache:$profileId', jsonEncode(cacheStats));
       }
     } catch (e) {
       debugPrint('Error background fetching gift stats RPC: $e');
@@ -347,7 +397,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   void _onProfileCacheChanged() {
     if (!mounted) return;
-    final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
+    final profileId =
+        _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
     final updated = UserProfileCacheManager.rxCache[profileId];
     if (updated != null) {
       setState(() {
@@ -392,43 +443,64 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   Future<void> _loadUserProfile() async {
     if (!mounted) return;
-    setState(() {
-      _isLoadingProfile = true;
-      _errorMessage = null;
-    });
-    try {
-      final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
-      
-      final profileData = await Supabase.instance.client
-          .from('profiles')
-          .select()
-          .eq('id', profileId)
-          .maybeSingle();
-          
-      final walletData = await Supabase.instance.client
-          .from('wallets')
-          .select()
-          .eq('id', profileId)
-          .maybeSingle();
 
-      if (profileData == null) {
+    final profileId = _isMe
+        ? UserProfileCacheManager.currentUserId
+        : widget.visitorUser!.id;
+
+    // Try loading from cache first for immediate UI display
+    final cached = UserProfileCacheManager.getCachedUser(profileId);
+    if (cached != null) {
+      _user = cached;
+      _isLoadingProfile = false;
+    } else {
+      setState(() {
+        _isLoadingProfile = true;
+        _errorMessage = null;
+      });
+    }
+
+    try {
+      final fetchedData = await ApiErrorHandler.executeWithRetry<Map<String, dynamic>?>(() async {
+        final profileData = await Supabase.instance.client
+            .from('profiles')
+            .select()
+            .eq('id', profileId)
+            .maybeSingle();
+
+        final walletData = await Supabase.instance.client
+            .from('wallets')
+            .select()
+            .eq('id', profileId)
+            .maybeSingle();
+
+        if (profileData == null) return null;
+
+        final Map<String, dynamic> merged = Map<String, dynamic>.from(profileData);
+        merged['silverCoins'] = walletData != null ? (walletData['coins_balance'] ?? 0) : 0;
+        return merged;
+      });
+
+      if (fetchedData == null) {
         if (_isMe) {
           await UserProfileCacheManager.forceLogout(
-            message: "Your account is unavailable. Please sign in again or contact support."
-          );
+              message:
+                  "Your account is unavailable. Please sign in again or contact support.");
           return;
         }
-        setState(() {
-          _isLoadingProfile = false;
-          _errorMessage = 'Profile row not found in database.';
-        });
+        if (mounted) {
+          setState(() {
+            _isLoadingProfile = false;
+            _errorMessage = 'Profile unavailable.';
+          });
+        }
         return;
       }
 
       // Validate ban/suspension status for active user
-      final status = profileData['status'] as String?;
-      final isBanned = profileData['is_banned'] as bool? ?? false;
-      final banReason = profileData['ban_reason'] as String?;
+      final status = fetchedData['status'] as String?;
+      final isBanned = fetchedData['is_banned'] as bool? ?? false;
+      final banReason = fetchedData['ban_reason'] as String?;
 
       if (_isMe && (status == 'suspended' || status == 'banned' || isBanned)) {
         await UserProfileCacheManager.forceLogout(
@@ -439,23 +511,31 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         return;
       }
 
-      final Map<String, dynamic> mergedData = Map<String, dynamic>.from(profileData);
-      mergedData['silverCoins'] = walletData != null ? (walletData['coins_balance'] ?? 0) : 0;
+      // Sync VIP and Customization Controllers in background to ensure all assets are synchronized
+      if (_isMe) {
+        _vipCtrl.loadVipFromDatabase();
+        _custCtrl.fetchFullInventoryAndEntitlementsViaRpc();
+      }
 
+      if (!mounted) return;
       setState(() {
-        _user = User.fromJson(mergedData);
+        _user = User.fromJson(fetchedData);
         if (_isMe) {
           UserProfileCacheManager.setCurrentUser(_user);
         } else {
           UserProfileCacheManager.rxCache[_user.id] = _user;
         }
         _isLoadingProfile = false;
+        _errorMessage = null;
       });
     } catch (e) {
+      debugPrint('[ProfileScreen] Profile fetch exception: $e');
       if (!mounted) return;
       setState(() {
         _isLoadingProfile = false;
-        _errorMessage = 'Failed to load profile: $e';
+        if (!_isUserInitialized) {
+          _errorMessage = ApiErrorHandler.parseError(e);
+        }
       });
     }
   }
@@ -467,10 +547,12 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           .select()
           .eq('host_id', _user.id)
           .neq('status', 'ended');
-      
+
       if (response == null) return [];
       final list = response as List<dynamic>;
-      return list.map((item) => VoiceRoom.fromJson(item as Map<String, dynamic>)).toList();
+      return list
+          .map((item) => VoiceRoom.fromJson(item as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       debugPrint('Error fetching user arenas: $e');
       return [];
@@ -483,14 +565,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           .from('community_memberships')
           .select('role, communities(*)')
           .eq('user_id', _user.id);
-      
+
       if (response == null) return [];
       final List<Map<String, dynamic>> results = [];
       for (final row in response as List<dynamic>) {
         final role = row['role'] as String? ?? 'member';
         final communityData = row['communities'];
         if (communityData != null) {
-          final community = Community.fromJson(communityData as Map<String, dynamic>);
+          final community =
+              Community.fromJson(communityData as Map<String, dynamic>);
           results.add({
             'role': role,
             'community': community,
@@ -538,10 +621,12 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   String _formatCount(num count) {
     if (count >= 1000000) {
       double value = count / 1000000;
-      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) + 'M';
+      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) +
+          'M';
     } else if (count >= 1000) {
       double value = count / 1000;
-      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) + 'K';
+      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) +
+          'K';
     }
     return count.toString();
   }
@@ -553,7 +638,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       _isLoadingPosts = true;
     });
     try {
-      final profileId = _isMe ? UserProfileCacheManager.currentUserId : widget.visitorUser!.id;
+      final profileId = _isMe
+          ? UserProfileCacheManager.currentUserId
+          : widget.visitorUser!.id;
       final postsResponse = await Supabase.instance.client
           .from('posts')
           .select('*, profiles!posts_user_id_fkey(username, avatar_url)')
@@ -563,7 +650,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       List<Post> fetchedPosts = [];
       if (postsResponse != null) {
         final List<dynamic> list = postsResponse as List<dynamic>;
-        fetchedPosts = list.map((item) => Post.fromJson(item as Map<String, dynamic>)).toList();
+        fetchedPosts = list
+            .map((item) => Post.fromJson(item as Map<String, dynamic>))
+            .toList();
       }
       if (mounted) {
         setState(() {
@@ -633,7 +722,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       targetUserName: _user.displayName,
       occupiedSeatsCount: 1,
       onGiftSent: (giftName, giftIcon, cost, currency) {
-        Get.snackbar('Gift Sent 🎁', 'You sent $giftName to ${_user.displayName}!');
+        Get.snackbar(
+            'Gift Sent 🎁', 'You sent $giftName to ${_user.displayName}!');
         _loadUserProfile();
       },
     ));
@@ -653,27 +743,35 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           children: [
             ListTile(
               leading: const Icon(Icons.share_rounded, color: Colors.white),
-              title: const Text('Share Profile', style: TextStyle(color: Colors.white)),
+              title: const Text('Share Profile',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
-                Share.share('Check out ${_user.displayName}\'s profile on Creania: https://creania.com/user/${_user.username}');
+                Share.share(
+                    'Check out ${_user.displayName}\'s profile on Creania: https://creania.com/user/${_user.username}');
               },
             ),
             ListTile(
-              leading: Icon(Icons.block_rounded, color: _isBlocked ? Colors.green : Colors.redAccent),
-              title: Text(_isBlocked ? 'Unblock User' : 'Block User', style: const TextStyle(color: Colors.white)),
+              leading: Icon(Icons.block_rounded,
+                  color: _isBlocked ? Colors.green : Colors.redAccent),
+              title: Text(_isBlocked ? 'Unblock User' : 'Block User',
+                  style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
                 setState(() => _isBlocked = !_isBlocked);
-                Get.snackbar(_isBlocked ? 'Blocked 🚫' : 'Unblocked 🟢', 'User has been ${_isBlocked ? 'blocked' : 'unblocked'}.');
+                Get.snackbar(_isBlocked ? 'Blocked 🚫' : 'Unblocked 🟢',
+                    'User has been ${_isBlocked ? 'blocked' : 'unblocked'}.');
               },
             ),
             ListTile(
-              leading: const Icon(Icons.report_problem_rounded, color: Colors.orangeAccent),
-              title: const Text('Report User', style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.report_problem_rounded,
+                  color: Colors.orangeAccent),
+              title: const Text('Report User',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
-                Get.snackbar('Report Submitted ⚠️', 'Thank you for keeping Creania safe. Our moderation team will review this profile.');
+                Get.snackbar('Report Submitted ⚠️',
+                    'Thank you for keeping Creania safe. Our moderation team will review this profile.');
               },
             ),
           ],
@@ -684,18 +782,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoadingProfile) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF11131C),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFBEC2FF))),
-      );
+    if (_isLoadingProfile || !_isUserInitialized) {
+      return const ProfileSkeletonWidget();
     }
 
     if (_errorMessage != null) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF11131C),
-        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-        body: Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.white))),
+      return NetworkErrorStateWidget(
+        message: _errorMessage,
+        onRetry: _loadUserProfile,
       );
     }
 
@@ -719,839 +813,1072 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             _checkFollowingStatus();
           },
           child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-            // 1. Cover Photo & Header Section
-            Stack(
-              clipBehavior: Clip.none,
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
               children: [
-                // Cover Banner Container
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(
-                        _user.coverPhoto != null && _user.coverPhoto!.isNotEmpty
-                            ? _user.coverPhoto!
-                            : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQXG_YXV_OQP0-xJhu5HQN_kSn29aNlQpdYprfy_6Lt6p7S1_iFiPZLBOCoYJyYLzD0jEMn_nDJdbzzTPPd9TPWvJOwbk2Hx0LhOeMno3fyDDnF0AexwryfifU6lOGkltd25UuY-QDuOgq-sQKBI_660pJrJUwMlGT4P1ZqHI7FpHXm4QzmIXTfLHKh-g5G0vX9VSCr97WBuxDAJjWw-oKaHFOSMYfd4JInnsuQE_mpojplk9j2obIfxP_OmYQFk2XxAFzsoJAuPrc',
-                      ),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.only(top: 40, left: 16, right: 16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.transparent, _resolveProfileBackgroundColor()],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // App bar buttons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            GestureDetector(
-                              onTap: () => Navigator.pop(context),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1D1F29).withOpacity(0.5),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white.withOpacity(0.05)),
-                                ),
-                                child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
-                              ),
-                            ),
-                            if (_isMe)
-                              GestureDetector(
-                                onTap: () => Get.to(() => const SettingsScreen()),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1D1F29).withOpacity(0.5),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white.withOpacity(0.05)),
-                                  ),
-                                  child: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
-                                ),
-                              ),
-                          ],
+                // 1. Cover Photo & Header Section
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Cover Banner Container
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: NetworkImage(
+                            _user.coverPhoto != null &&
+                                    _user.coverPhoto!.isNotEmpty
+                                ? _user.coverPhoto!
+                                : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQXG_YXV_OQP0-xJhu5HQN_kSn29aNlQpdYprfy_6Lt6p7S1_iFiPZLBOCoYJyYLzD0jEMn_nDJdbzzTPPd9TPWvJOwbk2Hx0LhOeMno3fyDDnF0AexwryfifU6lOGkltd25UuY-QDuOgq-sQKBI_660pJrJUwMlGT4P1ZqHI7FpHXm4QzmIXTfLHKh-g5G0vX9VSCr97WBuxDAJjWw-oKaHFOSMYfd4JInnsuQE_mpojplk9j2obIfxP_OmYQFk2XxAFzsoJAuPrc',
+                          ),
+                          fit: BoxFit.cover,
                         ),
-                        const SizedBox(height: 20),
-                        
-                        // Centered Avatar Frame and Profile Photo
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            CustomAvatarFrame(
-                              userId: _user.id,
-                              username: _user.username,
-                              size: (_user.avatarFrame != null && _user.avatarFrame!.isNotEmpty && _user.avatarFrame != 'none' && _user.avatarFrame != 'normal') || _user.vipLevel > 0 || _user.novelLevel > 0 ? 112 : 96,
-                              defaultVipLevel: _user.vipLevel,
-                              defaultNovelLevel: _user.novelLevel,
-                              showBadges: false,
-                              child: CircleAvatar(
-                                radius: 48,
-                                backgroundColor: const Color(0xFF11131C),
-                                child: OptimizedImage(
-                                  imageUrl: _user.avatar != null && _user.avatar!.isNotEmpty
-                                      ? _user.avatar!
-                                      : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCybH5Mu5-PZ_dMHWuWFu9UFqwNpHtc79GaJ1SCz5v_bdFVOBIBr6-Cbgapb6sfnES7omhgh6mLz1FBQpMfCdnTcBsYtqmihxZELjY4zaJAwKYf6bU-AtUsm-WZRdG9uAznurNgCeHKjz02JXnJcB3olfo16_NN_dQPu_losBj6pac8-KtnTIXZREq6hInG6VPAEfdXysXJ11taDrh7Te-i-xDA02rAOPFka-22raXdTq9vSpH1pBr5u3Wsl9JF1x6b8CiVtPwIoSmu',
-                                  quality: ImageQuality.thumbnail,
-                                  borderRadius: BorderRadius.circular(48),
-                                  width: 96,
-                                  height: 96,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 4,
-                              right: 4,
-                              child: Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: const Color(0xFF11131C), width: 2),
-                                ),
-                              ),
-                            ),
-                          ],
+                      ),
+                      child: Container(
+                        padding:
+                            const EdgeInsets.only(top: 40, left: 16, right: 16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              _resolveProfileBackgroundColor()
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
                         ),
-                        const SizedBox(height: 12),
-
-                        // First Row: Username (Bold, Primary Focus, 18 px)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              _user.displayName,
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: -0.4,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Icon(
-                              _user.gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
-                              color: _user.gender == 'female' ? const Color(0xFFF472B6) : const Color(0xFF60A5FA),
-                              size: 16,
-                            ),
-                            if (_isMe) ...[
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => Get.to(() => const ProfileCustomizationScreen()),
-                                child: const Icon(Icons.edit_rounded, color: Colors.white70, size: 14),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-
-                        // Second Row: User ID (Smaller, 13 px, Secondary text)
-                        GestureDetector(
-                          onTap: () {
-                            Clipboard.setData(ClipboardData(text: _user.sid));
-                            Get.snackbar('Copied', 'ID copied to clipboard.');
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.03),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            // App bar buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'ID: ${_user.sid}',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
+                                GestureDetector(
+                                  onTap: () {
+                                    if (Navigator.canPop(context)) {
+                                      Navigator.pop(context);
+                                    } else {
+                                      Get.offAll(() => const MainScreen());
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1D1F29)
+                                          .withOpacity(0.5),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color:
+                                              Colors.white.withOpacity(0.05)),
+                                    ),
+                                    child: const Icon(Icons.arrow_back_rounded,
+                                        color: Colors.white, size: 20),
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.content_copy_rounded,
-                                  color: Colors.white54,
-                                  size: 11,
+                                if (_isMe)
+                                  GestureDetector(
+                                    onTap: () =>
+                                        Get.to(() => const SettingsScreen()),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF1D1F29)
+                                            .withOpacity(0.5),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                            color:
+                                                Colors.white.withOpacity(0.05)),
+                                      ),
+                                      child: const Icon(Icons.settings_outlined,
+                                          color: Colors.white, size: 20),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Centered Avatar Frame and Profile Photo
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                CustomAvatarFrame(
+                                  userId: _user.id,
+                                  username: _user.username,
+                                  size: (_user.avatarFrame != null &&
+                                              _user.avatarFrame!.isNotEmpty &&
+                                              _user.avatarFrame != 'none' &&
+                                              _user.avatarFrame != 'normal') ||
+                                          _user.vipLevel > 0 ||
+                                          _user.novelLevel > 0
+                                      ? 112
+                                      : 96,
+                                  defaultVipLevel: _user.vipLevel,
+                                  defaultNovelLevel: _user.novelLevel,
+                                  showBadges: false,
+                                  child: CircleAvatar(
+                                    radius: 48,
+                                    backgroundColor: const Color(0xFF11131C),
+                                    child: OptimizedImage(
+                                      imageUrl: _user.avatar != null &&
+                                              _user.avatar!.isNotEmpty
+                                          ? _user.avatar!
+                                          : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCybH5Mu5-PZ_dMHWuWFu9UFqwNpHtc79GaJ1SCz5v_bdFVOBIBr6-Cbgapb6sfnES7omhgh6mLz1FBQpMfCdnTcBsYtqmihxZELjY4zaJAwKYf6bU-AtUsm-WZRdG9uAznurNgCeHKjz02JXnJcB3olfo16_NN_dQPu_losBj6pac8-KtnTIXZREq6hInG6VPAEfdXysXJ11taDrh7Te-i-xDA02rAOPFka-22raXdTq9vSpH1pBr5u3Wsl9JF1x6b8CiVtPwIoSmu',
+                                      quality: ImageQuality.thumbnail,
+                                      borderRadius: BorderRadius.circular(48),
+                                      width: 96,
+                                      height: 96,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 4,
+                                  right: 4,
+                                  child: Container(
+                                    width: 16,
+                                    height: 16,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: const Color(0xFF11131C),
+                                          width: 2),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
+                            const SizedBox(height: 12),
 
-                        // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 320),
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: buildTagLightsWidget(generateDynamicTagLights(_user), context),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-
-                        // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
-                        buildOfficialStatusRow(_user, context),
-                        const SizedBox(height: 6),
-
-                        // Fifth Row: Badge Showcase (with mockup container styling)
-                        buildBadgesShowcaseWidget(_user.showcasedBadges, context),
-                        const SizedBox(height: 8),
-                        
-                        // Extra bottom spacing to account for the top half of the Action Buttons row overlapping this container.
-                        const SizedBox(height: 23),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // 2. Action Buttons Row (positioned to overlap the bottom edge of the banner by half its height)
-                Positioned(
-                  bottom: -23,
-                  left: 16,
-                  right: 16,
-                  child: _buildActionButtonsRow(),
-                ),
-              ],
-            ),
-            
-            // Rest of the profile content wrapped in a Padding with top spacer for Action Buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 39),
-                  // 3. Social Stats Section
-                  Obx(() {
-                    final u = UserProfileCacheManager.rxCache[_user.id] ?? _user;
-                    final followersCount = u.followers;
-                    final followingCount = u.following;
-                    final friendsCount = u.friendsCount;
-                    final giftsCount = _giftLifetimeReceived.value;
-                    final contributeCount = _giftLifetimeSent.value;
-
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: _statCard(
-                            _formatCount(followersCount),
-                            'Followers',
-                            onTap: () => Get.to(() => ConnectionsScreen(
-                                  initialTabIndex: 1,
-                                  targetUserId: u.id,
-                                  targetUserName: u.displayName,
-                                )),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _statCard(
-                            _formatCount(followingCount),
-                            'Following',
-                            onTap: () => Get.to(() => ConnectionsScreen(
-                                  initialTabIndex: 0,
-                                  targetUserId: u.id,
-                                  targetUserName: u.displayName,
-                                )),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (_isMe) ...[
-                          Expanded(
-                            child: _statCard(
-                              _formatCount(friendsCount),
-                              'Friends',
-                              onTap: () => Get.to(() => ConnectionsScreen(
-                                    initialTabIndex: 2,
-                                    targetUserId: u.id,
-                                    targetUserName: u.displayName,
-                                  )),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _statCard(
-                              _formatCount(giftsCount) + ' ★',
-                              'Gifts',
-                              onTap: () => Get.to(() => GiftingContributionScreen(
-                                    userId: u.id,
-                                    username: u.displayName,
-                                  )),
-                            ),
-                          ),
-                        ] else ...[
-                          Expanded(
-                            child: _statCard(
-                              _formatCount(giftsCount) + ' ★',
-                              'Gifts',
-                              onTap: () => Get.to(() => GiftingContributionScreen(
-                                    userId: u.id,
-                                    username: u.displayName,
-                                  )),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _statCard(
-                              _formatCount(contributeCount) + ' ★',
-                              'Contribute',
-                              onTap: () => Get.to(() => GiftingContributionScreen(
-                                    userId: u.id,
-                                    username: u.displayName,
-                                  )),
-                            ),
-                          ),
-                        ],
-                      ],
-                    );
-                  }),
-                  const SizedBox(height: 12),
-
-                  // 4. Bio & Links Section
-                  _glassCard(
-                    child: Obx(() {
-                      final u = UserProfileCacheManager.rxCache[_user.id] ?? _user;
-                      final bioText = u.bio != null && u.bio!.isNotEmpty 
-                          ? u.bio! 
-                          : 'No bio written yet.';
-                      final locationText = (u.city != null && u.city!.isNotEmpty)
-                          ? '${u.city}, ${u.country ?? ""}'
-                          : (u.country ?? 'N/A');
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            bioText,
-                            style: GoogleFonts.inter(color: const Color(0xFFE1E1EF), fontSize: 13, height: 1.4),
-                          ),
-                          const SizedBox(height: 12),
-                          _bioDetailRow(Icons.location_on_outlined, locationText),
-                          const SizedBox(height: 6),
-                          _bioDetailRow(Icons.language_rounded, u.language.toUpperCase()),
-                          const SizedBox(height: 6),
-                          _bioDetailRow(Icons.link_rounded, u.website != null && u.website!.isNotEmpty ? u.website! : 'N/A'),
-                        ],
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 5. Personal Info Section
-                  _glassCard(
-                    child: Obx(() {
-                      final u = UserProfileCacheManager.rxCache[_user.id] ?? _user;
-                      final dobStr = u.dob != null ? DateFormat('dd MMM yyyy').format(u.dob!) : 'N/A';
-                      final ageStr = u.age > 0 ? '${u.age} years' : 'N/A';
-                      
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Personal Info', style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontWeight: FontWeight.bold, fontSize: 12)),
-                          const SizedBox(height: 12),
-                          _infoTableRow('Gender', u.gender != null && u.gender!.isNotEmpty ? u.gender!.capitalizeFirst! : 'N/A'),
-                          _infoTableRow('Age', ageStr),
-                          _infoTableRow('Birthday', dobStr),
-                          _infoTableRow('Country', u.country != null && u.country!.isNotEmpty ? u.country! : 'N/A'),
-                          _infoTableRow('Language', u.language.isNotEmpty ? u.language.toUpperCase() : 'N/A'),
-                          _infoTableRow('Profession', u.profession != null && u.profession!.isNotEmpty ? u.profession! : 'N/A'),
-                          _infoTableRow('Education', u.education != null && u.education!.isNotEmpty ? u.education! : 'N/A'),
-                          _infoTableRow('Website', u.website != null && u.website!.isNotEmpty ? u.website! : 'N/A', isLast: true),
-                        ],
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 6. My Arenas Section
-                  _glassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('My Arenas', style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontWeight: FontWeight.bold, fontSize: 12)),
-                        const SizedBox(height: 12),
-                        Obx(() {
-                          if (_isLoadingArenas.value) {
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            );
-                          }
-                          if (_myArenas.isEmpty) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                                child: Text(
-                                  'Not Created Any Arena Yet',
-                                  style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 13),
-                                ),
-                              ),
-                            );
-                          }
-                          return ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _myArenas.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final room = _myArenas[index];
-                              final coverUrl = (room.banner != null && room.banner!.isNotEmpty)
-                                  ? room.banner!
-                                  : (room.roomCoverUrl != null && room.roomCoverUrl!.isNotEmpty)
-                                      ? room.roomCoverUrl!
-                                      : 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809';
-
-                              return GestureDetector(
-                                onTap: () {
-                                  final currentUid = UserProfileCacheManager.currentUserId;
-                                  final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
-                                  Get.to(
-                                    () => VoiceRoomCallScreen(
-                                      roomId: room.id,
-                                      roomName: room.name,
-                                      userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
-                                      userName: currentUsername != 'Creania Student' ? currentUsername : 'anurag_kumar',
-                                      isHost: room.hostId == currentUid,
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  height: 100,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    image: DecorationImage(
-                                      image: NetworkImage(coverUrl),
-                                      fit: BoxFit.cover,
-                                    ),
+                            // First Row: Username (Bold, Primary Focus, 18 px)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _user.displayName,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: -0.4,
                                   ),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                      gradient: const LinearGradient(
-                                        colors: [Colors.black87, Colors.transparent],
-                                        begin: Alignment.bottomCenter,
-                                        end: Alignment.topCenter,
+                                ),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  _user.gender == 'female'
+                                      ? Icons.female_rounded
+                                      : Icons.male_rounded,
+                                  color: _user.gender == 'female'
+                                      ? const Color(0xFFF472B6)
+                                      : const Color(0xFF60A5FA),
+                                  size: 16,
+                                ),
+                                if (_isMe) ...[
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () => Get.to(() =>
+                                        const ProfileCustomizationScreen()),
+                                    child: const Icon(Icons.edit_rounded,
+                                        color: Colors.white70, size: 14),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Second Row: User ID (Smaller, 13 px, Secondary text)
+                            GestureDetector(
+                              onTap: () {
+                                Clipboard.setData(
+                                    ClipboardData(text: _user.sid));
+                                Get.snackbar(
+                                    'Copied', 'ID copied to clipboard.');
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.03),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: Colors.white.withOpacity(0.08),
+                                      width: 1.0),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'ID: ${_user.sid}',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white70,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    padding: const EdgeInsets.all(10),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.content_copy_rounded,
+                                      color: Colors.white54,
+                                      size: 11,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: buildTagLightsWidget(
+                                    generateDynamicTagLights(_user), context),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
+                            buildOfficialStatusRow(_user, context),
+                            const SizedBox(height: 6),
+
+                            // Fifth Row: Badge Showcase (with mockup container styling)
+                            buildBadgesShowcaseWidget(
+                                _user.showcasedBadges, context),
+                            const SizedBox(height: 8),
+
+                            // Extra bottom spacing to account for the top half of the Action Buttons row overlapping this container.
+                            const SizedBox(height: 23),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // 2. Action Buttons Row (positioned to overlap the bottom edge of the banner by half its height)
+                    Positioned(
+                      bottom: -23,
+                      left: 16,
+                      right: 16,
+                      child: _buildActionButtonsRow(),
+                    ),
+                  ],
+                ),
+
+                // Rest of the profile content wrapped in a Padding with top spacer for Action Buttons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 39),
+                      // 3. Social Stats Section
+                      Obx(() {
+                        final u =
+                            UserProfileCacheManager.rxCache[_user.id] ?? _user;
+                        final followersCount = u.followers;
+                        final followingCount = u.following;
+                        final friendsCount = u.friendsCount;
+                        final giftsCount = _giftLifetimeReceived.value;
+                        final contributeCount = _giftLifetimeSent.value;
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _statCard(
+                                _formatCount(followersCount),
+                                'Followers',
+                                onTap: () => Get.to(() => ConnectionsScreen(
+                                      initialTabIndex: 1,
+                                      targetUserId: u.id,
+                                      targetUserName: u.displayName,
+                                    )),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _statCard(
+                                _formatCount(followingCount),
+                                'Following',
+                                onTap: () => Get.to(() => ConnectionsScreen(
+                                      initialTabIndex: 0,
+                                      targetUserId: u.id,
+                                      targetUserName: u.displayName,
+                                    )),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (_isMe) ...[
+                              Expanded(
+                                child: _statCard(
+                                  _formatCount(friendsCount),
+                                  'Friends',
+                                  onTap: () => Get.to(() => ConnectionsScreen(
+                                        initialTabIndex: 2,
+                                        targetUserId: u.id,
+                                        targetUserName: u.displayName,
+                                      )),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _statCard(
+                                  _formatCount(giftsCount) + ' ★',
+                                  'Gifts',
+                                  onTap: () =>
+                                      Get.to(() => GiftingContributionScreen(
+                                            userId: u.id,
+                                            username: u.displayName,
+                                          )),
+                                ),
+                              ),
+                            ] else ...[
+                              Expanded(
+                                child: _statCard(
+                                  _formatCount(giftsCount) + ' ★',
+                                  'Gifts',
+                                  onTap: () =>
+                                      Get.to(() => GiftingContributionScreen(
+                                            userId: u.id,
+                                            username: u.displayName,
+                                          )),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _statCard(
+                                  _formatCount(contributeCount) + ' ★',
+                                  'Contribute',
+                                  onTap: () =>
+                                      Get.to(() => GiftingContributionScreen(
+                                            userId: u.id,
+                                            username: u.displayName,
+                                          )),
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 12),
+
+                      // 4. Bio & Links Section
+                      _glassCard(
+                        child: Obx(() {
+                          final u = UserProfileCacheManager.rxCache[_user.id] ??
+                              _user;
+                          final bioText = u.bio != null && u.bio!.isNotEmpty
+                              ? u.bio!
+                              : 'No bio written yet.';
+                          final locationText =
+                              (u.city != null && u.city!.isNotEmpty)
+                                  ? '${u.city}, ${u.country ?? ""}'
+                                  : (u.country ?? 'N/A');
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                bioText,
+                                style: GoogleFonts.inter(
+                                    color: const Color(0xFFE1E1EF),
+                                    fontSize: 13,
+                                    height: 1.4),
+                              ),
+                              const SizedBox(height: 12),
+                              _bioDetailRow(
+                                  Icons.location_on_outlined, locationText),
+                              const SizedBox(height: 6),
+                              _bioDetailRow(Icons.language_rounded,
+                                  u.language.toUpperCase()),
+                              const SizedBox(height: 6),
+                              _bioDetailRow(
+                                  Icons.link_rounded,
+                                  u.website != null && u.website!.isNotEmpty
+                                      ? u.website!
+                                      : 'N/A'),
+                            ],
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 5. Personal Info Section
+                      _glassCard(
+                        child: Obx(() {
+                          final u = UserProfileCacheManager.rxCache[_user.id] ??
+                              _user;
+                          final dobStr = u.dob != null
+                              ? DateFormat('dd MMM yyyy').format(u.dob!)
+                              : 'N/A';
+                          final ageStr = u.age > 0 ? '${u.age} years' : 'N/A';
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Personal Info',
+                                  style: GoogleFonts.inter(
+                                      color: const Color(0xFFC6C5D7),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12)),
+                              const SizedBox(height: 12),
+                              _infoTableRow(
+                                  'Gender',
+                                  u.gender != null && u.gender!.isNotEmpty
+                                      ? u.gender!.capitalizeFirst!
+                                      : 'N/A'),
+                              _infoTableRow('Age', ageStr),
+                              _infoTableRow('Birthday', dobStr),
+                              _infoTableRow(
+                                  'Country',
+                                  u.country != null && u.country!.isNotEmpty
+                                      ? u.country!
+                                      : 'N/A'),
+                              _infoTableRow(
+                                  'Language',
+                                  u.language.isNotEmpty
+                                      ? u.language.toUpperCase()
+                                      : 'N/A'),
+                              _infoTableRow(
+                                  'Profession',
+                                  u.profession != null &&
+                                          u.profession!.isNotEmpty
+                                      ? u.profession!
+                                      : 'N/A'),
+                              _infoTableRow(
+                                  'Education',
+                                  u.education != null && u.education!.isNotEmpty
+                                      ? u.education!
+                                      : 'N/A'),
+                              _infoTableRow(
+                                  'Website',
+                                  u.website != null && u.website!.isNotEmpty
+                                      ? u.website!
+                                      : 'N/A',
+                                  isLast: true),
+                            ],
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 6. My Arenas Section
+                      _glassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('My Arenas',
+                                style: GoogleFonts.inter(
+                                    color: const Color(0xFFC6C5D7),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
+                            const SizedBox(height: 12),
+                            Obx(() {
+                              if (_isLoadingArenas.value) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  ),
+                                );
+                              }
+                              if (_myArenas.isEmpty) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16.0),
+                                    child: Text(
+                                      'Not Created Any Arena Yet',
+                                      style: GoogleFonts.inter(
+                                          color: const Color(0xFFC6C5D7),
+                                          fontSize: 13),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _myArenas.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, index) {
+                                  final room = _myArenas[index];
+                                  final coverUrl = (room.banner != null &&
+                                          room.banner!.isNotEmpty)
+                                      ? room.banner!
+                                      : (room.roomCoverUrl != null &&
+                                              room.roomCoverUrl!.isNotEmpty)
+                                          ? room.roomCoverUrl!
+                                          : 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809';
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      final currentUid =
+                                          UserProfileCacheManager.currentUserId;
+                                      final currentUsername =
+                                          UserProfileCacheManager
+                                                  .currentUser?.username ??
+                                              'Creania Student';
+                                      Get.to(
+                                        () => VoiceRoomCallScreen(
+                                          roomId: room.id,
+                                          roomName: room.name,
+                                          userId: currentUid.isNotEmpty
+                                              ? currentUid
+                                              : 'uid_anurag_101',
+                                          userName: currentUsername !=
+                                                  'Creania Student'
+                                              ? currentUsername
+                                              : 'anurag_kumar',
+                                          isHost: room.hostId == currentUid,
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      height: 100,
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        image: DecorationImage(
+                                          image: NetworkImage(coverUrl),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              Colors.black87,
+                                              Colors.transparent
+                                            ],
+                                            begin: Alignment.bottomCenter,
+                                            end: Alignment.topCenter,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.all(10),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
                                           children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.redAccent.withOpacity(0.2),
-                                                border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                room.hostId == UserProfileCacheManager.currentUserId ? 'OWNER' : 'CO-OWNER',
-                                                style: const TextStyle(color: Colors.redAccent, fontSize: 8, fontWeight: FontWeight.bold),
-                                              ),
+                                            Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.redAccent
+                                                        .withOpacity(0.2),
+                                                    border: Border.all(
+                                                        color: Colors.redAccent
+                                                            .withOpacity(0.5)),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            4),
+                                                  ),
+                                                  child: Text(
+                                                    room.hostId ==
+                                                            UserProfileCacheManager
+                                                                .currentUserId
+                                                        ? 'OWNER'
+                                                        : 'CO-OWNER',
+                                                    style: const TextStyle(
+                                                        color: Colors.redAccent,
+                                                        fontSize: 8,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(room.name,
+                                                    style: GoogleFonts.inter(
+                                                        color: Colors.white,
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  '${room.totalMembers} members' +
+                                                      (room.isLive
+                                                          ? '  •  ${room.participantCount} online'
+                                                          : ''),
+                                                  style: const TextStyle(
+                                                      color: Colors.white70,
+                                                      fontSize: 10),
+                                                ),
+                                              ],
                                             ),
-                                            const SizedBox(height: 4),
-                                            Text(room.name, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              '${room.totalMembers} members' + (room.isLive ? '  •  ${room.participantCount} online' : ''),
-                                              style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFDDB7FF)
+                                                    .withOpacity(0.2),
+                                                border: Border.all(
+                                                    color:
+                                                        const Color(0xFFDDB7FF)
+                                                            .withOpacity(0.5)),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text('lvl ${room.level}',
+                                                  style: const TextStyle(
+                                                      color: Color(0xFFDDB7FF),
+                                                      fontSize: 10)),
                                             ),
                                           ],
                                         ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFDDB7FF).withOpacity(0.2),
-                                            border: Border.all(color: const Color(0xFFDDB7FF).withOpacity(0.5)),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Text('lvl ${room.level}', style: const TextStyle(color: Color(0xFFDDB7FF), fontSize: 10)),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 7. Joined Communities Section
-                  _glassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Joined Communities', style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontWeight: FontWeight.bold, fontSize: 12)),
-                            Obx(() => Text(
-                              '${_joinedCommunities.length}',
-                              style: const TextStyle(color: Color(0xFFBEC2FF), fontSize: 12),
-                            )),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Obx(() {
-                          if (_isLoadingJoinedCommunities.value) {
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            );
-                          }
-                          if (_joinedCommunities.isEmpty) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                                child: Text(
-                                  'Not Joined Any Community Yet',
-                                  style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 13),
-                                ),
-                              ),
-                            );
-                          }
-                          return ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _joinedCommunities.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final entry = _joinedCommunities[index];
-                              final Community c = entry['community'];
-                              final String role = entry['role'];
-                              
-                              return _communityRow(
-                                c.name,
-                                role,
-                                'Lvl ${c.level}',
-                                c.image,
-                                c.memberCount,
-                                onTap: () => Get.to(() => CommunityDetailScreen(communityId: c.id)),
-                              );
-                            },
-                          );
-                        }),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFBEC2FF).withOpacity(0.08),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onPressed: () {
-                              Get.snackbar('Explore', 'Browse more communities in Explore tab.');
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('More Communities', style: GoogleFonts.inter(color: const Color(0xFFBEC2FF), fontSize: 11, fontWeight: FontWeight.bold)),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.arrow_forward_rounded, color: Color(0xFFBEC2FF), size: 14),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 8. Quick Actions Section
-                  if (_isMe) ...[
-                    _glassCard(
-                      child: GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 3,
-                        childAspectRatio: 1.5,
-                        children: [
-                          _navItem(Icons.task_alt_rounded, 'Tasks', () => Get.to(() => const DailyTaskScreen())),
-                          _navItem(Icons.work_outline_rounded, 'Career', () => Get.to(() => const CareerHubScreen())),
-                          _navItem(Icons.account_balance_wallet_outlined, 'Wallet', () => Get.to(() => WalletScreen())),
-                          _navItem(Icons.storefront_outlined, 'Store', () => Get.to(() => const StoreHomeScreen())),
-                          _navItem(Icons.emoji_events_outlined, 'Badges', () => Get.to(() => const BadgesScreen())),
-                          _navItem(Icons.settings_outlined, 'Settings', () => Get.to(() => const SettingsScreen())),
-                          _navItem(Icons.more_horiz_rounded, 'More', () => _showMoreOptionsSheet(context)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // 9. Achievements Section
-                  _glassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Achievements', style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontWeight: FontWeight.bold, fontSize: 12)),
-                        const SizedBox(height: 12),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _achievementBadge('VIP', Icons.diamond_outlined, const Color(0xFFFFDB3C)),
-                              const SizedBox(width: 12),
-                              _achievementBadge('Dev', Icons.code_rounded, const Color(0xFFBEC2FF)),
-                              const SizedBox(width: 12),
-                              _achievementBadge('Host', Icons.mic_none_rounded, const Color(0xFFDDB7FF)),
-                              const SizedBox(width: 12),
-                              _achievementBadge('Verified', Icons.verified_outlined, const Color(0xFF00F5FF)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 10. Gift Stats Section (Replaces Arena Stats & Old Gift Stats)
-                  Obx(() {
-                    final monthlyReceivedStr = _formatCount(_giftMonthlyReceived.value.toInt()) + ' ★';
-                    final monthlySentStr = _formatCount(_giftMonthlySent.value.toInt()) + ' ★';
-                    final lifetimeReceivedStr = _formatCount(_giftLifetimeReceived.value.toInt()) + ' ★';
-                    final lifetimeSentStr = _formatCount(_giftLifetimeSent.value.toInt()) + ' ★';
-
-                    return _glassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Get.to(() => GiftingContributionScreen(
-                                    userId: _user.id,
-                                    username: _user.displayName ?? 'Student',
-                                  ));
-                            },
-                            child: Row(
-                              children: [
-                                const Icon(Icons.featured_play_list_rounded, color: Color(0xFFFBBF24), size: 18),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Gift Stats',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Monthly received gifts',
-                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
-                              ),
-                              Text(
-                                monthlyReceivedStr,
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFFFBBF24),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'monthly contribute',
-                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
-                              ),
-                              Text(
-                                monthlySentStr,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              Get.to(() => GiftingContributionScreen(
-                                    userId: _user.id,
-                                    username: _user.displayName ?? 'Student',
-                                    initialTabIndex: 0,
-                                  ));
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Gifts',
-                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
-                                ),
-                                Row(
-                                  children: [
-                                    if (_giftRecentReceivedAvatars.isNotEmpty)
-                                      _buildOverlappingAvatars(_giftRecentReceivedAvatars.toList())
-                                    else
-                                      _buildOverlappingAvatars([
-                                        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80',
-                                        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
-                                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
-                                        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
-                                      ]),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      lifetimeReceivedStr,
-                                      style: GoogleFonts.poppins(
-                                        color: const Color(0xFF8B5CFF),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14.5,
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 16),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              Get.to(() => GiftingContributionScreen(
-                                    userId: _user.id,
-                                    username: _user.displayName ?? 'Student',
-                                    initialTabIndex: 1,
-                                  ));
-                            },
-                            child: Row(
+                                  );
+                                },
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 7. Joined Communities Section
+                      _glassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'Contributors',
-                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.5),
+                                Text('Joined Communities',
+                                    style: GoogleFonts.inter(
+                                        color: const Color(0xFFC6C5D7),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12)),
+                                Obx(() => Text(
+                                      '${_joinedCommunities.length}',
+                                      style: const TextStyle(
+                                          color: Color(0xFFBEC2FF),
+                                          fontSize: 12),
+                                    )),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Obx(() {
+                              if (_isLoadingJoinedCommunities.value) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  ),
+                                );
+                              }
+                              if (_joinedCommunities.isEmpty) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16.0),
+                                    child: Text(
+                                      'Not Joined Any Community Yet',
+                                      style: GoogleFonts.inter(
+                                          color: const Color(0xFFC6C5D7),
+                                          fontSize: 13),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _joinedCommunities.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, index) {
+                                  final entry = _joinedCommunities[index];
+                                  final Community c = entry['community'];
+                                  final String role = entry['role'];
+
+                                  return _communityRow(
+                                    c.name,
+                                    role,
+                                    'Lvl ${c.level}',
+                                    c.image,
+                                    c.memberCount,
+                                    onTap: () => Get.to(() =>
+                                        CommunityDetailScreen(
+                                            communityId: c.id)),
+                                  );
+                                },
+                              );
+                            }),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color(0xFFBEC2FF).withOpacity(0.08),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8)),
                                 ),
-                                Row(
+                                onPressed: () {
+                                  Get.snackbar('Explore',
+                                      'Browse more communities in Explore tab.');
+                                },
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    if (_giftRecentSentAvatars.isNotEmpty)
-                                      _buildOverlappingAvatars(_giftRecentSentAvatars.toList())
-                                    else
-                                      _buildOverlappingAvatars([
-                                        'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80',
-                                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
-                                        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
-                                        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
-                                      ]),
-                                    const SizedBox(width: 6),
+                                    Text('More Communities',
+                                        style: GoogleFonts.inter(
+                                            color: const Color(0xFFBEC2FF),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.arrow_forward_rounded,
+                                        color: Color(0xFFBEC2FF), size: 14),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 8. Quick Actions Section
+                      if (_isMe) ...[
+                        _glassCard(
+                          child: GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 3,
+                            childAspectRatio: 1.5,
+                            children: [
+                              _navItem(Icons.task_alt_rounded, 'Tasks',
+                                  () => Get.to(() => const DailyTaskScreen())),
+                              _navItem(Icons.work_outline_rounded, 'Career',
+                                  () => Get.to(() => const CareerHubScreen())),
+                              _navItem(Icons.account_balance_wallet_outlined,
+                                  'Wallet', () => Get.to(() => WalletScreen())),
+                              _navItem(Icons.storefront_outlined, 'Store',
+                                  () => Get.to(() => const StoreHomeScreen())),
+                              _navItem(Icons.emoji_events_outlined, 'Badges',
+                                  () => Get.to(() => const BadgesScreen())),
+                              _navItem(Icons.settings_outlined, 'Settings',
+                                  () => Get.to(() => const SettingsScreen())),
+                              _navItem(Icons.more_horiz_rounded, 'More',
+                                  () => _showMoreOptionsSheet(context)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // 9. Achievements Section
+                      _glassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Achievements',
+                                style: GoogleFonts.inter(
+                                    color: const Color(0xFFC6C5D7),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
+                            const SizedBox(height: 12),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _achievementBadge(
+                                      'VIP',
+                                      Icons.diamond_outlined,
+                                      const Color(0xFFFFDB3C)),
+                                  const SizedBox(width: 12),
+                                  _achievementBadge('Dev', Icons.code_rounded,
+                                      const Color(0xFFBEC2FF)),
+                                  const SizedBox(width: 12),
+                                  _achievementBadge(
+                                      'Host',
+                                      Icons.mic_none_rounded,
+                                      const Color(0xFFDDB7FF)),
+                                  const SizedBox(width: 12),
+                                  _achievementBadge(
+                                      'Verified',
+                                      Icons.verified_outlined,
+                                      const Color(0xFF00F5FF)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 10. Gift Stats Section (Replaces Arena Stats & Old Gift Stats)
+                      Obx(() {
+                        final monthlyReceivedStr =
+                            _formatCount(_giftMonthlyReceived.value.toInt()) +
+                                ' ★';
+                        final monthlySentStr =
+                            _formatCount(_giftMonthlySent.value.toInt()) + ' ★';
+                        final lifetimeReceivedStr =
+                            _formatCount(_giftLifetimeReceived.value.toInt()) +
+                                ' ★';
+                        final lifetimeSentStr =
+                            _formatCount(_giftLifetimeSent.value.toInt()) +
+                                ' ★';
+
+                        return _glassCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  Get.to(() => GiftingContributionScreen(
+                                        userId: _user.id,
+                                        username:
+                                            _user.displayName ?? 'Student',
+                                      ));
+                                },
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.featured_play_list_rounded,
+                                        color: Color(0xFFFBBF24), size: 18),
+                                    const SizedBox(width: 8),
                                     Text(
-                                      lifetimeSentStr,
+                                      'Gift Stats',
                                       style: GoogleFonts.poppins(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 14.5,
+                                        fontSize: 13,
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 16),
                                   ],
                                 ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 24),
-
-                  // 11. Activity Feed & Tabs
-                  _glassCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TabBar(
-                          controller: _tabController,
-                          indicatorColor: const Color(0xFFBEC2FF),
-                          labelColor: const Color(0xFFBEC2FF),
-                          unselectedLabelColor: const Color(0xFFC6C5D7),
-                          labelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
-                          tabs: const [
-                            Tab(text: 'Posts'),
-                            Tab(text: 'Media'),
-                            Tab(text: 'Questions'),
-                            Tab(text: 'Likes'),
-                          ],
-                        ),
-                        SizedBox(
-                          height: 350,
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              _buildPostsFeed(),
-                              _buildPlaceholderFeed('No Media Uploaded Yet'),
-                              _buildPlaceholderFeed('No Questions Asked Yet'),
-                              _buildPlaceholderFeed('No Liked Content Available'),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Monthly received gifts',
+                                    style: GoogleFonts.poppins(
+                                        color: Colors.white70, fontSize: 12.5),
+                                  ),
+                                  Text(
+                                    monthlyReceivedStr,
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFFFBBF24),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'monthly contribute',
+                                    style: GoogleFonts.poppins(
+                                        color: Colors.white70, fontSize: 12.5),
+                                  ),
+                                  Text(
+                                    monthlySentStr,
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  Get.to(() => GiftingContributionScreen(
+                                        userId: _user.id,
+                                        username:
+                                            _user.displayName ?? 'Student',
+                                        initialTabIndex: 0,
+                                      ));
+                                },
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Gifts',
+                                      style: GoogleFonts.poppins(
+                                          color: Colors.white70,
+                                          fontSize: 12.5),
+                                    ),
+                                    Row(
+                                      children: [
+                                        if (_giftRecentReceivedAvatars
+                                            .isNotEmpty)
+                                          _buildOverlappingAvatars(
+                                              _giftRecentReceivedAvatars
+                                                  .toList())
+                                        else
+                                          _buildOverlappingAvatars([
+                                            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80',
+                                            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
+                                            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
+                                            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
+                                          ]),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          lifetimeReceivedStr,
+                                          style: GoogleFonts.poppins(
+                                            color: const Color(0xFF8B5CFF),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14.5,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        const Icon(Icons.chevron_right_rounded,
+                                            color: Colors.white30, size: 16),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  Get.to(() => GiftingContributionScreen(
+                                        userId: _user.id,
+                                        username:
+                                            _user.displayName ?? 'Student',
+                                        initialTabIndex: 1,
+                                      ));
+                                },
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Contributors',
+                                      style: GoogleFonts.poppins(
+                                          color: Colors.white70,
+                                          fontSize: 12.5),
+                                    ),
+                                    Row(
+                                      children: [
+                                        if (_giftRecentSentAvatars.isNotEmpty)
+                                          _buildOverlappingAvatars(
+                                              _giftRecentSentAvatars.toList())
+                                        else
+                                          _buildOverlappingAvatars([
+                                            'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80',
+                                            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
+                                            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
+                                            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
+                                          ]),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          lifetimeSentStr,
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14.5,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        const Icon(Icons.chevron_right_rounded,
+                                            color: Colors.white30, size: 16),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
+                        );
+                      }),
+                      const SizedBox(height: 24),
+
+                      // 11. Activity Feed & Tabs
+                      _glassCard(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TabBar(
+                              controller: _tabController,
+                              indicatorColor: const Color(0xFFBEC2FF),
+                              labelColor: const Color(0xFFBEC2FF),
+                              unselectedLabelColor: const Color(0xFFC6C5D7),
+                              labelStyle: GoogleFonts.inter(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                              tabs: const [
+                                Tab(text: 'Posts'),
+                                Tab(text: 'Media'),
+                                Tab(text: 'Questions'),
+                                Tab(text: 'Likes'),
+                              ],
+                            ),
+                            SizedBox(
+                              height: 350,
+                              child: TabBarView(
+                                controller: _tabController,
+                                children: [
+                                  _buildPostsFeed(),
+                                  _buildPlaceholderFeed(
+                                      'No Media Uploaded Yet'),
+                                  _buildPlaceholderFeed(
+                                      'No Questions Asked Yet'),
+                                  _buildPlaceholderFeed(
+                                      'No Liked Content Available'),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
                   ),
-                  const SizedBox(height: 40),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    ),
-    ),
     );
   }
 
   String getVTagLevel(User? user) {
     if (user == null) return 'blue';
     final name = user.displayName.toLowerCase();
-    if (name.contains('president') || name.contains('minister') || user.rTags.contains('Founder')) {
+    if (name.contains('president') ||
+        name.contains('minister') ||
+        user.rTags.contains('Founder')) {
       return 'diamond';
-    } else if (user.tagLights.contains('STAR') || user.tagLights.contains('TOP') || name.contains('anurag')) {
+    } else if (user.tagLights.contains('STAR') ||
+        user.tagLights.contains('TOP') ||
+        name.contains('anurag')) {
       return 'gold';
-    } else if (user.tagLights.contains('Official') || user.rTags.contains('Official')) {
+    } else if (user.tagLights.contains('Official') ||
+        user.rTags.contains('Official')) {
       return 'purple';
     }
     return 'blue';
@@ -1625,7 +1952,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     return tags;
   }
 
-  List<Widget> buildTagLightsWidget(List<Map<String, dynamic>> tags, BuildContext context) {
+  List<Widget> buildTagLightsWidget(
+      List<Map<String, dynamic>> tags, BuildContext context) {
     final List<Map<String, dynamic>> displayTags = [];
     bool hasOverflow = false;
     int overflowCount = 0;
@@ -1648,14 +1976,37 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       final String cleanUrl = (imageUrl ?? '').trim().toLowerCase();
       final String cleanType = (type ?? '').trim().toLowerCase();
 
-      if (cleanUrl.contains('vip_1_tag.png') || cleanUrl.contains('vip_level_1.png') || cleanLabel == 'vip 1' || cleanLabel == 'vip1') {
+      if (cleanUrl.contains('vip_1_tag.png') ||
+          cleanUrl.contains('vip_level_1.png') ||
+          cleanLabel == 'vip 1' ||
+          cleanLabel == 'vip1') {
         localAsset = 'assets/identity_tags/vip_level_1.png';
-      } else if (cleanUrl.contains('vip_2_tag.png') || cleanUrl.contains('vip_level_2.png') || cleanLabel == 'vip 2' || cleanLabel == 'vip2') {
+      } else if (cleanUrl.contains('vip_2_tag.png') ||
+          cleanUrl.contains('vip_level_2.png') ||
+          cleanLabel == 'vip 2' ||
+          cleanLabel == 'vip2') {
         localAsset = 'assets/identity_tags/vip_level_2.png';
-      } else if (cleanUrl.contains('id_level_1.png') || (cleanType == 'id_level' && (cleanLabel.contains('1') || cleanLabel.contains('level 1') || cleanLabel.contains('lv.1') || cleanLabel.contains('lv. 1')))) {
+      } else if (cleanUrl.contains('id_level_1.png') ||
+          (cleanType == 'id_level' &&
+              (cleanLabel.contains('1') ||
+                  cleanLabel.contains('level 1') ||
+                  cleanLabel.contains('lv.1') ||
+                  cleanLabel.contains('lv. 1')))) {
         localAsset = 'assets/identity_tags/id_level_1.png';
-      } else if (cleanUrl.contains('id_level_2.png') || (cleanType == 'id_level' && (cleanLabel.contains('2') || cleanLabel.contains('level 2') || cleanLabel.contains('lv.2') || cleanLabel.contains('lv. 2')))) {
+      } else if (cleanUrl.contains('id_level_2.png') ||
+          (cleanType == 'id_level' &&
+              (cleanLabel.contains('2') ||
+                  cleanLabel.contains('level 2') ||
+                  cleanLabel.contains('lv.2') ||
+                  cleanLabel.contains('lv. 2')))) {
         localAsset = 'assets/identity_tags/id_level_2.png';
+      }
+
+      final String? officialCommAsset = getOfficialCommunityTagAssetPath(cleanLabel) ??
+          getOfficialCommunityTagAssetPath(cleanUrl) ??
+          getOfficialCommunityTagAssetPath(cleanType);
+      if (officialCommAsset != null) {
+        localAsset = officialCommAsset;
       }
 
       if (localAsset != null) {
@@ -1710,7 +2061,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         message: 'Identity Tag: $label',
         child: GestureDetector(
           onTap: () {
-            Get.snackbar('Tag Info', 'Details page for $label tag (coming soon).');
+            Get.snackbar(
+                'Tag Info', 'Details page for $label tag (coming soon).');
           },
           child: Container(
             height: 19,
@@ -1761,7 +2113,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.08),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.8),
+            border:
+                Border.all(color: Colors.white.withOpacity(0.2), width: 0.8),
           ),
           child: Text(
             '+$overflowCount',
@@ -1796,7 +2149,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       message: 'Identity Tag: $label',
       child: GestureDetector(
         onTap: () {
-          Get.snackbar('Tag Info', 'Details page for $label tag (coming soon).');
+          Get.snackbar(
+              'Tag Info', 'Details page for $label tag (coming soon).');
         },
         child: Container(
           height: 19,
@@ -1862,10 +2216,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     return null;
   }
 
-
   Widget buildOfficialStatusRow(User user, BuildContext context) {
     final status = user.tagSystem?.officialStatus;
-    
+
     // Fallback if tagSystem is not loaded yet
     if (status == null) {
       return const SizedBox.shrink();
@@ -1946,14 +2299,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Widget buildBadgesShowcaseWidget(List<String> activeBadgesList, BuildContext context) {
+  Widget buildBadgesShowcaseWidget(
+      List<String> activeBadgesList, BuildContext context) {
     final custCtrl = Get.find<CustomizationController>();
     final badgesToUse = activeBadgesList;
     if (badgesToUse.isEmpty) return const SizedBox.shrink();
 
-    final displayList = badgesToUse.length > 6 
-        ? badgesToUse.take(5).toList() 
-        : badgesToUse;
+    final displayList =
+        badgesToUse.length > 6 ? badgesToUse.take(5).toList() : badgesToUse;
     final extraCount = badgesToUse.length > 6 ? badgesToUse.length - 5 : 0;
 
     return Container(
@@ -1968,10 +2321,11 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           ...displayList.map((bName) {
-            final meta = custCtrl.badgeMetadata[bName] ?? {'icon': '🏅', 'rarity': 'Common'};
+            final meta = custCtrl.badgeMetadata[bName] ??
+                {'icon': '🏅', 'rarity': 'Common'};
             final iconStr = meta['icon'] as String? ?? '🏅';
             final rarity = meta['rarity'] as String? ?? 'Common';
-            
+
             Color glowColor = const Color(0xFFFFB020);
             if (rarity == 'Legendary') {
               glowColor = const Color(0xFFFFD700);
@@ -2020,7 +2374,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white.withOpacity(0.06),
-                  border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.0),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.12), width: 1.0),
                 ),
                 child: Center(
                   child: Text(
@@ -2048,7 +2403,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: Text(text, style: GoogleFonts.inter(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+      child: Text(text,
+          style: GoogleFonts.inter(
+              color: color, fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -2060,12 +2417,17 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF5865F2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 0,
                   ),
                   onPressed: () => Get.to(() => const EditProfileScreen()),
-                  child: Text('Edit Profile', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  child: Text('Edit Profile',
+                      style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -2073,12 +2435,18 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.white10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     backgroundColor: const Color(0xFF1D1F29).withOpacity(0.5),
                   ),
-                  onPressed: () => Get.to(() => const EditProfileScreen()), // Or trigger select cover photo directly: edit profile has media selectors!
-                  child: Text('Edit Cover', style: GoogleFonts.inter(color: const Color(0xFFE1E1EF), fontWeight: FontWeight.bold, fontSize: 13)),
+                  onPressed: () => Get.to(() =>
+                      const EditProfileScreen()), // Or trigger select cover photo directly: edit profile has media selectors!
+                  child: Text('Edit Cover',
+                      style: GoogleFonts.inter(
+                          color: const Color(0xFFE1E1EF),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -2091,7 +2459,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white10),
                   ),
-                  child: const Icon(Icons.brush_rounded, color: Color(0xFFE1E1EF), size: 20),
+                  child: const Icon(Icons.brush_rounded,
+                      color: Color(0xFFE1E1EF), size: 20),
                 ),
               ),
             ]
@@ -2099,8 +2468,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               Expanded(
                 child: Obx(() {
                   final otherId = _user.id;
-                  final isFollowed = UserProfileCacheManager.followedUserIds.contains(otherId);
-                  final isFollower = UserProfileCacheManager.followerUserIds.contains(otherId);
+                  final isFollowed =
+                      UserProfileCacheManager.followedUserIds.contains(otherId);
+                  final isFollower =
+                      UserProfileCacheManager.followerUserIds.contains(otherId);
 
                   String buttonText = 'Follow';
                   if (isFollowed && isFollower) {
@@ -2114,18 +2485,24 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   return ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5865F2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       elevation: 0,
                     ),
                     onPressed: () {
-                      if (buttonText == 'Follow' || buttonText == 'Follow Back') {
+                      if (buttonText == 'Follow' ||
+                          buttonText == 'Follow Back') {
                         UserProfileCacheManager.followUser(otherId);
                       } else {
                         UserProfileCacheManager.unfollowUser(otherId);
                       }
                     },
-                    child: Text(buttonText, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    child: Text(buttonText,
+                        style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13)),
                   );
                 }),
               ),
@@ -2134,12 +2511,17 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.white10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     backgroundColor: const Color(0xFF1D1F29).withOpacity(0.5),
                   ),
                   onPressed: _startDirectChat,
-                  child: Text('Message', style: GoogleFonts.inter(color: const Color(0xFFE1E1EF), fontWeight: FontWeight.bold, fontSize: 13)),
+                  child: Text('Message',
+                      style: GoogleFonts.inter(
+                          color: const Color(0xFFE1E1EF),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -2152,7 +2534,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white10),
                   ),
-                  child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFE1E1EF), size: 20),
+                  child: const Icon(Icons.card_giftcard_rounded,
+                      color: Color(0xFFE1E1EF), size: 20),
                 ),
               ),
               const SizedBox(width: 8),
@@ -2165,7 +2548,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white10),
                   ),
-                  child: const Icon(Icons.more_horiz_rounded, color: Color(0xFFE1E1EF), size: 20),
+                  child: const Icon(Icons.more_horiz_rounded,
+                      color: Color(0xFFE1E1EF), size: 20),
                 ),
               ),
             ],
@@ -2210,16 +2594,23 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(value, style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(value,
+                style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold)),
             const SizedBox(height: 2),
-            Text(label, style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 10)),
+            Text(label,
+                style: GoogleFonts.inter(
+                    color: const Color(0xFFC6C5D7), fontSize: 10)),
           ],
         ),
       ),
     );
   }
 
-  Widget _glassCard({required Widget child, EdgeInsets padding = const EdgeInsets.all(16)}) {
+  Widget _glassCard(
+      {required Widget child, EdgeInsets padding = const EdgeInsets.all(16)}) {
     return Container(
       width: double.infinity,
       padding: padding,
@@ -2237,7 +2628,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       children: [
         Icon(icon, color: const Color(0xFFC6C5D7), size: 14),
         const SizedBox(width: 8),
-        Text(text, style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 12)),
+        Text(text,
+            style: GoogleFonts.inter(
+                color: const Color(0xFFC6C5D7), fontSize: 12)),
       ],
     );
   }
@@ -2246,21 +2639,33 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        border: isLast ? null : const Border(bottom: BorderSide(color: Colors.white10, width: 0.5)),
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: Colors.white10, width: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 12)),
-          Text(value, style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(label,
+              style: GoogleFonts.inter(
+                  color: const Color(0xFFC6C5D7), fontSize: 12)),
+          Text(value,
+              style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _communityRow(String name, String role, String level, String? coverImage, int memberCount, {VoidCallback? onTap}) {
-    final bool hasUrl = coverImage != null && (coverImage.startsWith('http://') || coverImage.startsWith('https://'));
-    
+  Widget _communityRow(String name, String role, String level,
+      String? coverImage, int memberCount,
+      {VoidCallback? onTap}) {
+    final bool hasUrl = coverImage != null &&
+        (coverImage.startsWith('http://') || coverImage.startsWith('https://'));
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -2278,7 +2683,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               decoration: BoxDecoration(
                 color: Colors.white12,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 1),
+                border: Border.all(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 1),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -2286,18 +2692,25 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                     ? CachedNetworkImage(
                         imageUrl: coverImage,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                        placeholder: (context, url) => const Center(
+                            child: CircularProgressIndicator(strokeWidth: 1.5)),
                         errorWidget: (context, url, error) => Center(
                           child: Text(
                             name.substring(0, 1).toUpperCase(),
-                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       )
                     : Center(
                         child: Text(
                           coverImage ?? name.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
               ),
@@ -2307,35 +2720,50 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text(name,
+                      style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      Text(role.toUpperCase(), style: GoogleFonts.inter(color: const Color(0xFFFFDB3C), fontSize: 9, fontWeight: FontWeight.bold)),
+                      Text(role.toUpperCase(),
+                          style: GoogleFonts.inter(
+                              color: const Color(0xFFFFDB3C),
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text(level, style: const TextStyle(color: Colors.white70, fontSize: 8)),
+                        child: Text(level,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 8)),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text('$memberCount members', style: const TextStyle(color: Colors.white70, fontSize: 8)),
+                        child: Text('$memberCount members',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 8)),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFFC6C5D7), size: 16),
+            const Icon(Icons.chevron_right_rounded,
+                color: Color(0xFFC6C5D7), size: 16),
           ],
         ),
       ),
@@ -2356,7 +2784,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           child: Icon(icon, color: color, size: 20),
         ),
         const SizedBox(height: 4),
-        Text(title, style: GoogleFonts.inter(color: Colors.white70, fontSize: 9)),
+        Text(title,
+            style: GoogleFonts.inter(color: Colors.white70, fontSize: 9)),
       ],
     );
   }
@@ -2369,7 +2798,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         children: [
           Icon(icon, color: const Color(0xFFC6C5D7), size: 20),
           const SizedBox(height: 4),
-          Text(label, style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 9)),
+          Text(label,
+              style: GoogleFonts.inter(
+                  color: const Color(0xFFC6C5D7), fontSize: 9)),
         ],
       ),
     );
@@ -2450,7 +2881,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Widget _moreOptionItem(IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _moreOptionItem(
+      IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -2486,17 +2918,25 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Widget _analyticRow(String label, String value, {Color color = Colors.white, bool isLast = false}) {
+  Widget _analyticRow(String label, String value,
+      {Color color = Colors.white, bool isLast = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        border: isLast ? null : const Border(bottom: BorderSide(color: Colors.white10, width: 0.5)),
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: Colors.white10, width: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 12)),
-          Text(value, style: GoogleFonts.inter(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(label,
+              style: GoogleFonts.inter(
+                  color: const Color(0xFFC6C5D7), fontSize: 12)),
+          Text(value,
+              style: GoogleFonts.inter(
+                  color: color, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -2527,7 +2967,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Colors.white10, width: 0.5)),
+            border:
+                Border(bottom: BorderSide(color: Colors.white10, width: 0.5)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2546,25 +2987,39 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_user.displayName, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                      Text('${index + 1}h ago', style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 10)),
+                      Text(_user.displayName,
+                          style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold)),
+                      Text('${index + 1}h ago',
+                          style: GoogleFonts.inter(
+                              color: const Color(0xFFC6C5D7), fontSize: 10)),
                     ],
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(post.content, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, height: 1.45)),
+              Text(post.content,
+                  style: GoogleFonts.inter(
+                      color: Colors.white, fontSize: 13, height: 1.45)),
               PostAttachmentsWidget(post: post),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.favorite_rounded, color: Colors.redAccent, size: 14),
+                  const Icon(Icons.favorite_rounded,
+                      color: Colors.redAccent, size: 14),
                   const SizedBox(width: 4),
-                  Text('${post.likes}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  Text('${post.likes}',
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 11)),
                   const SizedBox(width: 16),
-                  const Icon(Icons.chat_bubble_rounded, color: Color(0xFFBEC2FF), size: 14),
+                  const Icon(Icons.chat_bubble_rounded,
+                      color: Color(0xFFBEC2FF), size: 14),
                   const SizedBox(width: 4),
-                  Text('${post.comments}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  Text('${post.comments}',
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 11)),
                 ],
               ),
             ],
@@ -2576,7 +3031,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   Widget _buildPlaceholderFeed(String text) {
     return Center(
-      child: Text(text, style: GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 13)),
+      child: Text(text,
+          style:
+              GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 13)),
     );
   }
 }
@@ -2595,7 +3052,8 @@ class _BreathingVTag extends StatefulWidget {
   State<_BreathingVTag> createState() => _BreathingVTagState();
 }
 
-class _BreathingVTagState extends State<_BreathingVTag> with SingleTickerProviderStateMixin {
+class _BreathingVTagState extends State<_BreathingVTag>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -2608,8 +3066,10 @@ class _BreathingVTagState extends State<_BreathingVTag> with SingleTickerProvide
     );
 
     _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.15), weight: 50),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.15, end: 1.0), weight: 50),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 1.0, end: 1.15), weight: 50),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 1.15, end: 1.0), weight: 50),
     ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _startPeriodicTimer();
@@ -2676,7 +3136,9 @@ class _BreathingVTagState extends State<_BreathingVTag> with SingleTickerProvide
               child: Text(
                 checkIcon,
                 style: TextStyle(
-                  color: widget.level.toLowerCase() == 'diamond' ? Colors.cyanAccent : badgeColor,
+                  color: widget.level.toLowerCase() == 'diamond'
+                      ? Colors.cyanAccent
+                      : badgeColor,
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                 ),

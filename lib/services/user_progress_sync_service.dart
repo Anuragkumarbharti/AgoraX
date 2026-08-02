@@ -19,9 +19,11 @@ import 'user_profile_cache_manager.dart';
 
 class UserProgressSyncService {
   static Timer? _debounceTimer;
+  static bool _isSyncingFromRemote = false;
 
   /// Trigger debounced sync of local progression state to Supabase database
   static void syncToSupabase() {
+    if (_isSyncingFromRemote) return;
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(seconds: 1), () {
       _executeSyncToSupabase();
@@ -29,6 +31,7 @@ class UserProgressSyncService {
   }
 
   static Future<void> _executeSyncToSupabase() async {
+    if (_isSyncingFromRemote) return;
     try {
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser == null) return;
@@ -70,6 +73,8 @@ class UserProgressSyncService {
 
   /// Download and sync progress from Supabase database
   static Future<void> syncFromSupabase() async {
+    if (_isSyncingFromRemote) return;
+    _isSyncingFromRemote = true;
     try {
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser == null) return;
@@ -91,69 +96,49 @@ class UserProgressSyncService {
           final Map<String, dynamic> metadata = Map<String, dynamic>.from(response['progress_metadata']);
           final prefs = await SharedPreferences.getInstance();
 
-        for (final entry in metadata.entries) {
-          final key = entry.key;
-          final value = entry.value;
+          for (final entry in metadata.entries) {
+            final key = entry.key;
+            final value = entry.value;
 
-          if (value is int) {
-            await prefs.setInt(key, value);
-          } else if (value is double) {
-            await prefs.setDouble(key, value);
-          } else if (value is bool) {
-            await prefs.setBool(key, value);
-          } else if (value is String) {
-            await prefs.setString(key, value);
-          } else if (value is List) {
-            await prefs.setStringList(key, List<String>.from(value));
+            if (value is int) {
+              await prefs.setInt(key, value);
+            } else if (value is double) {
+              await prefs.setDouble(key, value);
+            } else if (value is bool) {
+              await prefs.setBool(key, value);
+            } else if (value is String) {
+              await prefs.setString(key, value);
+            } else if (value is List) {
+              await prefs.setStringList(key, List<String>.from(value));
+            }
           }
-        }
-
         }
         debugPrint('Sync: Successfully downloaded user progress metadata from Supabase.');
         _refreshAllControllers();
       }
     } catch (e) {
       debugPrint('Sync Error: Failed to download user progress from Supabase: $e');
+    } finally {
+      _isSyncingFromRemote = false;
     }
   }
 
   static void _refreshAllControllers() {
     try {
-      // Refresh state values in-memory across all injected GetX controllers
+      // Refresh state values in-memory safely across injected GetX controllers without re-attaching listeners
       if (Get.isRegistered<StoreController>()) {
         Get.find<StoreController>().syncWithDatabase();
       }
-      if (Get.isRegistered<CareerProgressionController>()) {
-        final ctrl = Get.find<CareerProgressionController>();
-        ctrl.onInit();
-      }
-      if (Get.isRegistered<StudyCategoryController>()) {
-        final ctrl = Get.find<StudyCategoryController>();
-        ctrl.onInit();
-      }
-      if (Get.isRegistered<RoomController>()) {
-        final ctrl = Get.find<RoomController>();
-        ctrl.onInit();
-      }
-      if (Get.isRegistered<CommunityController>()) {
-        final ctrl = Get.find<CommunityController>();
-        ctrl.onInit();
-      }
       if (Get.isRegistered<VipController>()) {
-        final ctrl = Get.find<VipController>();
-        ctrl.onInit();
+        final vipCtrl = Get.find<VipController>();
+        vipCtrl.loadVipFromDatabase();
       }
       if (Get.isRegistered<NovelController>()) {
-        final ctrl = Get.find<NovelController>();
-        ctrl.onInit();
-      }
-      if (Get.isRegistered<StudyVaultController>()) {
-        final ctrl = Get.find<StudyVaultController>();
-        ctrl.onInit();
+        final novelCtrl = Get.find<NovelController>();
+        novelCtrl.loadNovelFromDatabase();
       }
       if (Get.isRegistered<CustomizationController>()) {
-        final ctrl = Get.find<CustomizationController>();
-        ctrl.onInit();
+        Get.find<CustomizationController>().refreshCustomizations();
       }
     } catch (e) {
       debugPrint('Sync: Error refreshing controllers: $e');

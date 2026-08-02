@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/progression_models.dart';
 import 'user_profile_cache_manager.dart';
 import 'user_progress_sync_service.dart';
+import 'fcm_notification_service.dart';
 
 class ProgressionController extends GetxController {
   static String get currentUserId {
@@ -246,6 +247,15 @@ class ProgressionController extends GetxController {
 
       if (response != null && response['success'] == true) {
         await refreshAll();
+        
+        final String taskTitle = taskType[0].toUpperCase() + taskType.substring(1);
+        FCMNotificationService.to.sendNotification(
+          targetUserId: currentUserId,
+          title: '$taskTitle Task Completed! 🏆',
+          body: 'You successfully claimed your reward for the $taskType task.',
+          type: 'reward_claimed',
+        );
+
         return true;
       }
       return false;
@@ -260,6 +270,16 @@ class ProgressionController extends GetxController {
     try {
       final response = await Supabase.instance.client.rpc('claim_checkin');
       await refreshAll();
+
+      if (response != null && response['success'] == true) {
+        FCMNotificationService.to.sendNotification(
+          targetUserId: currentUserId,
+          title: 'Daily Reward Claimed! 📅',
+          body: 'You claimed your daily check-in login reward.',
+          type: 'daily_reward',
+        );
+      }
+
       return Map<String, dynamic>.from(response);
     } catch (e) {
       debugPrint('ProgressionController: Error claiming checkin: $e');
@@ -279,6 +299,14 @@ class ProgressionController extends GetxController {
 
       if (response != null && response['success'] == true) {
         await refreshAll();
+        
+        FCMNotificationService.to.sendNotification(
+          targetUserId: currentUserId,
+          title: 'Achievement Unlocked! 🏆',
+          body: 'You successfully unlocked an achievement and claimed your reward.',
+          type: 'achievement_unlocked',
+        );
+
         return true;
       }
       return false;
