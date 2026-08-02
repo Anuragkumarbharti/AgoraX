@@ -3117,201 +3117,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-                        decoration: BoxDecoration(
-                          color: context.primaryColor.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(level,
-                            style: TextStyle(
-                                color: context.textSecondary, fontSize: 8)),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: context.primaryColor.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text('$memberCount members',
-                            style: TextStyle(
-                                color: context.textSecondary, fontSize: 8)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded,
-                color: context.textSecondary, size: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _achievementBadge(String title, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-            border: Border.all(color: color.withOpacity(0.4)),
-          ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        const SizedBox(height: 4),
-        Text(title,
-            style: GoogleFonts.inter(color: context.textSecondary, fontSize: 9)),
-      ],
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: context.primaryColor, size: 20),
-          const SizedBox(height: 4),
-          Text(label,
-              style: GoogleFonts.inter(
-                  color: context.textPrimary, fontSize: 9, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  void _showMoreOptionsSheet(BuildContext context) {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        decoration: const BoxDecoration(
-          color: Color(0xFF11131C),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(top: BorderSide(color: Colors.white10)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'MORE ACTIONS',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.0,
-              ),
-            ),
-            const SizedBox(height: 20),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.1,
-              children: [
-                _moreOptionItem(
-                  Icons.backpack_outlined,
-                  'Creania Vault',
-                  const Color(0xFFFBBF24),
-                  () {
-                    Get.back();
-                    Get.to(() => const CreaniaVaultHomeScreen());
-                  },
-                ),
-                _moreOptionItem(
-                  Icons.library_books_rounded,
-                  'My Library',
-                  const Color(0xFF3B82F6),
-                  () {
-                    Get.back();
-                    Get.to(() => const MyLibraryScreen());
-                  },
-                ),
-                _moreOptionItem(
-                  Icons.dashboard_rounded,
-                  'Seller Deck',
-                  const Color(0xFF10B981),
-                  () {
-                    Get.back();
-                    Get.to(() => const SellerDashboardScreen());
-                  },
-                ),
-                _moreOptionItem(
-                  Icons.admin_panel_settings_rounded,
-                  'Vault Admin',
-                  const Color(0xFFEF4444),
-                  () {
-                    Get.back();
-                    Get.to(() => const AdminVaultPanelScreen());
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _moreOptionItem(
-      IconData icon, String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.03),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.06)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                color: Colors.white70,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _analyticRow(String label, String value,
-      {Color color = Colors.white, bool isLast = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        border: isLast
-            ? null
-            : const Border(
-                bottom: BorderSide(color: Colors.white10, width: 0.5)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
               style: GoogleFonts.inter(
                   color: const Color(0xFFC6C5D7), fontSize: 12)),
           Text(value,
@@ -3422,10 +3227,10 @@ class _BreathingVTag extends StatefulWidget {
   final VoidCallback? onTap;
 
   const _BreathingVTag({
-    super.key,
+    Key? key,
     required this.level,
     this.onTap,
-  });
+  }) : super(key: key);
 
   @override
   State<_BreathingVTag> createState() => _BreathingVTagState();
@@ -3562,7 +3367,7 @@ class ProfileHeaderCurveClipper extends CustomClipper<Path> {
 class ProfileHeaderCurveShadowPainter extends CustomPainter {
   final Color shadowColor;
 
-  const ProfileHeaderCurveShadowPainter({required this.shadowColor});
+  ProfileHeaderCurveShadowPainter({required this.shadowColor});
 
   @override
   void paint(Canvas canvas, Size size) {
