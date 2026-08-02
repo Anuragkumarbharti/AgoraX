@@ -8413,7 +8413,7 @@ class MemberListDialog extends StatelessWidget {
                         child: Text(
                           name,
                           style: GoogleFonts.poppins(
-                            color: Colors.white,
+                            color: context.textPrimary,
                             fontSize: 11.5,
                             fontWeight: FontWeight.bold,
                           ),
@@ -8487,7 +8487,7 @@ class MemberListDialog extends StatelessWidget {
                         child: Text(
                           seatText.isNotEmpty ? seatText : role,
                           style: GoogleFonts.poppins(
-                              color: Colors.white30, fontSize: 8),
+                              color: context.textSecondary, fontSize: 8),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -8521,11 +8521,11 @@ class MemberListDialog extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                     decoration: BoxDecoration(
-                      color: Colors.white10,
+                      color: context.borderColor,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('Offline',
-                        style: TextStyle(color: Colors.white30, fontSize: 7)),
+                    child: Text('Offline',
+                        style: TextStyle(color: context.textSecondary, fontSize: 7)),
                   ),
                 if (userId != RoomController.currentUserId)
                   IconButton(
@@ -8537,8 +8537,8 @@ class MemberListDialog extends StatelessWidget {
                   ),
                 const SizedBox(width: 6),
                 IconButton(
-                  icon: const Icon(Icons.visibility_outlined,
-                      color: Colors.white70, size: 16),
+                  icon: Icon(Icons.visibility_outlined,
+                      color: context.textSecondary, size: 16),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onPressed: onViewProfile,
@@ -8561,9 +8561,9 @@ class MemberListDialog extends StatelessWidget {
           width: Get.width * 0.9,
           height: 480,
           decoration: BoxDecoration(
-            color: context.scaffoldBackgroundColor.withOpacity(0.96),
+            color: context.scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: context.borderColor),
           ),
           child: Column(
             children: [
@@ -8572,9 +8572,9 @@ class MemberListDialog extends StatelessWidget {
                 child: TabBar(
                   isScrollable: true,
                   indicatorColor: context.primaryColor,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white38,
-                  tabs: [
+                  labelColor: context.primaryColor,
+                  unselectedLabelColor: context.textSecondary,
+                  tabs: const [
                     Tab(text: 'Online'),
                     Tab(text: 'Management'),
                     Tab(text: 'Speakers'),
@@ -8605,7 +8605,7 @@ class MemberListDialog extends StatelessWidget {
               TextButton(
                 onPressed: () => Get.back(),
                 child: Text('Close',
-                    style: GoogleFonts.poppins(color: Colors.white54)),
+                    style: GoogleFonts.poppins(color: context.textSecondary)),
               ),
             ],
           ),
@@ -10142,9 +10142,9 @@ class OnlineMembersDialog extends StatelessWidget {
         width: Get.width * 0.9,
         height: 480,
         decoration: BoxDecoration(
-          color: context.scaffoldBackgroundColor.withOpacity(0.96),
+          color: context.scaffoldBackgroundColor,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: context.borderColor),
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -10153,7 +10153,7 @@ class OnlineMembersDialog extends StatelessWidget {
             Text(
               'Online Arena Members',
               style: GoogleFonts.poppins(
-                color: Colors.white,
+                color: context.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -10167,7 +10167,7 @@ class OnlineMembersDialog extends StatelessWidget {
                     return Center(
                       child: Text('No users online',
                           style: GoogleFonts.poppins(
-                              color: Colors.white30, fontSize: 13)),
+                              color: context.textSecondary, fontSize: 13)),
                     );
                   }
 
@@ -10211,10 +10211,10 @@ class OnlineMembersDialog extends StatelessWidget {
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.02),
+                            color: context.surfaceColor,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: Colors.white.withOpacity(0.04)),
+                                color: context.borderColor),
                           ),
                           child: Row(
                             children: [
@@ -10243,7 +10243,7 @@ class OnlineMembersDialog extends StatelessWidget {
                                           child: Text(
                                             name,
                                             style: GoogleFonts.poppins(
-                                              color: Colors.white,
+                                              color: context.textPrimary,
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -10391,8 +10391,8 @@ class OnlineMembersDialog extends StatelessWidget {
                                     ),
                                   const SizedBox(width: 6),
                                   IconButton(
-                                    icon: const Icon(Icons.visibility_outlined,
-                                        color: Colors.white70, size: 16),
+                                    icon: Icon(Icons.visibility_outlined,
+                                        color: context.textSecondary, size: 16),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                     onPressed: () => _handleViewProfile(
@@ -10414,13 +10414,14 @@ class OnlineMembersDialog extends StatelessWidget {
               child: TextButton(
                 onPressed: () => Get.back(),
                 child: Text('Close',
-                    style: GoogleFonts.poppins(color: Colors.white54)),
+                    style: GoogleFonts.poppins(color: context.textSecondary)),
               ),
             ),
           ],
         ),
       ),
     );
+  }
   }
 }
 
@@ -10567,9 +10568,9 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
         width: Get.width * 0.9,
         height: 400,
         decoration: BoxDecoration(
-          color: context.scaffoldBackgroundColor.withOpacity(0.96),
+          color: context.scaffoldBackgroundColor,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: context.borderColor),
         ),
         padding: const EdgeInsets.all(20),
         child: _isChecking
@@ -10582,7 +10583,7 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                   Text(
                     'Seat Applications',
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      color: context.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -10595,7 +10596,7 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                                 child: Text(
                                   'No pending applications',
                                   style: GoogleFonts.poppins(
-                                      color: Colors.white30, fontSize: 13),
+                                      color: context.textSecondary, fontSize: 13),
                                 ),
                               )
                             : ListView.builder(
@@ -10611,11 +10612,10 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                                     margin: const EdgeInsets.only(bottom: 8),
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.02),
+                                      color: context.surfaceColor,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                          color:
-                                              Colors.white.withOpacity(0.04)),
+                                          color: context.borderColor),
                                     ),
                                     child: Row(
                                       children: [
@@ -10634,7 +10634,7 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                                           child: Text(
                                             name,
                                             style: GoogleFonts.poppins(
-                                                color: Colors.white,
+                                                color: context.textPrimary,
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold),
                                           ),
@@ -10669,7 +10669,7 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                                       ? 'Your application is pending'
                                       : 'Apply to speak on stage',
                                   style: GoogleFonts.poppins(
-                                      color: Colors.white70, fontSize: 13),
+                                      color: context.textSecondary, fontSize: 13),
                                 ),
                                 const SizedBox(height: 16),
                                 ElevatedButton(
@@ -10684,9 +10684,12 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                                         horizontal: 24, vertical: 12),
                                   ),
                                   onPressed: _hasApplied ? null : _applyForSeat,
-                                  child: Text(_hasApplied
-                                      ? 'Applied'
-                                      : 'Apply for Seat'),
+                                  child: Text(
+                                    _hasApplied
+                                        ? 'Applied'
+                                        : 'Apply for Seat',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                               ],
                             ),
@@ -10696,7 +10699,7 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                     child: TextButton(
                       onPressed: () => Get.back(),
                       child: Text('Close',
-                          style: GoogleFonts.poppins(color: Colors.white54)),
+                          style: GoogleFonts.poppins(color: context.textSecondary)),
                     ),
                   ),
                 ],

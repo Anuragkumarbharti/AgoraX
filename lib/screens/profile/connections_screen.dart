@@ -243,10 +243,11 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: context.textPrimary),
         title: Text(
           title,
           style: GoogleFonts.outfit(
-            color: Colors.white,
+            color: context.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -254,8 +255,8 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: context.primaryColor,
-          labelColor: Colors.white,
-          unselectedLabelColor: context.caption,
+          labelColor: context.primaryColor,
+          unselectedLabelColor: context.textSecondary,
           labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
           unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13),
           tabs: [
@@ -271,7 +272,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
               children: [
                 // Search Box
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: TextField(
                     controller: _searchController,
                     onChanged: (val) {
@@ -279,14 +280,14 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                         _searchQuery = val.trim().toLowerCase();
                       });
                     },
-                    style: TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(color: context.textPrimary, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Search by name or SID...',
-                      hintStyle: TextStyle(color: context.caption),
-                      prefixIcon: Icon(Icons.search, color: context.caption, size: 20),
+                      hintStyle: TextStyle(color: context.textSecondary),
+                      prefixIcon: Icon(Icons.search, color: context.textSecondary, size: 20),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: Icon(Icons.clear, color: Colors.white54, size: 18),
+                              icon: Icon(Icons.clear, color: context.textSecondary, size: 18),
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() {
@@ -296,11 +297,15 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                             )
                           : null,
                       filled: true,
-                      fillColor: context.secondaryBackgroundColor.withOpacity(0.5),
-                      contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                      fillColor: context.surfaceColor,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: context.borderColor, width: 0.8),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: context.borderColor, width: 0.8),
                       ),
                     ),
                   ),
@@ -334,9 +339,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       }
 
       return ListView.separated(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: filtered.length,
-        separatorBuilder: (c, idx) => Divider(color: Colors.white10, height: 16),
+        separatorBuilder: (c, idx) => Divider(color: context.borderColor.withOpacity(0.5), height: 16),
         itemBuilder: (c, idx) {
           final u = filtered[idx];
           final isMe = u.id == UserProfileCacheManager.currentUserId;
@@ -347,14 +352,15 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                 : OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: context.borderColor),
+                      backgroundColor: context.surfaceColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       minimumSize: const Size(80, 32),
-                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
                     onPressed: () => _unfollowUser(u),
                     child: Text(
                       'Following',
-                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
           );
@@ -375,9 +381,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       }
 
       return ListView.separated(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: filtered.length,
-        separatorBuilder: (c, idx) => Divider(color: Colors.white10, height: 16),
+        separatorBuilder: (c, idx) => Divider(color: context.borderColor.withOpacity(0.5), height: 16),
         itemBuilder: (c, idx) {
           final u = filtered[idx];
           final isMe = u.id == UserProfileCacheManager.currentUserId;
@@ -397,7 +403,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                               backgroundColor: context.primaryColor,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               minimumSize: const Size(80, 32),
-                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
                             ),
                             onPressed: () async {
                               await UserProfileCacheManager.followUser(u.id);
@@ -411,11 +417,11 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                         else
                           Text(
                             'Follows You',
-                            style: GoogleFonts.poppins(color: context.caption, fontSize: 10),
+                            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 10),
                           ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: Icon(Icons.more_vert_rounded, color: context.caption),
+                          icon: Icon(Icons.more_vert_rounded, color: context.textSecondary),
                           onPressed: () => _removeFollower(u),
                         ),
                       ],
@@ -439,9 +445,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       }
 
       return ListView.separated(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: filtered.length,
-        separatorBuilder: (c, idx) => Divider(color: Colors.white10, height: 16),
+        separatorBuilder: (c, idx) => Divider(color: context.borderColor.withOpacity(0.5), height: 16),
         itemBuilder: (c, idx) {
           final u = filtered[idx];
           final isMe = u.id == UserProfileCacheManager.currentUserId;
@@ -452,14 +458,15 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                 : OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: context.borderColor),
+                      backgroundColor: context.surfaceColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       minimumSize: const Size(80, 32),
-                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
                     onPressed: () => _unfollowUser(u),
                     child: Text(
                       'Unfollow',
-                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
           );
@@ -484,7 +491,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
           child: Row(
             children: [
               // Avatar
@@ -507,14 +514,14 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                             child: Center(
                               child: Text(
                                 user.displayName.isNotEmpty ? user.displayName[0] : 'U',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
                   ),
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
 
               // User Info
               Expanded(
@@ -526,39 +533,39 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                         Text(
                           user.displayName,
                           style: GoogleFonts.poppins(
-                            color: Colors.white,
+                            color: context.textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         if (user.isVerified) ...[
-                          SizedBox(width: 4),
-                          Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
                         ],
                       ],
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Row(
                       children: [
                         Text(
                           'ID: ${user.sid}',
                           style: GoogleFonts.poppins(
-                            color: context.caption,
+                            color: context.textSecondary,
                             fontSize: 11,
                           ),
                         ),
                         if (isMutual) ...[
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                             decoration: BoxDecoration(
-                              color: Color(0xFF10B981).withOpacity(0.12),
+                              color: const Color(0xFF10B981).withOpacity(0.12),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Color(0xFF10B981).withOpacity(0.3), width: 0.5),
+                              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3), width: 0.5),
                             ),
                             child: Text(
                               'Mutual',
-                              style: GoogleFonts.poppins(color: Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.poppins(color: const Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
