@@ -1805,15 +1805,24 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           side: BorderSide(color: context.borderColor),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           backgroundColor: context.secondaryBackgroundColor,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             icon,
-            SizedBox(width: 12),
-            Text(
-              label,
-              style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  color: context.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5,
+                ),
+              ),
             ),
           ],
         ),

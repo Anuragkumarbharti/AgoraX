@@ -419,14 +419,23 @@ class _LoginScreenState extends State<LoginScreen>
     return Column(
       children: [
         Text(
-          'Create. Connect. Grow.',
+          'Welcome Back',
           style: GoogleFonts.outfit(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: context.textPrimary,
           ),
         ),
-        SizedBox(height: 24),
+        const SizedBox(height: 4),
+        Text(
+          'Create. Connect. Grow.',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: context.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 24),
 
         _socialButton(
           label: 'Continue with Google',
@@ -819,15 +828,24 @@ class _LoginScreenState extends State<LoginScreen>
           side: BorderSide(color: context.borderColor),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           backgroundColor: context.secondaryBackgroundColor,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             icon,
-            SizedBox(width: 12),
-            Text(
-              label,
-              style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  color: context.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5,
+                ),
+              ),
             ),
           ],
         ),
