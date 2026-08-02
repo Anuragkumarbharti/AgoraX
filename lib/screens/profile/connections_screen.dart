@@ -259,8 +259,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
           indicatorColor: context.primaryColor,
           labelColor: context.primaryColor,
           unselectedLabelColor: context.textSecondary,
-          labelStyle: GoogleFonts.poppins(fontSize: AppTypography.secondaryBody, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.poppins(fontSize: AppTypography.secondaryBody),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+          labelStyle: GoogleFonts.poppins(fontSize: 12.0, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: GoogleFonts.poppins(fontSize: 12.0, fontWeight: FontWeight.w500),
           tabs: [
             Obx(() => Tab(height: AppDimensions.minTouchTarget, text: 'Following (${_followingList.length})')),
             Obx(() => Tab(height: AppDimensions.minTouchTarget, text: 'Followers (${_followersList.length})')),

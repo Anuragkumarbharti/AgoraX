@@ -2742,36 +2742,46 @@ class _ProfileScreenState extends State<ProfileScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         decoration: BoxDecoration(
           color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: context.borderColor.withOpacity(0.6), width: 0.8),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             )
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(value,
-                style: GoogleFonts.inter(
-                    color: context.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 3),
-            Text(label,
-                style: GoogleFonts.inter(
-                    color: context.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500)),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                color: context.textPrimary,
+                fontSize: 14.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                color: context.textSecondary,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             if (icon != null) ...[
-              const SizedBox(height: 6),
-              Icon(icon, color: context.primaryColor, size: 18),
+              const SizedBox(height: 4),
+              Icon(icon, color: context.primaryColor, size: 16),
             ],
           ],
         ),
