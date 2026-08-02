@@ -3117,73 +3117,73 @@ class _ProfileScreenState extends State<ProfileScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: GoogleFonts.inter(
-                  color: const Color(0xFFC6C5D7), fontSize: 12)),
-          Text(value,
-              style: GoogleFonts.inter(
-                  color: color, fontSize: 12, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPostsFeed() {
-    if (!_postsLoaded && !_isLoadingPosts) {
-      Future.microtask(() => _loadUserPosts());
-    }
-
-    if (_isLoadingPosts) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: CircularProgressIndicator(color: Color(0xFFBEC2FF)),
-        ),
-      );
-    }
-
-    if (_posts.isEmpty) {
-      return _buildPlaceholderFeed('No Posts Shared Yet');
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _posts.length,
-      itemBuilder: (context, index) {
-        final post = _posts[index];
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: context.borderColor, width: 0.5)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundImage: NetworkImage(
-                      _user.avatar != null && _user.avatar!.isNotEmpty
-                          ? _user.avatar!
-                          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_user.displayName,
-                          style: GoogleFonts.inter(
-                              color: context.textPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold)),
-                      Text('${index + 1}h ago',
-                          style: GoogleFonts.inter(
-                              color: context.textSecondary, fontSize: 10)),
+                        decoration: BoxDecoration(
+                          color: context.primaryColor.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(level,
+                            style: TextStyle(
+                                color: context.textSecondary, fontSize: 8)),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: context.primaryColor.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('$memberCount members',
+                            style: TextStyle(
+                                color: context.textSecondary, fontSize: 8)),
+                      ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                color: context.textSecondary, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _achievementBadge(String title, IconData icon, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+            border: Border.all(color: color.withOpacity(0.4)),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(height: 4),
+        Text(title,
+            style: GoogleFonts.inter(color: context.textSecondary, fontSize: 9)),
+      ],
+    );
+  }
+
+  Widget _navItem(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: context.primaryColor, size: 20),
+          const SizedBox(height: 4),
+          Text(label,
+              style: GoogleFonts.inter(
+                  color: context.textPrimary, fontSize: 9, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
   }
 
   void _showMoreOptionsSheet(BuildContext context) {
