@@ -1665,7 +1665,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     Text(
                                       'Gift Stats',
                                       style: GoogleFonts.poppins(
-                                        color: Colors.white,
+                                        color: context.textPrimary,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
                                       ),
@@ -1681,7 +1681,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   Text(
                                     'Monthly received gifts',
                                     style: GoogleFonts.poppins(
-                                        color: Colors.white70, fontSize: 12.5),
+                                        color: context.textSecondary, fontSize: 12.5),
                                   ),
                                   Text(
                                     monthlyReceivedStr,
@@ -1701,12 +1701,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   Text(
                                     'monthly contribute',
                                     style: GoogleFonts.poppins(
-                                        color: Colors.white70, fontSize: 12.5),
+                                        color: context.textSecondary, fontSize: 12.5),
                                   ),
                                   Text(
                                     monthlySentStr,
                                     style: GoogleFonts.poppins(
-                                      color: Colors.white,
+                                      color: context.textPrimary,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14.5,
                                     ),
@@ -1731,7 +1731,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     Text(
                                       'Gifts',
                                       style: GoogleFonts.poppins(
-                                          color: Colors.white70,
+                                          color: context.textSecondary,
                                           fontSize: 12.5),
                                     ),
                                     Row(
@@ -1758,8 +1758,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                           ),
                                         ),
                                         const SizedBox(width: 4),
-                                        const Icon(Icons.chevron_right_rounded,
-                                            color: Colors.white30, size: 16),
+                                        Icon(Icons.chevron_right_rounded,
+                                            color: context.textSecondary, size: 16),
                                       ],
                                     ),
                                   ],
@@ -1783,7 +1783,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     Text(
                                       'Contributors',
                                       style: GoogleFonts.poppins(
-                                          color: Colors.white70,
+                                          color: context.textSecondary,
                                           fontSize: 12.5),
                                     ),
                                     Row(
@@ -1802,14 +1802,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         Text(
                                           lifetimeSentStr,
                                           style: GoogleFonts.poppins(
-                                            color: Colors.white,
+                                            color: context.textPrimary,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14.5,
                                           ),
                                         ),
                                         const SizedBox(width: 4),
-                                        const Icon(Icons.chevron_right_rounded,
-                                            color: Colors.white30, size: 16),
+                                        Icon(Icons.chevron_right_rounded,
+                                            color: context.textSecondary, size: 16),
                                       ],
                                     ),
                                   ],
@@ -1829,9 +1829,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           children: [
                             TabBar(
                               controller: _tabController,
-                              indicatorColor: const Color(0xFFBEC2FF),
-                              labelColor: const Color(0xFFBEC2FF),
-                              unselectedLabelColor: const Color(0xFFC6C5D7),
+                              indicatorColor: context.primaryColor,
+                              labelColor: context.primaryColor,
+                              unselectedLabelColor: context.textSecondary,
                               labelStyle: GoogleFonts.inter(
                                   fontSize: 12, fontWeight: FontWeight.bold),
                               tabs: const [
@@ -2971,9 +2971,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         final post = _posts[index];
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: const BoxDecoration(
-            border:
-                Border(bottom: BorderSide(color: Colors.white10, width: 0.5)),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: context.borderColor, width: 0.5)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2994,12 +2993,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                     children: [
                       Text(_user.displayName,
                           style: GoogleFonts.inter(
-                              color: Colors.white,
+                              color: context.textPrimary,
                               fontSize: 13,
                               fontWeight: FontWeight.bold)),
                       Text('${index + 1}h ago',
                           style: GoogleFonts.inter(
-                              color: const Color(0xFFC6C5D7), fontSize: 10)),
+                              color: context.textSecondary, fontSize: 10)),
                     ],
                   ),
                 ],
@@ -3007,7 +3006,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               const SizedBox(height: 8),
               Text(post.content,
                   style: GoogleFonts.inter(
-                      color: Colors.white, fontSize: 13, height: 1.45)),
+                      color: context.textPrimary, fontSize: 13, height: 1.45)),
               PostAttachmentsWidget(post: post),
               const SizedBox(height: 8),
               Row(
@@ -3017,14 +3016,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(width: 4),
                   Text('${post.likes}',
                       style:
-                          const TextStyle(color: Colors.white70, fontSize: 11)),
+                          TextStyle(color: context.textSecondary, fontSize: 11)),
                   const SizedBox(width: 16),
-                  const Icon(Icons.chat_bubble_rounded,
-                      color: Color(0xFFBEC2FF), size: 14),
+                  Icon(Icons.chat_bubble_rounded,
+                      color: context.primaryColor, size: 14),
                   const SizedBox(width: 4),
                   Text('${post.comments}',
                       style:
-                          const TextStyle(color: Colors.white70, fontSize: 11)),
+                          TextStyle(color: context.textSecondary, fontSize: 11)),
                 ],
               ),
             ],
@@ -3038,7 +3037,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Center(
       child: Text(text,
           style:
-              GoogleFonts.inter(color: const Color(0xFFC6C5D7), fontSize: 13)),
+              GoogleFonts.inter(color: context.textSecondary, fontSize: 13)),
     );
   }
 }
