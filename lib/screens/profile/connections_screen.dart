@@ -243,13 +243,15 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: context.textPrimary),
+        iconTheme: IconThemeData(color: context.textPrimary, size: AppDimensions.minIconSize),
         title: Text(
           title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.outfit(
             color: context.textPrimary,
             fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontSize: AppTypography.title,
           ),
         ),
         bottom: TabBar(
@@ -257,12 +259,12 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
           indicatorColor: context.primaryColor,
           labelColor: context.primaryColor,
           unselectedLabelColor: context.textSecondary,
-          labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13),
+          labelStyle: GoogleFonts.poppins(fontSize: AppTypography.secondaryBody, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: GoogleFonts.poppins(fontSize: AppTypography.secondaryBody),
           tabs: [
-            Obx(() => Tab(text: 'Following (${_followingList.length})')),
-            Obx(() => Tab(text: 'Followers (${_followersList.length})')),
-            Obx(() => Tab(text: 'Friends (${_friendsList.length})')),
+            Obx(() => Tab(height: AppDimensions.minTouchTarget, text: 'Following (${_followingList.length})')),
+            Obx(() => Tab(height: AppDimensions.minTouchTarget, text: 'Followers (${_followersList.length})')),
+            Obx(() => Tab(height: AppDimensions.minTouchTarget, text: 'Friends (${_friendsList.length})')),
           ],
         ),
       ),
@@ -272,7 +274,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
               children: [
                 // Search Box
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: context.horizontalPadding, vertical: AppSpacing.sm),
                   child: TextField(
                     controller: _searchController,
                     onChanged: (val) {
@@ -280,14 +282,14 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                         _searchQuery = val.trim().toLowerCase();
                       });
                     },
-                    style: TextStyle(color: context.textPrimary, fontSize: 14),
+                    style: TextStyle(color: context.textPrimary, fontSize: AppTypography.body),
                     decoration: InputDecoration(
                       hintText: 'Search by name or SID...',
-                      hintStyle: TextStyle(color: context.textSecondary),
-                      prefixIcon: Icon(Icons.search, color: context.textSecondary, size: 20),
+                      hintStyle: TextStyle(color: context.textSecondary, fontSize: AppTypography.body),
+                      prefixIcon: Icon(Icons.search, color: context.textSecondary, size: AppDimensions.minIconSize),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: Icon(Icons.clear, color: context.textSecondary, size: 18),
+                              icon: Icon(Icons.clear, color: context.textSecondary, size: AppDimensions.minIconSize),
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() {
@@ -298,13 +300,13 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                           : null,
                       filled: true,
                       fillColor: context.surfaceColor,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         borderSide: BorderSide(color: context.borderColor, width: 0.8),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         borderSide: BorderSide(color: context.borderColor, width: 0.8),
                       ),
                     ),

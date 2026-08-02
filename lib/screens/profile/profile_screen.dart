@@ -970,21 +970,26 @@ class _ProfileScreenState extends State<ProfileScreen>
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
-                                    _user.displayName,
-                                    style: GoogleFonts.poppins(
-                                      color: context.textPrimary,
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: -0.4,
-                                      shadows: [
-                                        Shadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
-                                        )
-                                      ],
+                                  Flexible(
+                                    child: Text(
+                                      _user.displayName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.poppins(
+                                        color: context.textPrimary,
+                                        fontSize: AppTypography.title,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: -0.4,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black.withOpacity(0.3),
+                                            blurRadius: 6,
+                                            offset: const Offset(0, 2),
+                                          )
+                                        ],
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -995,7 +1000,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     color: _user.gender == 'female'
                                         ? const Color(0xFFF472B6)
                                         : const Color(0xFF60A5FA),
-                                    size: 16,
+                                    size: AppDimensions.minIconSize,
                                   ),
                                   if (_isMe) ...[
                                     const SizedBox(width: 8),
