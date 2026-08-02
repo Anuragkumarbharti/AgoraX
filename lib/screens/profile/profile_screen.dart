@@ -3291,26 +3291,26 @@ class _BreathingVTagState extends State<_BreathingVTag>
         break;
       case 'blue':
       default:
-        badgeColor = const Color(0xFF00C2FF);
-        break;
-    }
+),
+          ],
+        ),
+      ),
+    );
+  }
 
-    return ScaleTransition(
-      scale: _scaleAnimation,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Tooltip(
-          message: 'Verified ${widget.level.toUpperCase()}',
-          child: Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: badgeColor.withOpacity(0.2),
-              border: Border.all(color: badgeColor, width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: badgeColor.withOpacity(0.3),
+  Widget _analyticRow(String label, String value,
+      {Color color = Colors.white, bool isLast = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: Colors.white10, width: 0.5)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
           Text(label,
               style: GoogleFonts.inter(
                   color: const Color(0xFFC6C5D7), fontSize: 12)),
