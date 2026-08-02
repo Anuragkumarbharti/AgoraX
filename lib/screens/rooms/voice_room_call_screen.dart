@@ -8360,7 +8360,8 @@ class MemberListDialog extends StatelessWidget {
     Get.to(() => ChatScreen(conversation: conversation));
   }
 
-  Widget _buildMemberTile({
+  Widget _buildMemberTile(
+    BuildContext context, {
     required String userId,
     required String fallbackName,
     required String role,
@@ -8383,9 +8384,9 @@ class MemberListDialog extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.02),
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.04)),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           children: [
@@ -8592,12 +8593,12 @@ class MemberListDialog extends StatelessWidget {
 
                   return TabBarView(
                     children: [
-                      _buildOnlineTab(onlineUsers),
-                      _buildManagementTab(onlineUserIds),
-                      _buildSpeakersTab(onlineUserIds),
-                      _buildElitesTab(onlineUserIds),
-                      _buildVipsTab(onlineUserIds),
-                      _buildAudienceTab(onlineUserIds, onlineUsers),
+                      _buildOnlineTab(context, onlineUsers),
+                      _buildManagementTab(context, onlineUserIds),
+                      _buildSpeakersTab(context, onlineUserIds),
+                      _buildElitesTab(context, onlineUserIds),
+                      _buildVipsTab(context, onlineUserIds),
+                      _buildAudienceTab(context, onlineUserIds, onlineUsers),
                     ],
                   );
                 }),
@@ -8614,11 +8615,11 @@ class MemberListDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildOnlineTab(List<ZegoUser> onlineUsers) {
+  Widget _buildOnlineTab(BuildContext context, List<ZegoUser> onlineUsers) {
     if (onlineUsers.isEmpty) {
-      return const Center(
+      return Center(
           child:
-              Text('No users online', style: TextStyle(color: Colors.white30)));
+              Text('No users online', style: TextStyle(color: context.textSecondary)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -8635,6 +8636,7 @@ class MemberListDialog extends StatelessWidget {
             seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
 
         return _buildMemberTile(
+          context,
           userId: u.userID,
           fallbackName: u.userName,
           role: role,
@@ -8648,7 +8650,7 @@ class MemberListDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildManagementTab(Set<String> onlineUserIds) {
+  Widget _buildManagementTab(BuildContext context, Set<String> onlineUserIds) {
     return Obx(() {
       final staffRoles = [
         'Founder',
@@ -8664,9 +8666,9 @@ class MemberListDialog extends StatelessWidget {
       }).toList();
 
       if (staff.isEmpty) {
-        return const Center(
+        return Center(
             child: Text('No management staff found',
-                style: TextStyle(color: Colors.white30)));
+                style: TextStyle(color: context.textSecondary)));
       }
 
       return ListView.builder(
@@ -8682,6 +8684,7 @@ class MemberListDialog extends StatelessWidget {
               seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
 
           return _buildMemberTile(
+            context,
             userId: m.userId,
             fallbackName: 'Staff Member',
             role: m.role,
@@ -8696,15 +8699,15 @@ class MemberListDialog extends StatelessWidget {
     });
   }
 
-  Widget _buildSpeakersTab(Set<String> onlineUserIds) {
+  Widget _buildSpeakersTab(BuildContext context, Set<String> onlineUserIds) {
     return Obx(() {
       final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
       final speakerSeats = seatsList.where((s) => s['userId'] != null).toList();
 
       if (speakerSeats.isEmpty) {
-        return const Center(
+        return Center(
             child: Text('No active speakers',
-                style: TextStyle(color: Colors.white30)));
+                style: TextStyle(color: context.textSecondary)));
       }
 
       return ListView.builder(
@@ -8717,6 +8720,7 @@ class MemberListDialog extends StatelessWidget {
           final seatIndex = seat['seatIndex'] as int;
 
           return _buildMemberTile(
+            context,
             userId: uId,
             fallbackName: seat['name'] ?? 'Speaker',
             role: seat['role'] ?? 'Speaker',
@@ -8733,7 +8737,7 @@ class MemberListDialog extends StatelessWidget {
     });
   }
 
-  Widget _buildElitesTab(Set<String> onlineUserIds) {
+  Widget _buildElitesTab(BuildContext context, Set<String> onlineUserIds) {
     return Obx(() {
       final elites = RoomController.to.activeMembers.where((m) {
         final profile = UserProfileCacheManager.rxCache[m.userId] ??
@@ -8742,9 +8746,9 @@ class MemberListDialog extends StatelessWidget {
       }).toList();
 
       if (elites.isEmpty) {
-        return const Center(
+        return Center(
             child: Text('No Elite members',
-                style: TextStyle(color: Colors.white30)));
+                style: TextStyle(color: context.textSecondary)));
       }
 
       return ListView.builder(
@@ -8754,6 +8758,7 @@ class MemberListDialog extends StatelessWidget {
           final m = elites[index];
           final isOnline = onlineUserIds.contains(m.userId);
           return _buildMemberTile(
+            context,
             userId: m.userId,
             fallbackName: 'Elite Member',
             role: m.role,
@@ -8768,7 +8773,7 @@ class MemberListDialog extends StatelessWidget {
     });
   }
 
-  Widget _buildVipsTab(Set<String> onlineUserIds) {
+  Widget _buildVipsTab(BuildContext context, Set<String> onlineUserIds) {
     return Obx(() {
       final vips = RoomController.to.activeMembers.where((m) {
         final profile = UserProfileCacheManager.rxCache[m.userId] ??
@@ -8777,9 +8782,9 @@ class MemberListDialog extends StatelessWidget {
       }).toList();
 
       if (vips.isEmpty) {
-        return const Center(
+        return Center(
             child: Text('No VIP members',
-                style: TextStyle(color: Colors.white30)));
+                style: TextStyle(color: context.textSecondary)));
       }
 
       return ListView.builder(
@@ -8789,6 +8794,7 @@ class MemberListDialog extends StatelessWidget {
           final m = vips[index];
           final isOnline = onlineUserIds.contains(m.userId);
           return _buildMemberTile(
+            context,
             userId: m.userId,
             fallbackName: 'VIP Member',
             role: m.role,
@@ -8804,7 +8810,7 @@ class MemberListDialog extends StatelessWidget {
   }
 
   Widget _buildAudienceTab(
-      Set<String> onlineUserIds, List<ZegoUser> onlineUsers) {
+      BuildContext context, Set<String> onlineUserIds, List<ZegoUser> onlineUsers) {
     return Obx(() {
       final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
       final speakerUserIds =
@@ -8814,9 +8820,9 @@ class MemberListDialog extends StatelessWidget {
           onlineUsers.where((u) => !speakerUserIds.contains(u.userID)).toList();
 
       if (audience.isEmpty) {
-        return const Center(
+        return Center(
             child: Text('No audience connected',
-                style: TextStyle(color: Colors.white30)));
+                style: TextStyle(color: context.textSecondary)));
       }
 
       return ListView.builder(
@@ -8829,6 +8835,7 @@ class MemberListDialog extends StatelessWidget {
           final role = member?.role ?? 'Audience';
 
           return _buildMemberTile(
+            context,
             userId: u.userID,
             fallbackName: u.userName,
             role: role,
@@ -10421,7 +10428,6 @@ class OnlineMembersDialog extends StatelessWidget {
         ),
       ),
     );
-  }
   }
 }
 
