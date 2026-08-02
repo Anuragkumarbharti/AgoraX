@@ -851,7 +851,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                         child: Container(
                           padding: const EdgeInsets.only(
-                              top: 40, left: 16, right: 16, bottom: 65),
+                              top: 40, left: 16, right: 16, bottom: 40),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -1084,7 +1084,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               const SizedBox(height: 8),
 
                               // Spacer for curved transition
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 6),
                             ],
                           ),
                         ),
@@ -1093,7 +1093,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                     // 2. Action Buttons Row (positioned right over the curve transition)
                     Positioned(
-                      bottom: -2,
+                      bottom: -20,
                       left: 16,
                       right: 16,
                       child: _buildActionButtonsRow(),
@@ -1107,7 +1107,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 36),
                       // 3. Social Stats Section
                       Obx(() {
                         final u =
@@ -3318,24 +3318,14 @@ class ProfileHeaderCurveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    path.lineTo(0, size.height - 45);
+    path.lineTo(0, size.height - 20);
 
-    final firstControlPoint = Offset(size.width * 0.35, size.height - 90);
-    final firstEndPoint = Offset(size.width * 0.65, size.height - 65);
+    // Smooth upward dome arch: starts at (0, h-20), arches UP to (w*0.5, h-65), ends at (w, h-20)
     path.quadraticBezierTo(
-      firstControlPoint.dx,
-      firstControlPoint.dy,
-      firstEndPoint.dx,
-      firstEndPoint.dy,
-    );
-
-    final secondControlPoint = Offset(size.width * 0.85, size.height - 45);
-    final secondEndPoint = Offset(size.width, size.height - 20);
-    path.quadraticBezierTo(
-      secondControlPoint.dx,
-      secondControlPoint.dy,
-      secondEndPoint.dx,
-      secondEndPoint.dy,
+      size.width * 0.5,
+      size.height - 65,
+      size.width,
+      size.height - 20,
     );
 
     path.lineTo(size.width, 0);
@@ -3355,24 +3345,13 @@ class ProfileHeaderCurveShadowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final path = Path();
-    path.lineTo(0, size.height - 45);
+    path.lineTo(0, size.height - 20);
 
-    final firstControlPoint = Offset(size.width * 0.35, size.height - 90);
-    final firstEndPoint = Offset(size.width * 0.65, size.height - 65);
     path.quadraticBezierTo(
-      firstControlPoint.dx,
-      firstControlPoint.dy,
-      firstEndPoint.dx,
-      firstEndPoint.dy,
-    );
-
-    final secondControlPoint = Offset(size.width * 0.85, size.height - 45);
-    final secondEndPoint = Offset(size.width, size.height - 20);
-    path.quadraticBezierTo(
-      secondControlPoint.dx,
-      secondControlPoint.dy,
-      secondEndPoint.dx,
-      secondEndPoint.dy,
+      size.width * 0.5,
+      size.height - 65,
+      size.width,
+      size.height - 20,
     );
 
     path.lineTo(size.width, 0);
@@ -3380,12 +3359,12 @@ class ProfileHeaderCurveShadowPainter extends CustomPainter {
 
     canvas.drawShadow(
       path,
-      shadowColor.withOpacity(0.10),
-      10.0,
-      false,
+      shadowColor.withOpacity(0.12),
+      8.0,
+      true,
     );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
