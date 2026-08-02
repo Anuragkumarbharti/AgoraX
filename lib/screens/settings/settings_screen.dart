@@ -320,7 +320,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       title,
                       style: GoogleFonts.poppins(
-                        color: Colors.white,
+                        color: context.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -329,14 +329,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       subtitle,
                       style: GoogleFonts.poppins(
-                        color: context.caption,
+                        color: context.textSecondary,
                         fontSize: 11,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, color: context.caption, size: 14),
+              Icon(Icons.arrow_forward_ios_rounded, color: context.textSecondary, size: 14),
             ],
           ),
         ),
@@ -368,7 +368,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: context.scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: context.textSecondary, size: 20),
+              child: Icon(icon, color: context.primaryColor, size: 20),
             ),
             SizedBox(width: 14),
             Expanded(
@@ -378,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     title,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      color: context.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -387,7 +387,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     subtitle,
                     style: GoogleFonts.poppins(
-                      color: context.caption,
+                      color: context.textSecondary,
                       fontSize: 11,
                     ),
                   ),

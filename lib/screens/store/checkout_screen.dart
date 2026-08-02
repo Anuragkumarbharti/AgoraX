@@ -255,7 +255,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final scheduledDate = args?['scheduledDate'] ?? widget.scheduledDate;
 
     return Scaffold(
-      backgroundColor: Color(0xFF07070A),
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Background Gradient Glow
@@ -358,7 +358,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         children: [
           IconButton(
             icon: Icon(Icons.arrow_back_ios_new_rounded,
-                color: Colors.white, size: 18),
+                color: context.textPrimary, size: 18),
             onPressed: () => Get.back(),
           ),
           Text(
@@ -367,7 +367,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               fontWeight: FontWeight.w900,
               fontSize: 18,
               letterSpacing: 2,
-              color: Colors.white,
+              color: context.textPrimary,
             ),
           ),
         ],
@@ -381,9 +381,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF14121F),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,7 +391,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Text(
             'SELECT PURCHASE METHOD',
             style: GoogleFonts.outfit(
-                color: Colors.white60,
+                color: context.primaryColor,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2),
@@ -421,11 +421,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         padding: EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: isSel
-              ? Color(0xFF1E1B4B).withOpacity(0.4)
-              : Colors.black.withOpacity(0.2),
+              ? context.primaryColor.withOpacity(0.12)
+              : context.scaffoldBackgroundColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSel ? Color(0xFF8B5CF6) : Colors.white.withOpacity(0.04),
+            color: isSel ? context.primaryColor : context.borderColor,
             width: 1.5,
           ),
         ),
@@ -433,7 +433,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: Text(
             label,
             style: GoogleFonts.poppins(
-              color: isSel ? Colors.white : Colors.white54,
+              color: isSel ? context.primaryColor : context.textSecondary,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
@@ -448,9 +448,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Container(
       padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF14121F),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor, width: 0.5),
       ),
       child: Row(
         children: [
@@ -458,7 +458,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: Color(0xFF1E1B4B),
+              color: context.primaryColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -482,7 +482,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Text(
                   name,
                   style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      color: context.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.bold),
                 ),
@@ -490,7 +490,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Text(
                   gift ? 'Gift to @$friend' : 'Duration: $duration',
                   style: GoogleFonts.poppins(
-                      color: gift ? Color(0xFFFFB800) : Colors.white38,
+                      color: gift ? Color(0xFFFFB800) : context.textSecondary,
                       fontSize: 11),
                 ),
               ],
@@ -510,12 +510,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF14121F),
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
               color: hasCoupon
-                  ? Color(0xFF10B981).withOpacity(0.3)
-                  : Colors.white.withOpacity(0.04)),
+                  ? Color(0xFF10B981)
+                  : context.borderColor,
+              width: 0.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -523,7 +524,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             Text(
               'COUPON / PROMO CODES',
               style: GoogleFonts.outfit(
-                  color: Colors.white60,
+                  color: context.primaryColor,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2),
@@ -563,12 +564,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       height: 44,
                       child: TextField(
                         controller: _couponCtrl,
-                        style: TextStyle(color: Colors.white, fontSize: 13),
+                        style: TextStyle(color: context.textPrimary, fontSize: 13),
                         decoration: InputDecoration(
                           hintText: 'Enter Coupon Code',
-                          hintStyle: TextStyle(color: Colors.white24),
+                          hintStyle: TextStyle(color: context.caption),
                           filled: true,
-                          fillColor: Colors.black.withOpacity(0.4),
+                          fillColor: context.scaffoldBackgroundColor,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -581,7 +582,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   SizedBox(width: 10),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF8B5CF6),
+                      backgroundColor: context.primaryColor,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       padding:
@@ -623,9 +624,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF14121F),
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.04)),
+            border: Border.all(color: context.borderColor, width: 0.5),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,7 +634,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Text(
                 'PAY WITH WALLET',
                 style: GoogleFonts.outfit(
-                    color: Colors.white60,
+                    color: context.primaryColor,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2),
@@ -642,7 +643,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Container(
                 padding: EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.2),
+                  color: context.scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -651,12 +652,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Text(
                       'Your Gold Coins Balance',
                       style: GoogleFonts.poppins(
-                          color: Colors.white70, fontSize: 12),
+                          color: context.textSecondary, fontSize: 12),
                     ),
                     Text(
                       '$currentGold 🪙',
                       style: GoogleFonts.poppins(
-                          color: Color(0xFFFFD700),
+                          color: Color(0xFFF4B400),
                           fontSize: 14,
                           fontWeight: FontWeight.bold),
                     ),
@@ -672,9 +673,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF14121F),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -682,7 +683,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Text(
             'CHOOSE PAYMENT METHOD',
             style: GoogleFonts.outfit(
-                color: Colors.white60,
+                color: context.primaryColor,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2),
@@ -702,13 +703,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: isSel
-                        ? Color(0xFF1E1B4B).withOpacity(0.3)
+                        ? context.primaryColor.withOpacity(0.08)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSel
-                          ? Color(0xFF8B5CF6)
-                          : Colors.white.withOpacity(0.02),
+                          ? context.primaryColor
+                          : context.borderColor,
                     ),
                   ),
                   child: Row(
@@ -717,14 +718,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         isSel
                             ? Icons.radio_button_checked_rounded
                             : Icons.radio_button_off_rounded,
-                        color: isSel ? Color(0xFF8B5CF6) : Colors.white30,
+                        color: isSel ? context.primaryColor : context.caption,
                         size: 16,
                       ),
                       SizedBox(width: 12),
                       Text(
                         pm,
                         style: GoogleFonts.poppins(
-                            color: isSel ? Colors.white : Colors.white60,
+                            color: isSel ? context.textPrimary : context.textSecondary,
                             fontSize: 12,
                             fontWeight: FontWeight.bold),
                       ),
@@ -745,9 +746,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF14121F),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor, width: 0.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -759,7 +760,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Text(
                   'AUTO RENEWAL',
                   style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      color: context.textPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.bold),
                 ),
@@ -767,7 +768,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Text(
                   'Renew automatically at the end of validity period.',
                   style:
-                      GoogleFonts.poppins(color: Colors.white30, fontSize: 9.5),
+                      GoogleFonts.poppins(color: context.textSecondary, fontSize: 9.5),
                 ),
               ],
             ),
@@ -775,7 +776,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Switch(
             value: _autoRenew,
             onChanged: (val) => setState(() => _autoRenew = val),
-            activeColor: Color(0xFF8B5CF6),
+            activeColor: context.primaryColor,
           ),
         ],
       ),
@@ -795,9 +796,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return Container(
           padding: EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF14121F),
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.04)),
+            border: Border.all(color: context.borderColor, width: 0.5),
           ),
           child: Column(
             children: [
@@ -807,7 +808,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     valueColor: Color(0xFF10B981)),
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
-                child: Divider(color: Colors.white10, height: 1),
+                child: Divider(color: context.borderColor, height: 1),
               ),
               _billingRow('Final Amount', '$finalGoldAmount Gold Coins 🪙',
                   isHeader: true),
@@ -818,9 +819,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return Container(
           padding: EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF14121F),
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.04)),
+            border: Border.all(color: context.borderColor, width: 0.5),
           ),
           child: Column(
             children: [
@@ -832,7 +833,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     valueColor: Color(0xFF10B981)),
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
-                child: Divider(color: Colors.white10, height: 1),
+                child: Divider(color: context.borderColor, height: 1),
               ),
               _billingRow(
                   'Final Pay Amount', '₹${finalBase.toStringAsFixed(2)}',
@@ -854,7 +855,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Text(
             label,
             style: GoogleFonts.poppins(
-                color: isHeader ? Colors.white : Colors.white38,
+                color: isHeader ? context.textPrimary : context.textSecondary,
                 fontSize: isHeader ? 13 : 11.5,
                 fontWeight: isHeader ? FontWeight.bold : FontWeight.normal),
           ),
@@ -862,7 +863,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             value,
             style: GoogleFonts.poppins(
               color:
-                  valueColor ?? (isHeader ? Color(0xFFFFD700) : Colors.white),
+                  valueColor ?? (isHeader ? Color(0xFFF4B400) : context.textPrimary),
               fontSize: isHeader ? 15 : 12,
               fontWeight: FontWeight.bold,
             ),
@@ -889,7 +890,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: ElevatedButton.icon(
         icon: Icon(Icons.security_rounded, size: 18),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFF8B5CF6),
+          backgroundColor: context.primaryColor,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
