@@ -430,6 +430,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Color _resolveProfileBackgroundColor() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (!isDark) {
+      return context.scaffoldBackgroundColor;
+    }
     final theme = _user.membershipAssets['profile_theme'];
     if (theme == 'royal_blue') {
       return const Color(0xFF0F1E36);
@@ -958,7 +962,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 Text(
                                   _user.displayName,
                                   style: GoogleFonts.poppins(
-                                    color: Colors.white,
+                                    color: context.textPrimary,
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: -0.4,
@@ -979,8 +983,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   GestureDetector(
                                     onTap: () => Get.to(() =>
                                         const ProfileCustomizationScreen()),
-                                    child: const Icon(Icons.edit_rounded,
-                                        color: Colors.white70, size: 14),
+                                    child: Icon(Icons.edit_rounded,
+                                        color: context.textSecondary, size: 14),
                                   ),
                                 ],
                               ],
@@ -999,10 +1003,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.03),
+                                  color: context.surfaceColor,
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                      color: Colors.white.withOpacity(0.08),
+                                      color: context.borderColor,
                                       width: 1.0),
                                 ),
                                 child: Row(
@@ -1011,15 +1015,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     Text(
                                       'ID: ${_user.sid}',
                                       style: GoogleFonts.poppins(
-                                        color: Colors.white70,
+                                        color: context.textSecondary,
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                     const SizedBox(width: 4),
-                                    const Icon(
+                                    Icon(
                                       Icons.content_copy_rounded,
-                                      color: Colors.white54,
+                                      color: context.textSecondary,
                                       size: 11,
                                     ),
                                   ],
@@ -1219,7 +1223,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             children: [
                               Text('Personal Info',
                                   style: GoogleFonts.inter(
-                                      color: const Color(0xFFC6C5D7),
+                                      color: context.textPrimary,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12)),
                               const SizedBox(height: 12),
@@ -1270,7 +1274,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           children: [
                             Text('My Arenas',
                                 style: GoogleFonts.inter(
-                                    color: const Color(0xFFC6C5D7),
+                                    color: context.textPrimary,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12)),
                             const SizedBox(height: 12),
@@ -1292,7 +1296,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     child: Text(
                                       'Not Created Any Arena Yet',
                                       style: GoogleFonts.inter(
-                                          color: const Color(0xFFC6C5D7),
+                                          color: context.textSecondary,
                                           fontSize: 13),
                                     ),
                                   ),
@@ -1462,14 +1466,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                               children: [
                                 Text('Joined Communities',
                                     style: GoogleFonts.inter(
-                                        color: const Color(0xFFC6C5D7),
+                                        color: context.textPrimary,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12)),
                                 Obx(() => Text(
                                       '${_joinedCommunities.length}',
-                                      style: const TextStyle(
-                                          color: Color(0xFFBEC2FF),
-                                          fontSize: 12),
+                                      style: TextStyle(
+                                          color: context.primaryColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold),
                                     )),
                               ],
                             ),
@@ -1492,7 +1497,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     child: Text(
                                       'Not Joined Any Community Yet',
                                       style: GoogleFonts.inter(
-                                          color: const Color(0xFFC6C5D7),
+                                          color: context.textSecondary,
                                           fontSize: 13),
                                     ),
                                   ),
@@ -1528,7 +1533,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor:
-                                      const Color(0xFFBEC2FF).withOpacity(0.08),
+                                      context.primaryColor.withOpacity(0.08),
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8)),
@@ -1542,12 +1547,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   children: [
                                     Text('More Communities',
                                         style: GoogleFonts.inter(
-                                            color: const Color(0xFFBEC2FF),
+                                            color: context.primaryColor,
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold)),
                                     const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_forward_rounded,
-                                        color: Color(0xFFBEC2FF), size: 14),
+                                    Icon(Icons.arrow_forward_rounded,
+                                        color: context.primaryColor, size: 14),
                                   ],
                                 ),
                               ),
@@ -1593,7 +1598,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           children: [
                             Text('Achievements',
                                 style: GoogleFonts.inter(
-                                    color: const Color(0xFFC6C5D7),
+                                    color: context.textPrimary,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12)),
                             const SizedBox(height: 12),
@@ -2587,22 +2592,22 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1D1F29).withOpacity(0.5),
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: context.borderColor, width: 0.5),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(value,
                 style: GoogleFonts.inter(
-                    color: Colors.white,
+                    color: context.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 2),
             Text(label,
                 style: GoogleFonts.inter(
-                    color: const Color(0xFFC6C5D7), fontSize: 10)),
+                    color: context.textSecondary, fontSize: 10)),
           ],
         ),
       ),
@@ -2615,9 +2620,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: const Color(0xFF1D1F29).withOpacity(0.5),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: context.borderColor, width: 0.5),
       ),
       child: child,
     );
@@ -2626,11 +2631,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _bioDetailRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFFC6C5D7), size: 14),
+        Icon(icon, color: context.primaryColor, size: 14),
         const SizedBox(width: 8),
         Text(text,
             style: GoogleFonts.inter(
-                color: const Color(0xFFC6C5D7), fontSize: 12)),
+                color: context.textSecondary, fontSize: 12)),
       ],
     );
   }
@@ -2641,18 +2646,18 @@ class _ProfileScreenState extends State<ProfileScreen>
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : const Border(
-                bottom: BorderSide(color: Colors.white10, width: 0.5)),
+            : Border(
+                bottom: BorderSide(color: context.borderColor, width: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
               style: GoogleFonts.inter(
-                  color: const Color(0xFFC6C5D7), fontSize: 12)),
+                  color: context.textSecondary, fontSize: 12)),
           Text(value,
               style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: context.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.bold)),
         ],
@@ -2671,9 +2676,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFF1D1F29).withOpacity(0.3),
+          color: context.scaffoldBackgroundColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: context.borderColor, width: 0.5),
         ),
         child: Row(
           children: [
@@ -2681,10 +2686,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Colors.white12,
+                color: context.primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 1),
+                    color: context.primaryColor.withOpacity(0.3), width: 1),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -2697,8 +2702,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                         errorWidget: (context, url, error) => Center(
                           child: Text(
                             name.substring(0, 1).toUpperCase(),
-                            style: const TextStyle(
-                                color: Colors.white,
+                            style: TextStyle(
+                                color: context.primaryColor,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold),
                           ),
@@ -2707,8 +2712,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                     : Center(
                         child: Text(
                           coverImage ?? name.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(
-                              color: Colors.white,
+                          style: TextStyle(
+                              color: context.primaryColor,
                               fontSize: 14,
                               fontWeight: FontWeight.bold),
                         ),
@@ -2722,7 +2727,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 children: [
                   Text(name,
                       style: GoogleFonts.inter(
-                          color: Colors.white,
+                          color: context.textPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
@@ -2730,7 +2735,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     children: [
                       Text(role.toUpperCase(),
                           style: GoogleFonts.inter(
-                              color: const Color(0xFFFFDB3C),
+                              color: const Color(0xFFF59E0B),
                               fontSize: 9,
                               fontWeight: FontWeight.bold)),
                       const SizedBox(width: 8),
@@ -2738,32 +2743,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: context.primaryColor.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(level,
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 8)),
+                            style: TextStyle(
+                                color: context.textSecondary, fontSize: 8)),
                       ),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: context.primaryColor.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text('$memberCount members',
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 8)),
+                            style: TextStyle(
+                                color: context.textSecondary, fontSize: 8)),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
-                color: Color(0xFFC6C5D7), size: 16),
+            Icon(Icons.chevron_right_rounded,
+                color: context.textSecondary, size: 16),
           ],
         ),
       ),
@@ -2785,7 +2790,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         const SizedBox(height: 4),
         Text(title,
-            style: GoogleFonts.inter(color: Colors.white70, fontSize: 9)),
+            style: GoogleFonts.inter(color: context.textSecondary, fontSize: 9)),
       ],
     );
   }
@@ -2796,11 +2801,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: const Color(0xFFC6C5D7), size: 20),
+          Icon(icon, color: context.primaryColor, size: 20),
           const SizedBox(height: 4),
           Text(label,
               style: GoogleFonts.inter(
-                  color: const Color(0xFFC6C5D7), fontSize: 9)),
+                  color: context.textPrimary, fontSize: 9, fontWeight: FontWeight.w600)),
         ],
       ),
     );
