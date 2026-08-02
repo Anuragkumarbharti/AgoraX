@@ -3311,6 +3311,201 @@ class _BreathingVTagState extends State<_BreathingVTag>
               boxShadow: [
                 BoxShadow(
                   color: badgeColor.withOpacity(0.3),
+          Text(label,
+              style: GoogleFonts.inter(
+                  color: const Color(0xFFC6C5D7), fontSize: 12)),
+          Text(value,
+              style: GoogleFonts.inter(
+                  color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostsFeed() {
+    if (!_postsLoaded && !_isLoadingPosts) {
+      Future.microtask(() => _loadUserPosts());
+    }
+
+    if (_isLoadingPosts) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: CircularProgressIndicator(color: Color(0xFFBEC2FF)),
+        ),
+      );
+    }
+
+    if (_posts.isEmpty) {
+      return _buildPlaceholderFeed('No Posts Shared Yet');
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: _posts.length,
+      itemBuilder: (context, index) {
+        final post = _posts[index];
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: context.borderColor, width: 0.5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundImage: NetworkImage(
+                      _user.avatar != null && _user.avatar!.isNotEmpty
+                          ? _user.avatar!
+                          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_user.displayName,
+                          style: GoogleFonts.inter(
+                              color: context.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold)),
+                      Text('${index + 1}h ago',
+                          style: GoogleFonts.inter(
+                              color: context.textSecondary, fontSize: 10)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(post.content,
+                  style: GoogleFonts.inter(
+                      color: context.textPrimary, fontSize: 13, height: 1.45)),
+              PostAttachmentsWidget(post: post),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.favorite_rounded,
+                      color: Colors.redAccent, size: 14),
+                  const SizedBox(width: 4),
+                  Text('${post.likes}',
+                      style:
+                          TextStyle(color: context.textSecondary, fontSize: 11)),
+                  const SizedBox(width: 16),
+                  Icon(Icons.chat_bubble_rounded,
+                      color: context.primaryColor, size: 14),
+                  const SizedBox(width: 4),
+                  Text('${post.comments}',
+                      style:
+                          TextStyle(color: context.textSecondary, fontSize: 11)),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaceholderFeed(String text) {
+    return Center(
+      child: Text(text,
+          style:
+              GoogleFonts.inter(color: context.textSecondary, fontSize: 13)),
+    );
+  }
+}
+
+class _BreathingVTag extends StatefulWidget {
+  final String level;
+  final VoidCallback? onTap;
+
+  const _BreathingVTag({
+    Key? key,
+    required this.level,
+    this.onTap,
+  }) : super(key: key);
+
+  @override
+  State<_BreathingVTag> createState() => _BreathingVTagState();
+}
+
+class _BreathingVTagState extends State<_BreathingVTag>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 1.0, end: 1.15), weight: 50),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 1.15, end: 1.0), weight: 50),
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _startPeriodicTimer();
+  }
+
+  void _startPeriodicTimer() {
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 5));
+      if (!mounted) return false;
+      _controller.forward(from: 0.0);
+      return true;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Color badgeColor;
+    String checkIcon = '✓';
+
+    switch (widget.level.toLowerCase()) {
+      case 'diamond':
+        badgeColor = const Color(0xFFE2E8F0);
+        break;
+      case 'gold':
+        badgeColor = const Color(0xFFFFB020);
+        break;
+      case 'purple':
+        badgeColor = const Color(0xFF8B5CFF);
+        break;
+      case 'blue':
+      default:
+        badgeColor = const Color(0xFF00C2FF);
+        break;
+    }
+
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Tooltip(
+          message: 'Verified ${widget.level.toUpperCase()}',
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: badgeColor.withOpacity(0.2),
+              border: Border.all(color: badgeColor, width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: badgeColor.withOpacity(0.3),
                   blurRadius: 4,
                   spreadRadius: 0.5,
                 )
@@ -3336,18 +3531,24 @@ class _BreathingVTagState extends State<_BreathingVTag>
 }
 
 class ProfileHeaderCurveClipper extends CustomClipper<Path> {
+  final double radius;
+
+  ProfileHeaderCurveClipper({this.radius = 24.0});
+
   @override
   Path getClip(Size size) {
     final path = Path();
-    path.lineTo(0, size.height - 24);
+    path.lineTo(0, size.height - radius);
 
-    // Smooth upward dome curve like a modern bottom sheet panel
+    // Smooth top-left rounded corner for white panel below
+    path.quadraticBezierTo(0, size.height, radius, size.height);
+
+    // Straight clean edge across middle right above stats section
+    path.lineTo(size.width - radius, size.height);
+
+    // Smooth top-right rounded corner for white panel below
     path.quadraticBezierTo(
-      size.width * 0.5,
-      size.height - 65,
-      size.width,
-      size.height - 24,
-    );
+        size.width, size.height, size.width, size.height - radius);
 
     path.lineTo(size.width, 0);
     path.close();
