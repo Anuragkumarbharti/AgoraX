@@ -3184,34 +3184,34 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ],
               ),
               const SizedBox(height: 8),
-              Text(post.content,
-                  style: GoogleFonts.inter(
-                      color: context.textPrimary, fontSize: 13, height: 1.45)),
-              PostAttachmentsWidget(post: post),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.favorite_rounded,
-                      color: Colors.redAccent, size: 14),
-                  const SizedBox(width: 4),
-                  Text('${post.likes}',
-                      style:
-                          TextStyle(color: context.textSecondary, fontSize: 11)),
-                  const SizedBox(width: 16),
-                  Icon(Icons.chat_bubble_rounded,
-                      color: context.primaryColor, size: 14),
-                  const SizedBox(width: 4),
-                  Text('${post.comments}',
-                      style:
-                          TextStyle(color: context.textSecondary, fontSize: 11)),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
+
+  void _showMoreOptionsSheet(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        decoration: const BoxDecoration(
+          color: Color(0xFF11131C),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Colors.white10)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'MORE ACTIONS',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(height: 20),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 3,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
