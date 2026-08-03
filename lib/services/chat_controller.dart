@@ -53,12 +53,15 @@ class ChatController extends GetxController {
     });
   }
 
+  final RxBool isLoading = false.obs;
+
   bool _isSyncing = false;
 
   Future<void> performStartupAndReconnectSync() async {
     final uid = currentUserId;
     if (uid.isEmpty || _isSyncing) return;
     _isSyncing = true;
+    isLoading.value = true;
 
     try {
       debugPrint('[ChatPipeline] Sync Started: Checking missed messages from Supabase DB');
@@ -211,6 +214,7 @@ class ChatController extends GetxController {
       debugPrint('[ChatPipeline] Error during startup catch-up sync: $e');
     } finally {
       _isSyncing = false;
+      isLoading.value = false;
     }
   }
 

@@ -23,7 +23,12 @@ import '../../services/voice/room_voice_manager.dart';
 import '../../services/voice/voice_controller.dart';
 import '../../services/permission_service.dart';
 import '../../services/room_controller.dart';
+import '../../utils/number_formatter.dart';
 import '../../widgets/send_gift_dialog.dart';
+import '../../widgets/gift_animation_overlay.dart';
+import '../../widgets/creania_gift_animation_engine.dart';
+import '../../models/gift_animation_config.dart';
+import '../../models/gift_animation_metadata.dart';
 import '../../widgets/room_upgrade_dialog.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/mini_profile_widget.dart';
@@ -247,25 +252,49 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
         final List<dynamic>? seatIndices =
             data['seat_indices'] as List<dynamic>?;
-        final String giftIcon = data['gift_icon'] ?? '🌹';
-        final String giftName = data['gift_name'] ?? 'Rose';
-        final int amount = data['amount'] ?? 1;
+        final String? giftId = data['gift_id'] ?? data['giftId'];
+        final String rawName = data['gift_name'] ?? data['name'] ?? '';
+        final resolvedMeta = GiftMetadataRegistry.getMetadata(giftId ?? rawName);
+        final String giftIcon = (data['gift_icon'] ?? data['giftIcon'] ?? data['icon'] ?? '').toString().isNotEmpty
+            ? (data['gift_icon'] ?? data['giftIcon'] ?? data['icon']).toString()
+            : resolvedMeta.giftIcon;
+        final String giftName = rawName.isNotEmpty ? rawName : resolvedMeta.giftName;
+        final int amount = data['amount'] ?? data['count'] ?? 1;
+        final String? senderName = data['senderName'] ?? data['sender_name'];
+        final String? senderAvatar = data['senderAvatar'] ?? data['sender_avatar'];
+        final String? receiverName = data['receiverName'] ?? data['receiver_name'];
+        final String? receiverAvatar = data['receiverAvatar'] ?? data['receiver_avatar'];
 
         if (seatIndices != null && seatIndices.isNotEmpty) {
           final List<int> targets = seatIndices
               .map((s) => int.tryParse(s.toString()) ?? -1)
               .where((s) => s != -1)
               .toList();
-          _triggerGiftingAnimations(targets, giftIcon, giftName, amount);
+          _triggerGiftingAnimations(targets, giftIcon, giftName, amount,
+              giftId: giftId,
+              senderName: senderName,
+              senderAvatar: senderAvatar,
+              receiverName: receiverName,
+              receiverAvatar: receiverAvatar);
         } else {
           final rName = data['receiverName'];
           final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
           final matchedSeat = seats.firstWhereOrNull((s) => s['name'] == rName);
           if (matchedSeat != null) {
             _triggerGiftingAnimations(
-                [matchedSeat['seatIndex'] as int], giftIcon, giftName, amount);
+                [matchedSeat['seatIndex'] as int], giftIcon, giftName, amount,
+                giftId: giftId,
+                senderName: senderName,
+                senderAvatar: senderAvatar,
+                receiverName: receiverName,
+                receiverAvatar: receiverAvatar);
           } else {
-            _triggerGiftingAnimations([0], giftIcon, giftName, amount);
+            _triggerGiftingAnimations([0], giftIcon, giftName, amount,
+                giftId: giftId,
+                senderName: senderName,
+                senderAvatar: senderAvatar,
+                receiverName: receiverName,
+                receiverAvatar: receiverAvatar);
           }
         }
       }
@@ -2443,7 +2472,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   }
 
   void _triggerGiftingAnimations(
-      List<int> targets, String giftIcon, String giftName, int count) {
+      List<int> targets, String giftIcon, String giftName, int count,
+      {String? giftId, String? senderName, String? senderAvatar, String? receiverName, String? receiverAvatar}) {
     final List<Offset> targetPositions = [];
     for (final seatIndex in targets) {
       final key = _seatKeys[seatIndex];
@@ -2465,16 +2495,21 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
     if (targetPositions.isEmpty) return;
 
-    final startPosition = Offset(Get.width / 2, Get.height - 80);
+    final startPosition = Offset(Get.width / 2, Get.height - 100);
     final requestId = DateTime.now().microsecondsSinceEpoch.toString();
 
     _activeGiftingAnimations.add({
       'id': requestId,
+      'giftId': giftId ?? giftName,
       'start': startPosition,
       'targets': targetPositions,
       'icon': giftIcon,
       'name': giftName,
       'count': count,
+      'senderName': senderName ?? 'Member',
+      'senderAvatar': senderAvatar,
+      'receiverName': receiverName ?? 'Seat',
+      'receiverAvatar': receiverAvatar,
     });
   }
 
@@ -3960,13 +3995,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         _buildIconButton(
                           icon: Icons.menu,
                           color: Colors.white70,
-                          onTap: () {
-                            Get.dialog(MemberListDialog(
-                              roomId: widget.roomId,
-                              room: _controller.rooms
-                                  .firstWhere((r) => r.id == widget.roomId),
-                            ));
-                          },
+                          onTap: () => _showRoomOptionsMenuSheet(context),
                         ),
                         Positioned(
                           top: 0,
@@ -4026,6 +4055,256 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: color, size: 18),
+      ),
+    );
+  }
+
+  void _showRoomOptionsMenuSheet(BuildContext context) {
+    final room =
+        _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+    final callerRole = room != null
+        ? _controller.getUserRole(room, widget.userId)
+        : 'Guest';
+    final callerWeight = _controller.getRoleWeight(callerRole);
+    final isModeratorOrAbove = callerWeight >= 7;
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        decoration: const BoxDecoration(
+          color: Color(0xFF121927), // Deep dark glass
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(
+            top: BorderSide(color: Colors.white12, width: 1),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white30,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.tune_rounded,
+                        color: Colors.pinkAccent, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Room Options & Program Edit',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () => Get.back(),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                        color: Colors.white10, shape: BoxShape.circle),
+                    child: const Icon(Icons.close, color: Colors.white70, size: 16),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            GridView.count(
+              crossAxisCount: 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 12,
+              children: [
+                _buildMenuGridItem(
+                  icon: Icons.edit_note_rounded,
+                  label: 'Room Edit',
+                  color: const Color(0xFFFF3B30), // Highlighted Red Edit
+                  badge: 'Program',
+                  onTap: () {
+                    Get.back();
+                    if (room != null && isModeratorOrAbove) {
+                      Get.dialog(
+                          RoomSettingsDialog(roomId: widget.roomId, room: room));
+                    } else {
+                      Get.snackbar(
+                        'Permission Denied',
+                        'Only moderators and above can edit the room & program settings.',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.black87,
+                        colorText: Colors.white,
+                      );
+                    }
+                  },
+                ),
+                _buildMenuGridItem(
+                  icon: Icons.remove_red_eye_rounded,
+                  label: 'Online Users',
+                  color: Colors.cyanAccent,
+                  badge: 'Eye',
+                  onTap: () {
+                    Get.back();
+                    if (room != null) {
+                      Get.dialog(OnlineMembersDialog(
+                          roomId: widget.roomId, room: room));
+                    }
+                  },
+                ),
+                _buildMenuGridItem(
+                  icon: Icons.star_border_rounded,
+                  label: 'Program Tasks',
+                  color: const Color(0xFFFF4081),
+                  onTap: () {
+                    Get.back();
+                    _showRoomTasksDialog();
+                  },
+                ),
+                _buildMenuGridItem(
+                  icon: Icons.music_note_rounded,
+                  label: 'Audio & BGM',
+                  color: Colors.amberAccent,
+                  onTap: () {
+                    Get.back();
+                    Get.dialog(RoomAudioSettingsDialog(roomId: widget.roomId));
+                  },
+                ),
+                _buildMenuGridItem(
+                  icon: Icons.palette_outlined,
+                  label: 'Background',
+                  color: Colors.purpleAccent,
+                  onTap: () {
+                    Get.back();
+                    if (room != null && room.hostId == widget.userId) {
+                      _changeRoomCoverPhoto(room.id);
+                    } else {
+                      Get.snackbar(
+                          'Owner Action', 'Only the arena owner can edit cover background.');
+                    }
+                  },
+                ),
+                _buildMenuGridItem(
+                  icon: Icons.lock_outline_rounded,
+                  label: 'Seat Lock',
+                  color: Colors.orangeAccent,
+                  onTap: () {
+                    Get.back();
+                    Get.dialog(SeatApplicationsDialog(roomId: widget.roomId));
+                  },
+                ),
+                _buildMenuGridItem(
+                  icon: Icons.campaign_rounded,
+                  label: 'Notice',
+                  color: Colors.blueAccent,
+                  onTap: () {
+                    Get.back();
+                    Get.snackbar(
+                      'Announcement',
+                      room?.bulletin.isNotEmpty == true
+                          ? room!.bulletin
+                          : 'Welcome to Creania Arena!',
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  },
+                ),
+                _buildMenuGridItem(
+                  icon: Icons.settings_rounded,
+                  label: 'Settings',
+                  color: Colors.tealAccent,
+                  onTap: () {
+                    Get.back();
+                    if (room != null && isModeratorOrAbove) {
+                      Get.dialog(
+                          RoomSettingsDialog(roomId: widget.roomId, room: room));
+                    } else {
+                      Get.snackbar(
+                          'Permission Denied', 'Moderator permission required.');
+                    }
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildMenuGridItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    String? badge,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withOpacity(0.3), width: 1),
+                ),
+                child: Center(
+                  child: Icon(icon, color: color, size: 22),
+                ),
+              ),
+              if (badge != null)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      badge,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 7,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: Colors.white70,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -4606,16 +4885,25 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.people_alt,
-                            color: Colors.white70, size: 12),
+                        const Icon(Icons.remove_red_eye_rounded,
+                            color: Colors.cyanAccent, size: 13),
                         const SizedBox(width: 4),
-                        Text(
-                          '${liveRoom?.totalMembers ?? 3}',
-                          style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold),
-                        ),
+                        Obx(() {
+                          final onlineUsersCount = VoiceController.to.roomUsers.length;
+                          final displayCount = onlineUsersCount > 0
+                              ? onlineUsersCount
+                              : (liveRoom?.totalMembers ?? 1);
+                          return Text(
+                            '$displayCount',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold),
+                          );
+                        }),
+                        const SizedBox(width: 3),
+                        const Icon(Icons.keyboard_arrow_down_rounded,
+                            color: Colors.white70, size: 12),
                       ],
                     ),
                   ),
@@ -4765,8 +5053,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('👥', style: TextStyle(fontSize: 12)),
-                            const SizedBox(width: 4),
+                            const Icon(Icons.remove_red_eye_rounded,
+                                color: Colors.cyanAccent, size: 14),
+                            const SizedBox(width: 5),
                             Text(
                               '$count',
                               style: GoogleFonts.poppins(
@@ -6336,11 +6625,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
-          color: context.secondaryBackgroundColor,
-          borderRadius: BorderRadius.only(
+          color: const Color(0xFF161822),
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
           ),
+          border: Border.all(color: Colors.white12),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -6362,6 +6652,21 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               onTap: () {
                 Get.back();
                 _toggleMic();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFFFD700)),
+              title: const Text('Send Gift to Yourself 🎁',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              onTap: () {
+                Get.back();
+                final occupiedSeats = _seats.where((s) => s['userId'] != null).length;
+                Get.dialog(SendGiftDialog(
+                  roomId: widget.roomId,
+                  occupiedSeatsCount: occupiedSeats,
+                  targetUserId: UserProfileCacheManager.currentUserId,
+                  targetUserName: 'Me (Self)',
+                ));
               },
             ),
             ListTile(
@@ -6388,11 +6693,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
-          color: context.secondaryBackgroundColor,
-          borderRadius: BorderRadius.only(
+          color: const Color(0xFF161822),
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
           ),
+          border: Border.all(color: Colors.white12),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -6448,11 +6754,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
-          color: context.secondaryBackgroundColor,
-          borderRadius: BorderRadius.only(
+          color: const Color(0xFF161822),
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
           ),
+          border: Border.all(color: Colors.white12),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -6707,10 +7014,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
   }
 
   String _formatStatValue(int value) {
-    if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}k';
-    }
-    return value.toString();
+    return formatCompactNumber(value);
   }
 
   void _showReportUserSheet(BuildContext context) {
@@ -9101,10 +9405,11 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       String title, String field, List<String> options, String currentValue) {
     Get.bottomSheet(
       Container(
-        decoration: BoxDecoration(
-          color: context.secondaryBackgroundColor,
+        decoration: const BoxDecoration(
+          color: Color(0xFF141A28),
           borderRadius: BorderRadius.only(
               topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Colors.white12, width: 1)),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -9158,16 +9463,16 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF0F172A), // Dark Arena Background
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFF0F172A),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
           onPressed: () => Get.back(),
         ),
-        title: const Text('Edit the arena',
-            style: TextStyle(
+        title: Text('Edit the arena',
+            style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold)),
@@ -9182,9 +9487,9 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             _buildSectionHeader('Basic Information'),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
+                color: Colors.white.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white12),
               ),
               child: Column(
                 children: [
@@ -9284,9 +9589,9 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
 
               return Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.03),
+                  color: Colors.white.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  border: Border.all(color: Colors.white12),
                 ),
                 child: Column(
                   children: [
@@ -9330,9 +9635,9 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             _buildSectionHeader('Arena Management'),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
+                color: Colors.white.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white12),
               ),
               child: Column(
                 children: [
@@ -9423,18 +9728,18 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
-            color: Colors.white38,
-            fontSize: 11.5,
+        style: GoogleFonts.poppins(
+            color: Colors.cyanAccent,
+            fontSize: 11,
             fontWeight: FontWeight.bold,
-            letterSpacing: 0.5),
+            letterSpacing: 0.8),
       ),
     );
   }
 
   Widget _buildDivider() {
-    return Divider(
-        height: 1, thickness: 0.5, color: Colors.white.withOpacity(0.05));
+    return const Divider(
+        height: 1, thickness: 0.5, color: Colors.white12);
   }
 
   Widget _buildListTile(String title,
@@ -9445,7 +9750,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       dense: true,
       visualDensity: VisualDensity.compact,
       title: Text(title,
-          style: const TextStyle(
+          style: GoogleFonts.poppins(
               color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -9456,10 +9761,10 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
               trailingText.length > 22
                   ? '${trailingText.substring(0, 20)}...'
                   : trailingText,
-              style: const TextStyle(color: Colors.white38, fontSize: 12),
+              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
             ),
           const SizedBox(width: 4),
-          const Icon(Icons.chevron_right, color: Colors.white24, size: 16),
+          const Icon(Icons.chevron_right, color: Colors.white54, size: 16),
         ],
       ),
       onTap: onTap,
@@ -10146,53 +10451,104 @@ class OnlineMembersDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
-        width: Get.width * 0.9,
-        height: 480,
+        width: Get.width * 0.92,
+        height: 520,
         decoration: BoxDecoration(
-          color: context.scaffoldBackgroundColor,
+          color: const Color(0xFF121927),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: context.borderColor),
+          border: Border.all(color: Colors.white12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 16,
+              spreadRadius: 2,
+            )
+          ],
         ),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Online Arena Members',
-              style: GoogleFonts.poppins(
-                color: context.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.cyanAccent.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.remove_red_eye_rounded,
+                          color: Colors.cyanAccent, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Live Arena Members',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Obx(() {
+                          final count = VoiceController.to.roomUsers.length;
+                          return Text(
+                            '$count Users Currently Online',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white54,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () => Get.back(),
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: const BoxDecoration(
+                        color: Colors.white10, shape: BoxShape.circle),
+                    child: const Icon(Icons.close, color: Colors.white70, size: 16),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Expanded(
               child: Obx(
                 () {
                   final users = VoiceController.to.roomUsers;
                   if (users.isEmpty) {
                     return Center(
-                      child: Text('No users online',
+                      child: Text('No users live in room',
                           style: GoogleFonts.poppins(
-                              color: context.textSecondary, fontSize: 13)),
+                              color: Colors.white54, fontSize: 13)),
                     );
                   }
 
+                  // Sort members by hierarchy: Owner -> Co-Owner/Admin -> Star Member -> Speaker -> Member
+                  final sortedUsers = List<dynamic>.from(users);
+                  sortedUsers.sort((a, b) {
+                    final roleA = RoomController.to.getUserRole(room, a.userID);
+                    final roleB = RoomController.to.getUserRole(room, b.userID);
+                    final weightA = RoomController.to.getRoleWeight(roleA);
+                    final weightB = RoomController.to.getRoleWeight(roleB);
+                    return weightB.compareTo(weightA);
+                  });
+
                   return ListView.builder(
-                    itemCount: users.length,
+                    itemCount: sortedUsers.length,
                     itemBuilder: (context, index) {
-                      final u = users[index];
-                      final member = RoomController.to.activeMembers
-                          .firstWhereOrNull((m) => m.userId == u.userID);
-                      final role = member?.role ?? 'Audience';
-                      final String mappedRole;
-                      if (role == 'Host' || role == 'Founder') {
-                        mappedRole = 'Owner';
-                      } else if (role == 'Co-Host') {
-                        mappedRole = 'Co-host';
-                      } else {
-                        mappedRole = 'Member';
-                      }
+                      final u = sortedUsers[index];
+                      final role = RoomController.to.getUserRole(room, u.userID);
 
                       final seatsList =
                           RoomController.to.roomSeatsInfo[roomId] ?? [];
@@ -10200,7 +10556,7 @@ class OnlineMembersDialog extends StatelessWidget {
                           seatsList.indexWhere((s) => s['userId'] == u.userID);
                       final seatText = seatIndex != -1
                           ? 'Seat ${seatIndex + 1}'
-                          : 'Audience';
+                          : null;
                       final isSpeaking = seatIndex != -1 &&
                           seatsList[seatIndex]['isSpeaking'] == true;
 
@@ -10214,32 +10570,65 @@ class OnlineMembersDialog extends StatelessWidget {
                         final nobleLevel = profile?.novelLevel ?? 0;
                         final vipLevel = profile?.vipLevel ?? 0;
 
+                        // Determine distinct role tag color & label
+                        Color roleBgColor;
+                        Color roleTextColor;
+                        String roleLabel;
+
+                        if (role == 'Owner' || role == 'Founder') {
+                          roleBgColor = const Color(0xFFFF3B30);
+                          roleTextColor = Colors.white;
+                          roleLabel = '👑 Owner';
+                        } else if (role == 'Co-owner') {
+                          roleBgColor = const Color(0xFF9C27B0);
+                          roleTextColor = Colors.white;
+                          roleLabel = '🛡️ Co-Owner';
+                        } else if (role == 'Admin') {
+                          roleBgColor = const Color(0xFFFF9800);
+                          roleTextColor = Colors.white;
+                          roleLabel = '🛡️ Admin';
+                        } else if (role == 'Star Member') {
+                          roleBgColor = const Color(0xFFFFC107);
+                          roleTextColor = Colors.black87;
+                          roleLabel = '⭐ Star Member';
+                        } else if (seatText != null) {
+                          roleBgColor = Colors.cyan;
+                          roleTextColor = Colors.black87;
+                          roleLabel = '🎙️ $seatText';
+                        } else {
+                          roleBgColor = Colors.blueGrey;
+                          roleTextColor = Colors.white;
+                          roleLabel = '👤 Member';
+                        }
+
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
-                            color: context.surfaceColor,
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                                color: context.borderColor),
+                                color: Colors.white.withOpacity(0.06)),
                           ),
                           child: Row(
                             children: [
                               CustomAvatarFrame(
                                 userId: u.userID,
                                 username: name,
-                                size: 36,
+                                size: 40,
                                 child: CircleAvatar(
-                                  radius: 16,
+                                  radius: 18,
                                   backgroundImage: avatarUrl.isNotEmpty
                                       ? NetworkImage(avatarUrl)
                                       : null,
                                   child: avatarUrl.isEmpty
-                                      ? const Icon(Icons.person, size: 16)
+                                      ? const Icon(Icons.person,
+                                          size: 18, color: Colors.white70)
                                       : null,
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -10250,7 +10639,7 @@ class OnlineMembersDialog extends StatelessWidget {
                                           child: Text(
                                             name,
                                             style: GoogleFonts.poppins(
-                                              color: context.textPrimary,
+                                              color: Colors.white,
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -10262,114 +10651,92 @@ class OnlineMembersDialog extends StatelessWidget {
                                           const SizedBox(width: 4),
                                           const Icon(Icons.mic,
                                               color: Color(0xFF00FF66),
-                                              size: 10),
+                                              size: 12),
                                         ],
                                       ],
                                     ),
                                     const SizedBox(height: 2),
-                                    Row(
+                                    Text(
+                                      'ID: ${u.userID}',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white38,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Wrap(
+                                      spacing: 4,
+                                      runSpacing: 4,
                                       children: [
+                                        // Level Tag
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 3, vertical: 0.5),
+                                              horizontal: 4, vertical: 1),
                                           decoration: BoxDecoration(
                                             color:
-                                                Colors.amber.withOpacity(0.15),
+                                                Colors.amber.withOpacity(0.2),
                                             borderRadius:
-                                                BorderRadius.circular(3),
+                                                BorderRadius.circular(4),
                                           ),
                                           child: Text(
                                             'Lv $level',
-                                            style: const TextStyle(
+                                            style: GoogleFonts.poppins(
                                                 color: Colors.amber,
-                                                fontSize: 7,
+                                                fontSize: 8,
                                                 fontWeight: FontWeight.bold),
                                           ),
                                         ),
-                                        const SizedBox(width: 4),
-                                        if (nobleLevel > 0) ...[
+                                        if (nobleLevel > 0)
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 3, vertical: 0.5),
+                                                horizontal: 4, vertical: 1),
                                             decoration: BoxDecoration(
                                               color:
-                                                  Colors.cyan.withOpacity(0.15),
+                                                  Colors.cyan.withOpacity(0.2),
                                               borderRadius:
-                                                  BorderRadius.circular(3),
+                                                  BorderRadius.circular(4),
                                             ),
                                             child: Text(
                                               'Novel $nobleLevel',
-                                              style: const TextStyle(
+                                              style: GoogleFonts.poppins(
                                                   color: Colors.cyanAccent,
-                                                  fontSize: 7,
+                                                  fontSize: 8,
                                                   fontWeight: FontWeight.bold),
                                             ),
                                           ),
-                                          const SizedBox(width: 4),
-                                        ],
-                                        if (vipLevel > 0) ...[
+                                        if (vipLevel > 0)
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 3, vertical: 0.5),
+                                                horizontal: 4, vertical: 1),
                                             decoration: BoxDecoration(
                                               color: Colors.purple
-                                                  .withOpacity(0.15),
+                                                  .withOpacity(0.2),
                                               borderRadius:
-                                                  BorderRadius.circular(3),
+                                                  BorderRadius.circular(4),
                                             ),
                                             child: Text(
                                               'VIP $vipLevel',
-                                              style: const TextStyle(
+                                              style: GoogleFonts.poppins(
                                                   color: Colors.purpleAccent,
-                                                  fontSize: 7,
+                                                  fontSize: 8,
                                                   fontWeight: FontWeight.bold),
                                             ),
                                           ),
-                                          const SizedBox(width: 4),
-                                        ],
+                                        // Role Tag
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 4, vertical: 1),
+                                              horizontal: 6, vertical: 1.5),
                                           decoration: BoxDecoration(
-                                            color: mappedRole == 'Owner'
-                                                ? Colors.redAccent
-                                                    .withOpacity(0.15)
-                                                : (mappedRole == 'Co-host'
-                                                    ? Colors.orangeAccent
-                                                        .withOpacity(0.15)
-                                                    : Colors.blueAccent
-                                                        .withOpacity(0.15)),
+                                            color: roleBgColor.withOpacity(0.85),
                                             borderRadius:
-                                                BorderRadius.circular(4),
+                                                BorderRadius.circular(6),
                                           ),
                                           child: Text(
-                                            mappedRole,
-                                            style: TextStyle(
-                                              color: mappedRole == 'Owner'
-                                                  ? Colors.redAccent
-                                                  : (mappedRole == 'Co-host'
-                                                      ? Colors.orangeAccent
-                                                      : Colors.blueAccent),
-                                              fontSize: 7,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 4, vertical: 1),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF00FF66)
-                                                .withOpacity(0.15),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: const Text(
-                                            'Online',
-                                            style: TextStyle(
-                                              color: Color(0xFF00FF66),
-                                              fontSize: 7,
+                                            roleLabel,
+                                            style: GoogleFonts.poppins(
+                                              color: roleTextColor,
+                                              fontSize: 8,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
@@ -10384,9 +10751,10 @@ class OnlineMembersDialog extends StatelessWidget {
                                 children: [
                                   if (u.userID != RoomController.currentUserId)
                                     IconButton(
-                                      icon: Icon(Icons.person_add_alt_1_rounded,
-                                          color: context.primaryColor,
-                                          size: 16),
+                                      icon: const Icon(
+                                          Icons.person_add_alt_1_rounded,
+                                          color: Colors.pinkAccent,
+                                          size: 18),
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
                                       onPressed: () {
@@ -10396,12 +10764,14 @@ class OnlineMembersDialog extends StatelessWidget {
                                                 SnackPosition.BOTTOM);
                                       },
                                     ),
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: 8),
+                                  // Profile & Role management button
                                   IconButton(
-                                    icon: Icon(Icons.visibility_outlined,
-                                        color: context.textSecondary, size: 16),
+                                    icon: const Icon(Icons.manage_accounts_rounded,
+                                        color: Colors.cyanAccent, size: 18),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
+                                    tooltip: 'Manage Member & Profile',
                                     onPressed: () => _handleViewProfile(
                                         u.userID, name, role),
                                   ),
@@ -10416,12 +10786,12 @@ class OnlineMembersDialog extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Center(
               child: TextButton(
                 onPressed: () => Get.back(),
                 child: Text('Close',
-                    style: GoogleFonts.poppins(color: context.textSecondary)),
+                    style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12)),
               ),
             ),
           ],
@@ -10923,103 +11293,70 @@ class GiftingAnimationOverlay extends StatefulWidget {
       _GiftingAnimationOverlayState();
 }
 
-class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay>
-    with TickerProviderStateMixin {
-  final List<_ActivePathAnimation> _paths = [];
+class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
+  final List<Map<String, dynamic>> _currentAnims = [];
+  Worker? _animWorker;
 
   @override
   void initState() {
     super.initState();
-    ever(widget.activeAnimations, (List<Map<String, dynamic>> anims) {
+    _animWorker = ever(widget.activeAnimations, (List<Map<String, dynamic>> anims) {
       if (anims.isNotEmpty) {
         final newAnim = anims.last;
-        if (!_paths.any((p) => p.id == newAnim['id'])) {
-          _startAnimation(newAnim);
+        if (!_currentAnims.any((p) => p['id'] == newAnim['id'])) {
+          setState(() {
+            _currentAnims.add(newAnim);
+          });
         }
       }
     });
   }
 
-  void _startAnimation(Map<String, dynamic> anim) {
-    final String id = anim['id'];
-    final Offset start = anim['start'];
-    final List<Offset> targets = List<Offset>.from(anim['targets']);
-    final String icon = anim['icon'];
-    final String name = anim['name'];
-    final int count = anim['count'];
-
-    final isMajor = name.contains('Castle') ||
-        name.contains('Car') ||
-        name.contains('Rocket') ||
-        name.contains('Sports Car');
-
-    final controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: isMajor ? 1400 : 900),
-    );
-
-    final pathAnim = _ActivePathAnimation(
-      id: id,
-      controller: controller,
-      start: start,
-      targets: targets,
-      icon: icon,
-      name: name,
-      count: count,
-      isMajor: isMajor,
-    );
-
-    setState(() {
-      _paths.add(pathAnim);
-    });
-
-    controller.forward().then((_) {
-      pathAnim.triggerExplosion();
-      widget.onExplosion(isMajor);
-
-      // Clean up path flight
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) {
-          setState(() {
-            _paths.removeWhere((p) => p.id == id);
-          });
-        }
-      });
-    });
-  }
-
   @override
   void dispose() {
-    for (final p in _paths) {
-      p.controller.dispose();
-    }
+    _animWorker?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_currentAnims.isEmpty) return const SizedBox.shrink();
+
+    final media = MediaQuery.of(context).size;
+
     return IgnorePointer(
       child: Stack(
         children: [
-          // Projectile bezier curve paths
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation:
-                  Listenable.merge(_paths.map((p) => p.controller).toList()),
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: _GiftingFlightPainter(paths: _paths),
-                );
+          for (final anim in _currentAnims) ...[
+            CreaniaGiftAnimationEngine(
+              key: ValueKey(anim['id']),
+              event: GiftRequestEvent(
+                giftId: anim['giftId'] ?? anim['name'] ?? 'gift',
+                giftName: anim['name'] ?? 'Gift',
+                giftIcon: anim['icon'] ?? '🎁',
+                price: anim['price'] ?? 10,
+                currency: anim['currency'] ?? 'gold',
+                mode: GiftAnimationMode.roomSeat,
+                senderName: anim['senderName'] ?? 'Member',
+                senderAvatar: anim['senderAvatar'],
+                startOffset: anim['start'] ?? Offset(media.width / 2, media.height * 0.92),
+                receiverName: anim['receiverName'] ?? 'Seat',
+                receiverAvatar: anim['receiverAvatar'],
+                targetOffset: (anim['targets'] as List<Offset>).isNotEmpty
+                    ? (anim['targets'] as List<Offset>).first
+                    : Offset(media.width / 2, media.height * 0.4),
+                targetOffsets: anim['targets'] as List<Offset>?,
+                count: anim['count'] ?? 1,
+              ),
+              onCompleted: () {
+                if (mounted) {
+                  setState(() {
+                    _currentAnims.removeWhere((a) => a['id'] == anim['id']);
+                  });
+                }
               },
             ),
-          ),
-
-          // Particle explosions and glowing rings at destination
-          ..._paths.map((p) {
-            return Positioned.fill(
-              child: _ExplosionBurstWidget(path: p),
-            );
-          }),
+          ],
         ],
       ),
     );
@@ -11236,4 +11573,129 @@ class _ExplosionPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class RoomAudioSettingsDialog extends StatefulWidget {
+  final String roomId;
+  const RoomAudioSettingsDialog({required this.roomId, Key? key})
+      : super(key: key);
+
+  @override
+  State<RoomAudioSettingsDialog> createState() =>
+      _RoomAudioSettingsDialogState();
+}
+
+class _RoomAudioSettingsDialogState extends State<RoomAudioSettingsDialog> {
+  double _bgmVolume = 50.0;
+  double _voiceVolume = 80.0;
+  bool _noiseSuppression = true;
+  bool _spatialAudio = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: Get.width * 0.9,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF121927),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.music_note_rounded,
+                        color: Colors.amberAccent, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Audio & BGM Settings',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () => Get.back(),
+                  child: const Icon(Icons.close, color: Colors.white70, size: 18),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'BGM Volume (${_bgmVolume.round()}%)',
+              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+            ),
+            Slider(
+              value: _bgmVolume,
+              min: 0,
+              max: 100,
+              activeColor: Colors.amberAccent,
+              onChanged: (val) => setState(() => _bgmVolume = val),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Voice Mic Volume (${_voiceVolume.round()}%)',
+              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+            ),
+            Slider(
+              value: _voiceVolume,
+              min: 0,
+              max: 100,
+              activeColor: Colors.pinkAccent,
+              onChanged: (val) => setState(() => _voiceVolume = val),
+            ),
+            const SizedBox(height: 10),
+            SwitchListTile(
+              title: Text('AI Noise Suppression',
+                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 12)),
+              subtitle: Text('Reduce background ambient noise',
+                  style: GoogleFonts.poppins(color: Colors.white38, fontSize: 10)),
+              value: _noiseSuppression,
+              activeColor: Colors.cyanAccent,
+              onChanged: (val) => setState(() => _noiseSuppression = val),
+            ),
+            SwitchListTile(
+              title: Text('3D Spatial Audio',
+                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 12)),
+              subtitle: Text('Immersive voice positioning on seats',
+                  style: GoogleFonts.poppins(color: Colors.white38, fontSize: 10)),
+              value: _spatialAudio,
+              activeColor: Colors.purpleAccent,
+              onChanged: (val) => setState(() => _spatialAudio = val),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF2D55),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Get.back();
+                  Get.snackbar('Audio Saved', 'Voice & BGM audio levels updated.',
+                      snackPosition: SnackPosition.BOTTOM);
+                },
+                child: Text('Apply Audio Settings',
+                    style: GoogleFonts.poppins(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -522,6 +522,24 @@ class CustomizationController extends GetxController {
     isEquipping.value = true;
 
     try {
+      // Rule 19: Backend Purchase & Equip Validation — Verify server ownership
+      try {
+        await Supabase.instance.client.rpc('equip_user_item', params: {
+          'p_item_name': itemName,
+          'p_category': category,
+        });
+      } catch (ve) {
+        debugPrint('[CustomizationController] Backend ownership verification failed: $ve');
+        Get.snackbar(
+          'Equip Failed',
+          'You do not own this item on the server.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+          colorText: Colors.white,
+        );
+        isEquipping.value = false;
+        return;
+      }
       // Optional: fetch asset metadata for richer DB record
       String? assetId;
       String? assetPath;

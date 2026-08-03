@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/user_profile_cache_manager.dart';
+import '../../utils/number_formatter.dart';
 
 class GiftingContributionScreen extends StatefulWidget {
   final String userId;
@@ -200,10 +201,7 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
   }
 
   String _formatStars(double stars) {
-    if (stars >= 1000) {
-      return '${(stars / 1000.0).toStringAsFixed(1).replaceAll('.0', '')}K';
-    }
-    return stars.toStringAsFixed(stars % 1 == 0 ? 0 : 1);
+    return formatCompactNumber(stars);
   }
 
   @override

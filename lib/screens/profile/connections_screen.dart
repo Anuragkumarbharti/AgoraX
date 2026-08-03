@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import 'profile_screen.dart';
 import '../../widgets/custom_avatar_frame.dart';
 import '../../services/user_profile_cache_manager.dart';
+import '../../widgets/followers_skeleton_widget.dart';
 
 class ConnectionsScreen extends StatefulWidget {
   final int initialTabIndex; // 0 for Following, 1 for Followers, 2 for Friends
@@ -270,7 +271,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: context.primaryColor))
+          ? const FollowersSkeletonWidget()
           : Column(
               children: [
                 // Search Box

@@ -22,6 +22,7 @@ import '../../widgets/custom_avatar_frame.dart';
 import '../../widgets/network_error_widget.dart';
 import '../../widgets/profile_skeleton_widget.dart';
 import '../../core/api_error_handler.dart';
+import '../../utils/number_formatter.dart';
 
 import '../../services/store_controller.dart';
 import '../../services/vip_controller.dart';
@@ -626,16 +627,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   String _formatCount(num count) {
-    if (count >= 1000000) {
-      double value = count / 1000000;
-      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) +
-          'M';
-    } else if (count >= 1000) {
-      double value = count / 1000;
-      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) +
-          'K';
-    }
-    return count.toString();
+    return formatCompactNumber(count);
   }
 
   Future<void> _loadUserPosts() async {
@@ -3086,15 +3078,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                   () {
                     Get.back();
                     Get.to(() => const SellerDashboardScreen());
-                  },
-                ),
-                _moreOptionItem(
-                  Icons.admin_panel_settings_rounded,
-                  'Vault Admin',
-                  const Color(0xFFEF4444),
-                  () {
-                    Get.back();
-                    Get.to(() => const AdminVaultPanelScreen());
                   },
                 ),
               ],

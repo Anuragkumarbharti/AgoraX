@@ -315,6 +315,47 @@ class StoreController extends GetxController with WidgetsBindingObserver {
     return false;
   }
 
+  /// Rule 7 & Rule 9 & Rule 20: Atomic and Idempotent Store Purchase RPC
+  Future<bool> buyStoreItemViaRpc({
+    required String itemId,
+    required String itemName,
+    required String category,
+    required int coinPrice,
+  }) async {
+    try {
+      final String txId = 'tx_store_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(999999)}';
+      final String sessionId = UserProfileCacheManager.currentSessionId;
+
+      final res = await Supabase.instance.client.rpc('buy_store_item', params: {
+        'p_item_id': itemId,
+        'p_item_name': itemName,
+        'p_category': category,
+        'p_coin_price': coinPrice,
+        'p_session_id': sessionId,
+        'p_transaction_id': txId,
+      });
+
+      if (res != null && res['success'] == true) {
+        if (res['remaining_coins'] != null) {
+          coinsBalance.value = (res['remaining_coins'] as num).toInt();
+        }
+        await syncWithDatabase(force: true);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[StoreController] buyStoreItemViaRpc error: $e');
+      Get.snackbar(
+        'Purchase Error',
+        e.toString().replaceAll('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+      return false;
+    }
+  }
+
   // --- CURRENCY EXCHANGE DISABLED ---
 
   // --- GIFT CONVERSION ---

@@ -18,6 +18,7 @@ import 'novel_avatar_decorator.dart';
 import '../services/customization_controller.dart';
 import '../services/premium_identity_controller.dart';
 import 'custom_avatar_frame.dart';
+import '../utils/number_formatter.dart';
 import 'index.dart';
 
 enum MiniProfileVariant {
@@ -694,16 +695,7 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   }
 
   String _formatCount(num count) {
-    if (count >= 1000000) {
-      double value = count / 1000000;
-      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) +
-          'M';
-    } else if (count >= 1000) {
-      double value = count / 1000;
-      return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1) +
-          'K';
-    }
-    return count.toString();
+    return formatCompactNumber(count);
   }
 
   Widget _buildStatsRow() {

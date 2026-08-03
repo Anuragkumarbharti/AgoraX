@@ -13,9 +13,11 @@ import 'create_room_screen.dart';
 import 'room_profile_screen.dart';
 import 'voice_room_call_screen.dart';
 import '../../widgets/custom_avatar_frame.dart';
+import '../../widgets/arena_skeleton_widget.dart';
 import '../../widgets/premium_name_widget.dart';
 import '../../widgets/wallet_header_pill.dart';
 import '../../models/user_model.dart';
+import '../../utils/number_formatter.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({Key? key}) : super(key: key);
@@ -64,10 +66,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   }
 
   String _formatXpValue(int value) {
-    if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(0)}k';
-    }
-    return value.toString();
+    return formatCompactNumber(value);
   }
   String _sortBy = 'Trending'; // 'Trending' or 'Online Users'
 
@@ -163,21 +162,19 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     setState(() {
       _isRefreshing = true;
     });
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (mounted) {
-      setState(() {
-        _isRefreshing = false;
-        _paginatedRooms = _controller.rooms.take(4).toList();
-        _hasMore = true;
-        _liveCountsOffset.clear();
-      });
-      Get.snackbar(
-        'Refreshed',
-        'Arenas list updated successfully!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: context.primaryColor.withOpacity(0.9),
-        colorText: Colors.white,
-      );
+    try {
+      await _controller.fetchRooms(forceRefresh: true);
+    } catch (e) {
+      debugPrint('[RoomsScreen] Refresh error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+          _paginatedRooms = _controller.rooms.take(4).toList();
+          _hasMore = true;
+          _liveCountsOffset.clear();
+        });
+      }
     }
   }
 
@@ -1581,47 +1578,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
   // ── SKELETON PLACEHOLDER ──
   Widget _buildSkeletonGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.all(16),
-      itemCount: 4,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.8,
-      ),
-      itemBuilder: (context, index) {
-        return Container(
-          decoration: BoxDecoration(
-            color: context.secondaryBackgroundColor,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          padding: EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cover
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: context.borderColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-              // Name bar
-              Container(width: 100, height: 12, color: context.borderColor),
-              SizedBox(height: 6),
-              // Subtitle bar
-              Container(width: 60, height: 10, color: context.borderColor),
-            ],
-          ),
-        );
-      },
-    );
+    return const ArenaSkeletonWidget(isGrid: true, itemCount: 6);
   }
 
   Widget _buildDiscoveryEmptyState(String type) {

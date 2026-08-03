@@ -4,29 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/store_controller.dart';
 import '../screens/profile/account_center_screen.dart';
 import '../screens/store/coin_store_screen.dart';
+import '../utils/number_formatter.dart';
 
-/// Formats wallet coins balance using high-contrast compact representation:
-/// Examples: 9499, 12.5K, 29549, 2.4M
+/// Formats wallet coins balance using universal compact representation.
 String formatWalletCoins(int coins) {
-  if (coins < 0) return '0';
-  if (coins >= 1000000) {
-    final double val = coins / 1000000.0;
-    return val % 1 == 0 ? '${val.toInt()}M' : '${val.toStringAsFixed(1)}M';
-  }
-  if (coins >= 100000) {
-    final double val = coins / 1000.0;
-    return val % 1 == 0 ? '${val.toInt()}K' : '${val.toStringAsFixed(1)}K';
-  }
-  if (coins >= 10000) {
-    if (coins % 1000 == 0) {
-      return '${(coins ~/ 1000)}K';
-    }
-    if (coins % 100 == 0) {
-      final double val = coins / 1000.0;
-      return '${val.toStringAsFixed(1)}K';
-    }
-  }
-  return coins.toString();
+  return formatCompactNumber(coins);
 }
 
 class WalletHeaderPill extends StatefulWidget {

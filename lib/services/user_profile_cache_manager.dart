@@ -28,7 +28,90 @@ class UserProfileCacheManager {
   static RealtimeChannel? _realtimeChannel;
   static RealtimeChannel? _connectionsRealtimeChannel;
   static RealtimeChannel? _giftRealtimeChannel;
+  static RealtimeChannel? _sessionRealtimeChannel;
+  static String _currentSessionId = '';
   static final RxInt giftTransactionsTrigger = 0.obs;
+
+  static String get currentSessionId {
+    if (_currentSessionId.isNotEmpty) return _currentSessionId;
+    _currentSessionId = 'sess_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(999999)}';
+    SharedPreferences.getInstance().then((prefs) => prefs.setString('current_session_id', _currentSessionId));
+    return _currentSessionId;
+  }
+
+  static Future<String> getOrGenerateSessionId() async {
+    if (_currentSessionId.isNotEmpty) return _currentSessionId;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getString('current_session_id');
+      if (stored != null && stored.isNotEmpty) {
+        _currentSessionId = stored;
+      } else {
+        _currentSessionId = 'sess_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(999999)}';
+        await prefs.setString('current_session_id', _currentSessionId);
+      }
+    } catch (_) {
+      if (_currentSessionId.isEmpty) {
+        _currentSessionId = 'sess_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(999999)}';
+      }
+    }
+    return _currentSessionId;
+  }
+
+  static Future<Map<String, dynamic>?> registerSession(String userId) async {
+    if (userId.isEmpty) return null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var deviceId = prefs.getString('device_id');
+      if (deviceId == null || deviceId.isEmpty) {
+        deviceId = 'device_${Random().nextInt(9999999)}';
+        await prefs.setString('device_id', deviceId);
+      }
+
+      final sid = await getOrGenerateSessionId();
+
+      // Try RPC for atomic single session registration and invalidation of old sessions
+      try {
+        final rpcRes = await Supabase.instance.client.rpc('register_new_session', params: {
+          'p_session_id': sid,
+          'p_device_id': deviceId,
+          'p_device_name': defaultTargetPlatform.name,
+          'p_os_version': kIsWeb ? 'Web' : defaultTargetPlatform.toString(),
+          'p_app_version': '1.0.0',
+          'p_platform': defaultTargetPlatform.name,
+        });
+
+        if (rpcRes != null && rpcRes is Map<String, dynamic>) {
+          debugPrint('[UserProfileCacheManager] Single Device Session Authenticated Log:');
+          debugPrint('  -> Previous Session ID: ${rpcRes['previous_session_id']}');
+          debugPrint('  -> New Session ID: ${rpcRes['new_session_id']}');
+          debugPrint('  -> Device ID: ${rpcRes['device_id']}');
+          debugPrint('  -> Login Timestamp: ${rpcRes['login_time']}');
+          return rpcRes;
+        }
+      } catch (rpcErr) {
+        debugPrint('[UserProfileCacheManager] register_new_session RPC fallback: $rpcErr');
+      }
+
+      // Direct upsert fallback
+      await Supabase.instance.client.from('user_sessions').upsert({
+        'session_id': sid,
+        'user_id': userId,
+        'device_id': deviceId,
+        'device_name': defaultTargetPlatform.name,
+        'os_version': kIsWeb ? 'Web' : defaultTargetPlatform.toString(),
+        'app_version': '1.0.0',
+        'platform': defaultTargetPlatform.name,
+        'login_time': DateTime.now().toIso8601String(),
+        'last_seen': DateTime.now().toIso8601String(),
+        'online_status': 'Online',
+      });
+      debugPrint('[UserProfileCacheManager] Session registered via fallback: $sid');
+    } catch (e) {
+      debugPrint('[UserProfileCacheManager] Session registration error: $e');
+    }
+    return null;
+  }
 
   /// Incremented every time an equip/unequip is confirmed by the backend.
   /// Screens can listen to this with Obx(() => ...) to refresh their user card.
@@ -120,7 +203,7 @@ class UserProfileCacheManager {
     final uuidPattern = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
     if (!uuidPattern.hasMatch(idToQuery)) {
       debugPrint('[CacheManager] Rejected malformed userId: $idToQuery');
-      throw Exception('Invalid user ID format: $idToQuery');
+      throw FormatException('Invalid user ID format: $idToQuery');
     }
 
     if (!forceRefresh && idToQuery == currentId && _currentUser != null) {
@@ -367,6 +450,25 @@ class UserProfileCacheManager {
         return false;
       }
 
+      // Ensure active session registration
+      await registerSession(currentUser.id);
+
+      // Validate session ID on backend via RPC
+      try {
+        final bool isSessionActive = await client.rpc('validate_active_session', params: {
+          'p_user_id': currentUser.id,
+          'p_session_id': currentSessionId,
+        });
+
+        if (!isSessionActive) {
+          await forceLogout(
+              message: "Your account has been logged in from another device.");
+          return false;
+        }
+      } catch (e) {
+        debugPrint('[CacheManager] Active session RPC validation warning: $e');
+      }
+
       return true;
     } catch (e) {
       debugPrint('[CacheManager] Session validation error: $e');
@@ -425,7 +527,9 @@ class UserProfileCacheManager {
     } catch (_) {}
 
     try {
+      _currentSessionId = '';
       final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('current_session_id');
       await prefs.remove('profiles_last_sync_timestamp');
       await prefs.remove('store_coins_balance');
       await prefs.remove('store_silver_balance');
@@ -645,6 +749,21 @@ class UserProfileCacheManager {
                 if (userId == currentUserId) {
                   _currentUser = userObj;
 
+                  // Rule 1 & 2 & 17: Check active_session_id mismatch and ban status
+                  final String? activeSessionId = newRecord['active_session_id']?.toString();
+                  final bool isBanned = newRecord['is_banned'] as bool? ?? false;
+                  final String? status = newRecord['status']?.toString();
+
+                  if (activeSessionId != null && activeSessionId.isNotEmpty && activeSessionId != currentSessionId) {
+                    forceLogout(message: "Your account has been logged in from another device.");
+                    return;
+                  }
+
+                  if (isBanned || status == 'suspended' || status == 'banned') {
+                    forceLogout(message: "Your account has been suspended.");
+                    return;
+                  }
+
                   // Update GetX controllers in real-time
                   try {
                     if (Get.isRegistered<VipController>()) {
@@ -710,6 +829,42 @@ class UserProfileCacheManager {
           '[UserProfileCacheManager] Subscribed to profiles table Realtime updates.');
     } catch (e) {
       debugPrint('[UserProfileCacheManager] Realtime subscription failed: $e');
+    }
+
+    // Subscribe to user_sessions table for Single Device Login rule enforcement
+    try {
+      if (currentUserId.isNotEmpty) {
+        _sessionRealtimeChannel = Supabase.instance.client
+            .channel('public:user_sessions_realtime_$currentUserId')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'user_sessions',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'user_id',
+                value: currentUserId,
+              ),
+              callback: (payload) {
+                final newRecord = payload.newRecord;
+                if (newRecord != null) {
+                  final String? status = newRecord['online_status']?.toString();
+                  final String? sid = newRecord['session_id']?.toString();
+                  // CRITICAL FIX: Only trigger logout if THIS device's active currentSessionId was set to 'Offline' (which happens when ANOTHER device inserts a new session)
+                  if (sid != null && sid == currentSessionId && status == 'Offline') {
+                    forceLogout(
+                        message: "Your account has been logged in from another device.");
+                  }
+                }
+              },
+            );
+        _sessionRealtimeChannel?.subscribe();
+        debugPrint(
+            '[UserProfileCacheManager] Subscribed to user_sessions table Realtime updates.');
+      }
+    } catch (e) {
+      debugPrint(
+          '[UserProfileCacheManager] user_sessions realtime subscription failed: $e');
     }
 
     // Subscribe to wallets table for coins and silver coins real-time sync

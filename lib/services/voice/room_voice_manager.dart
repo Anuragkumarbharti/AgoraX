@@ -79,6 +79,12 @@ class RoomVoiceManager {
     required bool enableMic,
   }) async {
     try {
+      // Rule 6: Disconnect previous voice channel if user was in another room
+      if (_activeRoomId != null && _activeRoomId != roomId) {
+        debugPrint('[RoomVoiceManager] Disconnecting previous room voice stream $_activeRoomId before joining $roomId');
+        await leaveRoom();
+      }
+
       debugPrint('[RoomVoiceManager] Joining Room $roomId...');
       _activeRoomId = roomId;
       _activeUserId = userId;

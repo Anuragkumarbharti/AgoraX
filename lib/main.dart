@@ -26,6 +26,7 @@ import 'services/chat_socket_service.dart';
 import 'services/admob_service.dart';
 import 'services/fcm_notification_service.dart';
 import 'services/network_adaptive_manager.dart';
+import 'services/network_connectivity_service.dart';
 import 'services/ultra_network_client.dart';
 import 'services/request_batcher.dart';
 import 'services/delta_sync_manager.dart';
@@ -73,6 +74,7 @@ void main() async {
   Get.put(isarService);
 
   // Register network resilience & adaptive services
+  Get.put(NetworkConnectivityService());
   Get.put(NetworkAdaptiveManager());
   Get.put(UltraNetworkClient());
   Get.put(RequestBatcher());

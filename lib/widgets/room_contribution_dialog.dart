@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../utils/number_formatter.dart';
 
 class RoomContributionDialog extends StatefulWidget {
   final String roomId;
@@ -53,10 +54,7 @@ class _RoomContributionDialogState extends State<RoomContributionDialog> with Si
   }
 
   String _formatStars(double stars) {
-    if (stars >= 1000) {
-      return '${(stars / 1000.0).toStringAsFixed(1).replaceAll('.0', '')}K';
-    }
-    return stars.toStringAsFixed(stars % 1 == 0 ? 0 : 1);
+    return formatCompactNumber(stars);
   }
 
   @override

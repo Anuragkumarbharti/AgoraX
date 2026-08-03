@@ -207,11 +207,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
           tooltip: 'Purchase History',
           onPressed: () => Get.to(() => const StoreHistoryScreen()),
         ),
-        IconButton(
-          icon: Icon(Icons.admin_panel_settings_outlined, color: context.accentGold),
-          tooltip: 'Admin Panel',
-          onPressed: () => Get.to(() => const AdminStorePanel()),
-        ),
       ],
     );
   }

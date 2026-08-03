@@ -18,8 +18,11 @@ import 'user_progress_sync_service.dart';
 import 'user_profile_cache_manager.dart';
 import 'progression_controller.dart';
 import 'chat_socket_service.dart';
+import 'network_connectivity_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../models/user_model.dart';
+import '../models/gift_animation_metadata.dart';
+import '../widgets/gift_animation_overlay.dart';
 
 class RoomChatMessage {
   final String id;
@@ -151,6 +154,11 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   final RxMap<String, int> roomSeatGiftsCounters =
       <String, int>{}.obs; // key: room_id:seat_index -> silver_gift_count
   final RxList<String> marqueeAnnouncementsQueue = <String>[].obs;
+  final Rxn<GiftAnimationEvent> activeGiftAnimation = Rxn<GiftAnimationEvent>();
+
+  void triggerGiftAnimation(GiftAnimationEvent event) {
+    activeGiftAnimation.value = event;
+  }
 
   RealtimeChannel? _roomProgressionChannel;
   RealtimeChannel? _roomMembersChannel;
@@ -233,8 +241,15 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
+    _loadCachedRooms();
     fetchRooms();
     subscribeToRoomsList();
+    if (Get.isRegistered<NetworkConnectivityService>()) {
+      NetworkConnectivityService.to.addReconnectedCallback(() {
+        debugPrint('[RoomController] Network restored. Auto-fetching rooms.');
+        fetchRooms(forceRefresh: true);
+      });
+    }
   }
 
   @override
@@ -584,17 +599,45 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> fetchRooms() async {
+  bool _isFetchingRooms = false;
+
+  Future<void> _loadCachedRooms() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? cachedJson = prefs.getString('cached_voice_rooms_json');
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        final List list = jsonDecode(cachedJson);
+        final List<VoiceRoom> loaded = list.map((item) => VoiceRoom.fromJson(item)).toList();
+        if (loaded.isNotEmpty && rooms.isEmpty) {
+          rooms.assignAll(loaded);
+          debugPrint('[RoomController] Loaded ${loaded.length} rooms from local cache.');
+        }
+      }
+    } catch (e) {
+      debugPrint('[RoomController] Error loading cached rooms: $e');
+    }
+  }
+
+  Future<void> fetchRooms({bool forceRefresh = false}) async {
+    if (_isFetchingRooms && !forceRefresh) return;
+    _isFetchingRooms = true;
+
     try {
       final response = await Supabase.instance.client
           .from('rooms')
           .select(
               '*, profiles:host_id(id, username, avatar_url, avatar_frame, level, vip_level, novel_level)')
           .or('status.eq.live,status.eq.scheduled')
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .timeout(const Duration(seconds: 10));
 
       final List<VoiceRoom> loaded = [];
+      final List<Map<String, dynamic>> rawList = [];
+
       for (final item in response as List) {
+        if (item is Map<String, dynamic>) {
+          rawList.add(item);
+        }
         loaded.add(VoiceRoom.fromJson(item));
         final hostData = item['profiles'];
         if (hostData != null &&
@@ -608,9 +651,24 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           }
         }
       }
+
       rooms.assignAll(loaded);
+
+      // Save to local cache asynchronously
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_voice_rooms_json', jsonEncode(rawList));
+      } catch (ce) {
+        debugPrint('[RoomController] Cache save error: $ce');
+      }
     } catch (e) {
       debugPrint('Error fetching rooms: $e');
+      // If network failed and list is empty, attempt to load from local cache
+      if (rooms.isEmpty) {
+        await _loadCachedRooms();
+      }
+    } finally {
+      _isFetchingRooms = false;
     }
   }
 
@@ -757,6 +815,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
   Future<void> enterRoom(String roomId, {String? password}) async {
     try {
+      // Rule 3: One Account = One Room — Auto-leave previous room cleanly if currently active in another
+      if (activeRoomId != null && activeRoomId != roomId) {
+        debugPrint('[RoomController] Auto-leaving previous active room $activeRoomId before entering $roomId');
+        await exitRoom(activeRoomId!);
+      }
+
       activeRoomId = roomId;
 
       // Clear previous room session chats and notifications from memory
@@ -849,6 +913,13 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
   Future<void> exitRoom(String roomId) async {
     try {
+      // Rule 10: Room Exit Cleanup — Leave voice channel and stop mic stream
+      try {
+        await RoomVoiceManager().leaveRoom();
+      } catch (ve) {
+        debugPrint('[RoomController] Voice manager leaveRoom error: $ve');
+      }
+
       stopProgressionTimer();
       // Gracefully vacate seat in DB if current user is sitting on one
       final seats = roomSeatsInfo[roomId];
@@ -1142,6 +1213,9 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       final amount = int.tryParse(metadata['amount']?.toString() ?? '1') ?? 1;
       final isGold = metadata['is_gold'] == true;
       final receiverName = metadata['receiver_name'] ?? 'someone';
+      final giftId = metadata['gift_id'] ?? metadata['giftId'];
+      final giftName = metadata['gift_name'] ?? metadata['giftName'] ?? 'Gift';
+      final giftIcon = metadata['gift_icon'] ?? metadata['icon'] ?? GiftMetadataRegistry.getMetadata(giftId ?? giftName).giftIcon;
 
       Future.microtask(() async {
         final senderProfile = senderId != null
@@ -1168,6 +1242,12 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           'isGold': isGold,
           'receiverName': receiverName,
           'receiverAvatar': receiverAvatar,
+          'gift_id': giftId,
+          'giftId': giftId,
+          'gift_name': giftName,
+          'giftName': giftName,
+          'gift_icon': giftIcon,
+          'giftIcon': giftIcon,
           'timestamp': DateTime.now().millisecondsSinceEpoch,
         };
       });
@@ -2395,18 +2475,31 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         final uName = profile?.username ?? 'Creania Student';
 
         // Formulate chat/banner message body matching required structure
+        final actualGiftIcon = GiftMetadataRegistry.getMetadata(giftId).giftIcon;
         String messageBody;
         if (targetUserIds.length == 1) {
           final targetName = targetUserNames[0];
           messageBody = count > 1
-              ? '$uName sent $count× 🌹 $giftName to $targetName'
-              : '$uName sent 🌹 $giftName to $targetName';
+              ? '$uName sent $count× $actualGiftIcon $giftName to $targetName'
+              : '$uName sent $actualGiftIcon $giftName to $targetName';
         } else if (targetUserIds.length >= 10) {
-          messageBody = '$uName gifted everyone with $giftName';
+          messageBody = '$uName gifted everyone with $actualGiftIcon $giftName';
         } else {
           messageBody =
-              '$uName sent $giftName to ${targetUserIds.length} selected users';
+              '$uName sent $actualGiftIcon $giftName to ${targetUserIds.length} selected users';
         }
+
+        // Trigger 60/120 FPS Native Hardware Accelerated Gift Animation Overlay
+        triggerGiftAnimation(GiftAnimationEvent(
+          giftId: giftId,
+          giftName: giftName,
+          giftIcon: actualGiftIcon,
+          senderName: uName,
+          senderAvatar: profile?.avatar,
+          receiverName: targetUserNames.isNotEmpty ? targetUserNames[0] : 'Everyone',
+          count: count * comboCount,
+          currency: currency,
+        ));
 
         // 2. Broadcast event to update other users real-time UI/Animations
         await emitRoomActivityEvent(
@@ -2420,6 +2513,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           metadata: {
             'gift_id': giftId,
             'gift_name': giftName,
+            'gift_icon': actualGiftIcon,
             'amount': count,
             'currency': currency,
             'stars': giftCost,

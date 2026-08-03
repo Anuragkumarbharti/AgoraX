@@ -230,14 +230,7 @@ class _ProgressionCenterScreenState extends State<ProgressionCenterScreen>
                           textAlign: TextAlign.center,
                         ),
                       ),
-                      if (isAdmin) ...[
-                        IconButton(
-                          icon: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFFFFDB3C)),
-                          onPressed: () => Get.to(() => const ProgressionAdminDashboard()),
-                        ),
-                      ] else ...[
-                        const SizedBox(width: 48),
-                      ],
+                      const SizedBox(width: 48),
                     ],
                   ),
                 ),

@@ -17,6 +17,7 @@ import '../rooms/voice_room_call_screen.dart';
 import '../profile/profile_screen.dart';
 import 'chat_screen.dart';
 import 'new_chat_screen.dart';
+import '../../widgets/chat_list_skeleton_widget.dart';
 
 class ChatsListScreen extends StatefulWidget {
   const ChatsListScreen({Key? key}) : super(key: key);
@@ -548,6 +549,10 @@ class _ChatsListScreenState extends State<ChatsListScreen>
 
   Widget _buildConversationList() {
     return Obx(() {
+      if (_ctrl.isLoading.value && _ctrl.conversations.isEmpty) {
+        return const ChatListSkeletonWidget();
+      }
+
       final query = _ctrl.searchQuery.value.trim().toLowerCase();
       final filtered = _ctrl.conversations.where((c) {
         return c.otherUserName.toLowerCase().contains(query) ||

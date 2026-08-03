@@ -15,6 +15,7 @@ import '../profile/profile_screen.dart';
 import 'community_detail_screen.dart';
 import 'create_community_screen.dart';
 import '../../widgets/community_join_button.dart';
+import '../../widgets/community_skeleton_widget.dart';
 
 class CommunitiesScreen extends StatefulWidget {
   const CommunitiesScreen({Key? key}) : super(key: key);
@@ -289,6 +290,10 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> with SingleTicker
         ],
       ),
       body: Obx(() {
+        if (_controller.isLoading.value && _controller.communities.isEmpty) {
+          return const CommunitySkeletonWidget();
+        }
+
         final joinedId = _controller.userMembership.value?.communityId;
         final joinedComm = _controller.communities.firstWhereOrNull((c) => c.id == joinedId);
         final list = _getFilteredCommunities();

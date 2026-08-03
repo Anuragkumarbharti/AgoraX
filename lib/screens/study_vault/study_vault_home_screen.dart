@@ -253,10 +253,6 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
             icon: Icon(Icons.dashboard_customize_outlined, color: Colors.white, size: 20),
             onPressed: () => Get.to(() => const SellerDashboardScreen()),
           ),
-          IconButton(
-            icon: Icon(Icons.admin_panel_settings_outlined, color: Colors.white, size: 20),
-            onPressed: () => Get.to(() => const AdminVaultPanelScreen()),
-          ),
         ],
       ),
     );

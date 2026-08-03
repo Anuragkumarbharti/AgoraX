@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:creania/core/theme.dart';
 import '../../services/store_controller.dart';
 import '../../widgets/wallet_header_pill.dart';
+import '../../utils/number_formatter.dart';
 import 'checkout_screen.dart';
 
 class CoinStoreScreen extends StatelessWidget {
@@ -102,13 +103,13 @@ class CoinStoreScreen extends StatelessWidget {
                   ),
                 ),
                 SliverPadding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   sliver: SliverGrid(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 0.85,
+                      childAspectRatio: 0.68,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -131,7 +132,7 @@ class CoinStoreScreen extends StatelessWidget {
   Widget _buildTopOffersBanner(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(18),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: context.orangeToGoldGradient,
@@ -139,8 +140,8 @@ class CoinStoreScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text('🔥', style: TextStyle(fontSize: 32)),
-          SizedBox(width: 14),
+          const Text('🔥', style: TextStyle(fontSize: 32)),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,7 +150,7 @@ class CoinStoreScreen extends StatelessWidget {
                   'FIRST PURCHASE BONUS!',
                   style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   'Get double bonus coins on packs above ₹799.',
                   style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.9), fontSize: 10),
@@ -163,7 +164,7 @@ class CoinStoreScreen extends StatelessWidget {
   }
 
   Widget _buildCoinPackCard(BuildContext context, CoinPack pack) {
-    final themeColor = pack.isSpecial ? Color(0xFFFFD700) : Color(0xFF8B5CF6);
+    final themeColor = pack.isSpecial ? const Color(0xFFFFD700) : const Color(0xFF8B5CF6);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -185,19 +186,24 @@ class CoinStoreScreen extends StatelessWidget {
                   top: 0,
                   right: 0,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
                       color: themeColor,
-                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(10)),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(8),
+                        topRight: Radius.circular(20),
+                      ),
                     ),
                     child: Text(
                       pack.tag!,
-                      style: GoogleFonts.poppins(color: Colors.black, fontSize: 8, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(color: Colors.black, fontSize: 7.5, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
               Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -209,29 +215,33 @@ class CoinStoreScreen extends StatelessWidget {
                           pack.name,
                           style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text('🪙', style: TextStyle(fontSize: 22)),
-                            SizedBox(width: 4),
-                            Text(
-                              pack.coins.toString(),
-                              style: GoogleFonts.outfit(color: context.textPrimary, fontSize: 24, fontWeight: FontWeight.w900),
+                            const Text('🪙', style: TextStyle(fontSize: 20)),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                formatCompactNumber(pack.coins),
+                                style: GoogleFonts.outfit(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w900),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
                         if (pack.bonusCoins > 0)
                           Container(
-                            margin: EdgeInsets.only(top: 6),
-                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            margin: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Color(0xFF10B981).withOpacity(0.12),
+                              color: const Color(0xFF10B981).withOpacity(0.12),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              '+${pack.bonusCoins} Bonus Coins',
-                              style: GoogleFonts.poppins(color: context.successColor, fontSize: 8.5, fontWeight: FontWeight.bold),
+                              '+${formatCompactNumber(pack.bonusCoins)} Bonus',
+                              style: GoogleFonts.poppins(color: context.successColor, fontSize: 8, fontWeight: FontWeight.bold),
                             ),
                           ),
                       ],
@@ -243,14 +253,14 @@ class CoinStoreScreen extends StatelessWidget {
                           'GST Included',
                           style: GoogleFonts.poppins(color: context.caption, fontSize: 8),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: pack.isSpecial ? context.accentGold : context.primaryColor,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              padding: EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
                             ),
                             onPressed: () {
                               Get.to(() => CheckoutScreen(

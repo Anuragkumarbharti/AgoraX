@@ -21,7 +21,11 @@ import '../../services/community_controller.dart';
 import '../communities/community_detail_screen.dart';
 import '../../widgets/community_join_button.dart';
 import '../notifications/notification_history_screen.dart';
-
+import '../../services/chat_controller.dart';
+import '../../services/user_profile_cache_manager.dart';
+import '../../utils/number_formatter.dart';
+import '../../models/chat_model.dart';
+import '../chat/chat_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({Key? key}) : super(key: key);
@@ -34,6 +38,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     with SingleTickerProviderStateMixin {
   late TextEditingController _searchController;
   late TabController _tabController;
+
   final List<String> _tabs = [
     'All',
     'Posts',
@@ -43,7 +48,11 @@ class _ExploreScreenState extends State<ExploreScreen>
     'Study Vault'
   ];
 
-  // ── Mock data ──
+  String _selectedFilter = 'All';
+  final List<User> _users = [];
+  bool _isLoadingUsers = true;
+
+  // ── Mock data for Posts & Questions (Original Explore features) ──
   final List<Post> _posts = List.generate(
       10,
       (i) => Post(
@@ -63,14 +72,10 @@ class _ExploreScreenState extends State<ExploreScreen>
               'Voice arenas are the future of online communities. That\'s why we built Creania 🎙️',
             ][i % 10],
             images: [
-              [
-                'https://images.unsplash.com/photo-1618401471353-b98aedd07871?w=400'
-              ],
+              ['https://images.unsplash.com/photo-1618401471353-b98aedd07871?w=400'],
               null,
               null,
-              [
-                'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=400'
-              ],
+              ['https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=400'],
               null,
               null,
               null,
@@ -84,9 +89,7 @@ class _ExploreScreenState extends State<ExploreScreen>
               null,
               null,
               null,
-              [
-                'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4'
-              ],
+              ['https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4'],
               null,
               null,
               null,
@@ -165,9 +168,9 @@ class _ExploreScreenState extends State<ExploreScreen>
               'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150',
               'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
             ][i % 10],
+            interests: const [],
+            communities: const [],
             sid: '108${290 + i}',
-            interests: [],
-            communities: [],
             followers: 500 + i * 300,
             following: 100 + i * 50,
             isVerified: i % 3 == 0,
@@ -225,9 +228,8 @@ class _ExploreScreenState extends State<ExploreScreen>
             createdAt: DateTime.now().subtract(Duration(hours: i * 5 + 2)),
           ));
 
-  List<Community> get _communities => Get.find<CommunityController>().communities;
-
-  final List<User> _users = [];
+  List<Community> get _communities =>
+      Get.find<CommunityController>().communities;
 
   @override
   void initState() {
@@ -238,53 +240,34 @@ class _ExploreScreenState extends State<ExploreScreen>
   }
 
   Future<void> _loadUsersFromDatabase() async {
+    if (mounted) setState(() => _isLoadingUsers = true);
     try {
+      final currentUid = UserProfileCacheManager.currentUserId;
       final response = await Supabase.instance.client
           .from('profiles')
           .select()
-          .limit(20);
-      if (response != null) {
+          .limit(40);
+
+      if (response != null && response is List) {
         final List<User> loadedUsers = [];
         for (final p in response) {
-          loadedUsers.add(User(
-            id: p['id'] ?? '',
-            username: p['username'] ?? '',
-            email: '',
-            displayName: p['username'] ?? '',
-            avatar: p['avatar_url'],
-            bio: p['bio'] ?? '',
-            interests: [],
-            communities: [],
-            followers: p['followers'] ?? 0,
-            following: p['following'] ?? 0,
-            isVerified: (p['level'] ?? 1) >= 10,
-            isPremium: (p['vip_level'] ?? 0) > 0 || (p['novel_level'] ?? 0) > 0,
-            reputation: p['experience'] ?? 0,
-            sid: (p['id'].hashCode.abs() % 900000 + 100000).toString(),
-            level: p['level'] ?? 1,
-            xp: p['experience'] ?? 0,
-            totalXp: (p['level'] ?? 1) * 1000,
-            badges: List<String>.from(p['badges'] ?? []),
-            levelTitle: (p['level'] ?? 1) >= 10 ? 'Expert' : 'Newcomer',
-            vipLevel: p['vip_level'] ?? 0,
-            novelLevel: p['novel_level'] ?? 0,
-            careerLevel: p['career_level'] ?? 1,
-            avatarFrame: p['avatar_frame'] ?? 'Normal',
-          ));
+          final uObj = User.fromJson(p);
+          if (uObj.id != currentUid) {
+            loadedUsers.add(uObj);
+          }
         }
-        if (mounted && loadedUsers.isNotEmpty) {
+        if (mounted) {
           setState(() {
             _users.clear();
             _users.addAll(loadedUsers);
           });
-          return;
         }
       }
     } catch (e) {
       debugPrint('Error loading explore users from DB: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingUsers = false);
     }
-
-    // Fallback Mock Users seeding removed to comply with no mock data rules
   }
 
   @override
@@ -526,9 +509,7 @@ class _ExploreScreenState extends State<ExploreScreen>
   }
 
   String _formatNumber(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return '$n';
+    return formatCompactNumber(n);
   }
 
   String _timeAgo(DateTime dt) {
@@ -542,6 +523,157 @@ class _ExploreScreenState extends State<ExploreScreen>
     return const WalletHeaderPill();
   }
 
+  List<User> get _filteredUsersList {
+    final query = _searchController.text.trim().toLowerCase();
+
+    return _users.where((u) {
+      final matchesQuery = query.isEmpty ||
+          u.displayName.toLowerCase().contains(query) ||
+          u.username.toLowerCase().contains(query);
+
+      if (!matchesQuery) return false;
+
+      if (_selectedFilter == 'Online') {
+        return u.onlineStatus;
+      } else if (_selectedFilter == 'Verified') {
+        return u.isVerified || u.level >= 10;
+      } else if (_selectedFilter == 'Creators') {
+        return u.isPremium || u.vipLevel > 0 || u.displayName.contains('👑');
+      } else if (_selectedFilter == 'New Users') {
+        return u.level <= 3;
+      }
+      return true;
+    }).toList();
+  }
+
+  void _toggleFollowUser(User u) async {
+    final currentUid = UserProfileCacheManager.currentUserId;
+    final isCurrentlyFollowing =
+        UserProfileCacheManager.followedUserIds.contains(u.id);
+
+    setState(() {
+      if (isCurrentlyFollowing) {
+        UserProfileCacheManager.followedUserIds.remove(u.id);
+      } else {
+        UserProfileCacheManager.followedUserIds.add(u.id);
+      }
+    });
+
+    try {
+      if (!isCurrentlyFollowing) {
+        await Supabase.instance.client.from('followers').insert({
+          'follower_id': currentUid,
+          'following_id': u.id,
+        });
+        Get.snackbar(
+          'Followed 👤',
+          'You are now following @${u.username}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF6C4DFF),
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+        );
+      } else {
+        await Supabase.instance.client
+            .from('followers')
+            .delete()
+            .eq('follower_id', currentUid)
+            .eq('following_id', u.id);
+        Get.snackbar(
+          'Unfollowed 👤',
+          'Unfollowed @${u.username}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF4B5563),
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    } catch (e) {
+      debugPrint('Follow toggle sync error: $e');
+    }
+  }
+
+  void _openPrivateChatForUser(User u) {
+    try {
+      final chatCtrl = Get.find<ChatController>();
+      final conv = chatCtrl.getOrCreateConversation(
+        u.id,
+        u.displayName.isNotEmpty ? u.displayName : u.username,
+        u.avatar ?? '',
+      );
+      Get.to(() => ChatScreen(conversation: conv));
+    } catch (e) {
+      debugPrint('Error starting chat: $e');
+      final conv = Conversation(
+        id: 'conv_${u.id}',
+        otherUserId: u.id,
+        otherUserName: u.displayName.isNotEmpty ? u.displayName : u.username,
+        otherUserAvatar: u.avatar ?? '',
+        otherUserOnline: u.onlineStatus,
+        isVerified: u.isVerified,
+        lastMessage: '',
+        lastMessageTime: DateTime.now(),
+        unreadCount: 0,
+        isPinned: false,
+        isMuted: false,
+        levelTitle: u.levelTitle,
+        level: u.level,
+        lastMessageSenderId: 'me',
+      );
+      Get.to(() => ChatScreen(conversation: conv));
+    }
+  }
+
+  void _showUserMenuSheet(User u) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.person_outline_rounded, color: AppTheme.primaryColor),
+              title: Text('View Profile', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600)),
+              onTap: () {
+                Get.back();
+                Get.to(() => ProfileScreen(visitorUser: u));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_outlined, color: AppTheme.primaryColor),
+              title: Text('Share Profile', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600)),
+              onTap: () {
+                Get.back();
+                Share.share('Check out @${u.username} on Creania!');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.block_outlined, color: Color(0xFFEF4444)),
+              title: Text('Block User', style: GoogleFonts.outfit(color: const Color(0xFFEF4444), fontWeight: FontWeight.w600)),
+              onTap: () {
+                Get.back();
+                Get.snackbar('User Blocked', 'You will no longer see updates from @${u.username}');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -551,9 +683,11 @@ class _ExploreScreenState extends State<ExploreScreen>
           onRefresh: () async {
             try {
               if (Get.isRegistered<StudyVaultController>()) {
-                await Get.find<StudyVaultController>().loadCatalogFromDatabase();
+                await Get.find<StudyVaultController>()
+                    .loadCatalogFromDatabase();
                 await Get.find<StudyVaultController>().loadPurchasedBooks();
               }
+              await _loadUsersFromDatabase();
             } catch (_) {}
             setState(() {});
           },
@@ -561,117 +695,125 @@ class _ExploreScreenState extends State<ExploreScreen>
             physics: const AlwaysScrollableScrollPhysics(),
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
-              SliverAppBar(
-                pinned: true,
-                floating: false,
-                backgroundColor: AppTheme.bgDark,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                automaticallyImplyLeading: false,
-                titleSpacing: 16,
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Explore',
-                      style: GoogleFonts.outfit(
-                        color: AppTheme.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        _buildGoldCoinIndicator(),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined,
-                              color: AppTheme.textSecondary, size: 22),
-                          onPressed: () => Get.to(() => const NotificationHistoryScreen()),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                SliverAppBar(
+                  pinned: true,
+                  floating: false,
+                  backgroundColor: AppTheme.bgDark,
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  automaticallyImplyLeading: false,
+                  titleSpacing: 16,
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Explore',
+                        style: GoogleFonts.outfit(
+                          color: AppTheme.textPrimary,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _buildGoldCoinIndicator(),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.notifications_outlined,
+                                color: AppTheme.textSecondary, size: 22),
+                            onPressed: () =>
+                                Get.to(() => const NotificationHistoryScreen()),
+                            padding: EdgeInsets.zero,
+                            constraints:
+                                const BoxConstraints(minWidth: 32, minHeight: 32),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.cardBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppTheme.borderColor, width: 0.8),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search, color: AppTheme.textTertiary, size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (val) => setState(() {}),
-                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Search posts, questions, people...',
-                              hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 14),
-                              filled: false,
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border:
+                            Border.all(color: AppTheme.borderColor, width: 0.8),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search,
+                              color: AppTheme.textTertiary, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (val) => setState(() {}),
+                              style: const TextStyle(
+                                  color: AppTheme.textPrimary, fontSize: 14),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Search posts, questions, people...',
+                                hintStyle: TextStyle(
+                                    color: AppTheme.textTertiary, fontSize: 14),
+                                filled: false,
+                              ),
                             ),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.tune_rounded,
+                                color: AppTheme.primaryColor, size: 18),
                           ),
-                          child: const Icon(Icons.tune_rounded, color: AppTheme.primaryColor, size: 18),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverTabBarDelegate(
-                  TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    indicatorColor: AppTheme.primaryColor,
-                    indicatorWeight: 3,
-                    labelColor: AppTheme.primaryColor,
-                    unselectedLabelColor: AppTheme.textTertiary,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    tabs: _tabs.map((t) => Tab(text: t)).toList(),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverTabBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      indicatorColor: AppTheme.primaryColor,
+                      indicatorWeight: 3,
+                      labelColor: AppTheme.primaryColor,
+                      unselectedLabelColor: AppTheme.textTertiary,
+                      labelStyle: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      tabs: _tabs.map((t) => Tab(text: t)).toList(),
+                    ),
                   ),
                 ),
-              ),
-            ];
-          },
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildAllTab(),
-              _buildPostsTab(),
-              _buildQuestionsTab(),
-              _buildCommunitiesTab(),
-              _buildUsersTab(),
-              _buildStudyVaultTab(),
-            ],
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildAllTab(),
+                _buildPostsTab(),
+                _buildQuestionsTab(),
+                _buildCommunitiesTab(),
+                _buildUsersTab(),
+                _buildStudyVaultTab(),
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -724,17 +866,24 @@ class _ExploreScreenState extends State<ExploreScreen>
                     children: [
                       const Text(
                         '📚 Explore Study Vault',
-                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Buy, sell & read handwritten notes, project manuals, solved assignments and academic guides!',
-                        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 10.5, height: 1.3),
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 10.5,
+                            height: 1.3),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    color: Colors.white, size: 14),
               ],
             ),
           ),
@@ -784,7 +933,6 @@ class _ExploreScreenState extends State<ExploreScreen>
             ),
           ),
           const SizedBox(height: 20),
-          // ── Trending Room Events & Popular Competitions ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -876,7 +1024,6 @@ class _ExploreScreenState extends State<ExploreScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Author
             Row(
               children: [
                 GestureDetector(
@@ -949,7 +1096,6 @@ class _ExploreScreenState extends State<ExploreScreen>
                     ),
                   ),
                 ),
-                // Level chip
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -971,7 +1117,6 @@ class _ExploreScreenState extends State<ExploreScreen>
               ],
             ),
             const SizedBox(height: 12),
-            // Content
             Text(
               post.content,
               style: const TextStyle(
@@ -982,10 +1127,8 @@ class _ExploreScreenState extends State<ExploreScreen>
             ),
             PostAttachmentsWidget(post: post),
             const SizedBox(height: 14),
-            // Divider
             const Divider(color: AppTheme.borderColor, height: 1),
             const SizedBox(height: 10),
-            // Actions
             Row(
               children: [
                 GestureDetector(
@@ -1075,7 +1218,6 @@ class _ExploreScreenState extends State<ExploreScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top badges row
           Row(
             children: [
               if (q.isAnswered)
@@ -1236,8 +1378,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   Widget _buildHorizontalCommunityCard(Community c) {
     final icons = ['🦋', '🤖', '🧠', '☕', '🌍', '📚'];
     final idx = _communities.indexOf(c);
-    final communityCtrl = Get.find<CommunityController>();
-    final isMember = c.members.contains(CommunityController.currentUserId);
 
     return GestureDetector(
       onTap: () => Get.to(() => CommunityDetailScreen(communityId: c.id)),
@@ -1286,8 +1426,6 @@ class _ExploreScreenState extends State<ExploreScreen>
   Widget _buildFullCommunityCard(Community c) {
     final icons = ['🦋', '🤖', '🧠', '☕', '🌍', '📚'];
     final idx = _communities.indexOf(c);
-    final communityCtrl = Get.find<CommunityController>();
-    final isMember = c.members.contains(CommunityController.currentUserId);
 
     return GestureDetector(
       onTap: () => Get.to(() => CommunityDetailScreen(communityId: c.id)),
@@ -1348,6 +1486,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             CommunityJoinButton(
               community: c,
               height: 32,
@@ -1365,126 +1504,466 @@ class _ExploreScreenState extends State<ExploreScreen>
     );
   }
 
+  // ──────────────── USERS TAB (NEW REDESIGNED UI) ────────────────
   Widget _buildUsersTab() {
-    final query = _searchController.text.trim().toLowerCase();
-    final filteredUsers = _users.where((u) {
-      return u.displayName.toLowerCase().contains(query) ||
-          u.username.toLowerCase().contains(query) ||
-          u.sid.toLowerCase().contains(query) ||
-          u.sid.replaceAll('#', '').contains(query);
-    }).toList();
+    if (_isLoadingUsers) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryColor),
+      );
+    }
 
-    return ListView.separated(
+    final filteredUsers = _filteredUsersList;
+
+    return ListView(
       padding: const EdgeInsets.all(16),
-      itemCount: filteredUsers.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, i) => _buildUserCard(filteredUsers[i]),
+      children: [
+        _buildFilterChips(),
+        if (filteredUsers.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            child: Center(
+              child: Text(
+                'No registered users found.',
+                style: GoogleFonts.outfit(
+                  color: AppTheme.textTertiary,
+                  fontSize: 13.5,
+                ),
+              ),
+            ),
+          )
+        else
+          ...List.generate(filteredUsers.length, (index) {
+            return _buildUserCard(filteredUsers[index]);
+          }),
+      ],
     );
   }
 
-  Widget _buildUserCard(User u) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => ProfileScreen(visitorUser: u)),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.cardBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
-        ),
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            // Avatar with level ring
-            CustomAvatarFrame(
-              userId: u.id,
-              username: u.username,
-              size: 52,
-              child: u.avatar != null && u.avatar!.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: u.avatar!,
-                      width: 52,
-                      height: 52,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppTheme.primaryColor.withOpacity(0.1),
-                      ),
-                      errorWidget: (context, url, error) =>
-                          _buildInitialsAvatar(u, radius: 26),
-                    )
-                  : _buildInitialsAvatar(u, radius: 26),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildFilterChips() {
+    final filters = [
+      {'label': 'All', 'icon': null},
+      {'label': 'Online', 'icon': '🟢'},
+      {'label': 'Verified', 'icon': '🔵'},
+      {'label': 'Creators', 'icon': '⭐'},
+      {'label': 'New Users', 'icon': null},
+    ];
+
+    return Container(
+      height: 34,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          final item = filters[index];
+          final label = item['label'] as String;
+          final isSelected = _selectedFilter == label;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedFilter = label;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFF6C4DFF) : AppTheme.cardBg,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF6C4DFF)
+                      : AppTheme.borderColor.withOpacity(0.6),
+                  width: 1,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF6C4DFF).withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        )
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      Text(u.displayName,
-                          style: const TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          )),
-                      if (u.isVerified) ...[
-                        const SizedBox(width: 4),
-                        const Icon(Icons.verified_rounded,
-                            size: 14, color: Color(0xFF60A5FA)),
-                      ],
-                      if (u.isPremium) ...[
-                        const SizedBox(width: 4),
-                        const Text('👑', style: TextStyle(fontSize: 11)),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text('@${u.username}',
-                          style: const TextStyle(
-                              color: AppTheme.textTertiary, fontSize: 12)),
-                      const SizedBox(width: 8),
-                      Text('ID: ${u.sid}',
-                          style: const TextStyle(
-                              color: AppTheme.textTertiary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
+                  if (label == 'Online') ...[
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                  ],
+                  if (label == 'Verified') ...[
+                    const Icon(Icons.verified_rounded,
+                        color: Color(0xFF3B82F6), size: 13),
+                    const SizedBox(width: 4),
+                  ],
+                  if (label == 'Creators') ...[
+                    const Icon(Icons.star_rounded,
+                        color: Color(0xFFFFB800), size: 13),
+                    const SizedBox(width: 3),
+                  ],
                   Text(
-                    '${_formatNumber(u.followers)} followers · ${u.levelTitle}',
-                    style: const TextStyle(
-                        color: AppTheme.textTertiary, fontSize: 11),
+                    label,
+                    style: GoogleFonts.outfit(
+                      color:
+                          isSelected ? Colors.white : AppTheme.textSecondary,
+                      fontSize: 12,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildUserCard(User u) {
+    return Obx(() {
+      final isFollowing = UserProfileCacheManager.followedUserIds.contains(u.id);
+
+      final String displayName = u.displayName.isNotEmpty
+          ? u.displayName
+          : (u.username.isNotEmpty ? u.username : 'User');
+      final String usernameStr = u.username.isNotEmpty ? u.username : u.id.substring(0, 8);
+
+      final bool isOnline = u.onlineStatus;
+      final String statusText = isOnline ? 'Active now' : 'Active recently';
+      final Color statusColor = isOnline ? const Color(0xFF10B981) : AppTheme.textTertiary;
+      final String relationshipText = u.isVerified ? 'Verified Creator' : 'Member';
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.borderColor.withOpacity(0.6), width: 1.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // ── 52px Avatar with L1 Badge & Online Dot ──
             GestureDetector(
-              onTap: () {},
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ProfileScreen(visitorUser: u)),
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.borderColor, width: 1.2),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(26),
+                      child: u.avatar != null && u.avatar!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: u.avatar!,
+                              width: 52,
+                              height: 52,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) =>
+                                  Container(color: AppTheme.cardBg),
+                              errorWidget: (context, url, err) =>
+                                  _buildInitialsAvatar(u, radius: 26),
+                            )
+                          : _buildInitialsAvatar(u, radius: 26),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  Positioned(
+                    left: 0,
+                    bottom: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFE599),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white, width: 1),
+                      ),
+                      child: Text(
+                        'L${u.level}',
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFF78350F),
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 11,
+                      height: 11,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            // ── Middle User Info ──
+            Expanded(
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProfileScreen(visitorUser: u)),
                 ),
-                child: const Text(
-                  'Follow',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            displayName,
+                            style: GoogleFonts.outfit(
+                              color: AppTheme.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (u.isVerified) ...[
+                          const SizedBox(width: 3),
+                          const Icon(Icons.verified_rounded,
+                              size: 13, color: Color(0xFF60A5FA)),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '@$usernameStr',
+                      style: GoogleFonts.outfit(
+                        color: AppTheme.textTertiary,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6C4DFF).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'L${u.level}',
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF6C4DFF),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          u.levelTitle.isNotEmpty ? u.levelTitle : 'Newcomer',
+                          style: GoogleFonts.outfit(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 3),
+                          child: Text('·',
+                              style: TextStyle(color: AppTheme.textTertiary, fontSize: 11)),
+                        ),
+                        Flexible(
+                          child: Text(
+                            statusText,
+                            style: GoogleFonts.outfit(
+                              color: statusColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.person_outline_rounded,
+                          size: 11,
+                          color: Color(0xFF6C4DFF),
+                        ),
+                        const SizedBox(width: 3),
+                        Flexible(
+                          child: Text(
+                            relationshipText,
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF6C4DFF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
+
+            const SizedBox(width: 8),
+
+            // ── Right Actions Column ──
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 20,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.more_vert_rounded,
+                        color: AppTheme.textTertiary, size: 18),
+                    onPressed: () => _showUserMenuSheet(u),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                SizedBox(
+                  width: 84,
+                  height: 30,
+                  child: OutlinedButton(
+                    onPressed: () => _openPrivateChatForUser(u),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF6C4DFF), width: 1.0),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: EdgeInsets.zero,
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.chat_bubble_outline_rounded,
+                            size: 12, color: Color(0xFF6C4DFF)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Message',
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFF6C4DFF),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                SizedBox(
+                  width: 84,
+                  height: 30,
+                  child: ElevatedButton(
+                    onPressed: () => _toggleFollowUser(u),
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: isFollowing
+                          ? const Color(0xFF6C4DFF).withOpacity(0.2)
+                          : const Color(0xFF6C4DFF),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isFollowing
+                              ? Icons.check_rounded
+                              : Icons.person_add_rounded,
+                          size: 12,
+                          color: isFollowing
+                              ? const Color(0xFF6C4DFF)
+                              : Colors.white,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          isFollowing ? 'Following' : 'Follow',
+                          style: GoogleFonts.outfit(
+                            color: isFollowing
+                                ? const Color(0xFF6C4DFF)
+                                : Colors.white,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildInitialsAvatar(User u, {double radius = 20}) {
+    final String nameStr = u.displayName.isNotEmpty ? u.displayName : u.username;
+    final String initial = nameStr.isNotEmpty ? nameStr.substring(0, 1).toUpperCase() : 'U';
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
+      child: Text(
+        initial,
+        style: TextStyle(
+          color: AppTheme.primaryColor,
+          fontWeight: FontWeight.w700,
+          fontSize: radius * 0.8,
         ),
       ),
     );
@@ -1562,21 +2041,7 @@ class _ExploreScreenState extends State<ExploreScreen>
     );
   }
 
-  Widget _buildInitialsAvatar(User u, {double radius = 20}) {
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
-      child: Text(
-        u.displayName.substring(0, 1).toUpperCase(),
-        style: TextStyle(
-          color: AppTheme.primaryColor,
-          fontWeight: FontWeight.w700,
-          fontSize: radius * 0.9,
-        ),
-      ),
-    );
-  }
-
+  // ──────────────── STUDY VAULT TAB ────────────────
   Widget _buildStudyVaultTab() {
     if (!Get.isRegistered<StudyVaultController>()) {
       Get.put(StudyVaultController());
@@ -1677,4 +2142,3 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
     return false;
   }
 }
-

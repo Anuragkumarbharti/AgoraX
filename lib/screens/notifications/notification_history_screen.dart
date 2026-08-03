@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import '../../services/fcm_notification_service.dart';
 import '../../services/user_profile_cache_manager.dart';
+import '../../widgets/notification_skeleton_widget.dart';
 
 class NotificationHistoryScreen extends StatefulWidget {
   const NotificationHistoryScreen({Key? key}) : super(key: key);
@@ -165,7 +166,7 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
           }).toList();
 
           if (_isLoading && list.isEmpty) {
-            return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
+            return const NotificationSkeletonWidget();
           }
 
           if (list.isEmpty) {

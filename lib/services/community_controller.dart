@@ -54,9 +54,12 @@ class CommunityController extends GetxController {
     super.onClose();
   }
 
+  final RxBool isLoading = false.obs;
+
   Future<void> syncFromSupabase() => _loadCommunitiesFromDatabase();
 
   Future<void> _loadCommunitiesFromDatabase() async {
+    isLoading.value = true;
     try {
       final List<dynamic> list = await Supabase.instance.client
           .from('communities')
@@ -109,6 +112,8 @@ class CommunityController extends GetxController {
     } catch (e) {
       debugPrint('DB Load Error: Fallback to initial communities: $e');
       _loadInitialCommunities();
+    } finally {
+      isLoading.value = false;
     }
   }
 
