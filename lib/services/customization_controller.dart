@@ -46,10 +46,10 @@ class CustomizationController extends GetxController {
   final RxList<String> activeBadges = <String>[].obs; // Max 5 showcase badges
   final Map<String, Map<String, dynamic>> badgeMetadata = {
     'Anniversary': {'icon': '🏆', 'rarity': 'Legendary', 'req': '1 Year Anniversary'},
-    'Founder Badge': {'icon': '⭐', 'rarity': 'Mythic', 'req': 'Founding Member of Creania'},
+    'Founder Badge': {'icon': '⭐', 'rarity': 'Mythic', 'req': 'Founding Member of Creaniaa'},
     'Early User': {'icon': '💎', 'rarity': 'Rare', 'req': 'Joined during Beta'},
-    'Beta Tester': {'icon': '🎖️', 'rarity': 'Epic', 'req': 'Helped test Creania features'},
-    'Event Winner': {'icon': '🎉', 'rarity': 'Epic', 'req': 'Won an official Creania event'},
+    'Beta Tester': {'icon': '🎖️', 'rarity': 'Epic', 'req': 'Helped test Creaniaa features'},
+    'Event Winner': {'icon': '🎉', 'rarity': 'Epic', 'req': 'Won an official Creaniaa event'},
     'Top Gifter': {'icon': '🏅', 'rarity': 'Legendary', 'req': 'Send 10k+ value in gifts'},
     'Top Host': {'icon': '🎙️', 'rarity': 'Epic', 'req': 'Host voice arenas regularly'},
     'Champion': {'icon': '👑', 'rarity': 'Mythic', 'req': 'Winner of tournament'},

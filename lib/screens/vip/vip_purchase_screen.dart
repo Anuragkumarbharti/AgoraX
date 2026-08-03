@@ -289,7 +289,7 @@ class _VipPurchaseScreenState extends State<VipPurchaseScreen> {
                 Row(
                   children: [
                     Text(
-                      hasVip ? 'Creania VIP Level $currentLevel' : 'Not Subscribed yet',
+                      hasVip ? 'Creaniaa VIP Level $currentLevel' : 'Not Subscribed yet',
                       style: GoogleFonts.outfit(
                         color: context.textPrimary,
                         fontWeight: FontWeight.w900,

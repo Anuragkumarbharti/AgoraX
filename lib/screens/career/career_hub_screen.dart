@@ -296,7 +296,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       'screen': () => const _StubScreen(
         title: 'Skill Marketplace',
         emoji: '🛒',
-        desc: 'Sell notes, mock interviews, mentorship & earn inside Creania',
+        desc: 'Sell notes, mock interviews, mentorship & earn inside Creaniaa',
       ),
     },
   ];
@@ -719,7 +719,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                           _progCtrl.selectCareer(_onboardingSelectedCareer!);
                           Get.snackbar(
                             '🎉 Pathway Unlocked!',
-                            'Creania has configured challenges for ${_onboardingSelectedCareer!}. Welcome to level 1!',
+                            'Creaniaa has configured challenges for ${_onboardingSelectedCareer!}. Welcome to level 1!',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Color(0xFF8B5CF6).withOpacity(0.9),
                             colorText: Colors.white,

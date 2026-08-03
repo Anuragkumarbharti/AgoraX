@@ -75,7 +75,7 @@ class TermsScreen extends StatelessWidget {
                 children: [
                   // Subtitle / Intro text
                   Text(
-                    'Creania Platform Guidelines',
+                    'Creaniaa Platform Guidelines',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -84,7 +84,7 @@ class TermsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Effective Date: July 19, 2026. Please read these terms carefully before connecting or creating on the Creania platform.',
+                    'Effective Date: July 19, 2026. Please read these terms carefully before connecting or creating on the Creaniaa platform.',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       color: context.textSecondary,
@@ -97,13 +97,13 @@ class TermsScreen extends StatelessWidget {
                     context: context,
                     icon: Icons.assignment_turned_in_rounded,
                     title: '1. Acceptance of Terms',
-                    content: 'Welcome to Creania. By registering an account, starting voice rooms, joining community circles, or posting educational materials, you agree to bound by all of these Terms of Service. If you do not agree, you must immediately delete or deactivate your account.',
+                    content: 'Welcome to Creaniaa. By registering an account, starting voice rooms, joining community circles, or posting educational materials, you agree to bound by all of these Terms of Service. If you do not agree, you must immediately delete or deactivate your account.',
                   ),
                   _buildTermCard(
                     context: context,
                     icon: Icons.gavel_rounded,
                     title: '2. Community Conduct & Guidelines',
-                    content: 'Creania is an interactive voice ecosystem. Harassment, verbal abuse, toxic discussions, copyright infringement, spam, and adult/sensitive content are strictly forbidden. Moderation decisions are final and breaking rules will lead to instant, permanent bans with no refunds.',
+                    content: 'Creaniaa is an interactive voice ecosystem. Harassment, verbal abuse, toxic discussions, copyright infringement, spam, and adult/sensitive content are strictly forbidden. Moderation decisions are final and breaking rules will lead to instant, permanent bans with no refunds.',
                   ),
                   _buildTermCard(
                     context: context,
@@ -127,13 +127,13 @@ class TermsScreen extends StatelessWidget {
                     context: context,
                     icon: Icons.contact_support_rounded,
                     title: '6. Support & Inquiries',
-                    content: 'For questions regarding payments, refunds, reports, copyright complaints, or account queries, you can reach out to our team at support@creania.com or file a report within the app settings panel.',
+                    content: 'For questions regarding payments, refunds, reports, copyright complaints, or account queries, you can reach out to our team at support@creaniaa.com or file a report within the app settings panel.',
                   ),
                   const SizedBox(height: 24),
 
                   Center(
                     child: Text(
-                      'Thank you for keeping Creania a safe and educational space! 🚀',
+                      'Thank you for keeping Creaniaa a safe and educational space! 🚀',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,

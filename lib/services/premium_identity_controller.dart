@@ -806,13 +806,10 @@ class PremiumIdentityController extends GetxController {
   static OfficialTag? _mapOfficialTag(String key) {
     switch (key) {
       case 'Creaniaa Official':
-      case 'Creania Official':
         return OfficialTag(name: 'Creaniaa Official', icon: '👑', color: const Color(0xFFFFD700), benefit: 'Highest trust, administrator privilege');
       case 'Creaniaa Employee':
-      case 'Creania Employee':
         return OfficialTag(name: 'Creaniaa Employee', icon: '🛠️', color: const Color(0xFFEC4899), benefit: 'Official company employee');
       case 'Creaniaa Developer':
-      case 'Creania Developer':
         return OfficialTag(name: 'Creaniaa Developer', icon: '💻', color: const Color(0xFF3B82F6), benefit: 'Creaniaa platform engineer');
       case 'Official Moderator':
         return OfficialTag(name: 'Official Moderator', icon: '🛡️', color: const Color(0xFF10B981), benefit: 'Global room moderation power');
@@ -829,9 +826,9 @@ class PremiumIdentityController extends GetxController {
 
   static OfficialTag _mapOfficialTagByIndex(int index) {
     final keys = [
-      'Creania Official',
-      'Creania Employee',
-      'Creania Developer',
+      'Creaniaa Official',
+      'Creaniaa Employee',
+      'Creaniaa Developer',
       'Official Moderator',
       'Official Host',
       'Official Coin Seller',

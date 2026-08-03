@@ -73,11 +73,11 @@ class AppAssets {
 // Strings
 class AppStrings {
   // App
-  static const String appName = 'Creania';
+  static const String appName = 'Creaniaa';
   static const String tagline = 'Learn, Discuss & Connect';
 
   // Auth
-  static const String welcome = 'Welcome to Creania';
+  static const String welcome = 'Welcome to Creaniaa';
   static const String login = 'Login';
   static const String signup = 'Sign Up';
   static const String email = 'Email';

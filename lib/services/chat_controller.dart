@@ -750,7 +750,7 @@ class ChatController extends GetxController {
           conv = Conversation(
             id: msg.conversationId,
             otherUserId: msg.senderId,
-            otherUserName: 'Creania User',
+            otherUserName: 'Creaniaa User',
             otherUserAvatar: '',
             otherUserOnline: true,
             lastMessage: msg.content,

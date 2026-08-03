@@ -1001,7 +1001,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         children: [
           Text('Sign Up', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text('Choose how you want to sign up on Creania.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+          Text('Choose how you want to sign up on Creaniaa.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
           const SizedBox(height: 32),
 
           _socialButton(
@@ -1150,7 +1150,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       children: [
         Text('Choose Username', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
-        Text('Create a unique handle for your Creania profile.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        Text('Create a unique handle for your Creaniaa profile.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
         SizedBox(height: 32),
 
         Text('Username', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
@@ -1419,7 +1419,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
             return;
           }
           if (_calculatedAge < 13) {
-            Get.snackbar('Error', 'You must be at least 13 years old to use Creania');
+            Get.snackbar('Error', 'You must be at least 13 years old to use Creaniaa');
             return;
           }
           _nextStep();
@@ -1621,13 +1621,13 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       children: [
         Text('Device Permissions', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
-        Text('Grant permissions for a complete Creania experience.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        Text('Grant permissions for a complete Creaniaa experience.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
         SizedBox(height: 32),
 
         _permissionItemTile('Microphone', 'Speak in voice rooms and audio circles.', Icons.mic_rounded),
         _permissionItemTile('Camera', 'Take profile picture and stream video.', Icons.camera_alt_rounded),
         _permissionItemTile('Notifications', 'Get notified about direct chats and event start times.', Icons.notifications_rounded),
-        _permissionItemTile('Contacts (Optional)', 'Find your friends already on Creania.', Icons.contacts_rounded),
+        _permissionItemTile('Contacts (Optional)', 'Find your friends already on Creaniaa.', Icons.contacts_rounded),
         _permissionItemTile('Storage (Optional)', 'Select files and graphics.', Icons.photo_library_rounded),
 
         SizedBox(height: 48),
@@ -1680,7 +1680,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(height: 24),
-          // Creania Logo
+          // Creaniaa Logo
           Image.asset(
             'assets/images/logo.png',
             width: 100,
@@ -1691,7 +1691,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
           Text('Congratulations! 🎉', style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
           SizedBox(height: 12),
-          Text('Welcome to Creania! Your profile is ready.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 15), textAlign: TextAlign.center),
+          Text('Welcome to Creaniaa! Your profile is ready.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 15), textAlign: TextAlign.center),
           SizedBox(height: 40),
 
           // Rewards Card
@@ -1720,7 +1720,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           ),
 
           SizedBox(height: 48),
-          _buildActionButton('Enter Creania', _completeOnboardingFlow),
+          _buildActionButton('Enter Creaniaa', _completeOnboardingFlow),
         ],
       ),
     );

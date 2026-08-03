@@ -729,7 +729,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         SizedBox(height: 12),
         Text(
-          'Creania',
+          'Creaniaa',
           style: GoogleFonts.plusJakartaSans(color: context.textPrimary, fontSize: 26, fontWeight: FontWeight.w900),
         ),
       ],

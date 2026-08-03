@@ -411,7 +411,7 @@ class _CreaniaVaultHomeScreenState extends State<CreaniaVaultHomeScreen> with Si
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  item.shortDescription ?? 'Digital asset collected inside Creania Vault',
+                  item.shortDescription ?? 'Digital asset collected inside Creaniaa Vault',
                   style: GoogleFonts.inter(color: Colors.white38, fontSize: 10),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -542,7 +542,7 @@ class _CreaniaVaultHomeScreenState extends State<CreaniaVaultHomeScreen> with Si
 
               // Description Info
               Text(
-                item.longDescription ?? item.shortDescription ?? 'This digital item is collected inside Creania Vault. You can equip, activate, or gift this asset directly from the backend settings.',
+                item.longDescription ?? item.shortDescription ?? 'This digital item is collected inside Creaniaa Vault. You can equip, activate, or gift this asset directly from the backend settings.',
                 style: GoogleFonts.inter(color: Colors.white70, fontSize: 12, height: 1.5),
                 textAlign: TextAlign.center,
               ),

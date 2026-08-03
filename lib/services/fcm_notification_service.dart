@@ -546,7 +546,7 @@ class FCMNotificationService extends GetxService {
     try {
       const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
         'creania_high_importance_channel',
-        'Creania Notifications',
+        'Creaniaa Notifications',
         channelDescription: 'This channel is used for important app notifications.',
         importance: Importance.max,
         priority: Priority.high,
@@ -804,7 +804,7 @@ class FCMNotificationService extends GetxService {
                 .maybeSingle();
             if (response != null) {
               final currentUid = UserProfileCacheManager.currentUserId;
-              final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+              final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student';
               Get.to(() => VoiceRoomCallScreen(
                 roomId: roomId,
                 roomName: response['name'] ?? 'Arena Room',

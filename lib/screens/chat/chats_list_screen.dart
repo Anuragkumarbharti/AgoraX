@@ -298,7 +298,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     }
     
     final currentUid = UserProfileCacheManager.currentUserId;
-    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student';
     
     // Record visit in recents
     if (Get.isRegistered<RoomController>()) {
@@ -310,7 +310,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         roomId: room.id,
         roomName: room.name,
         userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
-        userName: currentUsername != 'Creania Student' ? currentUsername : 'anurag_kumar',
+        userName: currentUsername != 'Creaniaa Student' ? currentUsername : 'anurag_kumar',
         isHost: room.hostId == currentUid,
       ),
     );
