@@ -86,11 +86,11 @@ class PremiumIdentity {
   OfficialTag? get officialStatusTag {
     // 1. Founder
     if (rTags.any((r) => r.trim().toLowerCase() == 'founder')) {
-      return OfficialTag(name: 'Founder', icon: '👑', color: const Color(0xFFFFB020), benefit: 'Founding Member of Creania');
+      return OfficialTag(name: 'Founder', icon: '👑', color: const Color(0xFFFFB020), benefit: 'Founding Member of Creaniaa');
     }
     // 2. Developer
     if (rTags.any((r) => r.trim().toLowerCase() == 'developer')) {
-      return OfficialTag(name: 'Developer', icon: '💻', color: const Color(0xFF00C2FF), benefit: 'Creania Platform Engineer');
+      return OfficialTag(name: 'Developer', icon: '💻', color: const Color(0xFF00C2FF), benefit: 'Creaniaa Platform Engineer');
     }
     // 3. Official
     if (rTags.any((r) => r.trim().toLowerCase() == 'official')) {
@@ -98,7 +98,7 @@ class PremiumIdentity {
     }
     // 4. Employee
     if (rTags.any((r) => r.trim().toLowerCase() == 'employee')) {
-      return OfficialTag(name: 'Employee', icon: '🛠️', color: const Color(0xFFEC4899), benefit: 'Creania Company Employee');
+      return OfficialTag(name: 'Employee', icon: '🛠️', color: const Color(0xFFEC4899), benefit: 'Creaniaa Company Employee');
     }
     // 5. Admin
     if (rTags.any((r) => r.trim().toLowerCase() == 'admin')) {
@@ -305,7 +305,7 @@ class PremiumIdentity {
         onTap: () => showBadgeInfoDialog(
           context,
           title: 'Career Tier $careerLevel',
-          description: 'Creania Career progression level.',
+          description: 'Creaniaa Career progression level.',
           color: const Color(0xFFFFB800),
           icon: '💻',
           requirement: 'Submit and get verified for domain expertise tasks and courses.',
@@ -440,14 +440,14 @@ class PremiumIdentity {
           onTap: () => showBadgeInfoDialog(
             context,
             title: ot.name,
-            description: 'Creania platform designation.',
+            description: 'Creaniaa platform designation.',
             color: ot.color,
             icon: ot.icon,
-            requirement: 'Manually verified and assigned by the Creania platform administration.',
+            requirement: 'Manually verified and assigned by the Creaniaa platform administration.',
             benefits: [
               ot.benefit,
               'Exclusive priority verification status',
-              'Creania official crown decoration',
+              'Creaniaa official crown decoration',
             ],
             status: 'Verified Official',
           ),
@@ -542,7 +542,7 @@ String? getOfficialCommunityTagAssetPath(String tagLabel) {
     return 'assets/identity_tags/officialcomunity_tags/arenax.png';
   } else if (clean == 'studio' || clean.contains('studio') || clean.contains('creators')) {
     return 'assets/identity_tags/officialcomunity_tags/studio.png';
-  } else if (clean == 'origin' || clean.contains('origin') || clean.contains('creania official') || clean == 'official' || clean.contains('official')) {
+  } else if (clean == 'origin' || clean.contains('origin') || clean.contains('creania official') || clean.contains('creaniaa official') || clean == 'official' || clean.contains('official')) {
     return 'assets/identity_tags/officialcomunity_tags/origin.png';
   }
   return null;
@@ -620,20 +620,20 @@ class PremiumIdentityController extends GetxController {
       bool isAnimated = false;
       
       if (activeCommTag == 'Origin') {
-        commName = 'Creania Official';
+        commName = 'Creaniaa Official';
         colors = [const Color(0xFFFFD700), const Color(0xFFB45309)];
         isAnimated = true;
       } else if (activeCommTag == 'Studio') {
-        commName = 'Creania Creators';
+        commName = 'Creaniaa Creators';
         colors = [Colors.purple, Colors.purple.shade800];
       } else if (activeCommTag == 'ArenaX') {
-        commName = 'Creania Gamers';
+        commName = 'Creaniaa Gamers';
         colors = [Colors.blue, Colors.blue.shade800];
       } else if (activeCommTag == 'Campus') {
-        commName = 'Creania Campus';
+        commName = 'Creaniaa Campus';
         colors = [const Color(0xFF10B981), const Color(0xFF047857)];
       } else if (activeCommTag == 'Connect') {
-        commName = 'Creania Connect';
+        commName = 'Creaniaa Connect';
         colors = [const Color(0xFF6366F1), const Color(0xFF4338CA)];
       }
 
@@ -720,7 +720,7 @@ class PremiumIdentityController extends GetxController {
           title: 'Verified',
           icon: '✔',
           color: const Color(0xFF2563EB),
-          requirement: 'Identity Verification approved by Creania Security Team.',
+          requirement: 'Identity Verification approved by Creaniaa Security Team.',
           benefits: ['Verified Badge display', 'Higher trust rating', 'Priority profile search'],
           date: '2026-03-12',
           status: 'Approved',
@@ -805,12 +805,15 @@ class PremiumIdentityController extends GetxController {
 
   static OfficialTag? _mapOfficialTag(String key) {
     switch (key) {
+      case 'Creaniaa Official':
       case 'Creania Official':
-        return OfficialTag(name: 'Creania Official', icon: '👑', color: const Color(0xFFFFD700), benefit: 'Highest trust, administrator privilege');
+        return OfficialTag(name: 'Creaniaa Official', icon: '👑', color: const Color(0xFFFFD700), benefit: 'Highest trust, administrator privilege');
+      case 'Creaniaa Employee':
       case 'Creania Employee':
-        return OfficialTag(name: 'Creania Employee', icon: '🛠️', color: const Color(0xFFEC4899), benefit: 'Official company employee');
+        return OfficialTag(name: 'Creaniaa Employee', icon: '🛠️', color: const Color(0xFFEC4899), benefit: 'Official company employee');
+      case 'Creaniaa Developer':
       case 'Creania Developer':
-        return OfficialTag(name: 'Creania Developer', icon: '💻', color: const Color(0xFF3B82F6), benefit: 'Creania platform engineer');
+        return OfficialTag(name: 'Creaniaa Developer', icon: '💻', color: const Color(0xFF3B82F6), benefit: 'Creaniaa platform engineer');
       case 'Official Moderator':
         return OfficialTag(name: 'Official Moderator', icon: '🛡️', color: const Color(0xFF10B981), benefit: 'Global room moderation power');
       case 'Official Host':

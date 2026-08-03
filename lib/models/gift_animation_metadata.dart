@@ -184,7 +184,7 @@ class GiftAnimationMetadata {
       };
 }
 
-/// Fully data-driven registry matching production Creania gift catalog (24 Unique Items + Dynamic Fallbacks)
+/// Fully data-driven registry matching production Creaniaa gift catalog (24 Unique Items + Dynamic Fallbacks)
 class GiftMetadataRegistry {
   static ShowcaseAnimationType getShowcaseTypeForName(String name) {
     final lower = name.toLowerCase();

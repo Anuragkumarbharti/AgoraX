@@ -318,7 +318,7 @@ class UserProfileCacheManager {
       id: idToQuery,
       username: 'User_${idToQuery.substring(0, min(idToQuery.length, 5))}',
       email: '',
-      displayName: 'Creania Student',
+      displayName: 'Creaniaa Student',
       interests: [],
       communities: [],
       followers: 0,

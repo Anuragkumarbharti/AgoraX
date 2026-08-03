@@ -9,7 +9,7 @@ void main() {
       final json = {
         'id': 'test-uuid-123',
         'username': 'tester_bob',
-        'email': 'bob@creania.com',
+        'email': 'bob@creaniaa.com',
         'tag_lights': ['ID Level 42', 'Origin', 'VIP Level 3'],
         'r_tags': ['Developer'],
         'showcased_badges': ['Anniversary', 'Founder Badge', 'Early User', 'Beta Tester', 'Champion'],

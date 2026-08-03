@@ -1,4 +1,4 @@
-# 🚀 Quick Start Guide - Creania
+# 🚀 Quick Start Guide - Creaniaa
 
 ## ⚡ 5-Minute Setup
 

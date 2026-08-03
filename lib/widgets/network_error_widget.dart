@@ -108,7 +108,7 @@ class NetworkErrorStateWidget extends StatelessWidget {
 
                 // Subtitle Message
                 Text(
-                  message ?? 'Unable to connect to Creania servers. Please check your Wi-Fi, mobile data, or captive portal login and try again.',
+                  message ?? 'Unable to connect to Creaniaa servers. Please check your Wi-Fi, mobile data, or captive portal login and try again.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     color: Colors.white70,

@@ -98,8 +98,8 @@ class FCMNotificationService extends GetxService {
         );
 
         const AndroidNotificationChannel channel = AndroidNotificationChannel(
-          'creania_high_importance_channel',
-          'Creania Notifications',
+          'creaniaa_high_importance_channel',
+          'Creaniaa Notifications',
           description: 'This channel is used for important app notifications.',
           importance: Importance.high,
           playSound: true,

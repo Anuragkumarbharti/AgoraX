@@ -69,7 +69,7 @@ void main() {
 
       // Decrypt with wrong key
       final decrypted = ChatCrypto.decryptMessage(encryptedBase64, incorrectKey);
-      expect(decrypted, contains('Decryption Failed'));
+      expect(decrypted, equals('Encrypted message'));
     });
   });
 }

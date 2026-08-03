@@ -69,7 +69,7 @@ class _ExploreScreenState extends State<ExploreScreen>
               'WebSocket vs SSE vs Long Polling — I tested all 3 in a real app. The winner might surprise you...',
               'Rust is taking over backend development and I\'m here for it. Rewrote our API, memory usage dropped 80%.',
               'My team just shipped real-time collaboration using CRDTs. Here\'s what we learned about distributed state 🔬',
-              'Voice arenas are the future of online communities. That\'s why we built Creania 🎙️',
+              'Voice arenas are the future of online communities. That\'s why we built Creaniaa 🎙️',
             ][i % 10],
             images: [
               ['https://images.unsplash.com/photo-1618401471353-b98aedd07871?w=400'],
@@ -657,7 +657,7 @@ class _ExploreScreenState extends State<ExploreScreen>
               title: Text('Share Profile', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600)),
               onTap: () {
                 Get.back();
-                Share.share('Check out @${u.username} on Creania!');
+                Share.share('Check out @${u.username} on Creaniaa!');
               },
             ),
             ListTile(

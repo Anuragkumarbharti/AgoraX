@@ -153,7 +153,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
             onPressed: () {
               Get.snackbar(
                 'Seller Guide 📚',
-                'Upload resource, set base price. Creania handles GST (18%), Platform (17%), Gateway (2%). Net payout (63%) is added directly to your Wallet.',
+                'Upload resource, set base price. Creaniaa handles GST (18%), Platform (17%), Gateway (2%). Net payout (63%) is added directly to your Wallet.',
                 duration: const Duration(seconds: 5),
               );
             },

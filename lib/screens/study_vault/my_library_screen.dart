@@ -141,8 +141,8 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                 SizedBox(height: 2),
                 Text(
                   isVipActive
-                      ? 'Official Creania books unlocked matching Level $vipLevel. Expired memberships automatically lock content.'
-                      : 'Subscribe to VIP to unlock official Creania study collections.',
+                      ? 'Official Creaniaa books unlocked matching Level $vipLevel. Expired memberships automatically lock content.'
+                      : 'Subscribe to VIP to unlock official Creaniaa study collections.',
                   style: TextStyle(color: context.caption, fontSize: 10, height: 1.4),
                 ),
               ],
@@ -259,7 +259,7 @@ class _MyLibraryScreenState extends State<MyLibraryScreen>
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Official Creania Board  |  ${book.pages} Pages',
+                      'Official Creaniaa Board  |  ${book.pages} Pages',
                       style: TextStyle(color: context.caption, fontSize: 10),
                     ),
                     SizedBox(height: 4),

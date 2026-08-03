@@ -468,7 +468,7 @@ class _UploadBookScreenState extends State<UploadBookScreen> {
                     child: Padding(
                       padding: EdgeInsets.only(top: 8.0),
                       child: Text(
-                        'I declare that this file is my own original work (or I hold copyright distribution rights). I understand copyright infringement is illegal and Creania will suspend my seller account in case of piracy reports.',
+                        'I declare that this file is my own original work (or I hold copyright distribution rights). I understand copyright infringement is illegal and Creaniaa will suspend my seller account in case of piracy reports.',
                         style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11, height: 1.4),
                       ),
                     ),

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:creania/models/vault_models.dart';
 
 void main() {
-  group('Creania Vault Model Parsing Tests', () {
+  group('Creaniaa Vault Model Parsing Tests', () {
     test('VaultItem parsing test', () {
       final json = {
         'id': 'item-123',
@@ -14,9 +14,9 @@ void main() {
         'display_name': 'Mythic Dragon Frame',
         'short_description': 'A fiery dragon frame',
         'long_description': 'A premium animated dragon frame for special beta users.',
-        'thumbnail_url': 'https://creania.com/cdn/dragon_thumb.png',
-        'animation_url': 'https://creania.com/cdn/dragon_anim.png',
-        'preview_url': 'https://creania.com/cdn/dragon_preview.png',
+        'thumbnail_url': 'https://creaniaa.com/cdn/dragon_thumb.png',
+        'animation_url': 'https://creaniaa.com/cdn/dragon_anim.png',
+        'preview_url': 'https://creaniaa.com/cdn/dragon_preview.png',
         'rarity': 'Mythic',
         'quantity': 3,
         'status': 'Unlocked',
@@ -61,7 +61,7 @@ void main() {
         'details': {'receiver_id': 'receiver-abc'},
         'created_at': '2026-07-17T13:00:00Z',
         'asset_name': 'Epic Spin Ticket',
-        'thumbnail_url': 'https://creania.com/cdn/ticket.png',
+        'thumbnail_url': 'https://creaniaa.com/cdn/ticket.png',
         'rarity': 'Epic'
       };
 

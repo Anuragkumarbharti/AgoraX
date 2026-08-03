@@ -44,7 +44,7 @@ begin
   where id = new.sender_id;
 
   if (v_sender_name is null) then
-    v_sender_name := 'Creania Student';
+    v_sender_name := 'Creaniaa Student';
   end if;
 
   -- Format message body preview

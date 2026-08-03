@@ -1,4 +1,4 @@
-# Creania Design System
+# Creaniaa Design System
 Version: 3.0
 Theme: Premium Light Theme
 Platform: Flutter (Android • iOS • Web)
@@ -7,7 +7,7 @@ Platform: Flutter (Android • iOS • Web)
 
 # Design Philosophy
 
-Creania is a premium AI-powered social platform focused on Communities, Voice Arenas, Learning, Messaging, Marketplace, and Creator Economy.
+Creaniaa is a premium AI-powered social platform focused on Communities, Voice Arenas, Learning, Messaging, Marketplace, and Creator Economy.
 
 Design Language
 

@@ -225,14 +225,18 @@ class VipController extends GetxController {
         frameName = _getFrameNameForLevel(level);
       }
 
-      await Supabase.instance.client.from('profiles').update({
-        'vip_level': level,
-        'vip_expiry': expiry?.toIso8601String(),
-        'avatar_frame': frameName,
-      }).eq('id', Supabase.instance.client.auth.currentUser?.id ?? '');
+      final client = Supabase.instance.client;
+      final uid = client.auth.currentUser?.id;
+      if (uid != null && uid.isNotEmpty) {
+        await client.from('profiles').update({
+          'vip_level': level,
+          'vip_expiry': expiry?.toIso8601String(),
+          'avatar_frame': frameName,
+        }).eq('id', uid);
 
-      await UserProfileCacheManager.fetchUserProfile(currentUserId, forceRefresh: true);
-      await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
+        await UserProfileCacheManager.fetchUserProfile(currentUserId, forceRefresh: true);
+        await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
+      }
     } catch (_) {}
   }
 
@@ -515,7 +519,19 @@ class VipController extends GetxController {
     if (!backendSuccess) {
       try {
         final durationDays = _durationToDays(duration);
-        final newExpiry = DateTime.now().add(Duration(days: durationDays));
+        final now = DateTime.now();
+        DateTime baseDate = now;
+        if (expiryDate.value != null && expiryDate.value!.isAfter(now)) {
+          final currentRemDays = expiryDate.value!.difference(now).inDays;
+          if (level == vipLevel.value) {
+            baseDate = expiryDate.value!;
+          } else if (level > vipLevel.value) {
+            final levelDiff = level - vipLevel.value;
+            final carryDays = (currentRemDays * math.pow(0.5, levelDiff)).round();
+            baseDate = now.add(Duration(days: carryDays));
+          }
+        }
+        final newExpiry = baseDate.add(Duration(days: durationDays));
         vipLevel.value = level;
         expiryDate.value = newExpiry;
         activeFrame.value = _getFrameNameForLevel(level);
@@ -529,14 +545,16 @@ class VipController extends GetxController {
     }
 
     // ── Backend confirmed: reload state from DB ──
-    await loadVipFromDatabase();
-    final uid = Supabase.instance.client.auth.currentUser?.id;
-    if (uid != null && uid.isNotEmpty) {
-      await UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true);
-      if (Get.isRegistered<CustomizationController>()) {
-        await Get.find<CustomizationController>().fetchFullInventoryAndEntitlementsViaRpc();
+    try {
+      await loadVipFromDatabase();
+      final uid = Supabase.instance.client.auth.currentUser?.id;
+      if (uid != null && uid.isNotEmpty) {
+        await UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true);
+        if (Get.isRegistered<CustomizationController>()) {
+          await Get.find<CustomizationController>().fetchFullInventoryAndEntitlementsViaRpc();
+        }
       }
-    }
+    } catch (_) {}
 
     // ── Derive display values from confirmed RPC result ──
     final confirmedLevel  = (rpcResult?['level']    as num?)?.toInt()  ?? level;
@@ -544,7 +562,7 @@ class VipController extends GetxController {
     final confirmedFrame  = rpcResult?['frame_name']?.toString() ?? '';
     final totalDays = confirmedExpiry != null
         ? DateTime.tryParse(confirmedExpiry)?.difference(now).inDays ?? 0
-        : 0;
+        : (expiryDate.value != null ? expiryDate.value!.difference(now).inDays : 0);
 
     // Transaction History Log
     final tx = {

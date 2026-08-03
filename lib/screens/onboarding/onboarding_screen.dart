@@ -19,7 +19,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<Map<String, dynamic>> _onboardingData = [
     {
-      'title': 'Welcome to Creania',
+      'title': 'Welcome to Creaniaa',
       'description':
           'Meet people, join voice rooms and become part of communities that match your interests.',
       'type': 'voice_rooms',

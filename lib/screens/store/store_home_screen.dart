@@ -188,7 +188,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
         },
       ),
       title: Text(
-        'CREANIA MARKET',
+        'CREANIAA MARKET',
         style: GoogleFonts.outfit(
           fontWeight: FontWeight.w900,
           fontSize: 18,

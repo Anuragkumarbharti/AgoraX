@@ -537,7 +537,7 @@ begin
           else 'identity_tag'::text
         end,
         'General',
-        'https://cdn.creania.com/cosmetics/' || p_cosmetic_id || '.png',
+        'https://cdn.creaniaa.com/cosmetics/' || p_cosmetic_id || '.png',
         'None',
         0,
         true
@@ -1909,7 +1909,7 @@ on conflict (event_type) do update set xp_reward = excluded.xp_reward, cooldown_
 
 -- Prepopulate default tasks
 insert into public.daily_tasks (task_id, title, description, required_action, required_count, priority) values
-('daily_login', 'Daily Login', 'Sign into Creania today', 'daily_login', 1, 10),
+('daily_login', 'Daily Login', 'Sign into Creaniaa today', 'daily_login', 1, 10),
 ('join_room', 'Join a Voice Room', 'Hangout in any voice chat room', 'room_joined', 1, 8),
 ('host_room', 'Host a Voice Room', 'Host an audio session for your friends', 'room_hosted', 1, 6),
 ('send_gift', 'Send a Gift', 'Send any virtual gift to another user', 'gift_sent', 1, 4),
@@ -1922,7 +1922,7 @@ insert into public.weekly_tasks (task_id, title, description, required_action, r
 on conflict (task_id) do nothing;
 
 insert into public.monthly_tasks (task_id, title, description, required_action, required_count, priority) values
-('monthly_login', 'Consistent Learner', 'Log into Creania 20 distinct days this month', 'daily_login', 20, 5)
+('monthly_login', 'Consistent Learner', 'Log into Creaniaa 20 distinct days this month', 'daily_login', 20, 5)
 on conflict (task_id) do nothing;
 
 insert into public.season_tasks (task_id, title, description, required_action, required_count, priority) values
@@ -1992,7 +1992,7 @@ insert into public.achievements (achievement_id, title, description, required_ac
 ('rooms_hosted_100', 'Broadcasting Legend', 'Host 100 voice room broadcast sessions', 'room_hosted', 100, 'frame', 1, 'Host Frame'),
 ('messages_10000', 'Agora Chat Master', 'Send 10,000 chat messages', 'message_sent', 10000, 'tag', 1, 'Talkative Tag'),
 ('communities_100', 'Global Networker', 'Join 100 different study communities', 'community_joined', 100, 'badge', 1, 'Socializer Badge'),
-('first_community_join', 'Creania Community Welcome', 'Join your first study community', 'community_joined', 1, 'badge', 1, 'Welcome Badge')
+('first_community_join', 'Creaniaa Community Welcome', 'Join your first study community', 'community_joined', 1, 'badge', 1, 'Welcome Badge')
 on conflict (achievement_id) do nothing;
 
 -- Prepopulate loyalty milestones

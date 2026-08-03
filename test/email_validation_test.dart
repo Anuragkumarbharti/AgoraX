@@ -16,7 +16,7 @@ void main() {
   group('Email Format Validation Tests', () {
     test('Valid email formats should pass', () {
       expect(validator.isValidFormat('user@gmail.com'), isTrue);
-      expect(validator.isValidFormat('student.one@creania.edu.in'), isTrue);
+      expect(validator.isValidFormat('student.one@creaniaa.edu.in'), isTrue);
       expect(validator.isValidFormat('my-name_123@domain.org'), isTrue);
     });
 
@@ -38,19 +38,19 @@ void main() {
     test('Real email domains should NOT be detected as disposable', () async {
       expect(await validator.isDisposable('anurag@gmail.com'), isFalse);
       expect(await validator.isDisposable('student@yahoo.co.in'), isFalse);
-      expect(await validator.isDisposable('developer@creania.com'), isFalse);
+      expect(await validator.isDisposable('developer@creaniaa.com'), isFalse);
     });
   });
 
   group('Role-Based Email Check Tests', () {
     test('Role emails should be classified as business/roles', () {
-      expect(validator.isRoleBased('admin@creania.com'), isTrue);
-      expect(validator.isRoleBased('support@creania.com'), isTrue);
-      expect(validator.isRoleBased('info@creania.com'), isTrue);
+      expect(validator.isRoleBased('admin@creaniaa.com'), isTrue);
+      expect(validator.isRoleBased('support@creaniaa.com'), isTrue);
+      expect(validator.isRoleBased('info@creaniaa.com'), isTrue);
     });
 
     test('Standard student emails should NOT be classified as roles', () {
-      expect(validator.isRoleBased('anurag@creania.com'), isFalse);
+      expect(validator.isRoleBased('anurag@creaniaa.com'), isFalse);
       expect(validator.isRoleBased('student123@gmail.com'), isFalse);
     });
   });

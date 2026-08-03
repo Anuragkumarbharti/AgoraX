@@ -1,8 +1,8 @@
-# Creania Development Guide
+# Creaniaa Development Guide
 
 ## 🏗️ Project Architecture
 
-Creania follows a **Clean Architecture** pattern with clear separation of concerns:
+Creaniaa follows a **Clean Architecture** pattern with clear separation of concerns:
 
 ```
 Presentation Layer (UI)

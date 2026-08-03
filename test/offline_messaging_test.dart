@@ -60,10 +60,10 @@ void main() {
           conversationId: 'conv_user_a',
           content: 'Test content for ${mType.name}',
           type: mType,
-          mediaUrl: 'https://storage.creania.app/media/${mType.name}.dat',
+          mediaUrl: 'https://storage.creaniaa.app/media/${mType.name}.dat',
           fileName: 'sample_${mType.name}.dat',
           fileSize: 2048500,
-          thumbnailUrl: 'https://storage.creania.app/media/thumb_${mType.name}.jpg',
+          thumbnailUrl: 'https://storage.creaniaa.app/media/thumb_${mType.name}.jpg',
           locationLat: 12.9716,
           locationLng: 77.5946,
           locationName: 'Tech Park Center',
@@ -74,7 +74,7 @@ void main() {
 
         final jsonMap = msg.toJson();
         expect(jsonMap['type'], equals(mType.index));
-        expect(jsonMap['mediaUrl'], equals('https://storage.creania.app/media/${mType.name}.dat'));
+        expect(jsonMap['mediaUrl'], equals('https://storage.creaniaa.app/media/${mType.name}.dat'));
         expect(jsonMap['fileName'], equals('sample_${mType.name}.dat'));
         expect(jsonMap['fileSize'], equals(2048500));
         expect(jsonMap['locationLat'], equals(12.9716));
@@ -99,7 +99,7 @@ void main() {
         ..typeValue = MessageType.audio.index
         ..statusValue = MessageStatus.delivered.index
         ..timestamp = now
-        ..mediaUrl = 'https://storage.creania.app/audio/voice_1001.m4a'
+        ..mediaUrl = 'https://storage.creaniaa.app/audio/voice_1001.m4a'
         ..fileName = 'voice_1001.m4a'
         ..fileSize = 450000
         ..thumbnailUrl = ''
@@ -114,7 +114,7 @@ void main() {
       expect(isarMsg.uuid, equals('isar_msg_1001'));
       expect(isarMsg.typeValue, equals(MessageType.audio.index));
       expect(isarMsg.statusValue, equals(MessageStatus.delivered.index));
-      expect(isarMsg.mediaUrl, equals('https://storage.creania.app/audio/voice_1001.m4a'));
+      expect(isarMsg.mediaUrl, equals('https://storage.creaniaa.app/audio/voice_1001.m4a'));
       expect(isarMsg.fileName, equals('voice_1001.m4a'));
       expect(isarMsg.fileSize, equals(450000));
     });

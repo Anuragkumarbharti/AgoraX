@@ -1,6 +1,6 @@
-# Creania - Flutter Mobile App
+# Creaniaa - Flutter Mobile App
 
-**Creania** is a community platform that combines Discord, Quora, and Clubhouse with a strong creator economy focus.
+**Creaniaa** is a community platform that combines Discord, Quora, and Clubhouse with a strong creator economy focus.
 
 ## 🚀 Quick Start
 
@@ -206,7 +206,7 @@ See `.agent.md` for development guidelines.
 
 ## 📄 License
 
-Proprietary - Creania Inc.
+Proprietary - Creaniaa Inc.
 
 ## 📞 Support
 

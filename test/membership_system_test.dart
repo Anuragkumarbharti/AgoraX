@@ -72,7 +72,7 @@ void main() {
       final json = {
         'id': 'test-user-id',
         'username': 'premium_student',
-        'email': 'premium@creania.com',
+        'email': 'premium@creaniaa.com',
         'interests': [],
         'communities': [],
         'vip_level': 2,
@@ -116,7 +116,7 @@ void main() {
       final user = User(
         id: 'user-1',
         username: 'alice',
-        email: 'alice@creania.com',
+        email: 'alice@creaniaa.com',
         interests: const [],
         communities: const [],
         followers: 0,
@@ -334,7 +334,7 @@ void main() {
       final user = User(
         id: 'user_1',
         username: 'alice',
-        email: 'alice@creania.com',
+        email: 'alice@creaniaa.com',
         interests: const [],
         communities: const [],
         followers: 0,

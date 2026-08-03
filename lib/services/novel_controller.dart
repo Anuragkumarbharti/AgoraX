@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -234,14 +235,18 @@ class NovelController extends GetxController {
         frameName = _getFrameNameForLevel(level);
       }
 
-      await Supabase.instance.client.from('profiles').update({
-        'novel_level': level,
-        'novel_expiry': expiry?.toIso8601String(),
-        'avatar_frame': frameName,
-      }).eq('id', Supabase.instance.client.auth.currentUser?.id ?? '');
+      final client = Supabase.instance.client;
+      final uid = client.auth.currentUser?.id;
+      if (uid != null && uid.isNotEmpty) {
+        await client.from('profiles').update({
+          'novel_level': level,
+          'novel_expiry': expiry?.toIso8601String(),
+          'avatar_frame': frameName,
+        }).eq('id', uid);
 
-      await UserProfileCacheManager.fetchUserProfile(currentUserId, forceRefresh: true);
-      await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
+        await UserProfileCacheManager.fetchUserProfile(currentUserId, forceRefresh: true);
+        await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
+      }
     } catch (_) {}
   }
 
@@ -593,7 +598,19 @@ class NovelController extends GetxController {
     if (!backendSuccess) {
       try {
         final durationDays = _durationToDays(duration);
-        final newExpiry = DateTime.now().add(Duration(days: durationDays));
+        final now = DateTime.now();
+        DateTime baseDate = now;
+        if (expiryDate.value != null && expiryDate.value!.isAfter(now)) {
+          final currentRemDays = expiryDate.value!.difference(now).inDays;
+          if (targetLevel == novelLevel.value) {
+            baseDate = expiryDate.value!;
+          } else if (targetLevel > novelLevel.value) {
+            final levelDiff = targetLevel - novelLevel.value;
+            final carryDays = (currentRemDays * math.pow(0.5, levelDiff)).round();
+            baseDate = now.add(Duration(days: carryDays));
+          }
+        }
+        final newExpiry = baseDate.add(Duration(days: durationDays));
         novelLevel.value = targetLevel;
         expiryDate.value = newExpiry;
         activeNovelStyle.value = targetLevel;
@@ -609,14 +626,16 @@ class NovelController extends GetxController {
 
 
     // ── Backend confirmed: reload state from DB ──
-    await loadNovelFromDatabase();
-    final uid = Supabase.instance.client.auth.currentUser?.id;
-    if (uid != null && uid.isNotEmpty) {
-      await UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true);
-      if (Get.isRegistered<CustomizationController>()) {
-        await Get.find<CustomizationController>().fetchFullInventoryAndEntitlementsViaRpc();
+    try {
+      await loadNovelFromDatabase();
+      final uid = Supabase.instance.client.auth.currentUser?.id;
+      if (uid != null && uid.isNotEmpty) {
+        await UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true);
+        if (Get.isRegistered<CustomizationController>()) {
+          await Get.find<CustomizationController>().fetchFullInventoryAndEntitlementsViaRpc();
+        }
       }
-    }
+    } catch (_) {}
 
     // Update collector system from confirmed state
     if (!ownedNovels.contains(targetLevel)) ownedNovels.add(targetLevel);
@@ -627,7 +646,7 @@ class NovelController extends GetxController {
     final confirmedExpiry = rpcResult?['expiry']?.toString();
     final totalDays = confirmedExpiry != null
         ? DateTime.tryParse(confirmedExpiry)?.difference(now).inDays ?? 0
-        : 0;
+        : (expiryDate.value != null ? expiryDate.value!.difference(now).inDays : 0);
 
     // Transaction History Log
     final tx = {

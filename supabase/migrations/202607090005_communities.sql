@@ -90,7 +90,7 @@ for each row execute procedure public.prevent_official_communities_deletion();
 
 -- Seed System User & Official Communities
 insert into auth.users (id, email)
-values ('00000000-0000-0000-0000-000000000000', 'system@creania.com')
+values ('00000000-0000-0000-0000-000000000000', 'system@creaniaa.com')
 on conflict (id) do nothing;
 
 insert into public.profiles (id, uid, username, level)
@@ -103,7 +103,7 @@ insert into public.communities (
 values 
   (
     'comm-connect-005', 
-    'Creania Connect', 
+    'Creaniaa Connect', 
     'Meet new people, make friends, chat, voice rooms, and social networking.', 
     'Social', 
     'Official', 
@@ -116,7 +116,7 @@ values
   ),
   (
     'comm-creators-002', 
-    'Creania Creators', 
+    'Creaniaa Creators', 
     'Content creators, artists, designers, writers, and creators.', 
     'Education', 
     'Official', 
@@ -129,7 +129,7 @@ values
   ),
   (
     'comm-gamers-003', 
-    'Creania Gamers', 
+    'Creaniaa Gamers', 
     'Gaming, esports, tournaments, and live gaming rooms.', 
     'Gaming', 
     'Official', 
@@ -142,7 +142,7 @@ values
   ),
   (
     'comm-campus-004', 
-    'Creania Campus', 
+    'Creaniaa Campus', 
     'Students, education, study groups, notes, and discussions.', 
     'College', 
     'Official', 
@@ -155,7 +155,7 @@ values
   ),
   (
     'comm-official-001', 
-    'Creania Official', 
+    'Creaniaa Official', 
     'Official announcements, platform events, updates, and verified activities.', 
     'General', 
     'Official', 

@@ -287,7 +287,7 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'UPLOAD OFFICIAL CREANIA STUDY RESOURCE',
+            'UPLOAD OFFICIAL CREANIAA STUDY RESOURCE',
             style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.1),
           ),
           SizedBox(height: 14),
@@ -470,7 +470,7 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                                 if (itemIdx != -1) {
                                   _controller.items.removeAt(itemIdx);
                                   _controller.piracyReports.removeAt(i);
-                                  Get.snackbar('Resource Suspended ❌', 'Pirated document removed from Creania servers.');
+                                  Get.snackbar('Resource Suspended ❌', 'Pirated document removed from Creaniaa servers.');
                                 }
                               },
                               style: ElevatedButton.styleFrom(backgroundColor: context.errorColor, padding: EdgeInsets.symmetric(horizontal: 14)),

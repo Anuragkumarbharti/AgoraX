@@ -503,7 +503,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       final payload = {
         'id': msgId,
         'sender_id': uid,
-        'sender_name': senderName ?? 'Creania Student',
+        'sender_name': senderName ?? 'Creaniaa Student',
         'text': text,
         'sender_role': senderRole ?? 'Listener',
         'sender_avatar': senderAvatar,
@@ -522,7 +522,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       final localMessage = RoomChatMessage(
         id: msgId,
         senderId: uid,
-        senderName: senderName ?? 'Creania Student',
+        senderName: senderName ?? 'Creaniaa Student',
         text: text,
         senderRole: senderRole ?? 'Listener',
         senderAvatar: senderAvatar,
@@ -555,7 +555,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   Future<void> setTypingStatus(String roomId, bool isTyping) async {
     try {
       final username =
-          UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+          UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student';
       await _roomMessagesChannel?.sendBroadcastMessage(
         event: 'typing_indicator',
         payload: {
@@ -847,7 +847,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       ]);
 
       final profile = parallelResults[4] as User?;
-      final uName = profile?.username ?? 'Creania Student';
+      final uName = profile?.username ?? 'Creaniaa Student';
       final uLevel = profile?.level ?? 1;
       final vipLevel = profile?.vipLevel ?? 0;
       final nobleLevel = profile?.novelLevel ?? 0;
@@ -952,7 +952,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       final profile =
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
-      final uName = profile?.username ?? 'Creania Student';
+      final uName = profile?.username ?? 'Creaniaa Student';
       final exitMsgs = [
         '👋 $uName left the arena.',
         '🚪 $uName exited the arena.'
@@ -1367,7 +1367,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
                       final profile =
                           await UserProfileCacheManager.fetchUserProfile(uId);
                       final String uName =
-                          profile?.username ?? 'Creania Student';
+                          profile?.username ?? 'Creaniaa Student';
                       final String? uAvatar = profile?.avatar;
                       try {
                         final custResponse = await Supabase.instance.client
@@ -1461,7 +1461,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
                 id: msgId,
                 senderId: senderId,
                 senderName:
-                    payload['sender_name'] as String? ?? 'Creania Student',
+                    payload['sender_name'] as String? ?? 'Creaniaa Student',
                 text: text,
                 senderRole: payload['sender_role'] as String? ?? 'Listener',
                 senderAvatar: payload['sender_avatar'] as String?,
@@ -2472,7 +2472,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         // Resolve sender profile info
         final profile =
             await UserProfileCacheManager.fetchUserProfile(currentUserId);
-        final uName = profile?.username ?? 'Creania Student';
+        final uName = profile?.username ?? 'Creaniaa Student';
 
         // Formulate chat/banner message body matching required structure
         final actualGiftIcon = GiftMetadataRegistry.getMetadata(giftId).giftIcon;
@@ -3452,7 +3452,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     try {
       final profile =
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
-      final uName = profile?.username ?? 'Creania Student';
+      final uName = profile?.username ?? 'Creaniaa Student';
 
       await Supabase.instance.client.rpc('send_room_gift', params: {
         'p_room_id': roomId,
@@ -3526,7 +3526,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           updatedSeats[targetIdx] = {
             ...updatedSeats[targetIdx],
             'userId': currentUserId,
-            'name': profile?.username ?? 'Creania Student',
+            'name': profile?.username ?? 'Creaniaa Student',
             'avatar': profile?.avatar,
             'level': profile?.level ?? 1,
             'vipLevel': profile?.vipLevel ?? 0,
@@ -3545,7 +3545,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       final profile =
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
-      final uName = profile?.username ?? 'Creania Student';
+      final uName = profile?.username ?? 'Creaniaa Student';
 
       final seatJoinMsgs = [
         '🎤 $uName took Seat #${seatIndex + 1}.',
@@ -3601,7 +3601,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       final profile =
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
-      final uName = profile?.username ?? 'Creania Student';
+      final uName = profile?.username ?? 'Creaniaa Student';
 
       final seatLeaveMsgs = [
         '📤 $uName left Seat #${seatIndex + 1}.',
@@ -3730,7 +3730,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       final profile =
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
-      final uName = profile?.username ?? 'Creania Student';
+      final uName = profile?.username ?? 'Creaniaa Student';
       await emitRoomActivityEvent(
         roomId: roomId,
         eventType: 'room_banner_changed',
@@ -3753,7 +3753,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     try {
       final profile =
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
-      final uName = profile?.username ?? 'Creania Student';
+      final uName = profile?.username ?? 'Creaniaa Student';
 
       final seatsList = roomSeatsInfo[roomId] ?? [];
       final mySeat =

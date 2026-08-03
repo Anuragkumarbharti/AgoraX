@@ -1006,7 +1006,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'amount': (finalAmount * 100).toInt(),
             'currency': 'INR',
             'order_id': orderId,
-            'name': 'Creania',
+            'name': 'Creaniaa',
             'description': name,
             'timeout': 300,
             'theme': {
@@ -1018,7 +1018,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             },
             'prefill': {
               'email': Supabase.instance.client.auth.currentUser?.email ??
-                  'student@creania.com'
+                  'student@creaniaa.com'
             },
             'notes': {
               'product': name,

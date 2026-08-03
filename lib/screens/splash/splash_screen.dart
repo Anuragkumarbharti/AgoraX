@@ -235,7 +235,7 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Column(
                     children: [
                       Text(
-                        'Creania',
+                        'Creaniaa',
                         style: GoogleFonts.outfit(
                           fontSize: 40,
                           color: AppTheme.darkTextPrimary,

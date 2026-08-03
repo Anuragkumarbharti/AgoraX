@@ -118,7 +118,7 @@ begin
     v_special_tag := 'Champion';
   elsif 'Creator' = any(v_r_tags) or 'Star Creator' = any(v_r_tags) then
     v_special_tag := 'Creator';
-  elsif 'Official' = any(v_r_tags) or 'Creania Official' = any(v_r_tags) then
+  elsif 'Official' = any(v_r_tags) or 'Creania Official' = any(v_r_tags) or 'Creaniaa Official' = any(v_r_tags) then
     v_special_tag := 'Official';
   end if;
 

@@ -196,7 +196,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
           ),
           content: Text(
-            'Creania will not tell ${user.displayName} they were removed from your followers.',
+            'Creaniaa will not tell ${user.displayName} they were removed from your followers.',
             style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
           ),
           actions: [

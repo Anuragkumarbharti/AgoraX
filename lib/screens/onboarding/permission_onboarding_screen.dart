@@ -243,7 +243,7 @@ class _PermissionOnboardingScreenState
         ),
         SizedBox(height: 22),
         Text(
-          'Set Up Creania',
+          'Set Up Creaniaa',
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                 color: context.textPrimary,
                 fontWeight: FontWeight.w700,

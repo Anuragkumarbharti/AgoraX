@@ -144,7 +144,7 @@ class MyApp extends StatelessWidget {
       ));
 
       return GetMaterialApp(
-        title: 'Creania',
+        title: 'Creaniaa',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: themeCtrl.activeThemeMode,

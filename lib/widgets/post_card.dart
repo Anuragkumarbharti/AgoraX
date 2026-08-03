@@ -189,7 +189,7 @@ class _PostCardState extends State<PostCard> {
                         Text(
                           widget.post.authorUsername != null && widget.post.authorUsername!.isNotEmpty
                               ? '@${widget.post.authorUsername}'
-                              : 'Creania Student',
+                              : 'Creaniaa Student',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: context.textPrimary,

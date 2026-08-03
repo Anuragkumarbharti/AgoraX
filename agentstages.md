@@ -1,6 +1,6 @@
 # Profile Tag & Showcase System (Technical Stages & Rules)
 
-This document contains a comprehensive record of the **Backend-Driven Profile Tag & Showcase System** implemented in the Creania/AgoraX application. It outlines the architectural phases, database schema, design specifications, and synchronization rules to guide future agent interactions.
+This document contains a comprehensive record of the **Backend-Driven Profile Tag & Showcase System** implemented in the Creaniaa/AgoraX application. It outlines the architectural phases, database schema, design specifications, and synchronization rules to guide future agent interactions.
 
 ---
 

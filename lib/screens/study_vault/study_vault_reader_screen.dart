@@ -227,7 +227,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
   void _simulateScreenshotAttempt() {
     Get.snackbar(
       'Screenshot Blocked 🛡️',
-      'Creania DRM protects this document. Screenshot capturing has been disabled.',
+      'Creaniaa DRM protects this document. Screenshot capturing has been disabled.',
       backgroundColor: context.errorColor.withOpacity(0.9),
       colorText: Colors.white,
       snackPosition: SnackPosition.BOTTOM,
@@ -253,7 +253,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
                   Text('🤖', style: TextStyle(fontSize: 20)),
                   SizedBox(width: 10),
                   Text(
-                    'Creania AI Assistant',
+                    'Creaniaa AI Assistant',
                     style: GoogleFonts.outfit(
                       color: _isDarkMode ? Colors.white : context.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -513,7 +513,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
                           return Opacity(
                             opacity: _isDarkMode ? 0.04 : 0.07,
                             child: Text(
-                              'Creania • ${UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student'} • ${(Supabase.instance.client.auth.currentUser?.id ?? 'me').substring(0, min((Supabase.instance.client.auth.currentUser?.id ?? 'me').length, 6))} • 10.24.8.112',
+                              'Creaniaa • ${UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student'} • ${(Supabase.instance.client.auth.currentUser?.id ?? 'me').substring(0, min((Supabase.instance.client.auth.currentUser?.id ?? 'me').length, 6))} • 10.24.8.112',
                               style: TextStyle(
                                 color: _isDarkMode ? Colors.white : Colors.black,
                                 fontSize: 10,
@@ -688,7 +688,7 @@ class _StudyVaultReaderScreenState extends State<StudyVaultReaderScreen> {
               title: Text('Copy Protection (Mock copy attempt)', style: TextStyle(fontSize: 13)),
               onTap: () {
                 Get.back();
-                Get.snackbar('Copy Blocked 🛡️', 'Creania secure reader prevents clipboard copying.');
+                Get.snackbar('Copy Blocked 🛡️', 'Creaniaa secure reader prevents clipboard copying.');
               },
             ),
           ],

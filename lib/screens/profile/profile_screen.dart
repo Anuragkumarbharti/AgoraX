@@ -747,7 +747,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               onTap: () {
                 Get.back();
                 Share.share(
-                    'Check out ${_user.displayName}\'s profile on Creania: https://creania.com/user/${_user.username}');
+                    'Check out ${_user.displayName}\'s profile on Creaniaa: https://creaniaa.com/user/${_user.username}');
               },
             ),
             ListTile(
@@ -770,7 +770,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               onTap: () {
                 Get.back();
                 Get.snackbar('Report Submitted ⚠️',
-                    'Thank you for keeping Creania safe. Our moderation team will review this profile.');
+                    'Thank you for keeping Creaniaa safe. Our moderation team will review this profile.');
               },
             ),
           ],
@@ -1284,7 +1284,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       final currentUsername =
                                           UserProfileCacheManager
                                                   .currentUser?.username ??
-                                              'Creania Student';
+                                              'Creaniaa Student';
                                       Get.to(
                                         () => VoiceRoomCallScreen(
                                           roomId: room.id,
@@ -1293,7 +1293,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                               ? currentUid
                                               : 'uid_anurag_101',
                                           userName: currentUsername !=
-                                                  'Creania Student'
+                                                  'Creaniaa Student'
                                               ? currentUsername
                                               : 'anurag_kumar',
                                           isHost: room.hostId == currentUid,
@@ -3055,7 +3055,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               children: [
                 _moreOptionItem(
                   Icons.backpack_outlined,
-                  'Creania Vault',
+                  'Creaniaa Vault',
                   const Color(0xFFFBBF24),
                   () {
                     Get.back();

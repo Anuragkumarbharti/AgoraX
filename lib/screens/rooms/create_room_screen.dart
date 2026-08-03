@@ -91,7 +91,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     });
   }
 
-  // 10 Creania Arena Types
+  // 10 Creaniaa Arena Types
   final List<String> _categories = [
     'Social Arena',
     'Debate Arena',
@@ -293,7 +293,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       Get.back(); // Pop create screen
       
       final currentUid = UserProfileCacheManager.currentUserId;
-      final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+      final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student';
 
       // Auto-join the newly created room as host
       Get.to(

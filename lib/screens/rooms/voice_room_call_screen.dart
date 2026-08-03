@@ -1772,7 +1772,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     final user = User(
       id: msg.senderId,
       username: msg.senderName.replaceAll(' ', '_').toLowerCase(),
-      email: '${msg.senderId}@creania.local',
+      email: '${msg.senderId}@creaniaa.local',
       displayName: msg.senderName,
       avatar: msg.senderAvatar,
       interests: const ['Voice Arenas'],
@@ -4212,7 +4212,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       'Announcement',
                       room?.bulletin.isNotEmpty == true
                           ? room!.bulletin
-                          : 'Welcome to Creania Arena!',
+                          : 'Welcome to Creaniaa Arena!',
                       snackPosition: SnackPosition.BOTTOM,
                     );
                   },
@@ -4357,7 +4357,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         Text(
                           isOwner
                               ? 'Tap to change Arena Cover'
-                              : 'Welcome to Creania Arena',
+                              : 'Welcome to Creaniaa Arena',
                           style: GoogleFonts.poppins(
                             color: Colors.white30,
                             fontSize: 10.5,

@@ -36,7 +36,7 @@ create table public.study_vault_items (
   views_count integer default 0 check (views_count >= 0),
   downloads_count integer default 0 check (downloads_count >= 0),
   purchases_count integer default 0 check (purchases_count >= 0),
-  watermark_text text default 'Creania',
+  watermark_text text default 'Creaniaa',
   is_featured boolean default false,
   status text default 'Pending' check (status in ('Approved', 'Pending', 'Rejected')),
   admin_comment text,

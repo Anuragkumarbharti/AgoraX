@@ -27,7 +27,7 @@ begin
   where id = new.sender_id;
 
   if v_sender_name is null then
-    v_sender_name := 'Creania Student';
+    v_sender_name := 'Creaniaa Student';
   end if;
 
   -- ✅ BUG #15 FIX: Build a human-readable preview based on media_type ONLY.

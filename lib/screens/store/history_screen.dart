@@ -307,7 +307,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('CREANIA INVOICE', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            Text('CREANIAA INVOICE', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             IconButton(icon: Icon(Icons.close, color: Colors.white60, size: 18), onPressed: () => Navigator.pop(context)),
           ],
         ),

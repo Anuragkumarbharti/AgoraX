@@ -296,6 +296,14 @@ class StoreController extends GetxController with WidgetsBindingObserver {
   }
 
   void addReceivedCoins(int amount, String description) {
+    coinsBalance.value += amount;
+    coinTransactions.insert(0, CoinTransaction(
+      type: 'Received',
+      amount: amount,
+      description: description,
+      dateTime: DateTime.now(),
+    ));
+    _saveDataLocalOnly();
     debugPrint('[StoreController] Requesting server balance sync after addReceivedCoins ($description)');
     syncWithDatabase(force: true);
   }

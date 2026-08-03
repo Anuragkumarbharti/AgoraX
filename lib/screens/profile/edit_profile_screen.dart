@@ -192,7 +192,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     // Profanity Filter
-    final profanities = ['admin', 'moderator', 'support', 'creania', 'staff', 'owner'];
+    final profanities = ['admin', 'moderator', 'support', 'creania', 'creaniaa', 'staff', 'owner'];
     if (profanities.contains(cleanVal)) {
       setState(() {
         _usernameError = 'Reserved username cannot be used';
@@ -215,7 +215,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         setState(() {
           _usernameChecked = true;
           _usernameAvailable = false;
-          _suggestions = ['${cleanVal}_123', '${cleanVal}_creania', '${cleanVal}_99'];
+          _suggestions = ['${cleanVal}_123', '${cleanVal}_creaniaa', '${cleanVal}_99'];
           _isLoading = false;
         });
       } else {

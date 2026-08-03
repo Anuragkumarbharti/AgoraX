@@ -183,14 +183,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     _controller.addRecentRoom(room.id);
 
     final currentUid = UserProfileCacheManager.currentUserId;
-    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creania Student';
+    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student';
 
     Get.to(
       () => VoiceRoomCallScreen(
         roomId: room.id,
         roomName: room.name,
         userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
-        userName: currentUsername != 'Creania Student' ? currentUsername : 'anurag_kumar',
+        userName: currentUsername != 'Creaniaa Student' ? currentUsername : 'anurag_kumar',
         isHost: room.hostId == currentUid,
       ),
     );
@@ -567,7 +567,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   end: Alignment.bottomRight,
                 ).createShader(bounds),
                 child: Text(
-                  'Creania',
+                  'Creaniaa',
                   style: GoogleFonts.outfit(
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
@@ -1120,7 +1120,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             roomId: room.id,
             roomName: room.name,
             userId: UserProfileCacheManager.currentUserId,
-            userName: UserProfileCacheManager.currentUser?.username ?? 'Creania Student',
+            userName: UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student',
             isHost: true,
           ),
         );
@@ -1204,7 +1204,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                           roomId: room.id,
                           roomName: room.name,
                           userId: UserProfileCacheManager.currentUserId,
-                          userName: UserProfileCacheManager.currentUser?.username ?? 'Creania Student',
+                          userName: UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student',
                           isHost: true,
                         ),
                       );

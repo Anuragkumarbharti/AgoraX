@@ -69,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _buildSettingsTile(
               context,
-              'Creania Store',
+              'Creaniaa Store',
               'Purchase frames, entry effects, and gifts',
               icon: Icons.storefront_rounded,
               onTap: () => Get.to(() => const StoreHomeScreen()),
@@ -155,7 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSettingsTile(
               context,
               'Leave Official Community',
-              'Leave your currently joined Creania Official Community',
+              'Leave your currently joined Creaniaa Official Community',
               icon: Icons.group_remove_outlined,
               onTap: () => _showLeaveCommunityConfirm(),
             ),
@@ -173,12 +173,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _buildSettingsTile(
               context,
-              'About Creania',
+              'About Creaniaa',
               'View terms of service, privacy policy and app version',
               icon: Icons.info_outline_rounded,
               onTap: () {
                 Get.defaultDialog(
-                  title: 'About Creania',
+                  title: 'About Creaniaa',
                   titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
                   content: Column(
                     children: [
@@ -190,7 +190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       SizedBox(height: 16),
                       Text(
-                        'Creania v1.0.0',
+                        'Creaniaa v1.0.0',
                         style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
                       ),
                       SizedBox(height: 8),
@@ -419,7 +419,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showLogoutConfirm() {
     Get.defaultDialog(
       title: 'Sign Out?',
-      middleText: 'Are you sure you want to log out of your Creania account?',
+      middleText: 'Are you sure you want to log out of your Creaniaa account?',
       backgroundColor: context.secondaryBackgroundColor,
       titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
       middleTextStyle: GoogleFonts.poppins(color: context.textSecondary),

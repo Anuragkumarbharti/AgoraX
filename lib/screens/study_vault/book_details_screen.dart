@@ -503,7 +503,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Creania Anti-Piracy Active: This document features non-removable invisible buyer watermarks. Distribution is legally tracked.',
+              'Creaniaa Anti-Piracy Active: This document features non-removable invisible buyer watermarks. Distribution is legally tracked.',
               style: TextStyle(color: context.textSecondary, fontSize: 10, height: 1.4),
             ),
           )
