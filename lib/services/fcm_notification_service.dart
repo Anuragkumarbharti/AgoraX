@@ -332,7 +332,7 @@ class FCMNotificationService extends GetxService {
       }
 
       notificationsList.assignAll(filteredList);
-      unreadCount.value = notificationsList.where((n) => !(n['is_read'] ?? n['read'] ?? false)).length;
+      unreadCount.value = notificationsList.where((n) => !(n['is_read'] == true || n['read'] == true)).length;
       debugPrint('[REALTIME LOG] Load Notifications History -> Loaded ${notificationsList.length} items, Unread count = ${unreadCount.value}');
     } catch (e) {
       debugPrint('Error loading notifications in service: $e');
@@ -340,6 +340,7 @@ class FCMNotificationService extends GetxService {
   }
 
   Future<void> markAsRead(String notifId) async {
+    if (notifId.isEmpty) return;
     try {
       final index = notificationsList.indexWhere((n) => n['id']?.toString() == notifId.toString());
       if (index != -1) {
@@ -348,12 +349,14 @@ class FCMNotificationService extends GetxService {
         notificationsList.refresh();
       }
 
-      unreadCount.value = notificationsList.where((n) => !(n['is_read'] ?? n['read'] ?? false)).length;
+      unreadCount.value = notificationsList.where((n) => !(n['is_read'] == true || n['read'] == true)).length;
 
       await _supabase
           .from('notifications')
           .update({'is_read': true})
           .eq('id', notifId);
+
+      await fetchUnreadCount();
 
       debugPrint('[REALTIME LOG] Notification Marked Read: $notifId -> UI Updated -> Badge Updated');
     } catch (e) {
@@ -711,12 +714,16 @@ class FCMNotificationService extends GetxService {
           .select('id')
           .eq('user_id', userId)
           .eq('is_read', false)
+          .eq('is_deleted', false)
           .neq('type', 'chat')
-          .neq('type', 'personal_message');
+          .neq('type', 'personal_message')
+          .neq('type', 'group_message')
+          .neq('type', 'message')
+          .neq('type', 'dm');
       
       unreadCount.value = (response as List).length;
     } catch (e) {
-      unreadCount.value = notificationsList.where((n) => !(n['is_read'] ?? false)).length;
+      unreadCount.value = notificationsList.where((n) => !(n['is_read'] == true || n['read'] == true)).length;
       debugPrint('❌ Error fetching unread count: $e');
     }
   }
@@ -729,16 +736,22 @@ class FCMNotificationService extends GetxService {
       // 1. Immediately update local state & zero unread count so UI badge updates instantly
       for (var n in notificationsList) {
         n['is_read'] = true;
+        n['read'] = true;
       }
       notificationsList.refresh();
       unreadCount.value = 0;
       debugPrint('[REALTIME LOG] All Marked Read -> UI Updated Immediately -> Badge Reset');
 
       // 2. Persist in Database
-      await _supabase
-          .from('notifications')
-          .update({'is_read': true})
-          .eq('user_id', userId);
+      try {
+        await _supabase.rpc('mark_all_notifications_read', params: {'p_user_id': userId});
+      } catch (_) {
+        await _supabase
+            .from('notifications')
+            .update({'is_read': true})
+            .eq('user_id', userId)
+            .eq('is_read', false);
+      }
 
       unreadCount.value = 0;
     } catch (e) {

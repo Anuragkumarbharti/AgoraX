@@ -20,6 +20,7 @@ import '../../services/store_controller.dart';
 import '../../services/community_controller.dart';
 import '../communities/community_detail_screen.dart';
 import '../../widgets/community_join_button.dart';
+import '../notifications/notification_history_screen.dart';
 
 
 class ExploreScreen extends StatefulWidget {
@@ -569,24 +570,31 @@ class _ExploreScreenState extends State<ExploreScreen>
                 automaticallyImplyLeading: false,
                 titleSpacing: 16,
                 title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Explore',
-                      style: TextStyle(
+                      style: GoogleFonts.outfit(
                         color: AppTheme.textPrimary,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Spacer(),
-                    _buildGoldCoinIndicator(),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined,
-                          color: AppTheme.textSecondary),
-                      onPressed: () {},
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _buildGoldCoinIndicator(),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined,
+                              color: AppTheme.textSecondary, size: 22),
+                          onPressed: () => Get.to(() => const NotificationHistoryScreen()),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        ),
+                      ],
                     ),
                   ],
                 ),

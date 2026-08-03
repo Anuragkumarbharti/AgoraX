@@ -108,6 +108,7 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
           Obx(() {
             final list = FCMNotificationService.to.notificationsList;
             if (list.isEmpty) return const SizedBox.shrink();
+            final bool hasUnread = list.any((n) => !(n['is_read'] == true || n['read'] == true));
             return PopupMenuButton<String>(
               icon: Icon(Icons.more_vert_rounded, color: isDark ? Colors.white : Colors.black87),
               onSelected: (val) async {
@@ -126,16 +127,17 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'read_all',
-                  child: Row(
-                    children: [
-                      Icon(Icons.done_all_rounded, size: 20, color: Colors.blueAccent),
-                      SizedBox(width: 8),
-                      Text('Mark all read'),
-                    ],
+                if (hasUnread)
+                  const PopupMenuItem(
+                    value: 'read_all',
+                    child: Row(
+                      children: [
+                        Icon(Icons.done_all_rounded, size: 20, color: Colors.blueAccent),
+                        SizedBox(width: 8),
+                        Text('Mark all read'),
+                      ],
+                    ),
                   ),
-                ),
                 const PopupMenuItem(
                   value: 'clear_all',
                   child: Row(
@@ -175,12 +177,11 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
             itemCount: list.length,
             itemBuilder: (context, index) {
               final item = list[index];
-              final isRead = item['is_read'] ?? false;
+              final bool isRead = (item['is_read'] == true) || (item['read'] == true);
               final type = item['type'] ?? 'system';
               final createdAt = item['created_at'] != null
                   ? DateTime.parse(item['created_at']).toLocal()
                   : DateTime.now();
-
 
               return Dismissible(
                 key: Key(item['id'].toString()),
@@ -197,7 +198,9 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
                 onDismissed: (_) => FCMNotificationService.to.deleteNotification(item['id'].toString()),
                 child: GestureDetector(
                   onTap: () {
-                    FCMNotificationService.to.markAsRead(item['id'].toString());
+                    if (!isRead) {
+                      FCMNotificationService.to.markAsRead(item['id'].toString());
+                    }
                     final payload = item['payload'] != null
                         ? Map<String, dynamic>.from(item['payload'])
                         : <String, dynamic>{};
@@ -244,18 +247,36 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(
-                              item['title'] ?? 'Notification',
-                              style: GoogleFonts.outfit(
-                                color: isDark ? Colors.white : Colors.black87,
-                                fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              semanticsLabel: 'Notification Title',
+                            child: Row(
+                              children: [
+                                if (!isRead) ...[
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    margin: const EdgeInsets.only(right: 6),
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.primaryColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    item['title'] ?? 'Notification',
+                                    style: GoogleFonts.outfit(
+                                      color: isDark ? Colors.white : Colors.black87,
+                                      fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    semanticsLabel: 'Notification Title',
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Text(
                             _formatTime(createdAt),
                             style: GoogleFonts.outfit(

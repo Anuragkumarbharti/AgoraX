@@ -76,18 +76,18 @@ class _WalletHeaderPillState extends State<WalletHeaderPill> {
 
   Widget _buildGoldCoinIcon() {
     return Container(
-      width: 24,
-      height: 24,
+      width: 18,
+      height: 18,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+          colors: [Color(0xFFFFDF00), Color(0xFFF59E0B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Color(0x55FFD700),
+            color: Color(0x66FFD700),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
@@ -98,7 +98,7 @@ class _WalletHeaderPillState extends State<WalletHeaderPill> {
           '\$',
           style: GoogleFonts.outfit(
             color: Colors.white,
-            fontSize: 14,
+            fontSize: 11,
             fontWeight: FontWeight.w900,
             height: 1.0,
           ),
@@ -110,27 +110,50 @@ class _WalletHeaderPillState extends State<WalletHeaderPill> {
   @override
   Widget build(BuildContext context) {
     final storeCtrl = StoreController.to;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final Color pillBg = isDark
+        ? const Color(0xFF1E1C38).withOpacity(0.65)
+        : const Color(0xFFF1F5F9);
+
+    final Color pillBorder = isDark
+        ? const Color(0xFFFFD700).withOpacity(0.35)
+        : const Color(0xFFF59E0B).withOpacity(0.45);
+
+    final Color textColor = isDark
+        ? Colors.white
+        : const Color(0xFF0F172A);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // ── READ-ONLY WALLET PILL CONTAINER ──
+        // ── READ-ONLY COMPACT WALLET PILL CONTAINER ──
         GestureDetector(
           onTap: _handlePillClick,
           behavior: HitTestBehavior.opaque,
           child: Container(
-            height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+            height: 28,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1B4B).withOpacity(0.45),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.amber.withOpacity(0.4), width: 1.2),
+              color: pillBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: pillBorder,
+                width: 1.0,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.amber.withOpacity(0.08),
+                  color: isDark
+                      ? Colors.black.withOpacity(0.10)
+                      : Colors.black.withOpacity(0.06),
                   blurRadius: 6,
-                  spreadRadius: 1,
+                  offset: const Offset(0, 2),
+                ),
+                BoxShadow(
+                  color: const Color(0xFFFFD700).withOpacity(0.06),
+                  blurRadius: 4,
+                  spreadRadius: 0.5,
                 ),
               ],
             ),
@@ -139,7 +162,7 @@ class _WalletHeaderPillState extends State<WalletHeaderPill> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 _buildGoldCoinIcon(),
-                const SizedBox(width: 6),
+                const SizedBox(width: 5),
                 Obx(() {
                   final coins = storeCtrl.coinsBalance.value;
                   final formattedText = formatWalletCoins(coins);
@@ -147,8 +170,8 @@ class _WalletHeaderPillState extends State<WalletHeaderPill> {
                     formattedText,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 14,
+                      color: textColor,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.3,
                     ),
@@ -160,14 +183,14 @@ class _WalletHeaderPillState extends State<WalletHeaderPill> {
         ),
 
         if (widget.showPlusButton) ...[
-          const SizedBox(width: 8),
-          // ── SEPARATE (+) BUTTON ──
+          const SizedBox(width: 5),
+          // ── SEPARATE SMALL CIRCULAR (+) BUTTON ──
           GestureDetector(
             onTap: _handlePlusClick,
             behavior: HitTestBehavior.opaque,
             child: Container(
-              width: 36,
-              height: 36,
+              width: 26,
+              height: 26,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(
@@ -177,7 +200,7 @@ class _WalletHeaderPillState extends State<WalletHeaderPill> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.35),
+                    color: const Color(0xFF8B5CF6).withOpacity(0.40),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -187,7 +210,7 @@ class _WalletHeaderPillState extends State<WalletHeaderPill> {
                 child: Icon(
                   Icons.add_rounded,
                   color: Colors.white,
-                  size: 22,
+                  size: 16,
                 ),
               ),
             ),

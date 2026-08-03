@@ -59,15 +59,20 @@ class AppTheme {
   static const Color lightTextTertiary = lightCaption;
   static final Color lightGlass = lightGlassSurface;
 
-  // ── DARK THEME COLS (Creania Premium Design System v1.0) ──
-  static const Color darkBg = Color(0xFF090B12);
-  static const Color darkSecBg = Color(0xFF10131B);
-  static const Color darkSurface = Color(0xFF151923);
-  static const Color darkFloatingCard = Color(0xFF191E29);
+  // ── DARK THEME COLS (Creania Premium Design System v2.0 - Flagship Dark Mode) ──
+  static const Color darkBg = Color(0xFF0F1115);
+  static const Color darkSecBg = Color(0xFF161B22);
+  static const Color darkSurface = Color(0xFF1C212B);
+  static const Color darkElevatedSurface = Color(0xFF242B38);
+  static const Color darkCardBg = Color(0xFF1A1F28);
+  static const Color darkFloatingCard = Color(0xFF1A1F28);
+  static const Color darkPopupDialog = Color(0xFF202733);
+  static const Color darkBottomNav = Color(0xFF12161D);
+  static const Color darkAppBar = Color(0xFF12161D);
 
   // Glass colors
   static final Color darkGlassSurface =
-      const Color(0xFF1A1E2A).withOpacity(0.78);
+      const Color(0xFF1C212B).withOpacity(0.85);
   static final Color darkGlassHighlight =
       const Color(0xFFFFFFFF).withOpacity(0.08);
   static final Color darkGlassReflection =
@@ -75,40 +80,41 @@ class AppTheme {
 
   // Typography
   static const Color darkTextPrimary = Color(0xFFFFFFFF);
-  static const Color darkTextSecondary = Color(0xFFD7DFEA);
-  static const Color darkTextBody = Color(0xFFC7D0DB);
-  static const Color darkCaption = Color(0xFF9AA7B8);
-  static const Color darkPlaceholder = Color(0xFF7D8CA2);
-  static const Color darkDisabled = Color(0xFF617085);
+  static const Color darkTextSecondary = Color(0xFFE5E7EB);
+  static const Color darkTextBody = Color(0xFFD1D5DB);
+  static const Color darkCaption = Color(0xFFB5BECF);
+  static const Color darkPlaceholder = Color(0xFF9CA3AF);
+  static const Color darkDisabled = Color(0xFF6B7280);
 
   // Dividers, Borders, Shadows
-  static const Color darkBorder = Color(0xFF2D3645);
-  static const Color darkDivider = Color(0xFF26303D);
-  static const Color darkShadow = Color(0x6B000000); // rgba(0,0,0,0.42)
+  static const Color darkBorder = Color(0xFF2C3442);
+  static const Color darkSecBorder = Color(0xFF323B4A);
+  static const Color darkDivider = Color(0xFF2C3442);
+  static const Color darkShadow = Color(0x66000000); // rgba(0,0,0,0.4)
 
   // Brand & Accents
-  static const Color darkPrimary = Color(0xFF7A6DFF);
-  static const Color darkPrimaryHover = Color(0xFF8B80FF);
+  static const Color darkPrimary = Color(0xFF7C6BFF);
+  static const Color darkPrimaryHover = Color(0xFF9F8DFF);
   static const Color darkPrimaryPressed = Color(0xFF6A5DF4);
-  static const Color darkSecondaryBrand = Color(0xFF4AB8FF);
+  static const Color darkSecondaryBrand = Color(0xFF9F8DFF);
 
-  static const Color darkAccentPurple = Color(0xFF9B7DFF);
-  static const Color darkAccentBlue = Color(0xFF60A5FA);
-  static const Color darkAccentCyan = Color(0xFF3EE8FF);
-  static const Color darkAccentPink = Color(0xFFFF6AC1);
-  static const Color darkAccentOrange = Color(0xFFFF9A3D);
-  static const Color darkAccentGold = Color(0xFFFFD54A);
+  static const Color darkAccentPurple = Color(0xFF7C6BFF);
+  static const Color darkAccentBlue = Color(0xFF4EA8FF);
+  static const Color darkAccentCyan = Color(0xFF38BDF8);
+  static const Color darkAccentPink = Color(0xFFEC4899);
+  static const Color darkAccentOrange = Color(0xFFF97316);
+  static const Color darkAccentGold = Color(0xFFF4B400);
 
   // Statuses
   static const Color darkSuccess = Color(0xFF22C55E);
-  static const Color darkWarning = Color(0xFFFBBF24);
-  static const Color darkError = Color(0xFFF87171);
-  static const Color darkInfo = Color(0xFF60A5FA);
+  static const Color darkWarning = Color(0xFFF59E0B);
+  static const Color darkError = Color(0xFFEF4444);
+  static const Color darkInfo = Color(0xFF4EA8FF);
 
   // Gamification & Badges
-  static const Color darkVipGold = Color(0xFFF6D365);
-  static const Color darkSilver = Color(0xFFD3D8DF);
-  static const Color darkBronze = Color(0xFFCD8B62);
+  static const Color darkVipGold = Color(0xFFF4B400);
+  static const Color darkSilver = Color(0xFF94A3B8);
+  static const Color darkBronze = Color(0xFFB87333);
 
   // Legacy/Fallback Dark Fields
   static const Color darkAccent = darkAccentPurple;
@@ -233,78 +239,108 @@ class AppTheme {
     primaryColor: darkPrimary,
     colorScheme: const ColorScheme.dark(
       primary: darkPrimary,
-      secondary: darkPrimary,
+      secondary: darkSecondaryBrand,
       surface: darkSurface,
       error: darkError,
+      background: darkBg,
     ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.transparent,
+    appBarTheme: AppBarTheme(
+      backgroundColor: darkAppBar,
       elevation: 0,
       centerTitle: false,
-      iconTheme: IconThemeData(color: darkTextPrimary),
-      titleTextStyle: TextStyle(
+      iconTheme: const IconThemeData(color: darkTextSecondary),
+      actionsIconTheme: const IconThemeData(color: darkPrimary),
+      titleTextStyle: GoogleFonts.plusJakartaSans(
         color: darkTextPrimary,
         fontSize: 22,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.bold,
       ),
     ),
     textTheme: TextTheme(
-      displayLarge: GoogleFonts.outfit(
-          fontSize: 32, fontWeight: FontWeight.w700, color: darkTextPrimary),
-      displayMedium: GoogleFonts.outfit(
-          fontSize: 28, fontWeight: FontWeight.w700, color: darkTextPrimary),
-      headlineLarge: GoogleFonts.outfit(
-          fontSize: 24, fontWeight: FontWeight.w700, color: darkTextPrimary),
-      headlineSmall: GoogleFonts.outfit(
-          fontSize: 20, fontWeight: FontWeight.w700, color: darkTextPrimary),
-      titleMedium: GoogleFonts.outfit(
-          fontSize: 18, fontWeight: FontWeight.w700, color: darkTextPrimary),
-      bodyLarge: GoogleFonts.poppins(
-          fontSize: 16, fontWeight: FontWeight.w500, color: darkTextPrimary),
-      bodyMedium: GoogleFonts.poppins(
-          fontSize: 14, fontWeight: FontWeight.w500, color: darkTextSecondary),
-      bodySmall: GoogleFonts.poppins(
-          fontSize: 12, fontWeight: FontWeight.w400, color: darkCaption),
+      displayLarge: GoogleFonts.plusJakartaSans(
+          fontSize: 34, fontWeight: FontWeight.bold, color: darkTextPrimary),
+      displayMedium: GoogleFonts.plusJakartaSans(
+          fontSize: 28, fontWeight: FontWeight.bold, color: darkTextPrimary),
+      headlineLarge: GoogleFonts.plusJakartaSans(
+          fontSize: 22, fontWeight: FontWeight.bold, color: darkTextPrimary),
+      headlineSmall: GoogleFonts.plusJakartaSans(
+          fontSize: 18, fontWeight: FontWeight.bold, color: darkTextPrimary),
+      titleMedium: GoogleFonts.plusJakartaSans(
+          fontSize: 17, fontWeight: FontWeight.bold, color: darkTextPrimary),
+      bodyLarge: GoogleFonts.inter(
+          fontSize: 15, fontWeight: FontWeight.normal, color: darkTextSecondary, height: 1.5),
+      bodyMedium: GoogleFonts.inter(
+          fontSize: 14, fontWeight: FontWeight.normal, color: darkCaption, height: 1.5),
+      bodySmall: GoogleFonts.inter(
+          fontSize: 12, fontWeight: FontWeight.w500, color: darkCaption),
+      labelLarge: GoogleFonts.inter(
+          fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+      labelMedium: GoogleFonts.inter(
+          fontSize: 20, fontWeight: FontWeight.bold, color: darkTextPrimary),
+      labelSmall: GoogleFonts.inter(
+          fontSize: 12, fontWeight: FontWeight.w500, color: darkCaption),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: darkSurface,
+      fillColor: darkElevatedSurface,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: darkBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: darkBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: darkPrimary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: darkError, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: darkError, width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      hintStyle: GoogleFonts.poppins(
-        fontSize: 14,
+      contentPadding: const EdgeInsets.all(16),
+      hintStyle: GoogleFonts.inter(
+        fontSize: 15,
         color: darkPlaceholder,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.normal,
+      ),
+      labelStyle: GoogleFonts.inter(
+        fontSize: 15,
+        color: darkTextPrimary,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: darkPopupDialog,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: darkPopupDialog,
+      modalBackgroundColor: darkPopupDialog,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
     ),
     cardTheme: CardThemeData(
-      color: darkFloatingCard,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      color: darkCardBg,
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: darkBorder, width: 1),
+      ),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: darkSecBg,
+      backgroundColor: darkBottomNav,
       selectedItemColor: darkPrimary,
-      unselectedItemColor: darkTextSecondary,
+      unselectedItemColor: darkPlaceholder,
       elevation: 8,
     ),
   );
@@ -348,8 +384,18 @@ extension ThemeExtension on BuildContext {
       isDark ? AppTheme.darkSecBg : AppTheme.lightSecBg;
   Color get surfaceColor =>
       isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
+  Color get elevatedSurfaceColor =>
+      isDark ? AppTheme.darkElevatedSurface : AppTheme.lightSecBg;
+  Color get cardColor =>
+      isDark ? AppTheme.darkCardBg : AppTheme.lightSurface;
   Color get floatingCardColor =>
-      isDark ? AppTheme.darkFloatingCard : AppTheme.lightFloatingCard;
+      isDark ? AppTheme.darkCardBg : AppTheme.lightFloatingCard;
+  Color get dialogBackgroundColor =>
+      isDark ? AppTheme.darkPopupDialog : AppTheme.lightSurface;
+  Color get bottomNavBackgroundColor =>
+      isDark ? AppTheme.darkBottomNav : AppTheme.lightSurface;
+  Color get appBarBackgroundColor =>
+      isDark ? AppTheme.darkAppBar : AppTheme.lightSurface;
 
   Color get textPrimary =>
       isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
@@ -362,9 +408,31 @@ extension ThemeExtension on BuildContext {
   Color get disabled => isDark ? AppTheme.darkDisabled : AppTheme.lightDisabled;
 
   Color get borderColor => isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+  Color get secondaryBorderColor =>
+      isDark ? AppTheme.darkSecBorder : AppTheme.lightBorder;
+  Color get focusedBorderColor =>
+      isDark ? AppTheme.darkPrimary : AppTheme.lightPrimary;
+
   Color get dividerColor =>
       isDark ? AppTheme.darkDivider : AppTheme.lightDivider;
   Color get shadowColor => isDark ? AppTheme.darkShadow : AppTheme.lightShadow;
+
+  Color get iconPrimary => isDark ? Colors.white : AppTheme.lightTextPrimary;
+  Color get iconSecondary =>
+      isDark ? AppTheme.darkPlaceholder : AppTheme.lightTextSecondary;
+  Color get iconSelected => isDark ? AppTheme.darkPrimary : AppTheme.lightPrimary;
+  Color get iconCoin => AppTheme.darkAccentGold;
+  Color get iconVip => AppTheme.darkAccentGold;
+  Color get iconNotification => AppTheme.darkError;
+
+  Color get chatBubbleIncoming =>
+      isDark ? AppTheme.darkElevatedSurface : const Color(0xFFF1F5F9);
+  Color get chatBubbleOutgoing =>
+      isDark ? AppTheme.darkPrimary : AppTheme.lightPrimary;
+  Color get searchBarBg =>
+      isDark ? AppTheme.darkElevatedSurface : const Color(0xFFF1F5F9);
+  Color get unreadHighlightColor =>
+      isDark ? const Color(0xFF242038) : const Color(0xFFF3E8FF);
 
   Color get glassSurfaceColor =>
       isDark ? AppTheme.darkGlassSurface : AppTheme.lightGlassSurface;

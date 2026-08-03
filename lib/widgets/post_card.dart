@@ -152,9 +152,16 @@ class _PostCardState extends State<PostCard> {
         onTap: widget.onTap,
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.cardBg,
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.borderColor, width: 0.5),
+            border: Border.all(color: context.borderColor, width: 0.5),
+            boxShadow: [
+              BoxShadow(
+                color: context.shadowColor,
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -170,10 +177,10 @@ class _PostCardState extends State<PostCard> {
                           borderRadius: BorderRadius.circular(20),
                           width: 40,
                           height: 40,
-                          placeholder: Container(color: AppTheme.bgLight),
-                          errorWidget: _buildInitialsAvatar(),
+                          placeholder: Container(color: context.secondaryBackgroundColor),
+                          errorWidget: _buildInitialsAvatar(context),
                         )
-                      : _buildInitialsAvatar(),
+                      : _buildInitialsAvatar(context),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -185,20 +192,20 @@ class _PostCardState extends State<PostCard> {
                               : 'Creania Student',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimary,
+                                color: context.textPrimary,
                               ),
                         ),
                         Text(
                           _timeAgo(widget.post.createdAt),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textTertiary,
+                                color: context.caption,
                               ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.more_vert, size: 20),
+                    icon: Icon(Icons.more_vert, size: 20, color: context.iconSecondary),
                     onPressed: () {},
                   ),
                 ],
@@ -208,7 +215,9 @@ class _PostCardState extends State<PostCard> {
               // Content
               Text(
                 widget.post.content,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: context.textSecondary,
+                ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -223,26 +232,28 @@ class _PostCardState extends State<PostCard> {
                     context,
                     _isLiked ? Icons.favorite : Icons.favorite_outline,
                     '$_likes',
-                    color: _isLiked ? AppTheme.errorColor : AppTheme.textTertiary,
+                    color: _isLiked ? context.errorColor : context.iconSecondary,
                     onTap: _handleLike,
                   ),
                   _buildAction(
                     context,
                     Icons.chat_bubble_outline,
                     '$_comments',
+                    color: context.iconSecondary,
                     onTap: () => _handleComment(context),
                   ),
                   _buildAction(
                     context,
                     Icons.share_outlined,
                     '$_shares',
+                    color: context.iconSecondary,
                     onTap: _handleShare,
                   ),
                   _buildAction(
                     context,
                     _isBookmarked ? Icons.bookmark : Icons.bookmark_outline,
                     '',
-                    color: _isBookmarked ? AppTheme.primaryColor : AppTheme.textTertiary,
+                    color: _isBookmarked ? context.primaryColor : context.iconSecondary,
                     onTap: _handleBookmark,
                   ),
                 ],
@@ -266,28 +277,31 @@ class _PostCardState extends State<PostCard> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: color ?? AppTheme.textTertiary),
+              Icon(icon, size: 18, color: color ?? context.iconSecondary),
               if (count.isNotEmpty) ...[
                 const SizedBox(width: 4),
-                Text(count, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color)),
+                Text(count, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color ?? context.caption)),
               ],
             ],
           ),
         ),
       );
 
-  Widget _buildInitialsAvatar() {
+  Widget _buildInitialsAvatar(BuildContext context) {
     final name = widget.post.authorUsername ?? 'User';
     final initial = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U';
     return Container(
       width: 40,
       height: 40,
-      color: AppTheme.primaryColor.withOpacity(0.2),
+      decoration: BoxDecoration(
+        color: context.primaryColor.withOpacity(0.15),
+        shape: BoxShape.circle,
+      ),
       child: Center(
         child: Text(
           initial,
-          style: const TextStyle(
-            color: AppTheme.primaryColor,
+          style: TextStyle(
+            color: context.primaryColor,
             fontWeight: FontWeight.bold,
           ),
         ),

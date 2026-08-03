@@ -59,7 +59,9 @@ class SecureDtoSanitizer {
     cleanDto['title'] = sanitizeNotificationTitle(rawTitle, fallback: 'New Notification');
     cleanDto['body'] = sanitizeNotificationBody(rawBody, fallback: 'New message received');
     cleanDto['type'] = (raw['type'] ?? raw['notification_type'] ?? 'general').toString();
-    cleanDto['read'] = raw['read'] == true || raw['is_read'] == true || raw['read_at'] != null;
+    final bool isRead = raw['is_read'] == true || raw['read'] == true || raw['read_at'] != null;
+    cleanDto['is_read'] = isRead;
+    cleanDto['read'] = isRead;
     cleanDto['created_at'] = (raw['created_at'] ?? raw['timestamp'] ?? DateTime.now().toIso8601String()).toString();
     cleanDto['avatar_url'] = (raw['avatar_url'] ?? raw['sender_avatar'] ?? '').toString();
 

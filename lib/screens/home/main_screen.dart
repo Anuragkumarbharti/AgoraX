@@ -47,7 +47,7 @@ class _MainScreenState extends State<MainScreen> {
     ProfileScreen(),
   ];
 
-  Widget _buildAnimatedBadgeIcon(int unread, IconData iconData) {
+  Widget _buildAnimatedBadgeIcon(BuildContext context, int unread, IconData iconData) {
     final String labelStr = unread > 99 ? '99+' : '$unread';
 
     return Stack(
@@ -67,11 +67,11 @@ class _MainScreenState extends State<MainScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
+                  color: context.primaryColor,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.4),
+                      color: context.primaryColor.withOpacity(0.4),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -108,13 +108,14 @@ class _MainScreenState extends State<MainScreen> {
         final unread = chatCtrl.totalUnread;
         return BottomNavigationBar(
           currentIndex: _selectedIndex,
+          backgroundColor: context.bottomNavBackgroundColor,
           onTap: (index) {
             setState(() => _selectedIndex = index);
           },
           type: BottomNavigationBarType.fixed,
           iconSize: AppDimensions.minIconSize,
           selectedItemColor: context.primaryColor,
-          unselectedItemColor: context.textSecondary,
+          unselectedItemColor: context.iconSecondary,
           selectedLabelStyle: GoogleFonts.poppins(
             fontSize: AppTypography.caption,
             fontWeight: FontWeight.bold,
@@ -140,9 +141,9 @@ class _MainScreenState extends State<MainScreen> {
             ),
             BottomNavigationBarItem(
               icon: _buildAnimatedBadgeIcon(
-                  unread, Icons.chat_bubble_outline_rounded),
+                  context, unread, Icons.chat_bubble_outline_rounded),
               activeIcon:
-                  _buildAnimatedBadgeIcon(unread, Icons.chat_bubble_rounded),
+                  _buildAnimatedBadgeIcon(context, unread, Icons.chat_bubble_rounded),
               label: 'Messages',
             ),
             const BottomNavigationBarItem(

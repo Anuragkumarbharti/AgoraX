@@ -133,8 +133,8 @@ class _PremiumChatBubbleState extends State<PremiumChatBubble>
       case 'Default':
       default:
         return widget.isMe
-            ? [const Color(0xFF6366F1), const Color(0xFF4F46E5)] // Indigo gradient
-            : [const Color(0xFF334155), const Color(0xFF1E293B)]; // Dark slate
+            ? [const Color(0xFF7C6BFF), const Color(0xFF6A5DF4)] // Flagship Primary Purple
+            : [const Color(0xFF242B38), const Color(0xFF1C212B)]; // Flagship Dark Surface
     }
   }
 
