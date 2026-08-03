@@ -186,7 +186,7 @@ class RoomVoiceManager {
   Future<void> toggleMic(bool isOn) async {
     try {
       if (_activeRoomId == null || _activeUserId == null) return;
-      final controller = VoiceController.to;
+      if (!Get.isRegistered<VoiceController>()) return;
       
       if (isOn) {
         final String streamId = '${_activeRoomId}_$_activeUserId';

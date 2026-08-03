@@ -13,6 +13,7 @@ class NetworkConnectivityService extends GetxService {
   StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   final List<VoidCallback> _onReconnectedCallbacks = <VoidCallback>[];
+  final List<VoidCallback> _onDisconnectedCallbacks = <VoidCallback>[];
 
   @override
   void onInit() {
@@ -45,6 +46,15 @@ class NetworkConnectivityService extends GetxService {
           debugPrint('[NetworkConnectivityService] Callback error: $e');
         }
       }
+    } else if (wasOnline && !currentlyOnline) {
+      debugPrint('[NetworkConnectivityService] Network connection lost! Triggering disconnect callbacks.');
+      for (final callback in List<VoidCallback>.from(_onDisconnectedCallbacks)) {
+        try {
+          callback();
+        } catch (e) {
+          debugPrint('[NetworkConnectivityService] Disconnect callback error: $e');
+        }
+      }
     }
   }
 
@@ -58,10 +68,21 @@ class NetworkConnectivityService extends GetxService {
     _onReconnectedCallbacks.remove(callback);
   }
 
+  void addDisconnectedCallback(VoidCallback callback) {
+    if (!_onDisconnectedCallbacks.contains(callback)) {
+      _onDisconnectedCallbacks.add(callback);
+    }
+  }
+
+  void removeDisconnectedCallback(VoidCallback callback) {
+    _onDisconnectedCallbacks.remove(callback);
+  }
+
   @override
   void onClose() {
     _subscription?.cancel();
     _onReconnectedCallbacks.clear();
+    _onDisconnectedCallbacks.clear();
     super.onClose();
   }
 }

@@ -336,13 +336,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     // _startSpeakingSimulation();
     // _startMarqueeSimulation();
 
-    // Start secure heartbeat reporting
-    _controller.heartbeatRoomMember(widget.roomId, _isMicOn);
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (mounted) {
-        _controller.heartbeatRoomMember(widget.roomId, _isMicOn);
-      }
-    });
+    // Detect adaptive display refresh rate (120Hz / 90Hz / 60Hz)
+    try {
+      final double refreshRate = WidgetsBinding.instance.platformDispatcher.views.first.display.refreshRate;
+      debugPrint('[VoiceRoomCallScreen] Detected Display Refresh Rate: ${refreshRate > 0 ? refreshRate : 60.0}Hz');
+    } catch (_) {}
+
+    // Start 5-second secure heartbeat loop with 15s timeout auto-leave
+    _controller.startHeartbeatLoop(widget.roomId, () => _isMicOn);
   }
 
   void _startMarqueeSimulation() {
@@ -2903,8 +2904,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       userId = user.userID;
       final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
       final seatIndex = seatsList.indexWhere((s) => s['userId'] == user.userID);
+      final double soundLvl = VoiceController.to.userSoundLevels[user.userID] ?? 0.0;
       isSpeaking =
-          seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
+          (seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true) || soundLvl > 5.0;
       isMuted =
           _controller.mutedUsers[widget.roomId]?.contains(user.userID) ?? false;
     } else if (index >= 0 && index < _seats.length) {
@@ -2914,7 +2916,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         userId = mockSeat['userId'] as String;
         isMuted =
             _controller.mutedUsers[widget.roomId]?.contains(userId) ?? false;
-        isSpeaking = mockSeat['isSpeaking'] == true && !isMuted;
+        final double soundLvl = VoiceController.to.userSoundLevels[userId] ?? 0.0;
+        isSpeaking = (mockSeat['isSpeaking'] == true || soundLvl > 5.0) && !isMuted;
       }
     }
 
@@ -10496,7 +10499,10 @@ class OnlineMembersDialog extends StatelessWidget {
                           ),
                         ),
                         Obx(() {
-                          final count = VoiceController.to.roomUsers.length;
+                          final count = max(
+                            RoomController.to.activeMembers.length,
+                            VoiceController.to.roomUsers.length,
+                          );
                           return Text(
                             '$count Users Currently Online',
                             style: GoogleFonts.poppins(
@@ -10525,7 +10531,21 @@ class OnlineMembersDialog extends StatelessWidget {
             Expanded(
               child: Obx(
                 () {
-                  final users = VoiceController.to.roomUsers;
+                  // Merge active members from RoomController and VoiceController
+                  final Map<String, dynamic> userMap = {};
+
+                  for (final u in VoiceController.to.roomUsers) {
+                    userMap[u.userID] = u;
+                  }
+
+                  for (final m in RoomController.to.activeMembers) {
+                    if (!userMap.containsKey(m.userId)) {
+                      final profile = UserProfileCacheManager.getCachedUser(m.userId);
+                      userMap[m.userId] = ZegoUser(m.userId, profile?.username ?? 'Member');
+                    }
+                  }
+
+                  final users = userMap.values.toList();
                   if (users.isEmpty) {
                     return Center(
                       child: Text('No users live in room',

@@ -237,38 +237,48 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     _progressionTimer = null;
   }
 
-  @override
-  void onInit() {
-    super.onInit();
-    WidgetsBinding.instance.addObserver(this);
-    _loadCachedRooms();
-    fetchRooms();
-    subscribeToRoomsList();
-    if (Get.isRegistered<NetworkConnectivityService>()) {
-      NetworkConnectivityService.to.addReconnectedCallback(() {
-        debugPrint('[RoomController] Network restored. Auto-fetching rooms.');
-        fetchRooms(forceRefresh: true);
-      });
-    }
-  }
+  // Real-time viewer count getter
+  int get eyeCount => activeMembers.length;
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.detached) {
-      if (activeRoomId != null) {
-        _cleanupLocalResources();
+  Timer? _activeHeartbeatTimer;
+  int _consecutiveHeartbeatFailures = 0;
+
+  void startHeartbeatLoop(String roomId, bool Function() isMicOnGetter) {
+    _activeHeartbeatTimer?.cancel();
+    _consecutiveHeartbeatFailures = 0;
+    _activeHeartbeatTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (activeRoomId != roomId) {
+        timer.cancel();
+        return;
       }
-    }
+      final bool success = await heartbeatRoomMember(roomId, isMicOnGetter());
+      if (!success) {
+        _consecutiveHeartbeatFailures++;
+        debugPrint('[RoomController] Heartbeat failed ($_consecutiveHeartbeatFailures/3)');
+        if (_consecutiveHeartbeatFailures >= 3) {
+          debugPrint('[RoomController] 15s heartbeat timeout reached. Leaving room automatically.');
+          timer.cancel();
+          leaveActiveRoomLocally(reason: 'Network disconnect: left room automatically (timeout)');
+        }
+      } else {
+        _consecutiveHeartbeatFailures = 0;
+      }
+      // Periodic automatic room state repair (seats, members, chat history, hand-raises)
+      await repairRoomState(roomId);
+    });
   }
 
-  void _cleanupLocalResources() {
+  void leaveActiveRoomLocally({String? reason}) {
     try {
+      _activeHeartbeatTimer?.cancel();
+      _activeHeartbeatTimer = null;
+      _consecutiveHeartbeatFailures = 0;
+
       final roomId = activeRoomId;
       if (roomId != null) {
         final seats = roomSeatsInfo[roomId];
         if (seats != null) {
-          final seat =
-              seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
+          final seat = seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
           if (seat != null) {
             final seatIdx = seat['seatIndex'] as int;
             Supabase.instance.client
@@ -299,9 +309,105 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       activePolls.clear();
       isMutedByModerator.value = false;
       stopProgressionTimer();
+
+      if (reason != null && Get.context != null) {
+        Get.snackbar(
+          'Room Disconnected',
+          reason,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.redAccent.shade700,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+      }
     } catch (e) {
-      debugPrint('Error in _cleanupLocalResources: $e');
+      debugPrint('Error in leaveActiveRoomLocally: $e');
     }
+  }
+
+  Future<void> repairRoomState(String roomId) async {
+    try {
+      final response = await Supabase.instance.client.rpc('get_room_state_snapshot', params: {
+        'p_room_id': roomId,
+      });
+      if (response != null && response is Map<String, dynamic>) {
+        if (response['seats'] != null && response['seats'] is List) {
+          final List<dynamic> seatsJson = response['seats'];
+          final List<Map<String, dynamic>> seatsList = [];
+          for (final s in seatsJson) {
+            seatsList.add(Map<String, dynamic>.from(s as Map));
+          }
+          roomSeatsInfo[roomId] = seatsList;
+        }
+
+        if (response['members'] != null && response['members'] is List) {
+          final List<dynamic> mems = response['members'];
+          activeMembers.assignAll(mems.map((m) => RoomMember.fromJson(Map<String, dynamic>.from(m as Map))).toList());
+        }
+
+        if (response['requests'] != null && response['requests'] is List) {
+          final List<dynamic> reqs = response['requests'];
+          activeRequests.assignAll(reqs.map((r) => Map<String, dynamic>.from(r as Map)).toList());
+        }
+
+        if (response['chat_history'] != null && response['chat_history'] is List) {
+          initializeChatForRoom(roomId);
+          final chatList = roomChats[roomId]!;
+          final List<dynamic> history = response['chat_history'];
+          for (final item in history) {
+            final map = Map<String, dynamic>.from(item as Map);
+            final msg = RoomChatMessage(
+              id: map['id'].toString(),
+              senderId: map['senderId'].toString(),
+              senderName: map['senderName'] ?? 'Member',
+              text: map['content'] ?? '',
+              senderAvatar: map['senderAvatar'],
+              timestamp: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
+              messageType: map['messageType'] ?? 'text',
+            );
+            if (!chatList.any((m) => m.id == msg.id)) {
+              chatList.add(msg);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[RoomController] repairRoomState error: $e');
+    }
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    WidgetsBinding.instance.addObserver(this);
+    _loadCachedRooms();
+    fetchRooms();
+    subscribeToRoomsList();
+    if (Get.isRegistered<NetworkConnectivityService>()) {
+      NetworkConnectivityService.to.addDisconnectedCallback(() {
+        debugPrint('[RoomController] Network dropped. Leaving room locally.');
+        leaveActiveRoomLocally(reason: 'Network connection lost. Left room automatically.');
+      });
+      NetworkConnectivityService.to.addReconnectedCallback(() {
+        debugPrint('[RoomController] Network restored. Auto-fetching rooms (without rejoining).');
+        fetchRooms(forceRefresh: true);
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      if (activeRoomId != null) {
+        _cleanupLocalResources();
+      }
+    }
+  }
+
+  void _cleanupLocalResources() {
+    leaveActiveRoomLocally();
   }
 
   void initializeChatForRoom(String roomId) {
@@ -540,9 +646,23 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       if (roomChats[roomId] == null) {
         roomChats[roomId] = <RoomChatMessage>[].obs;
       }
-      roomChats[roomId]!.add(localMessage);
+      if (!roomChats[roomId]!.any((m) => m.id == msgId)) {
+        roomChats[roomId]!.add(localMessage);
+      }
 
-      // Broadcast message via Supabase Realtime Broadcast Channel
+      // 1. Persist to database via RPC
+      try {
+        await Supabase.instance.client.rpc('send_room_chat_message', params: {
+          'p_room_id': roomId,
+          'p_content': text,
+          'p_message_type': 'text',
+          'p_metadata': payload,
+        });
+      } catch (rpcErr) {
+        debugPrint('[RoomController] RPC send_room_chat_message error: $rpcErr');
+      }
+
+      // 2. Broadcast message via Supabase Realtime Broadcast Channel
       await _roomMessagesChannel?.sendBroadcastMessage(
         event: 'chat_message',
         payload: payload,
@@ -3436,14 +3556,16 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> heartbeatRoomMember(String roomId, bool isSpeaking) async {
+  Future<bool> heartbeatRoomMember(String roomId, bool isSpeaking) async {
     try {
       await Supabase.instance.client.rpc('heartbeat_room_member', params: {
         'p_room_id': roomId,
         'p_is_speaking': isSpeaking,
       });
+      return true;
     } catch (e) {
       debugPrint('Heartbeat failed: $e');
+      return false;
     }
   }
 
@@ -3569,6 +3691,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       );
 
       await fetchRoomProgression(roomId);
+      await repairRoomState(roomId);
     } catch (e) {
       debugPrint('Join seat failed: $e');
     }

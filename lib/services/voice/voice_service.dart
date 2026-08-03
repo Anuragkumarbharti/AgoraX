@@ -74,8 +74,9 @@ class VoiceService {
     config.isUserStatusNotify = true;
     config.maxMemberCount = 100;
 
-    final controller = Get.find<VoiceController>();
-    final user = ZegoUser(controller.currentUserId.value, controller.currentUserName.value);
+    final String userId = Get.isRegistered<VoiceController>() ? Get.find<VoiceController>().currentUserId.value : 'user_guest';
+    final String userName = Get.isRegistered<VoiceController>() ? Get.find<VoiceController>().currentUserName.value : 'Guest';
+    final user = ZegoUser(userId.isNotEmpty ? userId : 'user_guest', userName.isNotEmpty ? userName : 'Guest');
     
     debugPrint('[VoiceService] Logging in to room $roomId...');
     await ZegoExpressEngine.instance.loginRoom(roomId, user, config: config);
@@ -96,9 +97,11 @@ class VoiceService {
     await ZegoExpressEngine.instance.muteMicrophone(false);
     await ZegoExpressEngine.instance.startPublishingStream(streamId);
     
-    final controller = Get.find<VoiceController>();
-    controller.publishedStreamId.value = streamId;
-    controller.isMicEnabled.value = true;
+    if (Get.isRegistered<VoiceController>()) {
+      final controller = Get.find<VoiceController>();
+      controller.publishedStreamId.value = streamId;
+      controller.isMicEnabled.value = true;
+    }
   }
 
   /// Stop publishing local mic stream (STEP 5)
@@ -110,9 +113,11 @@ class VoiceService {
     // Pause hardware audio capture when not publishing to save CPU & battery
     await ZegoExpressEngine.instance.enableAudioCaptureDevice(false);
     
-    final controller = Get.find<VoiceController>();
-    controller.publishedStreamId.value = '';
-    controller.isMicEnabled.value = false;
+    if (Get.isRegistered<VoiceController>()) {
+      final controller = Get.find<VoiceController>();
+      controller.publishedStreamId.value = '';
+      controller.isMicEnabled.value = false;
+    }
   }
 
   /// Toggle microphone (software level mute/unmute)
@@ -123,8 +128,10 @@ class VoiceService {
     // Pause hardware audio capture when muted to save CPU & battery
     await ZegoExpressEngine.instance.enableAudioCaptureDevice(!isMuted);
     
-    final controller = Get.find<VoiceController>();
-    controller.isMicEnabled.value = !isMuted;
+    if (Get.isRegistered<VoiceController>()) {
+      final controller = Get.find<VoiceController>();
+      controller.isMicEnabled.value = !isMuted;
+    }
   }
 
   /// Force speaker output routing (STEP 8)
