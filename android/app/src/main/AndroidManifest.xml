@@ -17,6 +17,8 @@
     <application
         android:label="Creaniaa"
         android:name="${applicationName}"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

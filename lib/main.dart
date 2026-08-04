@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/scheduler.dart';
@@ -46,80 +47,99 @@ class MyHttpOverrides extends HttpOverrides {
 }
 
 void main() async {
-  // ── 1. Binding & system chrome ──────────────────────────────────
-  final binding = WidgetsFlutterBinding.ensureInitialized();
-  HttpOverrides.global = MyHttpOverrides();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  runZonedGuarded(() async {
+    // ── 1. Binding & system chrome ──────────────────────────────────
+    final binding = WidgetsFlutterBinding.ensureInitialized();
+    HttpOverrides.global = MyHttpOverrides();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  // ── 2. Shader warmup (eliminates first-frame jank) ───────────────
-  binding.deferFirstFrame();
-  await const AppShaderWarmup().execute();
+    // Filter background socket disconnect errors
+    FlutterError.onError = (FlutterErrorDetails details) {
+      final errStr = details.exception.toString();
+      if (errStr.contains('SocketException') || errStr.contains('closed socket')) {
+        debugPrint('[Network] Handled background socket error gracefully.');
+        return;
+      }
+      FlutterError.presentError(details);
+    };
 
-  // ── 3. Detect device refresh rate ────────────────────────────────
-  await PerformanceConfig.initialize();
+    // ── 2. Shader warmup (eliminates first-frame jank) ───────────────
+    binding.deferFirstFrame();
+    await const AppShaderWarmup().execute();
 
-  // ── 4. Critical services (blocking — needed before first screen) ──
-  await AdmobService.initialize();
+    // ── 3. Detect device refresh rate ────────────────────────────────
+    await PerformanceConfig.initialize();
 
-  await Supabase.initialize(
-    url: const String.fromEnvironment('SUPABASE_URL',
-        defaultValue: 'https://zccrgiplrbeslgpcezul.supabase.co'),
-    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY',
-        defaultValue:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjY3JnaXBscmJlc2xncGNlenVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDQyNDAsImV4cCI6MjA5OTc4MDI0MH0.iYRR8y7Z_S0z_ROVzVyvj1M4rv6sWK2q7Z6K7vRwD4g'),
-  );
+    // ── 4. Critical services (blocking — needed before first screen) ──
+    await AdmobService.initialize();
 
-  final isarService = IsarStorageService();
-  await isarService.init();
-  Get.put(isarService);
+    await Supabase.initialize(
+      url: const String.fromEnvironment('SUPABASE_URL',
+          defaultValue: 'https://zccrgiplrbeslgpcezul.supabase.co'),
+      anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY',
+          defaultValue:
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjY3JnaXBscmJlc2xncGNlenVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDQyNDAsImV4cCI6MjA5OTc4MDI0MH0.iYRR8y7Z_S0z_ROVzVyvj1M4rv6sWK2q7Z6K7vRwD4g'),
+    );
 
-  // Register network resilience & adaptive services
-  Get.put(NetworkConnectivityService());
-  Get.put(NetworkAdaptiveManager());
-  Get.put(UltraNetworkClient());
-  Get.put(RequestBatcher());
-  Get.put(DeltaSyncManager());
-  Get.put(OfflineQueueManager());
-  Get.put(WebSocketResilienceManager());
-  Get.put(AdaptiveMediaManager());
+    final isarService = IsarStorageService();
+    await isarService.init();
+    Get.put(isarService);
 
-  await UserProfileCacheManager.initOfflineCache();
+    // Register network resilience & adaptive services
+    Get.put(NetworkConnectivityService());
+    Get.put(NetworkAdaptiveManager());
+    Get.put(UltraNetworkClient());
+    Get.put(RequestBatcher());
+    Get.put(DeltaSyncManager());
+    Get.put(OfflineQueueManager());
+    Get.put(WebSocketResilienceManager());
+    Get.put(AdaptiveMediaManager());
 
-  // ── 5. Register critical GetX controllers ─────────────────────────
-  Get.put(ThemeController());
-  Get.put(StoreController());
-  Get.put(CareerProgressionController());
-  Get.put(CareerDailyController());
-  Get.put(IdDailyController());
-  Get.put(VipController());
-  Get.put(NovelController());
-  Get.put(ChatController());
-  Get.put(RoomController());
-  Get.put(CustomizationController());
-  Get.put(PremiumIdentityController());
+    await UserProfileCacheManager.initOfflineCache();
 
-  // ── 6. Render the app immediately ────────────────────────────────
-  binding.allowFirstFrame();
-  runApp(const MyApp());
+    // ── 5. Register critical GetX controllers ─────────────────────────
+    Get.put(ThemeController());
+    Get.put(StoreController());
+    Get.put(CareerProgressionController());
+    Get.put(CareerDailyController());
+    Get.put(IdDailyController());
+    Get.put(VipController());
+    Get.put(NovelController());
+    Get.put(ChatController());
+    Get.put(RoomController());
+    Get.put(CustomizationController());
+    Get.put(PremiumIdentityController());
 
-  // ── 7. Defer non-critical services to after first frame ───────────
-  SchedulerBinding.instance.addPostFrameCallback((_) async {
-    // Socket and realtime — non-blocking background
-    final socketService = ChatSocketService();
-    socketService.init();
-    Get.put(socketService);
+    // ── 6. Render the app immediately ────────────────────────────────
+    binding.allowFirstFrame();
+    runApp(const MyApp());
 
-    UserProfileCacheManager.initializeRealtimeSubscription();
-    UserProfileCacheManager.syncDeltaProfiles();
+    // ── 7. Defer non-critical services to after first frame ───────────
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      // Socket and realtime — non-blocking background
+      final socketService = ChatSocketService();
+      socketService.init();
+      Get.put(socketService);
 
-    Get.put(StudyCategoryController());
-    Get.put(CommunityController());
-    Get.put(EventController());
-    Get.put(RazorpayBackendService());
+      UserProfileCacheManager.initializeRealtimeSubscription();
+      UserProfileCacheManager.syncDeltaProfiles();
 
-    final fcmService = FCMNotificationService();
-    Get.put(fcmService);
-    fcmService.init(); // fire-and-forget
+      Get.put(StudyCategoryController());
+      Get.put(CommunityController());
+      Get.put(EventController());
+      Get.put(RazorpayBackendService());
+
+      final fcmService = FCMNotificationService();
+      Get.put(fcmService);
+      fcmService.init(); // fire-and-forget
+    });
+  }, (error, stack) {
+    final errStr = error.toString();
+    if (errStr.contains('SocketException') || errStr.contains('closed socket')) {
+      debugPrint('[Network] Handled async background socket disconnect.');
+    } else {
+      debugPrint('[AppError] Unhandled zone error: $error\n$stack');
+    }
   });
 }
 

@@ -14,6 +14,8 @@ import 'dart:async';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../models/user_model.dart';
 import '../../services/user_profile_cache_manager.dart';
+import '../../services/universal_image_optimizer.dart';
+import '../../services/asset_cache_manager.dart';
 import '../../services/user_progress_sync_service.dart';
 import '../home/main_screen.dart';
 import 'login_screen.dart';
@@ -698,15 +700,15 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       String? uploadedUrl;
       if (_avatarFile != null) {
         try {
-          final path = '$userIdToUse/avatar.png';
-          await Supabase.instance.client.storage
-              .from('avatars')
-              .upload(
-                path,
-                _avatarFile!,
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-              );
-          uploadedUrl = Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
+          await UniversalImageOptimizer.deleteOldAvatars(userIdToUse);
+          final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.png';
+          final path = '$userIdToUse/$fileName';
+          final optRes = await UniversalImageOptimizer.optimizeAndUpload(
+            file: _avatarFile,
+            category: ImageCategoryType.avatar,
+            storagePath: path,
+          );
+          uploadedUrl = optRes.publicUrl;
         } catch (storageError) {
           debugPrint('Storage Upload Warning: $storageError');
           uploadedUrl = 'https://api.dicebear.com/7.x/bottts/png?seed=${_usernameCtrl.text.trim()}';

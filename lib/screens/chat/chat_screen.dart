@@ -301,7 +301,7 @@ class _ChatScreenState extends State<ChatScreen>
         child: Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF191C1E), size: 22),
+              icon: Icon(Icons.arrow_back_rounded, color: context.textPrimary, size: 22),
               onPressed: () => Get.back(),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -385,7 +385,7 @@ class _ChatScreenState extends State<ChatScreen>
                           Text(
                             conv.otherUserName,
                             style: GoogleFonts.inter(
-                              color: const Color(0xFF191C1E),
+                              color: context.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),

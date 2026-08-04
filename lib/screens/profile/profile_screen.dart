@@ -830,8 +830,19 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                     // Clipped Cover Banner Container
                     Obx(() {
-                      final liveUser =
-                          UserProfileCacheManager.rxCache[_user.id] ?? _user;
+                      final profileId = _isMe
+                          ? UserProfileCacheManager.currentUserId
+                          : (widget.visitorUser?.id ?? _user.id);
+                      final liveUser = UserProfileCacheManager.rxCache[profileId] ??
+                          (_isMe ? UserProfileCacheManager.currentUser : null) ??
+                          _user;
+
+                      final String rawCover = (liveUser.coverPhoto != null &&
+                              liveUser.coverPhoto!.isNotEmpty &&
+                              !liveUser.coverPhoto!.contains('lh3.googleusercontent.com'))
+                          ? liveUser.coverPhoto!
+                          : 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809';
+                      final String optimizedCover = AssetCacheManager.getOptimizedUrl(rawCover, ImageQuality.medium);
 
                       return ClipPath(
                         clipper: ProfileHeaderCurveClipper(),
@@ -839,11 +850,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           width: double.infinity,
                           decoration: BoxDecoration(
                             image: DecorationImage(
-                              image: NetworkImage(
-                                liveUser.coverPhoto != null &&
-                                        liveUser.coverPhoto!.isNotEmpty
-                                    ? liveUser.coverPhoto!
-                                    : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQXG_YXV_OQP0-xJhu5HQN_kSn29aNlQpdYprfy_6Lt6p7S1_iFiPZLBOCoYJyYLzD0jEMn_nDJdbzzTPPd9TPWvJOwbk2Hx0LhOeMno3fyDDnF0AexwryfifU6lOGkltd25UuY-QDuOgq-sQKBI_660pJrJUwMlGT4P1ZqHI7FpHXm4QzmIXTfLHKh-g5G0vX9VSCr97WBuxDAJjWw-oKaHFOSMYfd4JInnsuQE_mpojplk9j2obIfxP_OmYQFk2XxAFzsoJAuPrc',
+                              image: CachedNetworkImageProvider(
+                                optimizedCover,
+                                cacheManager: CreaniaAssetCacheManager.instance,
                               ),
                               fit: BoxFit.cover,
                             ),
@@ -946,10 +955,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         backgroundColor:
                                             const Color(0xFF11131C),
                                         child: OptimizedImage(
-                                          imageUrl: liveUser.avatar != null &&
-                                                  liveUser.avatar!.isNotEmpty
+                                          imageUrl: (liveUser.avatar != null &&
+                                                  liveUser.avatar!.isNotEmpty &&
+                                                  !liveUser.avatar!.contains('lh3.googleusercontent.com'))
                                               ? liveUser.avatar!
-                                              : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCybH5Mu5-PZ_dMHWuWFu9UFqwNpHtc79GaJ1SCz5v_bdFVOBIBr6-Cbgapb6sfnES7omhgh6mLz1FBQpMfCdnTcBsYtqmihxZELjY4zaJAwKYf6bU-AtUsm-WZRdG9uAznurNgCeHKjz02JXnJcB3olfo16_NN_dQPu_losBj6pac8-KtnTIXZREq6hInG6VPAEfdXysXJ11taDrh7Te-i-xDA02rAOPFka-22raXdTq9vSpH1pBr5u3Wsl9JF1x6b8CiVtPwIoSmu',
+                                              : 'https://api.dicebear.com/7.x/bottts/png?seed=${liveUser.username}',
                                           quality: ImageQuality.thumbnail,
                                           borderRadius:
                                               BorderRadius.circular(48),
@@ -2409,9 +2419,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                       padding: EdgeInsets.zero,
                     ),
                     onPressed: () =>
-                        Get.to(() => const EditProfileScreen())?.then((_) {
-                      UserProfileCacheManager.fetchUserProfile(_user.id,
-                          forceRefresh: true);
+                        Get.to(() => const EditProfileScreen())?.then((res) async {
+                      final targetId = UserProfileCacheManager.currentUserId.isNotEmpty
+                          ? UserProfileCacheManager.currentUserId
+                          : _user.id;
+                      final refreshed = await UserProfileCacheManager.fetchUserProfile(
+                          targetId, forceRefresh: true);
+                      if (refreshed != null && mounted) {
+                        setState(() {
+                          _user = refreshed;
+                        });
+                      }
                     }),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -2456,9 +2474,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                       backgroundColor: Colors.transparent,
                     ),
                     onPressed: () =>
-                        Get.to(() => const EditProfileScreen())?.then((_) {
-                      UserProfileCacheManager.fetchUserProfile(_user.id,
-                          forceRefresh: true);
+                        Get.to(() => const EditProfileScreen())?.then((res) async {
+                      final targetId = UserProfileCacheManager.currentUserId.isNotEmpty
+                          ? UserProfileCacheManager.currentUserId
+                          : _user.id;
+                      final refreshed = await UserProfileCacheManager.fetchUserProfile(
+                          targetId, forceRefresh: true);
+                      if (refreshed != null && mounted) {
+                        setState(() {
+                          _user = refreshed;
+                        });
+                      }
                     }),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,

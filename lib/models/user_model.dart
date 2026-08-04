@@ -79,6 +79,27 @@ class User {
     final String parsedUid =
         (json['uid'] ?? json['uid_numeric'] ?? generatedSid).toString();
 
+    String? parseStringFallback(dynamic val1, [dynamic val2, dynamic val3]) {
+      bool isValid(dynamic v) {
+        if (v == null) return false;
+        final str = v.toString().trim();
+        if (str.isEmpty) return false;
+        if (str.contains('lh3.googleusercontent.com')) return false;
+        return true;
+      }
+
+      if (isValid(val1)) return val1.toString().trim();
+      if (isValid(val2)) return val2.toString().trim();
+      if (isValid(val3)) return val3.toString().trim();
+
+      for (final candidate in [val1, val2, val3]) {
+        if (candidate != null && candidate.toString().trim().isNotEmpty && !candidate.toString().contains('lh3.googleusercontent.com')) {
+          return candidate.toString().trim();
+        }
+      }
+      return null;
+    }
+
     return User(
       id: parsedId,
       uid: parsedUid,
@@ -86,8 +107,8 @@ class User {
       email: json['email'] ?? '',
       phone: json['phone'],
       fullName: json['fullName'] ?? json['full_name'],
-      avatar: json['avatar'] ?? json['profile_photo'] ?? json['avatar_url'],
-      coverPhoto: json['coverPhoto'] ?? json['cover_photo'],
+      avatar: parseStringFallback(json['avatar_url'], json['avatar'], json['profile_photo']),
+      coverPhoto: parseStringFallback(json['cover_photo'], json['coverPhoto']),
       bio: json['bio'],
       dob: json['dob'] != null
           ? DateTime.tryParse(json['dob'].toString())

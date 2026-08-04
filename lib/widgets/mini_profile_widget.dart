@@ -137,35 +137,19 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
         u.username == 'Anurag Kumar' ||
         u.displayName == 'Anurag Kumar';
 
-    int novelLevel = 0;
-    int activeNovel = 0;
-    int vipLevel = 0;
+    int novelLevel = u.novelLevel;
+    int activeNovel = u.novelLevel;
+    int vipLevel = u.vipLevel;
 
-    if (!isMe) {
-      if (u.isPremium) {
-        if (u.reputation > 6000) {
-          novelLevel = 7;
-          activeNovel = 7;
-        } else if (u.reputation > 4000) {
-          novelLevel = 5;
-          activeNovel = 5;
-        } else if (u.reputation > 2500) {
-          novelLevel = 3;
-          activeNovel = 3;
-        } else if (u.reputation > 1500) {
-          novelLevel = 1;
-          activeNovel = 1;
-        }
-
-        if (u.reputation > 5000) {
-          vipLevel = 7;
-        } else if (u.reputation > 3000) {
-          vipLevel = 5;
-        } else if (u.reputation > 1000) {
-          vipLevel = 3;
-        } else {
-          vipLevel = 2;
-        }
+    if (isMe) {
+      if (Get.isRegistered<NovelController>()) {
+        final nc = Get.find<NovelController>();
+        novelLevel = nc.novelLevel.value;
+        activeNovel = nc.novelLevel.value;
+      }
+      if (Get.isRegistered<VipController>()) {
+        final vc = Get.find<VipController>();
+        vipLevel = vc.vipLevel.value;
       }
     }
 

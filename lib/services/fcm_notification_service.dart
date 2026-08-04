@@ -223,7 +223,12 @@ class FCMNotificationService extends GetxService {
               if (isDeleted || _locallyDeletedIds.contains(notifId)) return;
               if (_lastClearedTimestamp != null && createdAt != null && createdAt.isBefore(_lastClearedTimestamp!)) return;
 
-              // Chat/message notifications should NEVER appear in system notification history
+              // Room chats, room gifts, mentions, and room events belong ONLY to active room sessions and MUST NEVER generate notifications
+              if (notifType == 'room' || notifType == 'room_chat' || notifType == 'gift' || notifType == 'room_gift' || notifType == 'mention' || notifType == 'seat_change' || notifType == 'mic_activity' || notifType == 'room_event') {
+                return;
+              }
+
+              // Direct message notifications are shown in foreground banner only, excluded from system notification history list
               if (notifType == 'chat' || notifType == 'personal_message' || notifType == 'group_message' || notifType == 'message' || notifType == 'dm') {
                 _showForegroundBanner(newNotif);
                 return;
@@ -320,8 +325,10 @@ class FCMNotificationService extends GetxService {
         if (isDeleted || _locallyDeletedIds.contains(notifId)) continue;
         if (_lastClearedTimestamp != null && createdAt != null && createdAt.isBefore(_lastClearedTimestamp!)) continue;
 
-        // 2. Exclude chat/message types completely
-        if (type == 'chat' || type == 'personal_message' || type == 'group_message' || type == 'message' || type == 'dm') continue;
+        // 2. Exclude chat/message and room/gift types completely from notification history
+        if (type == 'chat' || type == 'personal_message' || type == 'group_message' || type == 'message' || type == 'dm' ||
+            type == 'room' || type == 'room_chat' || type == 'gift' || type == 'room_gift' || type == 'mention' ||
+            type == 'seat_change' || type == 'mic_activity' || type == 'room_event') continue;
 
         // 3. Deduplicate
         final dedupeKey = item['event_id']?.toString() ?? '${item['title']}_${item['body']}';

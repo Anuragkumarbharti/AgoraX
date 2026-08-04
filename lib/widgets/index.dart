@@ -9,3 +9,5 @@ export 'premium_name_widget.dart';
 export 'premium_chat_bubble.dart';
 export 'default_entry_animation.dart';
 export 'creania_text_field.dart';
+export 'room_dynamic_background_widget.dart';
+export 'room_background_picker_sheet.dart';

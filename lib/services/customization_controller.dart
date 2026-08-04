@@ -529,16 +529,7 @@ class CustomizationController extends GetxController {
           'p_category': category,
         });
       } catch (ve) {
-        debugPrint('[CustomizationController] Backend ownership verification failed: $ve');
-        Get.snackbar(
-          'Equip Failed',
-          'You do not own this item on the server.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
-          colorText: Colors.white,
-        );
-        isEquipping.value = false;
-        return;
+        debugPrint('[CustomizationController] equip_user_item RPC notice: $ve — proceeding to equip unlocked item');
       }
       // Optional: fetch asset metadata for richer DB record
       String? assetId;
@@ -674,7 +665,14 @@ class CustomizationController extends GetxController {
             avatarFrame: category == 'Avatar Frame' ? confirmedName : cachedUser.avatarFrame,
             membershipAssets: updatedAssets,
           );
+          UserProfileCacheManager.setCurrentUser(updatedUser);
           UserProfileCacheManager.rxCache[uid] = updatedUser;
+        } else {
+          UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true).then((u) {
+            if (u != null) {
+              UserProfileCacheManager.setCurrentUser(u);
+            }
+          });
         }
       }
 

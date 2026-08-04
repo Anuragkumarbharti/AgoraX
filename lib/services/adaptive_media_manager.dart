@@ -25,38 +25,10 @@ class AdaptiveMediaManager extends GetxService {
     super.onClose();
   }
 
-  /// Transform standard Supabase URL to use CDN image resizing and WebP formats adaptively.
+  /// Returns valid public image URL safely
   static String getAdaptiveImageUrl(String url, {int? targetWidth}) {
-    if (url.isEmpty || !url.contains('storage/v1/object/public/')) return url;
-
-    MediaQualitySetting qualitySetting = MediaQualitySetting.medium;
-    if (Get.isRegistered<NetworkAdaptiveManager>()) {
-      qualitySetting = NetworkAdaptiveManager.to.activePolicy.value.mediaQuality;
-    }
-
-    final transformed = url.replaceAll('storage/v1/object/public/', 'storage/v1/render/image/public/');
-
-    int width = targetWidth ?? 300;
-    int quality = 80;
-
-    switch (qualitySetting) {
-      case MediaQualitySetting.low:
-        width = targetWidth ?? 120;
-        quality = 50;
-        break;
-      case MediaQualitySetting.medium:
-        width = targetWidth ?? 300;
-        quality = 70;
-        break;
-      case MediaQualitySetting.high:
-        width = targetWidth ?? 600;
-        quality = 85;
-        break;
-      case MediaQualitySetting.original:
-        return url; // Raw uncompressed original
-    }
-
-    return '$transformed?width=$width&quality=$quality&resize=contain&format=origin';
+    if (url.isEmpty) return url;
+    return url;
   }
 
   /// Adapt Zego Voice Engine audio bitrate & sample rate dynamically to active NetworkTier.

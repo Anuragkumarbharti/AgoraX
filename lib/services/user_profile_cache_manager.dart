@@ -26,6 +26,7 @@ class UserProfileCacheManager {
   static User? _currentUser;
   static final List<VoidCallback> _listeners = [];
   static RealtimeChannel? _realtimeChannel;
+  static RealtimeChannel? _customizationsRealtimeChannel;
   static RealtimeChannel? _connectionsRealtimeChannel;
   static RealtimeChannel? _giftRealtimeChannel;
   static RealtimeChannel? _sessionRealtimeChannel;
@@ -160,6 +161,8 @@ class UserProfileCacheManager {
     _currentUser = user;
     _cache[user.id] = user;
     rxCache[user.id] = user;
+    _cache['me'] = user;
+    rxCache['me'] = user;
     _notifyListeners();
     _saveCacheToOffline();
   }
@@ -818,6 +821,10 @@ class UserProfileCacheManager {
                 }
 
                 _notifyListeners();
+                if (userObj.avatar != null && userObj.avatar!.isNotEmpty) {
+                  AssetCacheManager.evictUrl(userObj.avatar!);
+                }
+                broadcastEquipConfirmed();
                 AssetCacheManager.prefetchProfileAssets(userObj);
                 debugPrint(
                     '[UserProfileCacheManager] Realtime update notified for: $userId');
@@ -829,6 +836,33 @@ class UserProfileCacheManager {
           '[UserProfileCacheManager] Subscribed to profiles table Realtime updates.');
     } catch (e) {
       debugPrint('[UserProfileCacheManager] Realtime subscription failed: $e');
+    }
+
+    // Subscribe to user_customizations table for real-time tool equipping sync
+    try {
+      _customizationsRealtimeChannel = Supabase.instance.client
+          .channel('public:user_customizations_cache_realtime')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'user_customizations',
+            callback: (payload) {
+              final newRecord = payload.newRecord ?? payload.oldRecord;
+              if (newRecord != null && newRecord['user_id'] != null) {
+                final String userId = newRecord['user_id'] as String;
+                fetchUserProfile(userId, forceRefresh: true).then((userObj) {
+                  if (userId == currentUserId && Get.isRegistered<CustomizationController>()) {
+                    Get.find<CustomizationController>().refreshCustomizations();
+                  }
+                  broadcastEquipConfirmed();
+                });
+              }
+            },
+          );
+      _customizationsRealtimeChannel?.subscribe();
+      debugPrint('[UserProfileCacheManager] Subscribed to user_customizations table Realtime updates.');
+    } catch (e) {
+      debugPrint('[UserProfileCacheManager] user_customizations Realtime subscription failed: $e');
     }
 
     // Subscribe to user_sessions table for Single Device Login rule enforcement

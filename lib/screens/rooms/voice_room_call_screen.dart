@@ -37,9 +37,11 @@ import '../../services/customization_controller.dart';
 import '../../widgets/index.dart';
 import '../../widgets/vip_entry_animation.dart';
 import '../../widgets/novel_entry_animation.dart';
-import '../../widgets/default_entry_animation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../widgets/custom_image_editor.dart';
+import '../../models/room_background_model.dart';
+import '../../widgets/room_dynamic_background_widget.dart';
+import '../../widgets/room_background_picker_sheet.dart';
 
 class FloatingReaction {
   final Key key;
@@ -82,7 +84,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   // _zegoService removed in favor of clean voice architecture
   late PermissionService _permissionService;
   late RoomController _controller;
-  bool _isMicOn = false;
+  final RxBool _isMicOn = false.obs;
+  final RxBool _isEventSidebarOpen = false.obs;
   bool _isCameraOn = false;
   bool _isLoading = true;
 
@@ -110,6 +113,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   // Chat UI controllers
   final TextEditingController _chatInputController = TextEditingController();
+  final FocusNode _chatInputFocusNode = FocusNode();
   final ScrollController _chatScrollController = ScrollController();
   RoomChatMessage? _replyTarget;
   bool _isChatAtBottom = true;
@@ -343,7 +347,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     } catch (_) {}
 
     // Start 5-second secure heartbeat loop with 15s timeout auto-leave
-    _controller.startHeartbeatLoop(widget.roomId, () => _isMicOn);
+    _controller.startHeartbeatLoop(widget.roomId, () => _isMicOn.value);
   }
 
   void _startMarqueeSimulation() {
@@ -495,12 +499,12 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       if (mounted) {
         setState(() {
           if (widget.isHost) {
-            _isMicOn = true;
+            _isMicOn.value = true;
           } else {
             final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
             final mySeat = seatsList.firstWhereOrNull((s) => s['userId'] == widget.userId);
             if (mySeat != null) {
-              _isMicOn = (mySeat['micStatus'] ?? 'unmuted') == 'unmuted';
+              _isMicOn.value = (mySeat['micStatus'] ?? 'unmuted') == 'unmuted';
             }
           }
         });
@@ -581,7 +585,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           if (seat['userId'] == widget.userId) {
             _seats[i] = {
               ...seat,
-              'isSpeaking': _isMicOn,
+              'isSpeaking': _isMicOn.value,
             };
           } else {
             _seats[i] = {
@@ -626,9 +630,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
 
     try {
-      final newState = !_isMicOn;
+      final newState = !_isMicOn.value;
       await RoomVoiceManager().toggleMic(newState);
-      setState(() => _isMicOn = newState);
+      _isMicOn.value = newState;
 
       final index = _seats.indexWhere((s) => s['userId'] == widget.userId);
       if (index != -1) {
@@ -673,10 +677,18 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
 
     try {
+      // Call backend RPC to validate seat restrictions
+      try {
+        await Supabase.instance.client.rpc('join_room_seat_v3', params: {
+          'p_room_id': widget.roomId,
+          'p_seat_index': seatIndex,
+        });
+      } catch (_) {}
+
       await _controller.joinRoomSeat(widget.roomId, seatIndex);
 
       await RoomVoiceManager().toggleMic(true);
-      setState(() => _isMicOn = true);
+      _isMicOn.value = true;
 
       Get.snackbar(
         'Stage Joined 🎤',
@@ -686,7 +698,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         colorText: Colors.white,
       );
     } catch (e) {
-      Get.snackbar('Error', 'Failed to join seat: $e');
+      final msg = e.toString().replaceAll('Exception: ', '').replaceAll('PostgrestException: ', '');
+      Get.snackbar(
+        'Seat Access 🔒',
+        msg.contains('restricted') ? msg : 'Failed to join seat: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -695,8 +714,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       await _controller.leaveRoomSeat(widget.roomId, seatIndex);
 
       await RoomVoiceManager().toggleMic(false);
+      _isMicOn.value = false;
       setState(() {
-        _isMicOn = false;
         _isCameraOn = false;
       });
 
@@ -1292,7 +1311,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           identity.novelLevel > 0 ? 'Novel ${identity.novelLevel}' : null,
       communityTag: identity.communityTag?.name,
       roleTag: roomRole,
-      isActiveSpeaker: _isMicOn,
+      isActiveSpeaker: _isMicOn.value,
     );
 
     _messageCooldownUntil = now.add(const Duration(seconds: 2));
@@ -2136,6 +2155,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     _systemNotificationTimer?.cancel();
     _glowController.dispose();
     _chatInputController.dispose();
+    _chatInputFocusNode.dispose();
     _chatScrollController.dispose();
     super.dispose();
   }
@@ -2168,19 +2188,43 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         return false;
       },
       child: Scaffold(
-        backgroundColor: context.scaffoldBackgroundColor,
-        body: SafeArea(
-          child: Obx(() => Transform.translate(
-              offset: _shakeOffset.value,
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.black,
+        body: Builder(
+          builder: (context) {
+            final mediaQuery = MediaQuery.of(context);
+            final double topPadding = mediaQuery.padding.top;
+            final double bottomPadding = mediaQuery.padding.bottom;
+
+            return GestureDetector(
+              onTap: () {
+                if (_chatInputFocusNode.hasFocus) {
+                  _chatInputFocusNode.unfocus();
+                }
+                if (_isEventSidebarOpen.value) {
+                  _isEventSidebarOpen.value = false;
+                }
+                FocusScope.of(context).unfocus();
+              },
+              behavior: HitTestBehavior.translucent,
               child: Stack(
                 children: [
-                  // 1. Theme-based background
-                  _buildCustomBackground(),
+                // 1. Dynamic Room Background Layer (Reactive)
+                Positioned.fill(
+                  child: Obx(() => RoomDynamicBackgroundWidget(
+                        background: _controller.activeRoomBackground.value,
+                      )),
+                ),
 
-                  // 2. Main Content area (with static headers/seats and scrollable chat)
-                  Positioned.fill(
-                    top: 55,
-                    bottom: 76, // Leave space for bottom control bar
+                // 2. Main Content area & Overlays Layer
+                Positioned.fill(
+                  child: Obx(() => Transform.translate(
+                        offset: _shakeOffset.value,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              top: topPadding + 52,
+                              bottom: bottomPadding + 70, // Leave space for bottom control bar
                     child: Column(
                       children: [
                         // Task Badges and Program Info Row
@@ -2350,12 +2394,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                     child: _buildCustomTopBar(),
                   ),
 
-                  // 4. Side promotion cards overlay (Riches Marbles & Candy Storm)
-                  Positioned(
-                    right: 16,
-                    bottom: 135,
-                    child: _buildSidePromotions(),
-                  ),
+                  // 4. Collapsible Right-Side Event Drawer / Sidebar (Riches Marbles & Candy Storm)
+                  _buildCollapsibleEventSidebar(topPadding),
 
                   // Floating System Notification toast at the bottom left
                   Obx(() {
@@ -2396,7 +2436,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
                   // 5. Custom Bottom controls dock Overlay
                   Positioned(
-                    bottom: 0,
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
                     left: 0,
                     right: 0,
                     child: _buildCustomBottomControls(),
@@ -2465,11 +2505,116 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       },
                     ),
                   ),
+
+                  // In-room disconnect / kick loading overlay
+                  _buildDisconnectOverlay(),
                 ],
-              ))),
-        ),
+              ),
+            )),
+          ),
+        ],
       ),
     );
+  },
+),
+      ),
+    );
+  }
+
+  Widget _buildDisconnectOverlay() {
+    return Obx(() {
+      if (!_controller.isRoomDisconnecting.value) {
+        return const SizedBox.shrink();
+      }
+
+      final title = _controller.disconnectTitle.value.isNotEmpty
+          ? _controller.disconnectTitle.value
+          : 'Network Issue Detected 📡';
+      final reason = _controller.disconnectReason.value.isNotEmpty
+          ? _controller.disconnectReason.value
+          : 'Connecting to room... Please wait';
+
+      final isKick = title.contains('Kick') || title.contains('Removed');
+
+      return Positioned.fill(
+        child: Container(
+          color: Colors.black.withOpacity(0.85),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E2E),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isKick ? Colors.redAccent : Colors.orangeAccent,
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isKick ? Colors.red : Colors.orange).withOpacity(0.3),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: (isKick ? Colors.red : Colors.orange).withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          isKick ? '🥾' : '📡',
+                          style: const TextStyle(fontSize: 32),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      reason,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          isKick ? Colors.redAccent : Colors.orangeAccent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    });
   }
 
   void _triggerGiftingAnimations(
@@ -2640,17 +2785,44 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         frameColor = const Color(0xFFFFB800); // Amber Co-Host
       }
 
-      final seatBackground = Container(
+      final seatBackground = AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
         width: size,
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.08),
+          color: isLocked
+              ? Colors.black.withOpacity(0.65)
+              : Colors.white.withOpacity(0.08),
+          border: isLocked
+              ? Border.all(color: Colors.amberAccent.withOpacity(0.85), width: 1.5)
+              : null,
+          boxShadow: isLocked
+              ? [
+                  BoxShadow(
+                    color: Colors.amberAccent.withOpacity(0.35),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  )
+                ]
+              : null,
         ),
         child: Center(
           child: isLocked
-              ? Icon(Icons.lock, color: Colors.grey, size: 15 * scale)
-              : Icon(Icons.chair, color: Colors.white24, size: 16 * scale),
+              ? TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutBack,
+                  builder: (context, val, child) {
+                    return Transform.scale(
+                      scale: val,
+                      child: Icon(Icons.lock_rounded,
+                          color: Colors.amberAccent, size: 16 * scale),
+                    );
+                  },
+                )
+              : Icon(Icons.chair_rounded, color: Colors.white24, size: 16 * scale),
         ),
       );
 
@@ -3463,16 +3635,16 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.black.withOpacity(0.38),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withOpacity(0.12),
                     width: 0.8,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 4,
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 6,
                       offset: const Offset(0, 2),
                     )
                   ],
@@ -3727,66 +3899,74 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ],
           ),
           // Capsule 3: Program info with red edit circle
-          GestureDetector(
-            onTap: () {
-              final room = _controller.rooms
-                  .firstWhereOrNull((r) => r.id == widget.roomId);
-              if (room == null) return;
-              final callerRole = _controller.getUserRole(room, widget.userId);
-              final callerWeight = _controller.getRoleWeight(callerRole);
-              if (callerWeight >= 7) {
-                Get.dialog(
-                    RoomSettingsDialog(roomId: widget.roomId, room: room));
-              } else {
-                Get.snackbar('Permission Denied',
-                    'Only moderators and above can edit the arena.',
-                    snackPosition: SnackPosition.BOTTOM);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F203C).withOpacity(0.6),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white10, width: 1),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF3B30), // Red edit button
-                      shape: BoxShape.circle,
+          Flexible(
+            child: GestureDetector(
+              onTap: () {
+                final room = _controller.rooms
+                    .firstWhereOrNull((r) => r.id == widget.roomId);
+                if (room == null) return;
+                final callerRole = _controller.getUserRole(room, widget.userId);
+                final callerWeight = _controller.getRoleWeight(callerRole);
+                if (callerWeight >= 7) {
+                  Get.dialog(
+                      RoomSettingsDialog(roomId: widget.roomId, room: room));
+                } else {
+                  Get.snackbar('Permission Denied',
+                      'Only moderators and above can edit the arena.',
+                      snackPosition: SnackPosition.BOTTOM);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F203C).withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white10, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFF3B30), // Red edit button
+                        shape: BoxShape.circle,
+                      ),
+                      child:
+                          const Icon(Icons.edit, color: Colors.white, size: 9),
                     ),
-                    child:
-                        const Icon(Icons.edit, color: Colors.white, size: 10),
-                  ),
-                  const SizedBox(width: 6),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Program',
-                        style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Program',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'granmmer_yet_go...',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white38,
+                                fontSize: 7,
+                                fontWeight: FontWeight.w500),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      Text(
-                        'granmmer_yet_go...',
-                        style: GoogleFonts.poppins(
-                            color: Colors.white38,
-                            fontSize: 7.5,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: Colors.white38, size: 14),
-                ],
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.chevron_right_rounded,
+                        color: Colors.white38, size: 12),
+                  ],
+                ),
               ),
             ),
           ),
@@ -3795,111 +3975,258 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     );
   }
 
-  Widget _buildSidePromotions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Container(
-          width: 85,
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                colors: [Color(0xFFE91E63), Color(0xFFFF5722)]),
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
-          ),
-          child: Column(
+  // ── Collapsible Right-Side Event Drawer / Sidebar ───────────────────
+  Widget _buildCollapsibleEventSidebar(double topPadding) {
+    return Obx(() {
+      final isOpen = _isEventSidebarOpen.value;
+      const activeCount = 2; // Riches Marbles & Candy Storm
+
+      return AnimatedPositioned(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        right: isOpen ? 0 : -102,
+        top: topPadding + 110,
+        child: GestureDetector(
+          onHorizontalDragEnd: (details) {
+            if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
+              _isEventSidebarOpen.value = false; // Swipe right to close
+            }
+          },
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.star, color: Colors.white, size: 14),
-              const SizedBox(height: 2),
-              Text(
-                'Riches Marbles',
-                style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 7,
-                    fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: 90,
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1E2C),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-                color: Colors.pinkAccent.withOpacity(0.5), width: 1.5),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.pinkAccent,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'Candy Storm',
-                  style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 7,
-                      fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'This Room',
-                style: GoogleFonts.poppins(
-                    color: Colors.white70,
-                    fontSize: 6.5,
-                    fontWeight: FontWeight.w600),
-              ),
-              Text(
-                '🍬 0/75',
-                style: GoogleFonts.poppins(
-                    color: Colors.amberAccent,
-                    fontSize: 7,
-                    fontWeight: FontWeight.bold),
-              ),
-              Text(
-                'Rounds: 0',
-                style: GoogleFonts.poppins(color: Colors.white38, fontSize: 6),
-              ),
-              const SizedBox(height: 4),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFFFFEB3B), Color(0xFFFF9800)]),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Center(
-                  child: Text(
-                    'Join Now',
-                    style: GoogleFonts.poppins(
-                        color: Colors.black87,
-                        fontSize: 7,
-                        fontWeight: FontWeight.bold),
+              // 1. Floating Right Edge Handle/Tab (Always visible)
+              GestureDetector(
+                onTap: () {
+                  _isEventSidebarOpen.value = !_isEventSidebarOpen.value;
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF2D55), Color(0xFF8B5CF6)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.pinkAccent.withOpacity(0.4),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isOpen ? Icons.chevron_right_rounded : Icons.local_fire_department_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(height: 4),
+                      // Active Events Count Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.amberAccent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          '$activeCount',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+
+              // 2. Vertical Stack of Event Cards Container
+              Container(
+                width: 100,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F0F1A).withOpacity(0.92),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                  ),
+                  border: Border.all(
+                    color: Colors.pinkAccent.withOpacity(0.30),
+                    width: 1,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black45,
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with title and collapse button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'EVENTS',
+                          style: GoogleFonts.poppins(
+                            color: Colors.amberAccent,
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => _isEventSidebarOpen.value = false,
+                          child: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white60,
+                            size: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Riches Marbles Event Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black26, blurRadius: 4)
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.star, color: Colors.white, size: 14),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Riches Marbles',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 7,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Candy Storm Event Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E2C),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.pinkAccent.withOpacity(0.5),
+                          width: 1.5,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black26, blurRadius: 4)
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.pinkAccent,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Candy Storm',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 7,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'This Room',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontSize: 6.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '🍬 0/75',
+                            style: GoogleFonts.poppins(
+                              color: Colors.amberAccent,
+                              fontSize: 7,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Rounds: 0',
+                            style: GoogleFonts.poppins(color: Colors.white38, fontSize: 6),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFEB3B), Color(0xFFFF9800)],
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Join Now',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.black87,
+                                  fontSize: 7,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-      ],
-    );
+      );
+    });
   }
 
   Widget _buildCustomBottomControls() {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    final effectiveBottomInset = isKeyboardOpen ? 0.0 : bottomInset;
+    final isExpanded = _chatInputFocusNode.hasFocus || isKeyboardOpen;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.black87, Colors.black.withOpacity(0.97)],
+          colors: [Colors.transparent, Colors.black.withOpacity(0.94)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -3907,138 +4234,245 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Chat Input + Action Buttons Row ───────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-            child: Row(
-              children: [
-                // Mic mute/unmute quick button — only shown when user is on a seat
-                Obx(() {
-                  final isOnSeat = _isCurrentUserOnSeat();
-                  if (!isOnSeat) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: _toggleMic,
-                      child: Container(
-                        padding: const EdgeInsets.all(9),
-                        decoration: BoxDecoration(
-                          color: _isMicOn
-                              ? context.primaryColor.withOpacity(0.2)
-                              : Colors.red.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: _isMicOn
-                                ? context.primaryColor.withOpacity(0.5)
-                                : Colors.red.withOpacity(0.5),
-                            width: 1.5,
+            padding: EdgeInsets.fromLTRB(14, 10, 14, 10 + effectiveBottomInset),
+            child: Obx(() {
+              final bg = _controller.activeRoomBackground.value;
+              final accentColor = (bg.gradientColors != null &&
+                      bg.gradientColors!.isNotEmpty)
+                  ? bg.gradientColors!.first
+                  : const Color(0xFFFF2D55);
+
+              return Row(
+                children: [
+                  // StarMaker Style Smooth Expanding Chat Input Bar
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeInOutCubic,
+                      height: 42,
+                      clipBehavior: Clip.antiAlias,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withOpacity(bg.isLightBackground ? 0.75 : 0.50),
+                            accentColor.withOpacity(0.25),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: accentColor.withOpacity(0.55),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withOpacity(0.20),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          )
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            color: accentColor,
+                            size: 16,
                           ),
-                        ),
-                        child: Icon(
-                          _isMicOn ? Icons.mic : Icons.mic_off,
-                          color: _isMicOn
-                              ? context.primaryColor
-                              : Colors.redAccent,
-                          size: 18,
-                        ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _chatInputController,
+                              focusNode: _chatInputFocusNode,
+                              cursorColor: accentColor,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: "Let's talk...",
+                                hintStyle: GoogleFonts.poppins(
+                                  color: Colors.white60,
+                                  fontSize: 12.5,
+                                ),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                filled: false,
+                                fillColor: Colors.transparent,
+                                isDense: true,
+                              ),
+                              onSubmitted: (text) {
+                                if (text.trim().isNotEmpty) {
+                                  _controller.sendRoomBroadcastMessage(
+                                      widget.roomId, text.trim());
+                                  _chatInputController.clear();
+                                }
+                                _chatInputFocusNode.unfocus();
+                              },
+                            ),
+                          ),
+                          // Smooth Fade/Scale Send Icon when expanded or text is present
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            transitionBuilder: (child, anim) => ScaleTransition(
+                              scale: anim,
+                              child: FadeTransition(opacity: anim, child: child),
+                            ),
+                            child: (isExpanded || _chatInputController.text.isNotEmpty)
+                                ? GestureDetector(
+                                    key: const ValueKey('send_btn'),
+                                    onTap: () {
+                                      final text = _chatInputController.text.trim();
+                                      if (text.isNotEmpty) {
+                                        _controller.sendRoomBroadcastMessage(
+                                            widget.roomId, text);
+                                        _chatInputController.clear();
+                                      }
+                                      _chatInputFocusNode.unfocus();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(7),
+                                      decoration: BoxDecoration(
+                                        color: accentColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.send_rounded,
+                                        color: Colors.white,
+                                        size: 13,
+                                      ),
+                                    ),
+                                  )
+                                : const SizedBox.shrink(key: ValueKey('empty_btn')),
+                          ),
+                        ],
                       ),
-                    ),
-                  );
-                }),
-                // Chat text input
-                Expanded(
-                  child: Container(
-                    height: 38,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: TextField(
-                      controller: _chatInputController,
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                      decoration: const InputDecoration(
-                        hintText: "Let's talk",
-                        hintStyle:
-                            TextStyle(color: Colors.white30, fontSize: 12),
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (text) {
-                        if (text.trim().isNotEmpty) {
-                          _controller.sendRoomBroadcastMessage(
-                              widget.roomId, text.trim());
-                          _chatInputController.clear();
-                        }
-                      },
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                // Action button row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildIconButton(
-                      icon: Icons.shield,
-                      color: Colors.pinkAccent,
-                      onTap: () => Get.snackbar('Premium Badge',
-                          'You are viewing your achievements.'),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildIconButton(
-                      icon: Icons.arrow_upward_rounded,
-                      color: Colors.white70,
-                      onTap: () => Get.snackbar(
-                          'Upload', 'Uploading screen details or files.'),
-                    ),
-                    const SizedBox(width: 8),
-                    Stack(
+
+                  // Action Buttons Row (Seat Action, Menu, Gift) smoothly fading out when expanded
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 280),
+                    firstCurve: Curves.easeInOutCubic,
+                    secondCurve: Curves.easeInOutCubic,
+                    crossFadeState: isExpanded
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    firstChild: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        const SizedBox(width: 8),
                         _buildIconButton(
-                          icon: Icons.menu,
+                          icon: Icons.arrow_upward_rounded,
                           color: Colors.white70,
-                          onTap: () => _showRoomOptionsMenuSheet(context),
+                          onTap: () => Get.snackbar(
+                              'Seat Action', 'Requesting seat or raising hand.'),
                         ),
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: const BoxDecoration(
-                                color: Colors.red, shape: BoxShape.circle),
-                            constraints: const BoxConstraints(
-                                minWidth: 12, minHeight: 12),
-                            child: const Text(
-                              '90',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 6,
-                                  fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
+                        // Self-Mute Mic Quick Toggle Button (right next to Up-Arrow)
+                        Obx(() {
+                          final isOnSeat = _isCurrentUserOnSeat();
+                          final isMicActive = isOnSeat && _isMicOn.value;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: GestureDetector(
+                              onTap: () {
+                                if (isOnSeat) {
+                                  _toggleMic();
+                                } else {
+                                  Get.snackbar(
+                                    'Stage Mic 🎤',
+                                    'Take a seat to unmute your mic.',
+                                    snackPosition: SnackPosition.BOTTOM,
+                                    backgroundColor: Colors.black.withOpacity(0.85),
+                                    colorText: Colors.white,
+                                  );
+                                }
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.all(9),
+                                decoration: BoxDecoration(
+                                  color: isMicActive
+                                      ? accentColor.withOpacity(0.25)
+                                      : Colors.redAccent.withOpacity(0.25),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isMicActive ? accentColor : Colors.redAccent,
+                                    width: 1.8,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (isMicActive ? accentColor : Colors.redAccent)
+                                          .withOpacity(0.40),
+                                      blurRadius: 8,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  isMicActive ? Icons.mic : Icons.mic_off,
+                                  color: isMicActive ? Colors.white : Colors.redAccent,
+                                  size: 18,
+                                ),
+                              ),
                             ),
+                          );
+                        }),
+                        const SizedBox(width: 8),
+                        Stack(
+                          children: [
+                            _buildIconButton(
+                              icon: Icons.menu,
+                              color: Colors.white70,
+                              onTap: () => _showRoomOptionsMenuSheet(context),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                    color: Colors.red, shape: BoxShape.circle),
+                                constraints: const BoxConstraints(
+                                    minWidth: 12, minHeight: 12),
+                                child: const Text(
+                                  '90',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 6,
+                                      fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            Get.dialog(SendGiftDialog(
+                                roomId: widget.roomId, occupiedSeatsCount: 3));
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: const BoxDecoration(
+                                color: Colors.pinkAccent, shape: BoxShape.circle),
+                            child: const Icon(Icons.card_giftcard,
+                                color: Colors.white, size: 19),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        Get.dialog(SendGiftDialog(
-                            roomId: widget.roomId, occupiedSeatsCount: 3));
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                            color: Colors.pinkAccent, shape: BoxShape.circle),
-                        child: const Icon(Icons.card_giftcard,
-                            color: Colors.white, size: 20),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                    secondChild: const SizedBox.shrink(),
+                  ),
+                ],
+              );
+            }),
           ),
         ],
       ),
@@ -4184,16 +4618,17 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 ),
                 _buildMenuGridItem(
                   icon: Icons.palette_outlined,
-                  label: 'Background',
+                  label: 'Background FX',
                   color: Colors.purpleAccent,
                   onTap: () {
                     Get.back();
-                    if (room != null && room.hostId == widget.userId) {
-                      _changeRoomCoverPhoto(room.id);
-                    } else {
-                      Get.snackbar(
-                          'Owner Action', 'Only the arena owner can edit cover background.');
-                    }
+                    RoomBackgroundPickerSheet.show(
+                      context,
+                      currentBackground: _controller.activeRoomBackground.value,
+                      onBackgroundSelected: (bg) {
+                        _controller.changeRoomBackground(bg);
+                      },
+                    );
                   },
                 ),
                 _buildMenuGridItem(
@@ -4764,8 +5199,10 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               ? liveRoom.avatar
               : liveRoom?.banner;
 
+      final topInset = MediaQuery.of(context).padding.top;
+
       return Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        padding: EdgeInsets.fromLTRB(16, topInset + 6, 16, 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -6203,35 +6640,61 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           Row(
             children: [
               Expanded(
-                child: Container(
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 12),
-                      const Icon(Icons.chat_bubble_outline,
-                          color: Colors.white54, size: 14),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _chatInputController,
-                          onChanged: _checkMentionAutocomplete,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 12),
-                          decoration: const InputDecoration(
-                            hintText: 'Say something...',
-                            hintStyle:
-                                TextStyle(color: Colors.white30, fontSize: 12),
-                            border: InputBorder.none,
-                            isDense: true,
-                          ),
-                          onSubmitted: (_) => _submitChatMessage(room),
-                        ),
+                child: Obx(() {
+                  final bg = _controller.activeRoomBackground.value;
+                  final accentColor = (bg.gradientColors != null &&
+                          bg.gradientColors!.isNotEmpty)
+                      ? bg.gradientColors!.first
+                      : const Color(0xFF8B5CF6);
+
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 400),
+                    height: 42,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withOpacity(bg.isLightBackground ? 0.70 : 0.45),
+                          accentColor.withOpacity(0.20),
+                        ],
                       ),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: accentColor.withOpacity(0.55),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withOpacity(0.20),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        )
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 12),
+                        Icon(Icons.chat_bubble_outline_rounded,
+                            color: accentColor, size: 15),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _chatInputController,
+                            cursorColor: accentColor,
+                            onChanged: _checkMentionAutocomplete,
+                            style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              hintText: 'Say something...',
+                              hintStyle: GoogleFonts.poppins(
+                                  color: Colors.white60, fontSize: 12),
+                              border: InputBorder.none,
+                              isDense: true,
+                            ),
+                            onSubmitted: (_) => _submitChatMessage(room),
+                          ),
+                        ),
                       GestureDetector(
                         onTap: () {
                           setState(() {
@@ -6251,8 +6714,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       ),
                     ],
                   ),
-                ),
-              ),
+                );
+              }),
+            ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _submitChatMessage(room),
@@ -6273,9 +6737,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             children: [
               // Mic control
               _buildDockButton(
-                icon: _isMicOn ? Icons.mic : Icons.mic_off,
+                icon: _isMicOn.value ? Icons.mic : Icons.mic_off,
                 label: 'Mute',
-                color: _isMicOn ? context.primaryColor : Colors.white38,
+                color: _isMicOn.value ? context.primaryColor : Colors.white38,
                 onTap: _toggleMic,
               ),
 
@@ -6648,9 +7112,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: Icon(_isMicOn ? Icons.mic_off : Icons.mic,
+              leading: Icon(_isMicOn.value ? Icons.mic_off : Icons.mic,
                   color: context.primaryColor),
-              title: Text(_isMicOn ? 'Mute Microphone' : 'Unmute Microphone',
+              title: Text(_isMicOn.value ? 'Mute Microphone' : 'Unmute Microphone',
                   style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
@@ -6716,30 +7180,23 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.lock_open, color: Colors.green),
+              leading: const Icon(Icons.lock_open, color: Colors.greenAccent),
               title: const Text('Unlock Seat',
                   style: TextStyle(color: Colors.white)),
-              onTap: () {
-                _seats[seatIndex] = {
-                  ..._seats[seatIndex],
-                  'isLocked': false,
-                };
+              onTap: () async {
                 Get.back();
-                Get.snackbar(
-                    'Seat Management', 'Seat ${seatIndex + 1} unlocked.');
+                await _controller.toggleSeatLock(widget.roomId, seatIndex);
+                if (mounted) setState(() {});
               },
             ),
             ListTile(
               leading: Icon(Icons.mic, color: context.primaryColor),
               title: const Text('Take Seat & Unlock',
                   style: TextStyle(color: Colors.white)),
-              onTap: () {
+              onTap: () async {
                 Get.back();
-                _seats[seatIndex] = {
-                  ..._seats[seatIndex],
-                  'isLocked': false,
-                };
-                _joinSeat(seatIndex);
+                await _controller.toggleSeatLock(widget.roomId, seatIndex);
+                await _joinSeat(seatIndex);
               },
             ),
             ListTile(
@@ -6789,14 +7246,10 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               leading: const Icon(Icons.lock, color: Colors.redAccent),
               title: const Text('Close Seat (Lock)',
                   style: TextStyle(color: Colors.white)),
-              onTap: () {
-                _seats[seatIndex] = {
-                  ..._seats[seatIndex],
-                  'isLocked': true,
-                };
+              onTap: () async {
                 Get.back();
-                Get.snackbar(
-                    'Seat Management', 'Seat ${seatIndex + 1} locked.');
+                await _controller.toggleSeatLock(widget.roomId, seatIndex);
+                if (mounted) setState(() {});
               },
             ),
             ListTile(
@@ -7238,6 +7691,11 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
   }
 
   void _showChangeRoleSheet(BuildContext context) {
+    final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+    final callerRole = room != null
+        ? _controller.getUserRole(room, widget.callerUserId)
+        : 'Member';
+
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
@@ -7253,7 +7711,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Select New Role',
+              'Select Role Action',
               style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -7261,48 +7719,83 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
               ),
             ),
             const SizedBox(height: 20),
+            if (callerRole == 'Owner')
+              ListTile(
+                leading: const Icon(Icons.star_rounded, color: Colors.amberAccent),
+                title: Text('Promote to Co-Owner',
+                    style: GoogleFonts.poppins(color: Colors.white)),
+                subtitle: Text('Max limit based on room level',
+                    style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                onTap: () async {
+                  Get.back();
+                  await _controller.promoteRoomMemberRole(
+                      widget.roomId, widget.targetUserId, 'Co-Owner');
+                  if (mounted) setState(() {});
+                },
+              ),
+            if (callerRole == 'Owner' || callerRole == 'Co-Owner' || callerRole == 'Co Owner')
+              ListTile(
+                leading: const Icon(Icons.security_rounded, color: Colors.blueAccent),
+                title: Text('Promote to Admin',
+                    style: GoogleFonts.poppins(color: Colors.white)),
+                subtitle: Text('Max limit based on room level (4 × Level)',
+                    style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                onTap: () async {
+                  Get.back();
+                  await _controller.promoteRoomMemberRole(
+                      widget.roomId, widget.targetUserId, 'Admin');
+                  if (mounted) setState(() {});
+                },
+              ),
+            if (callerRole == 'Owner' || callerRole == 'Co-Owner' || callerRole == 'Co Owner')
+              ListTile(
+                leading: const Icon(Icons.mic_rounded, color: Color(0xFF10B981)),
+                title: Text('Promote to Host',
+                    style: GoogleFonts.poppins(color: Colors.white)),
+                onTap: () async {
+                  Get.back();
+                  await _controller.promoteRoomMemberRole(
+                      widget.roomId, widget.targetUserId, 'Host');
+                  if (mounted) setState(() {});
+                },
+              ),
+            if (callerRole == 'Owner' || callerRole == 'Co-Owner' || callerRole == 'Co Owner')
+              ListTile(
+                leading: const Icon(Icons.record_voice_over_rounded, color: Colors.purpleAccent),
+                title: Text('Promote to Co-Host',
+                    style: GoogleFonts.poppins(color: Colors.white)),
+                subtitle: Text('Max limit based on room level (2 × Level)',
+                    style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                onTap: () async {
+                  Get.back();
+                  await _controller.promoteRoomMemberRole(
+                      widget.roomId, widget.targetUserId, 'Co-Host');
+                  if (mounted) setState(() {});
+                },
+              ),
             ListTile(
-              leading: const Icon(Icons.person_outline_rounded,
-                  color: Colors.white70),
-              title: Text('Member',
+              leading: const Icon(Icons.person_outline_rounded, color: Colors.white70),
+              title: Text('Demote to Member',
                   style: GoogleFonts.poppins(color: Colors.white)),
-              onTap: () {
+              onTap: () async {
                 Get.back();
-                _controller.changeUserRole(
-                    widget.roomId, widget.targetUserId, 'Guest');
-                Get.snackbar('Success 🎉', 'Role updated to Member.',
-                    snackPosition: SnackPosition.BOTTOM);
-                setState(() {});
+                await _controller.demoteRoomMemberRole(
+                    widget.roomId, widget.targetUserId);
+                if (mounted) setState(() {});
               },
             ),
-            ListTile(
-              leading:
-                  const Icon(Icons.security_rounded, color: Colors.blueAccent),
-              title: Text('Admin',
-                  style: GoogleFonts.poppins(color: Colors.white)),
-              onTap: () {
-                Get.back();
-                _controller.changeUserRole(
-                    widget.roomId, widget.targetUserId, 'Admin');
-                Get.snackbar('Success 🎉', 'Role updated to Admin.',
-                    snackPosition: SnackPosition.BOTTOM);
-                setState(() {});
-              },
-            ),
-            ListTile(
-              leading:
-                  const Icon(Icons.star_rounded, color: Colors.amberAccent),
-              title: Text('Co Owner',
-                  style: GoogleFonts.poppins(color: Colors.white)),
-              onTap: () {
-                Get.back();
-                _controller.changeUserRole(
-                    widget.roomId, widget.targetUserId, 'Co-owner');
-                Get.snackbar('Success 🎉', 'Role updated to Co Owner.',
-                    snackPosition: SnackPosition.BOTTOM);
-                setState(() {});
-              },
-            ),
+            if (callerRole == 'Owner')
+              ListTile(
+                leading: const Icon(Icons.king_bed_rounded, color: Colors.orangeAccent),
+                title: Text('Transfer Room Ownership',
+                    style: GoogleFonts.poppins(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                onTap: () async {
+                  Get.back();
+                  await _controller.transferRoomOwnership(
+                      widget.roomId, widget.targetUserId);
+                  if (mounted) setState(() {});
+                },
+              ),
           ],
         ),
       ),
@@ -8810,9 +9303,9 @@ class MemberListDialog extends StatelessWidget {
               children: [
                 if (isOnline)
                   Container(
-                    margin: const EdgeInsets.only(right: 6),
+                    margin: const EdgeInsets.only(right: 8),
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                     decoration: BoxDecoration(
                       color: const Color(0xFF00FF66).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -8820,36 +9313,32 @@ class MemberListDialog extends StatelessWidget {
                     child: const Text('Online',
                         style: TextStyle(
                             color: Color(0xFF00FF66),
-                            fontSize: 7,
+                            fontSize: 7.5,
                             fontWeight: FontWeight.bold)),
-                  )
-                else
-                  Container(
-                    margin: const EdgeInsets.only(right: 6),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: context.borderColor,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text('Offline',
-                        style: TextStyle(color: context.textSecondary, fontSize: 7)),
                   ),
-                if (userId != RoomController.currentUserId)
-                  IconButton(
-                    icon: const Icon(Icons.chat_bubble_outline_rounded,
-                        color: Colors.cyanAccent, size: 16),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () => onChatPressed(),
-                  ),
-                const SizedBox(width: 6),
-                IconButton(
-                  icon: Icon(Icons.visibility_outlined,
-                      color: context.textSecondary, size: 16),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                // Show Manage button ONLY, remove Message button
+                ElevatedButton(
                   onPressed: onViewProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.18),
+                    foregroundColor: const Color(0xFFC084FC),
+                    elevation: 0,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: const Size(60, 26),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(
+                          color: const Color(0xFF8B5CF6).withOpacity(0.40),
+                          width: 1),
+                    ),
+                  ),
+                  child: Text(
+                    'Manage',
+                    style: GoogleFonts.poppins(
+                        fontSize: 10, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),

@@ -324,12 +324,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               margin: const EdgeInsets.only(right: 12),
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: AppTheme.cardBg,
+                                color: context.secondaryBackgroundColor,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: e.isOfficial
-                                      ? AppTheme.primaryColor.withOpacity(0.3)
-                                      : AppTheme.borderColor.withOpacity(0.4),
+                                      ? context.primaryColor.withOpacity(0.3)
+                                      : context.borderColor.withOpacity(0.4),
                                 ),
                               ),
                               child: Column(
@@ -344,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: e.isOfficial
-                                              ? AppTheme.primaryColor
+                                              ? context.primaryColor
                                               : Colors.white12,
                                           borderRadius:
                                               BorderRadius.circular(6),
@@ -378,8 +378,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const Spacer(),
                                   Text(
                                     e.title,
-                                    style: const TextStyle(
-                                        color: AppTheme.textPrimary,
+                                    style: TextStyle(
+                                        color: context.textPrimary,
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold),
                                     maxLines: 1,

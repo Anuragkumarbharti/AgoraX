@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/user_model.dart';
@@ -24,21 +25,24 @@ class AssetCacheManager {
   static bool _isPrefetching = false;
   static final Connectivity _connectivity = Connectivity();
 
-  /// Transform standard Supabase URL to use CDN image resizing and WebP formats
+  /// Returns the valid public URL for loading images safely
   static String getOptimizedUrl(String url, ImageQuality quality) {
     if (url.isEmpty) return url;
-    if (!url.contains('storage/v1/object/public/')) return url;
-    if (quality == ImageQuality.original) return url;
-
-    // Convert object URL to Supabase CDN render URL
-    final transformed = url.replaceAll('storage/v1/object/public/', 'storage/v1/render/image/public/');
-
-    if (quality == ImageQuality.thumbnail) {
-      return '$transformed?width=150&height=150&resize=cover&format=origin';
-    } else {
-      return '$transformed?width=600&resize=contain&format=origin';
-    }
+    return url;
   }
+
+  /// Remove a cached image file from disk and memory cache
+  static Future<void> evictUrl(String url) async {
+    if (url.isEmpty) return;
+    try {
+      final baseUrl = url.split('?')[0];
+      await CreaniaAssetCacheManager.instance.removeFile(url);
+      await CreaniaAssetCacheManager.instance.removeFile(baseUrl);
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    } catch (_) {}
+  }
+
 
   /// Add url to prefetch queue (only downloads on high speed network states)
   static void queuePrefetch(String url, ImageQuality quality) {

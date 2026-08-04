@@ -12,10 +12,12 @@ import 'customization_controller.dart';
 import '../screens/rooms/voice_room_call_screen.dart';
 import 'voice/room_voice_manager.dart';
 import 'voice/voice_controller.dart';
+import '../models/room_background_model.dart';
 
 import 'store_controller.dart';
 import 'user_progress_sync_service.dart';
 import 'user_profile_cache_manager.dart';
+import 'universal_image_optimizer.dart';
 import 'progression_controller.dart';
 import 'chat_socket_service.dart';
 import 'network_connectivity_service.dart';
@@ -142,6 +144,32 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   final RxMap<String, dynamic> entranceEvent = <String, dynamic>{}.obs;
   final Rxn<Map<String, dynamic>> rxEntranceEvent = Rxn<Map<String, dynamic>>();
 
+  // In-room Disconnect / Kick Loading Overlay State
+  final RxBool isRoomDisconnecting = false.obs;
+  final RxString disconnectTitle = ''.obs;
+  final RxString disconnectReason = ''.obs;
+
+  void triggerInRoomDisconnectOverlay({
+    required String title,
+    required String reason,
+    bool navigateToArena = true,
+  }) {
+    if (isRoomDisconnecting.value) return;
+    isRoomDisconnecting.value = true;
+    disconnectTitle.value = title;
+    disconnectReason.value = reason;
+
+    Timer(const Duration(milliseconds: 1500), () {
+      leaveActiveRoomLocally(
+        reason: reason,
+        navigateToArena: navigateToArena,
+      );
+      isRoomDisconnecting.value = false;
+      disconnectTitle.value = '';
+      disconnectReason.value = '';
+    });
+  }
+
   // Room Progression System states
   final RxMap<String, RoomLevelProgress> roomLevelProgresses =
       <String, RoomLevelProgress>{}.obs;
@@ -155,6 +183,24 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       <String, int>{}.obs; // key: room_id:seat_index -> silver_gift_count
   final RxList<String> marqueeAnnouncementsQueue = <String>[].obs;
   final Rxn<GiftAnimationEvent> activeGiftAnimation = Rxn<GiftAnimationEvent>();
+
+  // Dynamic Room Background System state
+  final Rx<RoomBackgroundItem> activeRoomBackground =
+      RoomBackgroundCatalog.defaultBackground.obs;
+
+  void changeRoomBackground(RoomBackgroundItem item) {
+    activeRoomBackground.value = item;
+    // Broadcast background change to room activity channel if active
+    if (activeRoomId != null && _roomActivityEventsChannel != null) {
+      _roomActivityEventsChannel!.sendBroadcastMessage(
+        event: 'room_background_changed',
+        payload: {
+          'room_id': activeRoomId,
+          'background': item.toJson(),
+        },
+      );
+    }
+  }
 
   void triggerGiftAnimation(GiftAnimationEvent event) {
     activeGiftAnimation.value = event;
@@ -246,7 +292,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   void startHeartbeatLoop(String roomId, bool Function() isMicOnGetter) {
     _activeHeartbeatTimer?.cancel();
     _consecutiveHeartbeatFailures = 0;
-    _activeHeartbeatTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+    _activeHeartbeatTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       if (activeRoomId != roomId) {
         timer.cancel();
         return;
@@ -254,11 +300,14 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       final bool success = await heartbeatRoomMember(roomId, isMicOnGetter());
       if (!success) {
         _consecutiveHeartbeatFailures++;
-        debugPrint('[RoomController] Heartbeat failed ($_consecutiveHeartbeatFailures/3)');
-        if (_consecutiveHeartbeatFailures >= 3) {
-          debugPrint('[RoomController] 15s heartbeat timeout reached. Leaving room automatically.');
+        debugPrint('[RoomController] Heartbeat failed ($_consecutiveHeartbeatFailures/4 - ${ _consecutiveHeartbeatFailures * 2 }s)');
+        if (_consecutiveHeartbeatFailures >= 4) {
+          debugPrint('[RoomController] 8s network timeout reached. Leaving room & redirecting to Arena page.');
           timer.cancel();
-          leaveActiveRoomLocally(reason: 'Network disconnect: left room automatically (timeout)');
+          triggerInRoomDisconnectOverlay(
+            title: 'Network Issue Detected 📡',
+            reason: 'Network disconnect: Redirected to Arena main page (8s timeout)',
+          );
         }
       } else {
         _consecutiveHeartbeatFailures = 0;
@@ -268,7 +317,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     });
   }
 
-  void leaveActiveRoomLocally({String? reason}) {
+  void leaveActiveRoomLocally({String? reason, bool navigateToArena = false}) {
     try {
       _activeHeartbeatTimer?.cancel();
       _activeHeartbeatTimer = null;
@@ -307,8 +356,27 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       activeMembers.clear();
       activeRequests.clear();
       activePolls.clear();
+      typingUsers.clear();
+      if (roomId != null) {
+        roomChats[roomId]?.clear();
+        roomChats.remove(roomId);
+      }
+      bottomSystemNotifications.clear();
+      activeSystemNotification.value = null;
+      activeGiftNotification.value = null;
+      activeGiftAnimation.value = null;
       isMutedByModerator.value = false;
       stopProgressionTimer();
+
+      if (navigateToArena) {
+        try {
+          if (Get.context != null) {
+            Get.until((route) => route.isFirst);
+          }
+        } catch (e) {
+          debugPrint('Error popping route to Arena main page: $e');
+        }
+      }
 
       if (reason != null && Get.context != null) {
         Get.snackbar(
@@ -943,11 +1011,16 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       activeRoomId = roomId;
 
-      // Clear previous room session chats and notifications from memory
-      roomChats[roomId]?.clear();
+      // Clear previous room session chats, typing states, and notifications from memory
+      roomChats[roomId] = <RoomChatMessage>[].obs;
+      typingUsers.clear();
+      activeRequests.clear();
+      activePolls.clear();
       bottomSystemNotifications.clear();
       marqueeAnnouncementsQueue.clear();
       activeSystemNotification.value = null;
+      activeGiftNotification.value = null;
+      activeGiftAnimation.value = null;
 
       // Invoke join_room RPC function
       final response = await Supabase.instance.client.rpc('join_room', params: {
@@ -1135,13 +1208,9 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       // Check if we are kicked/removed
       if (activeRoomId == roomId &&
           !members.any((m) => m.userId == currentUserId)) {
-        Get.back();
-        Get.snackbar(
-          'Removed from Room',
-          'You have been kicked or banned from this room.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withOpacity(0.8),
-          colorText: Colors.white,
+        triggerInRoomDisconnectOverlay(
+          title: 'Removed from Room 🥾',
+          reason: 'You have been kicked or banned from this room.',
         );
       }
 
@@ -1402,13 +1471,21 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       senderLevel: metadata['level']?.toString(),
     );
 
-    if (roomChats[roomId] == null) {
-      roomChats[roomId] = <RoomChatMessage>[].obs;
-    }
+    // Gifts and join/leave events belong to visual banners & toasts and are NOT pushed to text chat list
+    if (eventType != 'gift_sent' &&
+        eventType != 'room_join' &&
+        eventType != 'room_leave' &&
+        !eventType.startsWith('seat_')) {
+      if (roomChats[roomId] == null) {
+        roomChats[roomId] = <RoomChatMessage>[].obs;
+      }
 
-    roomChats[roomId]!.add(systemMessage);
-    if (roomChats[roomId]!.length > 200) {
-      roomChats[roomId]!.removeAt(0);
+      if (!roomChats[roomId]!.any((m) => m.id == eventId)) {
+        roomChats[roomId]!.add(systemMessage);
+        if (roomChats[roomId]!.length > 200) {
+          roomChats[roomId]!.removeAt(0);
+        }
+      }
     }
   }
 
@@ -1566,6 +1643,56 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       _roomMessagesChannel = client
           .channel('room_messages:$roomId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'room_messages',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'room_id',
+              value: roomId,
+            ),
+            callback: (payload) {
+              if (payload.newRecord != null) {
+                final map = payload.newRecord!;
+                final senderId = map['sender_id']?.toString() ?? map['senderId']?.toString();
+                if (senderId == currentUserId) return; // Optimistic local update already rendered
+
+                final msgId = map['id'].toString();
+                final text = map['content']?.toString() ?? map['text']?.toString() ?? '';
+                final timestamp = map['created_at'] != null
+                    ? DateTime.parse(map['created_at'].toString())
+                    : DateTime.now();
+
+                final metadata = map['metadata'] is Map
+                    ? Map<String, dynamic>.from(map['metadata'])
+                    : <String, dynamic>{};
+
+                final message = RoomChatMessage(
+                  id: msgId,
+                  senderId: senderId ?? '',
+                  senderName: map['sender_name']?.toString() ?? metadata['sender_name']?.toString() ?? 'Member',
+                  text: text,
+                  senderRole: map['sender_role']?.toString() ?? metadata['sender_role']?.toString() ?? 'Listener',
+                  senderAvatar: map['sender_avatar']?.toString() ?? metadata['sender_avatar']?.toString(),
+                  timestamp: timestamp,
+                  replyToMessageId: map['reply_to_message_id']?.toString() ?? metadata['reply_to_message_id']?.toString(),
+                  senderLevel: metadata['sender_level']?.toString() ?? '1',
+                  vipLabel: metadata['vip_label']?.toString(),
+                  novelLabel: metadata['novel_label']?.toString(),
+                  communityTag: metadata['community_tag']?.toString(),
+                  roleTag: metadata['role_tag']?.toString(),
+                  isActiveSpeaker: metadata['is_active_speaker'] == true,
+                  avatarFrame: metadata['avatar_frame']?.toString(),
+                );
+
+                initializeChatForRoom(roomId);
+                if (!roomChats[roomId]!.any((m) => m.id == msgId)) {
+                  roomChats[roomId]!.add(message);
+                }
+              }
+            },
+          )
           .onBroadcast(
             event: 'chat_message',
             callback: (payload) async {
@@ -1770,14 +1897,42 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           );
       _roomProgressionChannel?.subscribe();
 
-      _roomActivityEventsChannel =
-          client.channel('room_activity_events:$roomId').onBroadcast(
-                event: 'room_activity_event',
-                callback: (payload) {
-                  if (payload['user_id'] == currentUserId) return;
-                  _processActivityEventPayload(roomId, payload);
-                },
-              );
+      _roomActivityEventsChannel = client
+          .channel('room_activity_events:$roomId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'room_activity_events',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'room_id',
+              value: roomId,
+            ),
+            callback: (payload) {
+              if (payload.newRecord != null) {
+                final record = payload.newRecord!;
+                if (record['user_id'] != currentUserId) {
+                  _processActivityEventPayload(roomId, record);
+                }
+              }
+            },
+          )
+          .onBroadcast(
+            event: 'room_activity_event',
+            callback: (payload) {
+              if (payload['user_id'] == currentUserId) return;
+              _processActivityEventPayload(roomId, payload);
+            },
+          )
+          .onBroadcast(
+            event: 'room_background_changed',
+            callback: (payload) {
+              if (payload['background'] != null) {
+                activeRoomBackground.value =
+                    RoomBackgroundItem.fromJson(payload['background']);
+              }
+            },
+          );
       _roomActivityEventsChannel?.subscribe();
     } catch (e) {
       debugPrint('Error subscribing to room realtime: $e');
@@ -1911,15 +2066,132 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   Future<void> changeMemberRole(
       String roomId, String userId, String newRole) async {
     try {
-      await Supabase.instance.client.rpc('change_member_role', params: {
+      await Supabase.instance.client.rpc('promote_room_member_role', params: {
         'p_room_id': roomId,
-        'p_user_id': userId,
+        'p_target_user_id': userId,
         'p_new_role': newRole,
       });
     } catch (e) {
       debugPrint('Error changing role: $e');
       Get.snackbar(
           'Role Change Failed', e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  String resolveRoomUuid(String roomId) {
+    if (RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(roomId)) {
+      return roomId;
+    }
+    final room = rooms.firstWhereOrNull((r) => r.id == roomId || r.username == roomId);
+    if (room != null && RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(room.id)) {
+      return room.id;
+    }
+    return roomId;
+  }
+
+  Future<bool> promoteRoomMemberRole(
+      String roomId, String targetUserId, String newRole) async {
+    try {
+      final targetRoomId = resolveRoomUuid(roomId);
+      await Supabase.instance.client.rpc('promote_room_member_role', params: {
+        'p_room_id': targetRoomId,
+        'p_target_user_id': targetUserId,
+        'p_new_role': newRole,
+      });
+      Get.snackbar('Role Promoted ✨', 'User assigned as $newRole',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+          colorText: Colors.white);
+      return true;
+    } catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '').replaceAll('PostgrestException: ', '');
+      Get.snackbar('Promotion Failed 🔒', msg,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+          colorText: Colors.white);
+      return false;
+    }
+  }
+
+  Future<bool> demoteRoomMemberRole(
+      String roomId, String targetUserId) async {
+    try {
+      final targetRoomId = resolveRoomUuid(roomId);
+      await Supabase.instance.client.rpc('demote_room_member_role', params: {
+        'p_room_id': targetRoomId,
+        'p_target_user_id': targetUserId,
+      });
+      Get.snackbar('Role Updated 🔄', 'User demoted to Member',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF3B82F6).withOpacity(0.9),
+          colorText: Colors.white);
+      return true;
+    } catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '').replaceAll('PostgrestException: ', '');
+      Get.snackbar('Demotion Failed 🔒', msg,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+          colorText: Colors.white);
+      return false;
+    }
+  }
+
+  Future<bool> transferRoomOwnership(
+      String roomId, String newOwnerId) async {
+    try {
+      final targetRoomId = resolveRoomUuid(roomId);
+      await Supabase.instance.client.rpc('transfer_room_ownership', params: {
+        'p_room_id': targetRoomId,
+        'p_new_owner_id': newOwnerId,
+      });
+      Get.snackbar('Ownership Transferred 👑', 'Room ownership successfully transferred!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
+          colorText: Colors.white);
+      return true;
+    } catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '').replaceAll('PostgrestException: ', '');
+      Get.snackbar('Transfer Failed 🔒', msg,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+          colorText: Colors.white);
+      return false;
+    }
+  }
+
+  Future<bool> toggleSeatLock(String roomId, int seatIndex) async {
+    try {
+      final targetRoomId = resolveRoomUuid(roomId);
+      final res = await Supabase.instance.client.rpc('toggle_seat_lock', params: {
+        'p_room_id': targetRoomId,
+        'p_seat_index': seatIndex,
+      });
+
+      final bool isLocked = (res is Map && res['is_locked'] == true) ||
+          (res is Map && res['data'] != null && res['data']['is_locked'] == true);
+
+      Get.snackbar(
+        isLocked ? 'Seat Locked 🔒' : 'Seat Unlocked 🔓',
+        isLocked
+            ? 'Seat ${seatIndex + 1} is now locked by management.'
+            : 'Seat ${seatIndex + 1} is now unlocked and available.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: isLocked
+            ? const Color(0xFFF59E0B).withOpacity(0.9)
+            : const Color(0xFF10B981).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return true;
+    } catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '').replaceAll('PostgrestException: ', '');
+      Get.snackbar(
+        'Action Failed 🔒',
+        msg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return false;
     }
   }
 
@@ -2224,17 +2496,16 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   Future<String?> uploadRoomCoverPhoto(String roomId, io.File file) async {
     try {
       final client = Supabase.instance.client;
-      final fileExtension = file.path.split('.').last;
-      final fileName =
-          '${roomId}_cover_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+      final fileName = '${roomId}_cover.png';
 
-      await client.storage.from('avatars').uploadBinary(
-            fileName,
-            await file.readAsBytes(),
-            fileOptions: const FileOptions(upsert: true),
-          );
+      final optRes = await UniversalImageOptimizer.optimizeAndUpload(
+        file: file,
+        category: ImageCategoryType.roomBackground,
+        storagePath: fileName,
+        customBucket: 'avatars',
+      );
 
-      final publicUrl = client.storage.from('avatars').getPublicUrl(fileName);
+      final publicUrl = optRes.publicUrl;
 
       await client.from('rooms').update({
         'avatar': publicUrl,
@@ -3751,17 +4022,16 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   Future<String?> uploadRoomBanner(String roomId, io.File file) async {
     try {
       final client = Supabase.instance.client;
-      final fileExtension = file.path.split('.').last;
-      final fileName =
-          '${roomId}_banner_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+      final fileName = '${roomId}_banner.png';
 
-      await client.storage.from('banners').uploadBinary(
-            fileName,
-            await file.readAsBytes(),
-            fileOptions: const FileOptions(upsert: true),
-          );
+      final optRes = await UniversalImageOptimizer.optimizeAndUpload(
+        file: file,
+        category: ImageCategoryType.roomBackground,
+        storagePath: fileName,
+        customBucket: 'banners',
+      );
 
-      final publicUrl = client.storage.from('banners').getPublicUrl(fileName);
+      final publicUrl = optRes.publicUrl;
 
       await client.from('rooms').update({
         'avatar': publicUrl,

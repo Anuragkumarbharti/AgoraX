@@ -232,7 +232,8 @@ class VoiceService {
       }
     };
 
-    // Monitor network quality and log poor network conditions
+    // Monitor network quality and log poor network conditions with 30s throttling
+    DateTime? lastPoorNetworkLogTime;
     ZegoExpressEngine.onNetworkQuality = (userID, upstreamQuality, downstreamQuality) {
       if (kDebugMode && userID.isNotEmpty) {
         debugPrint('[VoiceService] NetworkQuality for remote user $userID - Upstream: ${upstreamQuality.index}, Downstream: ${downstreamQuality.index}');
@@ -240,7 +241,11 @@ class VoiceService {
       if (userID.isEmpty) { // Local user quality
         if (upstreamQuality.index >= ZegoStreamQualityLevel.Bad.index || 
             downstreamQuality.index >= ZegoStreamQualityLevel.Bad.index) {
-          debugPrint('[VoiceService] WARNING: Poor local network connection detected!');
+          final now = DateTime.now();
+          if (lastPoorNetworkLogTime == null || now.difference(lastPoorNetworkLogTime!).inSeconds >= 30) {
+            lastPoorNetworkLogTime = now;
+            debugPrint('[VoiceService] WARNING: Poor local network connection detected!');
+          }
         }
       }
     };

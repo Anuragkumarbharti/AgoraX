@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/customization_controller.dart';
 import '../services/user_profile_cache_manager.dart';
+import '../services/asset_cache_manager.dart';
+import 'optimized_image.dart';
 import 'novel_avatar_decorator.dart';
 import 'vip_avatar_decorator.dart'; // VIP 1 & 2 active
 
@@ -167,13 +169,20 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
         : 0.0;
 
     Widget mainWidget = Obx(() {
+      // Touch equip trigger to force reactive rebuild when equipment changes
+      final _ = UserProfileCacheManager.equipEventTrigger.value;
       final currentUid = Supabase.instance.client.auth.currentUser?.id;
       final resolvedId = (widget.userId == 'me' || widget.userId == 'uid_anurag_101' || widget.userId == currentUid)
           ? (currentUid ?? '')
           : widget.userId;
 
-      final u = UserProfileCacheManager.rxCache[resolvedId];
-      final currentAvatarUrl = u?.avatar ?? '';
+      final u = UserProfileCacheManager.rxCache[resolvedId] ??
+          UserProfileCacheManager.getCachedUser(resolvedId) ??
+          (resolvedId == currentUid ? UserProfileCacheManager.currentUser : null);
+      final rawAvatar = u?.avatar ?? '';
+      final currentAvatarUrl = (rawAvatar.isNotEmpty && !rawAvatar.contains('lh3.googleusercontent.com'))
+          ? rawAvatar
+          : '';
       
       final Widget reactiveAvatarChild;
       if (currentAvatarUrl.isNotEmpty) {
@@ -181,10 +190,12 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
           width: avatarSize,
           height: avatarSize,
           child: ClipOval(
-            child: Image.network(
-              currentAvatarUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => widget.child,
+            child: OptimizedImage(
+              imageUrl: currentAvatarUrl,
+              quality: ImageQuality.thumbnail,
+              width: avatarSize,
+              height: avatarSize,
+              errorWidget: widget.child,
             ),
           ),
         );

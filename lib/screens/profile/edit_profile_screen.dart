@@ -11,6 +11,8 @@ import 'package:creania/core/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/user_profile_cache_manager.dart';
 import '../../services/user_progress_sync_service.dart';
+import '../../services/universal_image_optimizer.dart';
+import '../../services/asset_cache_manager.dart';
 import '../../widgets/custom_image_editor.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -290,18 +292,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (_avatarFile != null) {
         debugPrint('[Profile Update] Upload started: Avatar');
         try {
-          final path = '$userId/avatar.png';
-          await Supabase.instance.client.storage.from('avatars').upload(
-            path,
-            _avatarFile!,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          await UniversalImageOptimizer.deleteOldAvatars(userId);
+          final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.png';
+          final path = '$userId/$fileName';
+          final optRes = await UniversalImageOptimizer.optimizeAndUpload(
+            file: _avatarFile,
+            category: ImageCategoryType.avatar,
+            storagePath: path,
           );
-          final ts = DateTime.now().millisecondsSinceEpoch;
-          avatarUrl = '${Supabase.instance.client.storage.from('avatars').getPublicUrl(path)}?v=$ts';
+          avatarUrl = optRes.publicUrl;
+          if (_user.avatar != null && _user.avatar!.isNotEmpty) {
+            await AssetCacheManager.evictUrl(_user.avatar!);
+          }
+          await AssetCacheManager.evictUrl(avatarUrl);
           debugPrint('[Profile Update] Upload success: Avatar URL = $avatarUrl');
         } catch (e) {
           debugPrint('[Profile Update] Upload failed: Avatar: $e');
-          Get.snackbar('Upload Failed ⚠️', 'Failed to upload profile avatar. Please try again.');
+          Get.snackbar('Upload Failed ⚠️', 'Failed to upload profile avatar: ${e.toString().replaceAll("Exception: ", "")}');
           setState(() => _isLoading = false);
           return;
         }
@@ -312,18 +319,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (_coverFile != null) {
         debugPrint('[Profile Update] Upload started: Cover');
         try {
-          final path = '$userId/banner.png';
-          await Supabase.instance.client.storage.from('banners').upload(
-            path,
-            _coverFile!,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          await UniversalImageOptimizer.deleteOldCovers(userId);
+          final fileName = 'banner_${DateTime.now().millisecondsSinceEpoch}.png';
+          final path = '$userId/$fileName';
+          final optRes = await UniversalImageOptimizer.optimizeAndUpload(
+            file: _coverFile,
+            category: ImageCategoryType.profileCover,
+            storagePath: path,
           );
-          final ts = DateTime.now().millisecondsSinceEpoch;
-          coverUrl = '${Supabase.instance.client.storage.from('banners').getPublicUrl(path)}?v=$ts';
+          coverUrl = optRes.publicUrl;
+          if (_user.coverPhoto != null && _user.coverPhoto!.isNotEmpty) {
+            await AssetCacheManager.evictUrl(_user.coverPhoto!);
+          }
+          await AssetCacheManager.evictUrl(coverUrl);
           debugPrint('[Profile Update] Upload success: Cover URL = $coverUrl');
         } catch (e) {
           debugPrint('[Profile Update] Upload failed: Cover: $e');
-          Get.snackbar('Upload Failed ⚠️', 'Failed to upload cover photo. Please try again.');
+          Get.snackbar('Upload Failed ⚠️', 'Failed to upload cover photo: ${e.toString().replaceAll("Exception: ", "")}');
           setState(() => _isLoading = false);
           return;
         }
@@ -335,6 +347,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final Map<String, dynamic> updatePayload = {
         'username': _usernameCtrl.text.trim().toLowerCase(),
         'bio': _bioCtrl.text.trim(),
+        'avatar': avatarUrl,
         'profile_photo': avatarUrl,
         'avatar_url': avatarUrl,
         'cover_photo': coverUrl,
@@ -395,9 +408,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // Sync and reload cache
       UserProfileCacheManager.invalidateCache(userId);
+      if (avatarUrl != null) await AssetCacheManager.evictUrl(avatarUrl);
+      if (coverUrl != null) await AssetCacheManager.evictUrl(coverUrl);
+      try {
+        await CreaniaAssetCacheManager.instance.emptyCache();
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+      } catch (_) {}
+
       final refreshedUser = await UserProfileCacheManager.fetchUserProfile(userId, forceRefresh: true);
       if (refreshedUser != null) {
+        UserProfileCacheManager.setCurrentUser(refreshedUser);
         UserProfileCacheManager.rxCache[userId] = refreshedUser;
+        UserProfileCacheManager.rxCache['me'] = refreshedUser;
+        UserProfileCacheManager.broadcastEquipConfirmed();
       }
       await UserProgressSyncService.syncFromSupabase();
 
@@ -406,7 +430,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (didComplete100) {
         _showCompletionRewardDialog();
       } else {
-        Get.back();
+        Get.back(result: refreshedUser);
         Get.snackbar('Success', 'Profile updated successfully 🎉');
       }
     } catch (e) {

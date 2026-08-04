@@ -132,28 +132,30 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
               }
             },
           ),
-          SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _selectedCategory ?? 'Tools',
-                style: GoogleFonts.outfit(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _selectedCategory ?? 'Tools',
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              Text(
-                _selectedCategory == null
-                    ? 'Customize your profile and identity.'
-                    : 'Preview, equip, and manage premium tools instantly.',
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  color: Colors.white38,
+                Text(
+                  _selectedCategory == null
+                      ? 'Customize your profile and identity.'
+                      : 'Preview, equip, and manage premium tools instantly.',
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    color: Colors.white38,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
