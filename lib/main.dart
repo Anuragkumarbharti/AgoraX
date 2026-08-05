@@ -19,6 +19,10 @@ import 'services/novel_controller.dart';
 import 'services/customization_controller.dart';
 import 'services/premium_identity_controller.dart';
 import 'services/store_controller.dart';
+import 'services/vault_controller.dart';
+import 'services/study_vault_controller.dart';
+import 'services/progression_controller.dart';
+import 'services/voice/voice_controller.dart';
 import 'services/razorpay_backend_service.dart';
 import 'services/theme_controller.dart';
 import 'services/user_profile_cache_manager.dart';
@@ -109,6 +113,10 @@ void main() async {
     Get.put(RoomController());
     Get.put(CustomizationController());
     Get.put(PremiumIdentityController());
+    Get.put(VaultController());
+    Get.put(ProgressionController());
+    Get.put(StudyVaultController());
+    Get.put(VoiceController());
 
     // ── 6. Render the app immediately ────────────────────────────────
     binding.allowFirstFrame();

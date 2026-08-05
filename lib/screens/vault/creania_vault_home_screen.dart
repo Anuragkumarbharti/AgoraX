@@ -21,7 +21,7 @@ class _CreaniaVaultHomeScreenState extends State<CreaniaVaultHomeScreen> with Si
   @override
   void initState() {
     super.initState();
-    _ctrl = Get.put(VaultController());
+    _ctrl = Get.find<VaultController>();
     _tabController = TabController(length: 2, vsync: this);
   }
 

@@ -127,7 +127,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   @override
   void initState() {
     super.initState();
-    _vaultCtrl = Get.put(VaultController());
+    _vaultCtrl = Get.find<VaultController>();
     _selectedGift = _allGifts[0]; // Default select Rose
     _initDefaultRecipients();
   }

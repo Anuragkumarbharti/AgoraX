@@ -20,7 +20,7 @@ class ProgressionCenterScreen extends StatefulWidget {
 class _ProgressionCenterScreenState extends State<ProgressionCenterScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  final ProgressionController _ctrl = Get.put(ProgressionController());
+  final ProgressionController _ctrl = Get.find<ProgressionController>();
   
   // For lucky spin wheel animation
   late AnimationController _spinAnimCtrl;

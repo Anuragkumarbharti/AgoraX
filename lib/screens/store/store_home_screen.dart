@@ -25,7 +25,7 @@ class StoreHomeScreen extends StatefulWidget {
 }
 
 class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderStateMixin {
-  final StoreController _storeCtrl = Get.put(StoreController());
+  final StoreController _storeCtrl = Get.find<StoreController>();
   final VipController _vipCtrl = Get.find<VipController>();
   final NovelController _novelCtrl = Get.find<NovelController>();
   final CustomizationController _custCtrl = Get.find<CustomizationController>();

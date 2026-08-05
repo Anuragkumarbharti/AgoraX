@@ -35,6 +35,7 @@ import '../../widgets/mini_profile_widget.dart';
 import '../../services/premium_identity_controller.dart';
 import '../../services/customization_controller.dart';
 import '../../widgets/index.dart';
+import '../../widgets/creania_vp_progress_bar.dart';
 import '../../widgets/vip_entry_animation.dart';
 import '../../widgets/novel_entry_animation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -5207,101 +5208,20 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Left: Room Capsule + Invite button
-            Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: Colors.white.withOpacity(0.05), width: 0.8),
-                  ),
-                  child: Row(
-                    children: [
-                      // Green circular avatar with number roomLevel
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF34C759), // iOS Green
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$roomLevel',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                roomName,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              if (coverUrl != null && coverUrl.isNotEmpty) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  width: 14,
-                                  height: 14,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    image: DecorationImage(
-                                      image: NetworkImage(coverUrl),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          Text(
-                            'ID: $roomId',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white70,
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // Pink add button '+'
-                GestureDetector(
-                  onTap: () {
-                    Get.snackbar('Action', 'Inviting users to the arena.');
-                  },
-                  child: Container(
-                    width: 22,
-                    height: 22,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF2D55), // Pink Accent
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white, size: 14),
-                  ),
-                ),
-              ],
+            CreaniaVpProgressBar(
+              roomLevel: roomLevel,
+              freeXp: 1700,
+              freeTarget: 1700,
+              extraXp: 1700,
+              extraTarget: 1700,
+              roomId: '$roomId',
+              coverUrl: coverUrl,
+              onTap: () {
+                _showRoomOptionsMenuSheet(context);
+              },
+              onPlusTap: () {
+                Get.snackbar('Action', 'Inviting users to the arena.');
+              },
             ),
 
             // Right: Participant capsule + leave button

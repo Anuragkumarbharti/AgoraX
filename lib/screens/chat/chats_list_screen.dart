@@ -40,7 +40,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   @override
   void initState() {
     super.initState();
-    _ctrl = Get.put(ChatController());
+    _ctrl = Get.find<ChatController>();
 
     _entranceAnimCtrl = AnimationController(
       vsync: this,
