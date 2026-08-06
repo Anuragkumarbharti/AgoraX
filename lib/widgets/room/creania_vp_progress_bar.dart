@@ -58,12 +58,6 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
   }
 
   String _formatNumber(int num) {
-    if (num >= 1000000) {
-      return '${(num / 1000000).toStringAsFixed(1)}M';
-    } else if (num >= 1000) {
-      final double inK = num / 1000.0;
-      return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
-    }
     return '$num';
   }
 
