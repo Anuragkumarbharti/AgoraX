@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:creania/core/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../models/room/room_model.dart';
+import '../../models/progression/room_progression_models.dart';
 import '../../services/room/room_controller.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import './create_room_screen.dart';
@@ -1183,6 +1184,54 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             fontSize: 10.5,
                             color: context.caption,
                           ),
+                        ),
+                        SizedBox(height: 6),
+                        Builder(
+                          builder: (context) {
+                            final roomLvl = room.level > 0 ? room.level : 1;
+                            final cfg = RoomLevelMatrixConfig.getForLevel(roomLvl);
+                            final nextCfg = RoomLevelMatrixConfig.getForLevel(roomLvl + 1);
+                            final targetVp = nextCfg.requiredVp > 0 ? nextCfg.requiredVp : 100000;
+                            final fillRatio = (room.xp / targetVp).clamp(0.0, 1.0);
+                            final percent = (fillRatio * 100).toInt();
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.purple.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: Colors.purpleAccent.withOpacity(0.4), width: 0.8),
+                                      ),
+                                      child: Text(
+                                        'LV.$roomLvl ${cfg.title}',
+                                        style: GoogleFonts.outfit(color: Colors.purpleAccent, fontSize: 9.5, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${room.xp} / ${targetVp} VP ($percent%)',
+                                      style: GoogleFonts.poppins(color: const Color(0xFFFFB800), fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    value: fillRatio,
+                                    minHeight: 4,
+                                    backgroundColor: Colors.white10,
+                                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),

@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
 
 import '../../../../models/room/room_model.dart';
+import '../../../../models/progression/room_progression_models.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_progression_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../widgets/room/creania_vp_progress_bar.dart';
 import '../dialogs/online_members_dialog.dart';
@@ -73,14 +75,21 @@ class RoomCallHeader extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     child: Builder(
                       builder: (context) {
-                        final freeVp = controller.getRoomFreeVp(roomId);
-                        final goldVp = controller.getRoomGoldVp(roomId);
+                        final progCtrl = Get.put(RoomProgressionController());
+                        final levelProg = progCtrl.roomLevelProgresses[liveId];
+                        final tasks = progCtrl.roomDailyTaskLists[liveId] ?? [];
+                        final completedTasksCount = tasks.where((t) => t.isCompleted).length;
+                        final totalTasksCount = tasks.isNotEmpty ? tasks.length : 14;
+
+                        final int currentVp = levelProg?.currentXp ?? liveRoom?.xp ?? 0;
+                        final nextConfig = RoomLevelMatrixConfig.getForLevel(roomLevel + 1);
+                        final int targetVp = nextConfig.requiredVp > 0 ? nextConfig.requiredVp : 100000;
+
                         return CreaniaVpProgressBar(
                           roomLevel: roomLevel,
-                          freeXp: freeVp,
-                          freeTarget: 700,
-                          extraXp: goldVp,
-                          extraTarget: 1000,
+                          freeXp: currentVp,
+                          freeTarget: targetVp,
+                          label: 'Tasks $completedTasksCount/$totalTasksCount',
                           roomId: '$liveId',
                           roomName: liveName,
                           coverUrl: coverUrl,
