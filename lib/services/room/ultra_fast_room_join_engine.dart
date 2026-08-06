@@ -224,9 +224,12 @@ class UltraFastRoomJoinEngine {
     } catch (e) {
       debugPrint('[UltraFastRoomJoinEngine] Transaction failed: $e. Executing full transaction rollback...');
       await _rollbackJoinTransaction(room.id);
+      final errorMsg = e.toString().contains('PostgrestException')
+          ? 'Database Connection Error. Please try again.'
+          : 'Unable to connect to room: $e';
       Get.snackbar(
         'Room Join Failed 📡',
-        'Unable to connect to room. Please check network connection.',
+        errorMsg,
         backgroundColor: Colors.red.shade900,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
