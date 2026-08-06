@@ -39,37 +39,52 @@ class UltraFastRoomJoinEngine {
   factory UltraFastRoomJoinEngine() => _instance;
   UltraFastRoomJoinEngine._internal();
 
-  /// Execute Ultra Fast Room Entry Sequence (Target: 100ms - 200ms)
+  /// Execute Secure Atomic Room Entry Transaction (Requirements 1-8)
   Future<void> executeFastJoin({
     required BuildContext context,
     required VoiceRoom room,
     String? providedPassword,
   }) async {
+    final currentUserId = UserProfileCacheManager.currentUserId.isNotEmpty
+        ? UserProfileCacheManager.currentUserId
+        : 'uid_anurag_101';
+    final currentUser = UserProfileCacheManager.currentUser;
+    final isOwnerOrCoOwner = room.hostId == currentUserId ||
+        room.founderId == currentUserId ||
+        room.coOwnerIds.contains(currentUserId);
+
+    // ========================================================================
+    // PRE-JOIN CHECK: Password Protection Prompt (Requirement 6)
+    // ========================================================================
+    final isPasswordProtected = room.entryPermission == 'password' ||
+        room.whoCanJoin == 'Password Required' ||
+        (room.roomPassword != null && room.roomPassword!.isNotEmpty);
+
+    if (isPasswordProtected && !isOwnerOrCoOwner && providedPassword == null) {
+      debugPrint('[UltraFastRoomJoinEngine] Room ${room.id} is password protected. Prompting PIN dialog before join transaction...');
+      final String? enteredPass = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => RoomPasswordDialog(room: room),
+      );
+
+      if (enteredPass == null || enteredPass.trim().isEmpty) {
+        debugPrint('[UltraFastRoomJoinEngine] Password prompt cancelled by user. Join transaction aborted.');
+        return;
+      }
+      providedPassword = enteredPass.trim();
+    }
+
     final stopwatch = Stopwatch()..start();
     int tapToUiRenderMs = 0;
     int rpcJoinLatencyMs = 0;
     int voiceLoginMs = 0;
 
-    final currentUserId = UserProfileCacheManager.currentUserId.isNotEmpty
-        ? UserProfileCacheManager.currentUserId
-        : 'uid_anurag_101';
-    final currentUser = UserProfileCacheManager.currentUser;
-
     try {
-      // 1. PRIORITY 1: Instant Optimistic UI Transition (< 100ms Target)
-      final isHost = room.hostId == currentUserId || room.founderId == currentUserId || room.coOwnerIds.contains(currentUserId);
-      Get.to(
-        () => VoiceRoomCallScreen(
-          roomId: room.id,
-          roomName: room.name,
-          userId: currentUserId,
-          userName: currentUser?.username ?? 'anurag_kumar',
-          isHost: isHost,
-        ),
-      );
-      tapToUiRenderMs = stopwatch.elapsedMilliseconds;
-
-      // 2. Execute Single Atomic Consolidated RPC Function
+      // ========================================================================
+      // STAGE 1: Server Atomic RPC Verification (Requirement 1 & 8)
+      // ========================================================================
       final rpcStart = stopwatch.elapsedMilliseconds;
       final response = await Supabase.instance.client.rpc(
         'join_room_fast_v2',
@@ -82,25 +97,30 @@ class UltraFastRoomJoinEngine {
 
       if (response == null || response['join_allowed'] == false) {
         final reason = response != null ? response['reason']?.toString() ?? '' : 'Join Denied';
-        
-        // Handle Password Requirement
-        if (response != null && response['password_required'] == true) {
-          Get.back(); // Pop optimistic room screen
-          showModalBottomSheet<String>(
+        final isInvalidPass = response != null && (response['invalid_password'] == true || response['password_required'] == true);
+
+        if (isInvalidPass) {
+          Get.snackbar(
+            'Incorrect Password 🔒',
+            'The entered PIN is incorrect. Please try again.',
+            backgroundColor: Colors.red.shade900,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.TOP,
+          );
+          // Re-prompt password dialog cleanly
+          final String? retryPass = await showModalBottomSheet<String>(
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
             builder: (ctx) => RoomPasswordDialog(room: room),
-          ).then((pass) {
-            if (pass != null && pass.isNotEmpty) {
-              executeFastJoin(context: context, room: room, providedPassword: pass);
-            }
-          });
+          );
+          if (retryPass != null && retryPass.isNotEmpty) {
+            return executeFastJoin(context: context, room: room, providedPassword: retryPass.trim());
+          }
           return;
         }
 
-        // Handle Rejection/Ban
-        Get.back();
+        // Handle General Rejection (Banned, Kicked, Full, Closed)
         Get.snackbar(
           'Access Denied 🛡️',
           reason,
@@ -111,24 +131,47 @@ class UltraFastRoomJoinEngine {
         return;
       }
 
-      // 3. WARM VOICE ENGINE LOGIN (Reuses preloaded Voice SDK)
+      // ========================================================================
+      // STAGE 2: Connect Voice Engine Stream (Requirement 2)
+      // ========================================================================
       final voiceStart = stopwatch.elapsedMilliseconds;
-      RoomVoiceManager().joinRoom(
+      await RoomVoiceManager().joinRoom(
         roomId: room.id,
         userId: currentUserId,
         userName: currentUser?.username ?? 'Creania Student',
         enableMic: false,
-      ).catchError((e) {
-        debugPrint('[UltraFastRoomJoinEngine] Voice background connection warning: $e');
-      });
+      );
       voiceLoginMs = stopwatch.elapsedMilliseconds - voiceStart;
 
-      // 4. PRIORITY 2: Background Data Stream (Non-blocking)
+      // ========================================================================
+      // STAGE 3: Realtime Socket Registration & Initial State Sync
+      // ========================================================================
+      if (Get.isRegistered<RoomController>()) {
+        await RoomController.to.joinRoomRealtimeChannel(room.id);
+      }
+
+      // ========================================================================
+      // STAGE 4: COMMIT TRANSACTION & OPEN ROOM (Requirement 1, 3, 4)
+      // ========================================================================
+      final isHost = room.hostId == currentUserId || room.founderId == currentUserId || room.coOwnerIds.contains(currentUserId);
+      
+      Get.to(
+        () => VoiceRoomCallScreen(
+          roomId: room.id,
+          roomName: room.name,
+          userId: currentUserId,
+          userName: currentUser?.username ?? 'anurag_kumar',
+          isHost: isHost,
+        ),
+      );
+      tapToUiRenderMs = stopwatch.elapsedMilliseconds;
+
+      // Priority 2 Background Streaming (Non-blocking)
       unawaited(_streamPriority2BackgroundData(room.id));
 
       stopwatch.stop();
 
-      // 5. Performance Monitor Logging
+      // Performance Monitor Logging
       final metrics = RoomJoinPerformanceMetrics(
         roomId: room.id,
         tapToUiRenderMs: tapToUiRenderMs,
@@ -138,7 +181,28 @@ class UltraFastRoomJoinEngine {
       );
       metrics.printLog();
     } catch (e) {
-      debugPrint('[UltraFastRoomJoinEngine] Fast join error: $e');
+      debugPrint('[UltraFastRoomJoinEngine] Transaction failed: $e. Executing full transaction rollback...');
+      await _rollbackJoinTransaction(room.id);
+      Get.snackbar(
+        'Room Join Failed 📡',
+        'Unable to connect to room. Please check network connection.',
+        backgroundColor: Colors.red.shade900,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+      );
+    }
+  }
+
+  /// Roll back complete join transaction if any stage fails (Requirement 1)
+  Future<void> _rollbackJoinTransaction(String roomId) async {
+    try {
+      await RoomVoiceManager().leaveRoom();
+      if (Get.isRegistered<RoomController>()) {
+        await RoomController.to.leaveRoomRealtimeChannel(roomId);
+      }
+      debugPrint('[UltraFastRoomJoinEngine] Rollback complete for room $roomId.');
+    } catch (e) {
+      debugPrint('[UltraFastRoomJoinEngine] Rollback warning: $e');
     }
   }
 

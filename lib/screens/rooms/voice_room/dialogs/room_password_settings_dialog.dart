@@ -94,6 +94,7 @@ class _RoomPasswordSettingsDialogState extends State<RoomPasswordSettingsDialog>
         final json = RoomController.to.rooms[idx].toJson();
         json['roomPassword'] = enteredPin;
         json['entryPermission'] = 'password';
+        json['whoCanJoin'] = 'Password Required';
         RoomController.to.rooms[idx] = VoiceRoom.fromJson(json);
       }
 
@@ -112,6 +113,7 @@ class _RoomPasswordSettingsDialogState extends State<RoomPasswordSettingsDialog>
         final json = RoomController.to.rooms[idx].toJson();
         json['roomPassword'] = enteredPin;
         json['entryPermission'] = 'password';
+        json['whoCanJoin'] = 'Password Required';
         RoomController.to.rooms[idx] = VoiceRoom.fromJson(json);
       }
 
@@ -142,6 +144,7 @@ class _RoomPasswordSettingsDialogState extends State<RoomPasswordSettingsDialog>
       final json = RoomController.to.rooms[idx].toJson();
       json['roomPassword'] = null;
       json['entryPermission'] = 'everyone';
+      json['whoCanJoin'] = 'Everyone';
       RoomController.to.rooms[idx] = VoiceRoom.fromJson(json);
     }
 

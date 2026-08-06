@@ -89,14 +89,20 @@ BEGIN
     );
   END IF;
 
-  -- 6. Evaluate Password Protection (ONLY if explicitly set to Password Mode)
-  v_who_can_join := LOWER(COALESCE(v_room.visibility, 'everyone'));
-  IF v_who_can_join LIKE '%password%' AND NOT v_is_owner AND NOT v_is_co_owner AND NOT v_is_admin THEN
-    IF p_provided_password IS NULL OR p_provided_password != COALESCE(v_room.rules[1], '1234') THEN
+  -- 6. Evaluate Password Protection (Persistent Database Password Check)
+  v_who_can_join := LOWER(COALESCE(v_room.entry_permission, v_room.visibility, 'everyone'));
+  IF (v_who_can_join LIKE '%password%' OR v_room.room_password IS NOT NULL) AND NOT v_is_owner AND NOT v_is_co_owner AND NOT v_is_admin THEN
+    IF p_provided_password IS NULL OR length(trim(p_provided_password)) = 0 THEN
       RETURN jsonb_build_object(
         'join_allowed', false,
         'reason', 'PASSWORD_REQUIRED',
         'password_required', true
+      );
+    ELSIF trim(p_provided_password) != trim(COALESCE(v_room.room_password, v_room.rules[1], '1234')) THEN
+      RETURN jsonb_build_object(
+        'join_allowed', false,
+        'reason', 'Incorrect room password. Access denied.',
+        'invalid_password', true
       );
     END IF;
   END IF;
