@@ -198,7 +198,7 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Room VP Progress',
+                  'Creania Arena VP Progress',
                   style: GoogleFonts.outfit(
                     color: Colors.white70,
                     fontSize: 11,
@@ -244,7 +244,7 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Turbo Surge: ${surgeMultiplier}x VP Speed ($activeMemberCount Active Members in Room)',
+                      'Turbo Surge: ${surgeMultiplier}x VP Speed ($activeMemberCount Active Members in Arena)',
                       style: GoogleFonts.outfit(
                         color: Colors.amber,
                         fontSize: 11,
@@ -441,7 +441,7 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Room Level Perks & Unlocks',
+                'Creania Arena Level Perks & Unlocks',
                 style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontSize: 16,

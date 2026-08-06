@@ -33,8 +33,8 @@ class RoomLevelMatrixConfig {
       hasRoomMusic: true,
       hasShowcaseBadge: false,
       hasPermanentChatBubble: false,
-      title: 'Basic Room',
-      description: 'Basic background, basic announcement, normal daily tasks, room music',
+      title: 'Basic Arena',
+      description: 'Basic background, basic announcement, normal daily tasks, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 2,
@@ -45,8 +45,8 @@ class RoomLevelMatrixConfig {
       hasRoomMusic: true,
       hasShowcaseBadge: false,
       hasPermanentChatBubble: false,
-      title: 'Premium Room',
-      description: 'Premium background, welcome banner, room statistics, room music',
+      title: 'Premium Arena',
+      description: 'Premium background, welcome banner, arena statistics, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 3,
@@ -57,8 +57,8 @@ class RoomLevelMatrixConfig {
       hasRoomMusic: true,
       hasShowcaseBadge: true,
       hasPermanentChatBubble: false,
-      title: 'Animated Room',
-      description: 'Animated room frame, gift wall, showcase badge, room music',
+      title: 'Animated Arena',
+      description: 'Animated arena frame, gift wall, showcase badge, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 4,
@@ -69,8 +69,8 @@ class RoomLevelMatrixConfig {
       hasRoomMusic: true,
       hasShowcaseBadge: true,
       hasPermanentChatBubble: false,
-      title: 'Dynamic Room',
-      description: 'Dynamic background, premium room effects, event scheduler, room music',
+      title: 'Dynamic Arena',
+      description: 'Dynamic background, premium arena effects, event scheduler, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 5,
@@ -81,8 +81,8 @@ class RoomLevelMatrixConfig {
       hasRoomMusic: true,
       hasShowcaseBadge: true,
       hasPermanentChatBubble: true,
-      title: 'Official Room',
-      description: 'Official room badge, permanent chat bubble, premium discovery, advanced analytics, room music',
+      title: 'Official Arena',
+      description: 'Official arena badge, permanent chat bubble, premium discovery, advanced analytics, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 6,
@@ -93,8 +93,8 @@ class RoomLevelMatrixConfig {
       hasRoomMusic: true,
       hasShowcaseBadge: true,
       hasPermanentChatBubble: true,
-      title: 'Luxury Room',
-      description: 'Luxury theme, animated entry, VIP room features, room music',
+      title: 'Luxury Arena',
+      description: 'Luxury theme, animated entry, VIP arena features, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 7,
@@ -105,8 +105,8 @@ class RoomLevelMatrixConfig {
       hasRoomMusic: true,
       hasShowcaseBadge: true,
       hasPermanentChatBubble: true,
-      title: 'Legendary Room',
-      description: 'Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation, room music',
+      title: 'Legendary Arena',
+      description: 'Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation, arena music',
     ),
   ];
 
