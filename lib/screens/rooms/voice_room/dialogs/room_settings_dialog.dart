@@ -670,7 +670,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       _showOptionSelector(
                         'Who Can Join',
                         'whoCanJoin',
-                        ['Everyone', 'Followers Only', 'Following Only', 'Friends Only', 'Family Only', 'VIP Only', 'Password Required'],
+                        ['Everyone', 'Owner Followers', 'Owner Following', 'Friends Only', 'Family Only', 'VIP Only', 'Password Required'],
                         _whoCanJoin,
                       );
                     },

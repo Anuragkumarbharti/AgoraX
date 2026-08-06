@@ -126,6 +126,10 @@ class UltraFastRoomJoinEngine {
         // Handle Rejections with detailed RoomEntryDeniedSheet
         final statusMap = <String, RoomEntryStatus>{
           'followers_only': RoomEntryStatus.followersOnly,
+          'owner followers': RoomEntryStatus.followersOnly,
+          'following_only': RoomEntryStatus.followingOnly,
+          'owner_following': RoomEntryStatus.followingOnly,
+          'owner following': RoomEntryStatus.followingOnly,
           'vip_only': RoomEntryStatus.vipOnly,
           'level_required': RoomEntryStatus.vipOnly,
           'temporary_kick': RoomEntryStatus.temporaryKick,

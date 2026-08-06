@@ -110,8 +110,8 @@ BEGIN
       END IF;
     END IF;
 
-    -- B. Followers Only Mode (Must follow Room Host/Owner)
-    IF v_who_can_join LIKE '%follow%' THEN
+    -- B1. Followers Only Mode (Caller must follow Room Host/Owner)
+    IF (v_who_can_join LIKE '%followers_only%' OR v_who_can_join LIKE '%followers only%') THEN
       IF NOT EXISTS (
         SELECT 1 FROM public.user_followers 
         WHERE follower_id = v_caller_id AND following_id = v_room.host_id
@@ -120,6 +120,20 @@ BEGIN
           'join_allowed', false,
           'reason', 'This arena is restricted to Owner Followers only.',
           'follower_required', true
+        );
+      END IF;
+    END IF;
+
+    -- B2. Owner Following Mode (Room Owner must follow Caller)
+    IF (v_who_can_join LIKE '%following_only%' OR v_who_can_join LIKE '%following only%' OR v_who_can_join LIKE '%owner following%') THEN
+      IF NOT EXISTS (
+        SELECT 1 FROM public.user_followers 
+        WHERE follower_id = v_room.host_id AND following_id = v_caller_id
+      ) THEN
+        RETURN jsonb_build_object(
+          'join_allowed', false,
+          'reason', 'This arena is restricted to users followed by the Room Owner.',
+          'following_required', true
         );
       END IF;
     END IF;
