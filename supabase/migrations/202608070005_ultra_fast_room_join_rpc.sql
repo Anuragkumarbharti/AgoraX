@@ -42,10 +42,10 @@ BEGIN
   END IF;
 
   -- 2. Fetch Host & Caller Profiles
-  SELECT id, username, display_name, avatar, gender, level, vip_level INTO v_host_profile 
+  SELECT id, username, COALESCE(avatar_url, profile_photo, '') as avatar, gender, level, vip_level INTO v_host_profile 
   FROM public.profiles WHERE id = v_room.host_id;
 
-  SELECT id, username, display_name, avatar, gender, level, vip_level INTO v_caller_profile 
+  SELECT id, username, COALESCE(avatar_url, profile_photo, '') as avatar, gender, level, vip_level INTO v_caller_profile 
   FROM public.profiles WHERE id = v_caller_id;
 
   -- 3. Resolve User Role in Room
@@ -53,7 +53,7 @@ BEGIN
     v_role := 'Owner';
     v_is_owner := true;
   ELSE
-    SELECT role, custom_permissions INTO v_role, v_custom_perms 
+    SELECT role INTO v_role 
     FROM public.room_members WHERE room_id = v_room_id AND user_id = v_caller_id;
     
     IF v_role IS NULL THEN v_role := 'Audience'; END IF;
@@ -174,8 +174,8 @@ BEGIN
       m.role,
       m.is_muted,
       p.username,
-      p.avatar,
-      p.display_name
+      COALESCE(p.avatar_url, p.profile_photo, '') as avatar,
+      p.username as display_name
     FROM public.room_members m
     LEFT JOIN public.profiles p ON p.id = m.user_id
     WHERE m.room_id = v_room_id
@@ -215,11 +215,11 @@ BEGIN
     'host_profile', jsonb_build_object(
       'id', v_host_profile.id,
       'username', v_host_profile.username,
-      'display_name', v_host_profile.display_name,
-      'avatar', v_host_profile.avatar,
-      'gender', v_host_profile.gender,
-      'level', v_host_profile.level,
-      'vip_level', v_host_profile.vip_level
+      'display_name', COALESCE(v_host_profile.username, 'Creania Host'),
+      'avatar', COALESCE(v_host_profile.avatar, ''),
+      'gender', COALESCE(v_host_profile.gender, 'other'),
+      'level', COALESCE(v_host_profile.level, 1),
+      'vip_level', COALESCE(v_host_profile.vip_level, 0)
     ),
     'caller_permissions', jsonb_build_object(
       'role', v_role,
