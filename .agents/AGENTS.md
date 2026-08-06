@@ -196,4 +196,44 @@ The profile identity section is centered horizontally with a consistent **6 px v
 - **User ID Pill**: `13` px, Medium (`w500`), copyable container.
 - **Identity Tags & Status Tags**: Height `19` px, fully rounded (`999` px), text size `10` px, constrained in `320` px width to wrap into multiple centered rows.
 - **Showcase Badges**: `36 × 36` px, maximum `6` visible, showing `+N` badge for extra count.
-- **Screens Integrated**: [profile_screen.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/screens/profile/profile_screen.dart), [voice_room_call_screen.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/screens/rooms/voice_room_call_screen.dart), and [mini_profile_widget.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/widgets/mini_profile_widget.dart).
+- **Screens Integrated**: [profile_screen.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/screens/profile/profile_screen.dart), [voice_room_call_screen.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/screens/rooms/voice_room/voice_room_call_screen.dart), and [mini_profile_widget.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/widgets/mini_profile_widget.dart).
+
+---
+
+## 8. Creania Arena Level & Task Progression System (Technical Logs & Rules)
+
+We implemented a backend-first level progression matrix and daily task engine for Creania Arena voice rooms.
+
+### 🌟 Level Matrix, Required XP, Grand Prizes & Role Caps
+
+| Level | Required XP / VP | Grand Prize Rewards | Role Caps & Host Seats | Unlocked Perks & Features |
+|---|---|---|---|---|
+| **LV 1 (Basic Arena)** | `0 XP` | Standard Daily Rewards | 1 Co-Owner, 4 Admins, 4 Host Seats | Basic background, basic announcement, normal daily tasks, room music |
+| **LV 2 (Premium Arena)** | `35,500 XP` | Standard Daily Rewards | 1 Co-Owner, 7 Admins, 6 Host Seats | Premium background, welcome banner, room statistics, room music |
+| **LV 3 (Animated Arena)** | `59,500 XP` | Standard Daily Rewards | 2 Co-Owners, 11 Admins, 8 Host Seats | Animated room frame, gift wall, **Showcase Badge**, room music |
+| **LV 4 (Dynamic Arena)** | `95,000 XP` | Standard Daily Rewards | 2 Co-Owners, 14 Admins, 11 Host Seats | Dynamic background, premium room effects, event scheduler, room music |
+| **LV 5 (Official Arena)** | `490,000 XP` | **🎁 2,000 Gold Coins + VIP 2 (60 Days)** | 3 Co-Owners, 16 Admins, 13 Host Seats | Official room badge, **Permanent Chat Bubble**, premium discovery, advanced analytics |
+| **LV 6 (Luxury Arena)** | `940,000 XP` | **🎁 5,000 Gold Coins + VIP 2 (6 Months)** | 3 Co-Owners, 18 Admins, 14 Host Seats | Luxury theme, animated entry, VIP room features, room music |
+| **LV 7 (Legendary Arena)** | `1,590,000 XP` | **🎁 12,000 Gold Coins + VIP 3 (1 Year)** | 3 Co-Owners (Max), 20 Admins (Max), 15 Host Seats (Max) | Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation |
+
+### ⏰ Daily Task Rules & Reset Mechanics
+* **32 Total Tasks per Day:** Includes 14 Normal Daily Tasks, 8 Gold Tasks, 6 Team Arena Tasks, and 4 Community Arena Tasks.
+* **4:00 AM Daily Reset:** Tasks reset every morning at 4:00 AM.
+* **XP Accumulation:** Task XP earned accumulates continuously towards the total room XP (`room_xp`). Daily task progress counters reset to 0 at 4:00 AM, while total XP is preserved permanently.
+
+### ⚡ Active Member Turbo VP Surge Engine
+* VP calculation rate is scaled dynamically based on active members in the room:
+  `Surge Multiplier = 1.0 + (activeMemberCount * 0.15)`.
+
+### 📂 File Structure & Architecture
+* **SQL Migration & RPCs**: [202608070006_creania_room_level_and_task_engine.sql](file:///c:/Users/MSI/Downloads/AgoraX/supabase/migrations/202608070006_creania_room_level_and_task_engine.sql)
+  - Seeds matrix table `room_level_matrix`.
+  - RPC `add_room_vp(p_room_id, p_vp, p_source)` automatically handles level upgrades, unlocks perks in `user_unlocked_perks`, and awards Grand Prizes (Gold Coins & VIP Expirations) to room owners.
+* **Data Models**: [room_progression_models.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/models/progression/room_progression_models.dart)
+* **Controller**: [room_progression_controller.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/services/room/room_progression_controller.dart)
+* **UI Widgets**:
+  - Header Progress Bar: [creania_vp_progress_bar.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/widgets/room/creania_vp_progress_bar.dart)
+  - Voice Header: [room_call_header.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/screens/rooms/voice_room/widgets/room_call_header.dart)
+  - Tasks & Perks Dialog: [room_tasks_and_rewards_dialog.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/screens/rooms/voice_room/dialogs/room_tasks_and_rewards_dialog.dart)
+  - Managed Arena Cards: [rooms_screen.dart](file:///c:/Users/MSI/Downloads/AgoraX/lib/screens/rooms/rooms_screen.dart)
+* **Unit Tests**: [creaniaa_room_level_system_test.dart](file:///c:/Users/MSI/Downloads/AgoraX/test/room/creaniaa_room_level_system_test.dart) (100% Passed)
