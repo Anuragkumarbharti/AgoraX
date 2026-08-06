@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
-import '../../models/career_dna_model.dart';
+import '../../models/progression/career_dna_model.dart';
 
 class CareerDnaScreen extends StatefulWidget {
   const CareerDnaScreen({Key? key}) : super(key: key);

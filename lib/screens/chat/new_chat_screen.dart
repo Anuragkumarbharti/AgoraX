@@ -4,11 +4,11 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:creania/core/theme.dart';
-import '../../models/chat_model.dart';
-import '../../models/user_model.dart';
-import '../../services/chat_controller.dart';
-import '../../services/user_profile_cache_manager.dart';
-import 'chat_screen.dart';
+import '../../models/chat/chat_model.dart';
+import '../../models/user/user_model.dart';
+import '../../services/chat/chat_controller.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import './chat_screen.dart';
 
 class NewChatScreen extends StatefulWidget {
   const NewChatScreen({Key? key}) : super(key: key);

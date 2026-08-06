@@ -3,10 +3,10 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/store_controller.dart';
-import '../../services/razorpay_backend_service.dart';
+import '../../services/store/store_controller.dart';
+import '../../services/store/razorpay_backend_service.dart';
 
 class StoreHistoryScreen extends StatefulWidget {
   const StoreHistoryScreen({Key? key}) : super(key: key);

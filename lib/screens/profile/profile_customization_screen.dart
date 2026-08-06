@@ -4,17 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/vip_controller.dart';
-import '../../services/novel_controller.dart';
-import '../../services/customization_controller.dart';
-import '../../widgets/vip_badge_widget.dart';
-import '../../widgets/vip_avatar_decorator.dart';
-import '../../widgets/novel_badge_widget.dart';
-import '../../widgets/novel_avatar_decorator.dart';
-import '../../widgets/custom_avatar_frame.dart';
+import '../../services/memberships/vip_controller.dart';
+import '../../services/memberships/novel_controller.dart';
+import '../../services/user/customization_controller.dart';
+import '../../widgets/memberships/vip_badge_widget.dart';
+import '../../widgets/memberships/vip_avatar_decorator.dart';
+import '../../widgets/memberships/novel_badge_widget.dart';
+import '../../widgets/memberships/novel_avatar_decorator.dart';
+import '../../widgets/profile/custom_avatar_frame.dart';
 import '../vip/vip_purchase_screen.dart';
 import '../novel/novel_purchase_screen.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 
 class ProfileCustomizationScreen extends StatefulWidget {
   const ProfileCustomizationScreen({Key? key}) : super(key: key);

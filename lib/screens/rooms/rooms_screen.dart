@@ -6,17 +6,17 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:creania/core/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
-import '../../models/room_model.dart';
-import '../../services/room_controller.dart';
-import '../../services/user_profile_cache_manager.dart';
-import 'create_room_screen.dart';
-import 'room_profile_screen.dart';
-import 'voice_room_call_screen.dart';
-import '../../widgets/custom_avatar_frame.dart';
-import '../../widgets/arena_skeleton_widget.dart';
-import '../../widgets/premium_name_widget.dart';
-import '../../widgets/wallet_header_pill.dart';
-import '../../models/user_model.dart';
+import '../../models/room/room_model.dart';
+import '../../services/room/room_controller.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import './create_room_screen.dart';
+import './room_profile_screen.dart';
+import './voice_room_call_screen.dart';
+import '../../widgets/profile/custom_avatar_frame.dart';
+import '../../widgets/skeletons/arena_skeleton_widget.dart';
+import '../../widgets/profile/premium_name_widget.dart';
+import '../../widgets/gifting/wallet_header_pill.dart';
+import '../../models/user/user_model.dart';
 import '../../utils/number_formatter.dart';
 
 class RoomsScreen extends StatefulWidget {

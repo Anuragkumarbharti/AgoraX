@@ -8,8 +8,8 @@ import 'package:creania/core/theme.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../auth/index.dart';
 import '../home/main_screen.dart';
-import '../../services/user_profile_cache_manager.dart';
-import '../../services/user_progress_sync_service.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import '../../services/user/user_progress_sync_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);

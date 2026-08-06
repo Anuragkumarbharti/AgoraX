@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
-import '../../models/event_model.dart';
-import '../../services/event_controller.dart';
-import 'live_event_play_screen.dart';
+import '../../models/community/event_model.dart';
+import '../../services/community/event_controller.dart';
+import './live_event_play_screen.dart';
 
 class OrganizerQuestionManagementScreen extends StatefulWidget {
   const OrganizerQuestionManagementScreen({Key? key, required this.event}) : super(key: key);

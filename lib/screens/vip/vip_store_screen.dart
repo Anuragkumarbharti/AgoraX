@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../services/vip_controller.dart';
-import '../../widgets/vip_badge_widget.dart';
-import '../../widgets/vip_avatar_decorator.dart';
+import '../../services/memberships/vip_controller.dart';
+import '../../widgets/memberships/vip_badge_widget.dart';
+import '../../widgets/memberships/vip_avatar_decorator.dart';
 
 class VipStoreScreen extends StatefulWidget {
   const VipStoreScreen({Key? key}) : super(key: key);

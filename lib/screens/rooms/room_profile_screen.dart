@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme.dart';
-import '../../models/room_model.dart';
-import '../../services/room_controller.dart';
-import '../../widgets/room_upgrade_dialog.dart';
+import '../../models/room/room_model.dart';
+import '../../services/room/room_controller.dart';
+import '../../widgets/room/room_upgrade_dialog.dart';
 
 class RoomProfileScreen extends StatelessWidget {
   final String roomId;

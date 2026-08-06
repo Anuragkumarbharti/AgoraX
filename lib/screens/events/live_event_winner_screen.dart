@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
-import '../../models/event_model.dart';
-import '../../models/user_model.dart';
+import '../../models/community/event_model.dart';
+import '../../models/user/user_model.dart';
 import '../profile/profile_screen.dart';
 
 class LiveEventWinnerScreen extends StatefulWidget {

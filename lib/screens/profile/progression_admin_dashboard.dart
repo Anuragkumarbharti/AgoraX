@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:ui';
 
-import '../../services/progression_controller.dart';
+import '../../services/progression/progression_controller.dart';
 
 class ProgressionAdminDashboard extends StatefulWidget {
   const ProgressionAdminDashboard({Key? key}) : super(key: key);

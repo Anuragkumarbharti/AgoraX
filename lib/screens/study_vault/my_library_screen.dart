@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/study_vault_controller.dart';
-import '../../services/vip_controller.dart';
-import '../../models/study_vault_model.dart';
-import 'book_details_screen.dart';
-import 'study_vault_reader_screen.dart';
+import '../../services/vault/study_vault_controller.dart';
+import '../../services/memberships/vip_controller.dart';
+import '../../models/vault/study_vault_model.dart';
+import './book_details_screen.dart';
+import './study_vault_reader_screen.dart';
 
 class MyLibraryScreen extends StatefulWidget {
   const MyLibraryScreen({Key? key}) : super(key: key);

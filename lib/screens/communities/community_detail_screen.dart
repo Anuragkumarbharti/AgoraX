@@ -4,13 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:creania/core/theme.dart';
 import 'package:intl/intl.dart';
-import '../../models/community_model.dart';
-import '../../models/community_event_model.dart';
-import '../../models/user_model.dart';
-import '../../services/community_controller.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../models/community/community_model.dart';
+import '../../models/community/community_event_model.dart';
+import '../../models/user/user_model.dart';
+import '../../services/community/community_controller.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 import '../profile/profile_screen.dart';
-import '../../widgets/community_join_button.dart';
+import '../../widgets/community/community_join_button.dart';
 
 class CommunityDetailScreen extends StatefulWidget {
   final String communityId;

@@ -8,11 +8,11 @@ import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/store_controller.dart';
-import '../../services/vip_controller.dart';
-import '../../services/novel_controller.dart';
-import '../../services/razorpay_backend_service.dart';
-import 'payment_status_screen.dart';
+import '../../services/store/store_controller.dart';
+import '../../services/memberships/vip_controller.dart';
+import '../../services/memberships/novel_controller.dart';
+import '../../services/store/razorpay_backend_service.dart';
+import './payment_status_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String productName;

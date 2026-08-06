@@ -7,11 +7,11 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'signup_flow_screen.dart';
-import 'terms_screen.dart';
+import './signup_flow_screen.dart';
+import './terms_screen.dart';
 import '../home/main_screen.dart';
-import '../../services/user_profile_cache_manager.dart';
-import '../../services/user_progress_sync_service.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import '../../services/user/user_progress_sync_service.dart';
 import '../../core/api_error_handler.dart';
 
 class LoginScreen extends StatefulWidget {

@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/novel_controller.dart';
-import '../../widgets/novel_badge_widget.dart';
-import '../../widgets/novel_avatar_decorator.dart';
-import '../../services/room_controller.dart';
+import '../../services/memberships/novel_controller.dart';
+import '../../widgets/memberships/novel_badge_widget.dart';
+import '../../widgets/memberships/novel_avatar_decorator.dart';
+import '../../services/room/room_controller.dart';
 class NovelPurchaseScreen extends StatefulWidget {
   const NovelPurchaseScreen({Key? key}) : super(key: key);
 

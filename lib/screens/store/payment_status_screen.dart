@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math';
-import 'store_home_screen.dart';
+import './store_home_screen.dart';
 
 class PaymentStatusScreen extends StatefulWidget {
   final bool isSuccess;

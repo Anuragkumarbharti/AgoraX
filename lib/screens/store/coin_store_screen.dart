@@ -3,10 +3,10 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import 'package:creania/core/theme.dart';
-import '../../services/store_controller.dart';
-import '../../widgets/wallet_header_pill.dart';
+import '../../services/store/store_controller.dart';
+import '../../widgets/gifting/wallet_header_pill.dart';
 import '../../utils/number_formatter.dart';
-import 'checkout_screen.dart';
+import './checkout_screen.dart';
 
 class CoinStoreScreen extends StatelessWidget {
   const CoinStoreScreen({Key? key}) : super(key: key);

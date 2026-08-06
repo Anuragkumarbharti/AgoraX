@@ -6,16 +6,16 @@ import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../core/theme.dart';
-import '../../services/community_controller.dart';
-import '../../models/community_model.dart';
-import '../../models/community_event_model.dart';
-import '../../models/user_model.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../services/community/community_controller.dart';
+import '../../models/community/community_model.dart';
+import '../../models/community/community_event_model.dart';
+import '../../models/user/user_model.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 import '../profile/profile_screen.dart';
-import 'community_detail_screen.dart';
-import 'create_community_screen.dart';
-import '../../widgets/community_join_button.dart';
-import '../../widgets/community_skeleton_widget.dart';
+import './community_detail_screen.dart';
+import './create_community_screen.dart';
+import '../../widgets/community/community_join_button.dart';
+import '../../widgets/skeletons/community_skeleton_widget.dart';
 
 class CommunitiesScreen extends StatefulWidget {
   const CommunitiesScreen({Key? key}) : super(key: key);

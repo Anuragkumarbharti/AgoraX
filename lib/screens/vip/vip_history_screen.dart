@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../services/vip_controller.dart';
-import '../../widgets/vip_badge_widget.dart';
+import '../../services/memberships/vip_controller.dart';
+import '../../widgets/memberships/vip_badge_widget.dart';
 
 class VipHistoryScreen extends StatelessWidget {
   const VipHistoryScreen({Key? key}) : super(key: key);

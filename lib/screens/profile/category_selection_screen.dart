@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/study_category_controller.dart';
-import 'daily_task_screen.dart';
+import '../../services/vault/study_category_controller.dart';
+import './daily_task_screen.dart';
 
 class CategorySelectionScreen extends StatefulWidget {
   final bool canGoBack;

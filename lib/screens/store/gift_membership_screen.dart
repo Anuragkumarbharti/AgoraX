@@ -3,8 +3,8 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import 'package:creania/core/theme.dart';
-import '../../services/store_controller.dart';
-import 'checkout_screen.dart';
+import '../../services/store/store_controller.dart';
+import './checkout_screen.dart';
 
 class GiftMembershipScreen extends StatefulWidget {
   const GiftMembershipScreen({Key? key}) : super(key: key);

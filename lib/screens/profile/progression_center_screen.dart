@@ -4,11 +4,11 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 
-import '../../services/progression_controller.dart';
-import '../../models/progression_models.dart';
-import 'progression_admin_dashboard.dart';
-import '../../services/user_profile_cache_manager.dart';
-import '../../services/admob_service.dart';
+import '../../services/progression/progression_controller.dart';
+import '../../models/progression/progression_models.dart';
+import './progression_admin_dashboard.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import '../../services/storage/admob_service.dart';
 
 class ProgressionCenterScreen extends StatefulWidget {
   const ProgressionCenterScreen({Key? key}) : super(key: key);

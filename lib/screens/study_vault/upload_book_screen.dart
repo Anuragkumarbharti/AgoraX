@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/study_vault_controller.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../services/vault/study_vault_controller.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import '../../widgets/custom_image_editor.dart';
+import '../../widgets/profile/custom_image_editor.dart';
 
 class UploadBookScreen extends StatefulWidget {
   const UploadBookScreen({Key? key}) : super(key: key);

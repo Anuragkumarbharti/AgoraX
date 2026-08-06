@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:creania/core/theme.dart';
-import '../../widgets/custom_image_editor.dart';
-import '../../models/event_model.dart';
-import '../../services/event_controller.dart';
+import '../../widgets/profile/custom_image_editor.dart';
+import '../../models/community/event_model.dart';
+import '../../services/community/event_controller.dart';
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({Key? key}) : super(key: key);

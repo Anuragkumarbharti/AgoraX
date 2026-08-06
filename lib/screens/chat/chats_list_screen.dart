@@ -6,18 +6,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
-import '../../models/chat_model.dart';
-import '../../services/chat_controller.dart';
-import '../../services/room_controller.dart';
-import '../../services/user_profile_cache_manager.dart';
-import '../../models/room_model.dart';
-import '../../models/user_model.dart';
-import '../../widgets/custom_avatar_frame.dart';
+import '../../models/chat/chat_model.dart';
+import '../../services/chat/chat_controller.dart';
+import '../../services/room/room_controller.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import '../../models/room/room_model.dart';
+import '../../models/user/user_model.dart';
+import '../../widgets/profile/custom_avatar_frame.dart';
 import '../rooms/voice_room_call_screen.dart';
 import '../profile/profile_screen.dart';
-import 'chat_screen.dart';
-import 'new_chat_screen.dart';
-import '../../widgets/chat_list_skeleton_widget.dart';
+import './chat_screen.dart';
+import './new_chat_screen.dart';
+import '../../widgets/skeletons/chat_list_skeleton_widget.dart';
 
 class ChatsListScreen extends StatefulWidget {
   const ChatsListScreen({Key? key}) : super(key: key);

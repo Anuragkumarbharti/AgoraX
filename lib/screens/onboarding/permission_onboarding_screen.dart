@@ -4,7 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:creania/core/theme.dart';
 import '../auth/login_screen.dart';
-import '../../widgets/custom_permission_popup.dart';
+import '../../widgets/common/custom_permission_popup.dart';
 
 class PermissionOnboardingScreen extends StatefulWidget {
   const PermissionOnboardingScreen({Key? key}) : super(key: key);

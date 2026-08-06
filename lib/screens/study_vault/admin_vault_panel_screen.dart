@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/study_vault_controller.dart';
-import '../../services/vip_controller.dart';
-import '../../services/novel_controller.dart';
-import '../../services/store_controller.dart';
-import '../../models/study_vault_model.dart';
+import '../../services/vault/study_vault_controller.dart';
+import '../../services/memberships/vip_controller.dart';
+import '../../services/memberships/novel_controller.dart';
+import '../../services/store/store_controller.dart';
+import '../../models/vault/study_vault_model.dart';
 
 class AdminVaultPanelScreen extends StatefulWidget {
   const AdminVaultPanelScreen({Key? key}) : super(key: key);

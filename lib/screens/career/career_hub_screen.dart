@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import 'career_dna_screen.dart';
-import 'skill_tree_screen.dart';
-import 'ai_mentor_screen.dart';
-import 'hiring_score_screen.dart';
-import 'live_battle_screen.dart';
-import 'brain_training_screen.dart';
-import '../../services/career_progression_controller.dart';
-import '../../services/study_category_controller.dart';
+import './career_dna_screen.dart';
+import './skill_tree_screen.dart';
+import './ai_mentor_screen.dart';
+import './hiring_score_screen.dart';
+import './live_battle_screen.dart';
+import './brain_training_screen.dart';
+import '../../services/progression/career_progression_controller.dart';
+import '../../services/vault/study_category_controller.dart';
 import '../profile/mcq_quiz_screen.dart';
-import '../../widgets/video_player_dialog.dart';
+import '../../widgets/room/video_player_dialog.dart';
 import '../profile/daily_task_screen.dart';
 
 // Stub screens for remaining features

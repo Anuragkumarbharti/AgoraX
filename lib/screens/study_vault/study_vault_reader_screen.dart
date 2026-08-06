@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/study_vault_controller.dart';
-import '../../models/study_vault_model.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../services/vault/study_vault_controller.dart';
+import '../../models/vault/study_vault_model.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudyVaultReaderScreen extends StatefulWidget {

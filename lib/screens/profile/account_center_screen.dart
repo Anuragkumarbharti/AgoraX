@@ -4,15 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/store_controller.dart';
-import '../../services/vip_controller.dart';
-import '../../services/novel_controller.dart';
-import '../../services/customization_controller.dart';
+import '../../services/store/store_controller.dart';
+import '../../services/memberships/vip_controller.dart';
+import '../../services/memberships/novel_controller.dart';
+import '../../services/user/customization_controller.dart';
 import '../store/store_home_screen.dart';
 import '../store/checkout_screen.dart';
 import '../vip/vip_purchase_screen.dart';
 import '../novel/novel_purchase_screen.dart';
-import 'profile_customization_screen.dart';
+import './profile_customization_screen.dart';
 
 class AccountCenterScreen extends StatefulWidget {
   const AccountCenterScreen({Key? key}) : super(key: key);

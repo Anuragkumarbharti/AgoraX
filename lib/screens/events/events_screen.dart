@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
-import '../../models/event_model.dart';
-import '../../services/event_controller.dart';
-import 'event_detail_screen.dart';
-import 'create_event_screen.dart';
-import 'wallet_screen.dart';
+import '../../models/community/event_model.dart';
+import '../../services/community/event_controller.dart';
+import './event_detail_screen.dart';
+import './create_event_screen.dart';
+import './wallet_screen.dart';
 import '../coming_soon_screen.dart';
 
 class EventsScreen extends StatefulWidget {

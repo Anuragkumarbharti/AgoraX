@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'voice_service.dart';
-import 'voice_repository.dart';
-import 'voice_controller.dart';
-import 'permission_manager.dart';
+import './voice_service.dart';
+import './voice_repository.dart';
+import './voice_controller.dart';
+import './permission_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:zego_express_engine/zego_express_engine.dart';
 

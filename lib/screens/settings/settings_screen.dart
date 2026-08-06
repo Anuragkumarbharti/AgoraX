@@ -7,10 +7,10 @@ import '../auth/login_screen.dart';
 import '../vip/vip_purchase_screen.dart';
 import '../novel/novel_purchase_screen.dart';
 import '../store/store_home_screen.dart';
-import '../../services/user_profile_cache_manager.dart';
-import '../../services/theme_controller.dart';
-import '../../services/community_controller.dart';
-import 'notification_settings_screen.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import '../../services/storage/theme_controller.dart';
+import '../../services/community/community_controller.dart';
+import './notification_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);

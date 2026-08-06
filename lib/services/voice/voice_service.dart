@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:zego_express_engine/zego_express_engine.dart';
-import 'voice_controller.dart';
+import './voice_controller.dart';
 
 class VoiceService {
   static final VoiceService _instance = VoiceService._internal();

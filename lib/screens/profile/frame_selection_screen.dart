@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/customization_controller.dart';
-import '../../widgets/novel_avatar_decorator.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../services/user/customization_controller.dart';
+import '../../widgets/memberships/novel_avatar_decorator.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FrameSelectionScreen extends StatefulWidget {

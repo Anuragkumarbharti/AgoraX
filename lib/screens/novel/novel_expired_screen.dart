@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/novel_controller.dart';
-import 'novel_purchase_screen.dart';
+import '../../services/memberships/novel_controller.dart';
+import './novel_purchase_screen.dart';
 
 class NovelExpiredScreen extends StatelessWidget {
   const NovelExpiredScreen({Key? key}) : super(key: key);

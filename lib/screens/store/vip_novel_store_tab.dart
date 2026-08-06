@@ -4,14 +4,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import 'package:creania/core/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../services/store_controller.dart';
-import '../../services/vip_controller.dart';
-import '../../services/novel_controller.dart';
-import '../../widgets/vip_badge_widget.dart';
-import '../../widgets/novel_badge_widget.dart';
-import '../../widgets/vip_avatar_decorator.dart';
-import '../../widgets/novel_avatar_decorator.dart';
-import 'checkout_screen.dart';
+import '../../services/store/store_controller.dart';
+import '../../services/memberships/vip_controller.dart';
+import '../../services/memberships/novel_controller.dart';
+import '../../widgets/memberships/vip_badge_widget.dart';
+import '../../widgets/memberships/novel_badge_widget.dart';
+import '../../widgets/memberships/vip_avatar_decorator.dart';
+import '../../widgets/memberships/novel_avatar_decorator.dart';
+import './checkout_screen.dart';
 
 class VipPlan {
   final int level;

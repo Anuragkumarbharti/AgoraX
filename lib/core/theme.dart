@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-export 'responsive.dart';
+export './responsive.dart';
 
 class AppTheme {
   // ── LIGHT THEME COLS (Creania Premium Design System v2.0) ──

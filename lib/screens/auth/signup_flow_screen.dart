@@ -9,19 +9,19 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:creania/core/theme.dart';
-import 'terms_screen.dart';
+import './terms_screen.dart';
 import 'dart:async';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../models/user_model.dart';
-import '../../services/user_profile_cache_manager.dart';
-import '../../services/universal_image_optimizer.dart';
-import '../../services/asset_cache_manager.dart';
-import '../../services/user_progress_sync_service.dart';
+import '../../models/user/user_model.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import '../../services/storage/universal_image_optimizer.dart';
+import '../../services/storage/asset_cache_manager.dart';
+import '../../services/user/user_progress_sync_service.dart';
 import '../home/main_screen.dart';
-import 'login_screen.dart';
-import '../../services/email_validation_service.dart';
+import './login_screen.dart';
+import '../../services/user/email_validation_service.dart';
 import '../../core/api_error_handler.dart';
-import '../../widgets/custom_image_editor.dart';
+import '../../widgets/profile/custom_image_editor.dart';
 
 class SignupFlowScreen extends StatefulWidget {
   final String? userId; // If authenticated via Google/Apple, pass the user ID

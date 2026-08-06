@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/career_progression_controller.dart';
+import '../../services/progression/career_progression_controller.dart';
 
 class ProgressionRewardsScreen extends StatefulWidget {
   const ProgressionRewardsScreen({Key? key}) : super(key: key);

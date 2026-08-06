@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:math';
 import 'dart:ui';
 import 'package:creania/core/theme.dart';
-import '../../services/store_controller.dart';
+import '../../services/store/store_controller.dart';
 
 class LuckyDrawScreen extends StatefulWidget {
   const LuckyDrawScreen({Key? key}) : super(key: key);

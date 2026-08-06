@@ -6,17 +6,17 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
-import '../../models/chat_model.dart';
-import '../../services/chat_controller.dart';
-import '../../services/chat_socket_service.dart';
-import 'chat_settings_screen.dart';
-import '../../models/user_model.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../models/chat/chat_model.dart';
+import '../../services/chat/chat_controller.dart';
+import '../../services/chat/chat_socket_service.dart';
+import './chat_settings_screen.dart';
+import '../../models/user/user_model.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 import '../profile/profile_screen.dart';
-import '../../widgets/message_limit_dialog.dart';
-import '../../widgets/voice_message_player_widget.dart';
-import '../../widgets/send_gift_dialog.dart';
-import '../../widgets/chat_media_attachment_widget.dart';
+import '../../widgets/chat/message_limit_dialog.dart';
+import '../../widgets/chat/voice_message_player_widget.dart';
+import '../../widgets/gifting/send_gift_dialog.dart';
+import '../../widgets/chat/chat_media_attachment_widget.dart';
 
 class ChatScreen extends StatefulWidget {
   final Conversation conversation;

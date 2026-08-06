@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
-import '../../models/event_model.dart';
-import '../../models/user_model.dart';
+import '../../models/community/event_model.dart';
+import '../../models/user/user_model.dart';
 import '../profile/profile_screen.dart';
-import 'live_event_winner_screen.dart';
+import './live_event_winner_screen.dart';
 
 class LiveEventPlayScreen extends StatefulWidget {
   const LiveEventPlayScreen({Key? key, required this.event}) : super(key: key);

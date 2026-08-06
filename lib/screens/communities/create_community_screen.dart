@@ -5,8 +5,8 @@ import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
-import '../../services/community_controller.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../services/community/community_controller.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 
 class CreateCommunityScreen extends StatefulWidget {
   const CreateCommunityScreen({Key? key}) : super(key: key);

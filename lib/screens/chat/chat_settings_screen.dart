@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/chat_controller.dart';
+import '../../services/chat/chat_controller.dart';
 
 class ChatSettingsScreen extends StatefulWidget {
   final String conversationId;

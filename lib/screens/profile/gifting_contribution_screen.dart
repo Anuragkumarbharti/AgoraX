@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../services/user_profile_cache_manager.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 import '../../utils/number_formatter.dart';
 
 class GiftingContributionScreen extends StatefulWidget {

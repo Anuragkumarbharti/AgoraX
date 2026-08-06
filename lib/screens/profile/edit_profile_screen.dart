@@ -8,12 +8,12 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:creania/core/theme.dart';
-import '../../models/user_model.dart';
-import '../../services/user_profile_cache_manager.dart';
-import '../../services/user_progress_sync_service.dart';
-import '../../services/universal_image_optimizer.dart';
-import '../../services/asset_cache_manager.dart';
-import '../../widgets/custom_image_editor.dart';
+import '../../models/user/user_model.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import '../../services/user/user_progress_sync_service.dart';
+import '../../services/storage/universal_image_optimizer.dart';
+import '../../services/storage/asset_cache_manager.dart';
+import '../../widgets/profile/custom_image_editor.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({Key? key}) : super(key: key);

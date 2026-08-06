@@ -4,8 +4,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../services/vault_controller.dart';
-import '../../models/vault_models.dart';
+import '../../services/vault/vault_controller.dart';
+import '../../models/vault/vault_models.dart';
 
 class CreaniaVaultHomeScreen extends StatefulWidget {
   const CreaniaVaultHomeScreen({Key? key}) : super(key: key);

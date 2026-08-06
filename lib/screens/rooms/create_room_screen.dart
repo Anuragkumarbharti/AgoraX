@@ -7,10 +7,10 @@ import 'dart:io' as io;
 import 'package:image_picker/image_picker.dart';
 import 'package:creania/core/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
-import '../../widgets/custom_image_editor.dart';
-import '../../services/room_controller.dart';
-import '../../services/user_profile_cache_manager.dart';
-import 'voice_room_call_screen.dart';
+import '../../widgets/profile/custom_image_editor.dart';
+import '../../services/room/room_controller.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import './voice_room_call_screen.dart';
 
 class CreateRoomScreen extends StatefulWidget {
   const CreateRoomScreen({Key? key}) : super(key: key);

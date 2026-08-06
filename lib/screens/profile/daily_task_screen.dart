@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'progression_center_screen.dart';
+import './progression_center_screen.dart';
 
 class DailyTaskScreen extends StatelessWidget {
   final String? initialCategory;

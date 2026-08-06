@@ -4,9 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
-import '../../services/fcm_notification_service.dart';
-import '../../services/user_profile_cache_manager.dart';
-import '../../widgets/notification_skeleton_widget.dart';
+import '../../services/storage/fcm_notification_service.dart';
+import '../../services/user/user_profile_cache_manager.dart';
+import '../../widgets/skeletons/notification_skeleton_widget.dart';
 
 class NotificationHistoryScreen extends StatefulWidget {
   const NotificationHistoryScreen({Key? key}) : super(key: key);
