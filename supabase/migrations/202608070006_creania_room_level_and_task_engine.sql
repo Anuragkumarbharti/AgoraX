@@ -23,9 +23,9 @@ values
   (2, 35500, 1, 7, 6, true, false, false, 'Premium Arena', 'Premium background, welcome banner, arena statistics, arena music'),
   (3, 59500, 2, 11, 8, true, true, false, 'Animated Arena', 'Animated arena frame, gift wall, showcase badge, arena music'),
   (4, 95000, 2, 14, 11, true, true, false, 'Dynamic Arena', 'Dynamic background, premium arena effects, event scheduler, arena music'),
-  (5, 150000, 3, 16, 13, true, true, true, 'Official Arena', 'Official arena badge, permanent chat bubble, premium discovery, advanced analytics, arena music'),
-  (6, 240000, 3, 18, 14, true, true, true, 'Luxury Arena', 'Luxury theme, animated entry, VIP arena features, arena music'),
-  (7, 370000, 3, 20, 15, true, true, true, 'Legendary Arena', 'Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation, arena music')
+  (5, 490000, 3, 16, 13, true, true, true, 'Official Arena', 'GRAND PRIZE: 2,000 Gold Coins + VIP 2 (60 Days)! Official badge, permanent chat bubble, analytics, arena music'),
+  (6, 940000, 3, 18, 14, true, true, true, 'Luxury Arena', 'GRAND PRIZE: 5,000 Gold Coins + VIP 2 (6 Months)! Luxury theme, animated entry, VIP features, arena music'),
+  (7, 1590000, 3, 20, 15, true, true, true, 'Legendary Arena', 'GRAND PRIZE: 12,000 Gold Coins + VIP 3 (1 Year)! Legendary crown, exclusive backgrounds, official recommendation, arena music')
 on conflict (level) do update set
   required_vp = excluded.required_vp,
   max_co_owners = excluded.max_co_owners,
@@ -214,6 +214,29 @@ begin
       insert into public.user_unlocked_perks (user_id, perk_type, perk_id, source_level, is_permanent)
       values (v_owner_id, 'showcase_badge', 'room_showcase_level_' || v_new_level, v_new_level, true)
       on conflict (user_id, perk_type, perk_id) do nothing;
+    end if;
+
+    -- Grand Prizes on Level Upgrades (Level 5, 6, 7)
+    if v_did_upgrade then
+      if v_new_level = 5 then
+        update public.profiles
+        set gold_coins = gold_coins + 2000,
+            vip_level = greatest(vip_level, 2),
+            vip_expires_at = case when vip_expires_at is null or vip_expires_at < now() then now() + interval '60 days' else vip_expires_at + interval '60 days' end
+        where id = v_owner_id;
+      elsif v_new_level = 6 then
+        update public.profiles
+        set gold_coins = gold_coins + 5000,
+            vip_level = greatest(vip_level, 2),
+            vip_expires_at = case when vip_expires_at is null or vip_expires_at < now() then now() + interval '180 days' else vip_expires_at + interval '180 days' end
+        where id = v_owner_id;
+      elsif v_new_level = 7 then
+        update public.profiles
+        set gold_coins = gold_coins + 12000,
+            vip_level = greatest(vip_level, 3),
+            vip_expires_at = case when vip_expires_at is null or vip_expires_at < now() then now() + interval '365 days' else vip_expires_at + interval '365 days' end
+        where id = v_owner_id;
+      end if;
     end if;
 
     -- Permanent Chat Bubble if Level >= 5

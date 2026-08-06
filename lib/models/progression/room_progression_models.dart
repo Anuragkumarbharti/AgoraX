@@ -7,6 +7,9 @@ class RoomLevelMatrixConfig {
   final bool hasRoomMusic;
   final bool hasShowcaseBadge;
   final bool hasPermanentChatBubble;
+  final int grandPrizeCoins;
+  final int grandPrizeVipLevel;
+  final int grandPrizeVipDays;
   final String title;
   final String description;
 
@@ -19,6 +22,9 @@ class RoomLevelMatrixConfig {
     required this.hasRoomMusic,
     required this.hasShowcaseBadge,
     required this.hasPermanentChatBubble,
+    this.grandPrizeCoins = 0,
+    this.grandPrizeVipLevel = 0,
+    this.grandPrizeVipDays = 0,
     required this.title,
     required this.description,
   });
@@ -77,42 +83,51 @@ class RoomLevelMatrixConfig {
     ),
     RoomLevelMatrixConfig(
       level: 5,
-      requiredVp: 150000,
+      requiredVp: 490000,
       maxCoOwners: 3,
       maxAdmins: 16,
       maxHostSeats: 13,
       hasRoomMusic: true,
       hasShowcaseBadge: true,
       hasPermanentChatBubble: true,
+      grandPrizeCoins: 2000,
+      grandPrizeVipLevel: 2,
+      grandPrizeVipDays: 60,
       title: 'Official Arena',
       description:
-          'Official arena badge, permanent chat bubble, premium discovery, advanced analytics, arena music',
+          'GRAND PRIZE: 2,000 Gold Coins + VIP 2 (60 Days)! Official badge, permanent chat bubble, analytics, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 6,
-      requiredVp: 240000,
+      requiredVp: 940000,
       maxCoOwners: 3,
       maxAdmins: 18,
       maxHostSeats: 14,
       hasRoomMusic: true,
       hasShowcaseBadge: true,
       hasPermanentChatBubble: true,
+      grandPrizeCoins: 5000,
+      grandPrizeVipLevel: 2,
+      grandPrizeVipDays: 180,
       title: 'Luxury Arena',
       description:
-          'Luxury theme, animated entry, VIP arena features, arena music',
+          'GRAND PRIZE: 5,000 Gold Coins + VIP 2 (6 Months)! Luxury theme, animated entry, VIP features, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 7,
-      requiredVp: 370000,
+      requiredVp: 1590000,
       maxCoOwners: 3,
       maxAdmins: 20,
       maxHostSeats: 15,
       hasRoomMusic: true,
       hasShowcaseBadge: true,
       hasPermanentChatBubble: true,
+      grandPrizeCoins: 12000,
+      grandPrizeVipLevel: 3,
+      grandPrizeVipDays: 365,
       title: 'Legendary Arena',
       description:
-          'Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation, arena music',
+          'GRAND PRIZE: 12,000 Gold Coins + VIP 3 (1 Year)! Legendary crown, exclusive backgrounds, official recommendation',
     ),
   ];
 
