@@ -94,6 +94,7 @@ class UltraFastRoomJoinEngine {
         params: {
           'p_room_id': room.id,
           'p_provided_password': providedPassword,
+          'p_user_id': currentUserId,
         },
       );
       rpcJoinLatencyMs = stopwatch.elapsedMilliseconds - rpcStart;
@@ -227,8 +228,8 @@ class UltraFastRoomJoinEngine {
     } catch (e) {
       debugPrint('[UltraFastRoomJoinEngine] Transaction failed: $e. Executing full transaction rollback...');
       await _rollbackJoinTransaction(room.id);
-      final errorMsg = e.toString().contains('PostgrestException')
-          ? 'Database Connection Error. Please try again.'
+      final errorMsg = e is PostgrestException && e.message.isNotEmpty
+          ? e.message
           : 'Unable to connect to room: $e';
       Get.snackbar(
         'Room Join Failed 📡',

@@ -1,28 +1,55 @@
 -- Migration: Ultra Fast Room Join System (Target: 100ms - 200ms Latency Engine)
 -- Date: 2026-08-07
 
+-- 0. Ensure all missing columns exist on public.rooms
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS entry_permission text DEFAULT 'everyone';
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS room_password text DEFAULT NULL;
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS vip_requirement int DEFAULT 0;
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS level_requirement int DEFAULT 1;
+
+-- 1. Update room_members role check constraint to support all role names
+ALTER TABLE public.room_members DROP CONSTRAINT IF EXISTS room_members_role_check;
+ALTER TABLE public.room_members ADD CONSTRAINT room_members_role_check 
+  CHECK (role IN ('Host', 'Co-Host', 'Moderator', 'Speaker', 'Listener', 'Guest', 'Owner', 'Co Owner', 'Co-Owner', 'Admin', 'Member', 'Audience', 'Creator'));
+
 -- Single Consolidated Atomic RPC for Room Entry
 CREATE OR REPLACE FUNCTION public.join_room_fast_v2(
   p_room_id text,
-  p_provided_password text DEFAULT NULL
+  p_provided_password text DEFAULT NULL,
+  p_user_id text DEFAULT NULL
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  v_caller_id uuid := auth.uid();
+  v_caller_id uuid;
   v_room_id text;
   v_room RECORD;
+  v_room_json jsonb;
+  v_host_id uuid;
+  v_room_owner_id uuid;
   v_host_profile RECORD;
   v_caller_profile RECORD;
   v_is_banned boolean := false;
   v_kick_active boolean := false;
-  v_role text := 'Audience';
+  v_role text := 'Listener';
   v_is_owner boolean := false;
   v_is_co_owner boolean := false;
   v_is_admin boolean := false;
   v_seats jsonb;
   v_custom_perms jsonb;
   v_who_can_join text;
+  v_room_pass text;
   v_member_count int := 0;
 BEGIN
+  -- Resolve Caller UUID (supports auth.uid() or explicit p_user_id fallback)
+  IF p_user_id IS NOT NULL AND length(trim(p_user_id)) > 0 THEN
+    BEGIN
+      v_caller_id := p_user_id::uuid;
+    EXCEPTION WHEN OTHERS THEN
+      v_caller_id := auth.uid();
+    END;
+  ELSE
+    v_caller_id := auth.uid();
+  END IF;
+
   IF v_caller_id IS NULL THEN
     RAISE EXCEPTION 'Authentication required.';
   END IF;
@@ -41,22 +68,49 @@ BEGIN
     );
   END IF;
 
-  -- 2. Fetch Host & Caller Profiles
-  SELECT id, username, COALESCE(avatar_url, profile_photo, '') as avatar, gender, level, vip_level INTO v_host_profile 
-  FROM public.profiles WHERE id = v_room.host_id;
+  -- Convert room record to jsonb to prevent runtime "record has no field" errors
+  v_room_json := to_jsonb(v_room);
+  
+  BEGIN
+    v_host_id := (v_room_json->>'host_id')::uuid;
+  EXCEPTION WHEN OTHERS THEN
+    v_host_id := NULL;
+  END;
 
-  SELECT id, username, COALESCE(avatar_url, profile_photo, '') as avatar, gender, level, vip_level INTO v_caller_profile 
-  FROM public.profiles WHERE id = v_caller_id;
+  BEGIN
+    v_room_owner_id := (v_room_json->>'room_owner')::uuid;
+  EXCEPTION WHEN OTHERS THEN
+    v_room_owner_id := NULL;
+  END;
+
+  -- 2. Fetch Host & Caller Profiles
+  IF v_host_id IS NOT NULL THEN
+    BEGIN
+      SELECT id, username, COALESCE(avatar_url, profile_photo, '') as avatar, gender, level, vip_level INTO v_host_profile 
+      FROM public.profiles WHERE id = v_host_id;
+    EXCEPTION WHEN OTHERS THEN
+      v_host_profile := NULL;
+    END;
+  END IF;
+
+  BEGIN
+    SELECT id, username, COALESCE(avatar_url, profile_photo, '') as avatar, gender, level, vip_level INTO v_caller_profile 
+    FROM public.profiles WHERE id = v_caller_id;
+  EXCEPTION WHEN OTHERS THEN
+    v_caller_profile := NULL;
+  END;
 
   -- 3. Resolve User Role in Room
-  IF v_room.host_id = v_caller_id OR (v_room.room_owner IS NOT NULL AND v_room.room_owner = v_caller_id) THEN
+  IF (v_host_id IS NOT NULL AND v_host_id = v_caller_id) OR (v_room_owner_id IS NOT NULL AND v_room_owner_id = v_caller_id) THEN
     v_role := 'Owner';
     v_is_owner := true;
   ELSE
     SELECT role INTO v_role 
     FROM public.room_members WHERE room_id = v_room_id AND user_id = v_caller_id;
     
-    IF v_role IS NULL THEN v_role := 'Audience'; END IF;
+    IF v_role IS NULL OR v_role = 'Audience' THEN 
+      v_role := 'Listener'; 
+    END IF;
 
     IF v_role IN ('Co-Owner', 'Co Owner') THEN v_is_co_owner := true; END IF;
     IF v_role = 'Admin' THEN v_is_admin := true; END IF;
@@ -64,44 +118,72 @@ BEGIN
 
   -- 4. Check Ban Status (Permanent Ban Check)
   IF EXISTS (
-    SELECT 1 FROM public.room_admin_activity_logs 
-    WHERE room_id = v_room_id AND target_user_id = v_caller_id AND action_type = 'BAN'
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_name = 'room_admin_activity_logs' AND table_schema = 'public'
   ) THEN
-    IF NOT v_is_owner THEN
-      RETURN jsonb_build_object(
-        'join_allowed', false,
-        'reason', 'Permanently banned from this room.'
-      );
+    IF EXISTS (
+      SELECT 1 FROM public.room_admin_activity_logs 
+      WHERE room_id = v_room_id AND target_user_id = v_caller_id AND action_type = 'BAN'
+    ) THEN
+      IF NOT v_is_owner THEN
+        RETURN jsonb_build_object(
+          'join_allowed', false,
+          'reason', 'Permanently banned from this room.'
+        );
+      END IF;
+    END IF;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_name = 'room_bans' AND table_schema = 'public'
+  ) THEN
+    IF EXISTS (
+      SELECT 1 FROM public.room_bans 
+      WHERE room_id = v_room_id AND user_id = v_caller_id AND (expires_at IS NULL OR expires_at > now())
+    ) THEN
+      IF NOT v_is_owner THEN
+        RETURN jsonb_build_object(
+          'join_allowed', false,
+          'reason', 'Banned from this room.'
+        );
+      END IF;
     END IF;
   END IF;
 
   -- 5. Check Active Kick Status (Temporary Kick)
-  SELECT EXISTS (
-    SELECT 1 FROM public.room_admin_activity_logs 
-    WHERE room_id = v_room_id AND target_user_id = v_caller_id AND action_type = 'KICK'
-      AND created_at > (now() - interval '10 minutes')
-  ) INTO v_kick_active;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_name = 'room_admin_activity_logs' AND table_schema = 'public'
+  ) THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.room_admin_activity_logs 
+      WHERE room_id = v_room_id AND target_user_id = v_caller_id AND action_type = 'KICK'
+        AND created_at > (now() - interval '10 minutes')
+    ) INTO v_kick_active;
 
-  IF v_kick_active AND NOT v_is_owner AND NOT v_is_co_owner THEN
-    RETURN jsonb_build_object(
-      'join_allowed', false,
-      'reason', 'You were recently removed from this room. Please wait a few minutes.'
-    );
+    IF v_kick_active AND NOT v_is_owner AND NOT v_is_co_owner THEN
+      RETURN jsonb_build_object(
+        'join_allowed', false,
+        'reason', 'You were recently removed from this room. Please wait a few minutes.'
+      );
+    END IF;
   END IF;
 
   -- 6. Evaluate Room Entry Permissions (Password, Followers Only, VIP Level, User Level, Community)
-  v_who_can_join := LOWER(COALESCE(v_room.entry_permission, v_room.visibility, 'everyone'));
+  v_who_can_join := LOWER(COALESCE(v_room_json->>'entry_permission', v_room_json->>'visibility', 'everyone'));
+  v_room_pass := v_room_json->>'room_password';
   
   IF NOT v_is_owner AND NOT v_is_co_owner AND NOT v_is_admin THEN
     -- A. Password Protection
-    IF v_who_can_join LIKE '%password%' OR v_room.room_password IS NOT NULL THEN
+    IF v_who_can_join LIKE '%password%' OR (v_room_pass IS NOT NULL AND length(trim(v_room_pass)) > 0) THEN
       IF p_provided_password IS NULL OR length(trim(p_provided_password)) = 0 THEN
         RETURN jsonb_build_object(
           'join_allowed', false,
           'reason', 'PASSWORD_REQUIRED',
           'password_required', true
         );
-      ELSIF trim(p_provided_password) != trim(COALESCE(v_room.room_password, v_room.rules[1], '1234')) THEN
+      ELSIF trim(p_provided_password) != trim(COALESCE(v_room_pass, '1234')) THEN
         RETURN jsonb_build_object(
           'join_allowed', false,
           'reason', 'Incorrect room password. Access denied.',
@@ -116,9 +198,9 @@ BEGIN
         SELECT 1 FROM information_schema.tables 
         WHERE table_name = 'connections' AND table_schema = 'public'
       ) THEN
-        IF NOT EXISTS (
+        IF v_host_id IS NOT NULL AND NOT EXISTS (
           SELECT 1 FROM public.connections 
-          WHERE follower_id = v_caller_id AND following_id = v_room.host_id
+          WHERE follower_id = v_caller_id AND following_id = v_host_id
         ) THEN
           RETURN jsonb_build_object(
             'join_allowed', false,
@@ -135,9 +217,9 @@ BEGIN
         SELECT 1 FROM information_schema.tables 
         WHERE table_name = 'connections' AND table_schema = 'public'
       ) THEN
-        IF NOT EXISTS (
+        IF v_host_id IS NOT NULL AND NOT EXISTS (
           SELECT 1 FROM public.connections 
-          WHERE follower_id = v_room.host_id AND following_id = v_caller_id
+          WHERE follower_id = v_host_id AND following_id = v_caller_id
         ) THEN
           RETURN jsonb_build_object(
             'join_allowed', false,
@@ -149,19 +231,19 @@ BEGIN
     END IF;
 
     -- C. VIP Level Requirement
-    IF v_who_can_join LIKE '%vip%' AND COALESCE(v_caller_profile.vip_level, 1) < COALESCE(v_room.vip_requirement, 0) THEN
+    IF v_who_can_join LIKE '%vip%' AND COALESCE(v_caller_profile.vip_level, 1) < COALESCE((v_room_json->>'vip_requirement')::int, 0) THEN
       RETURN jsonb_build_object(
         'join_allowed', false,
-        'reason', format('VIP Level %s required to enter this arena.', COALESCE(v_room.vip_requirement, 0)),
+        'reason', format('VIP Level %s required to enter this arena.', COALESCE((v_room_json->>'vip_requirement')::int, 0)),
         'vip_required', true
       );
     END IF;
 
     -- D. User Level Requirement
-    IF v_who_can_join LIKE '%level%' AND COALESCE(v_caller_profile.level, 1) < COALESCE(v_room.level_requirement, 1) THEN
+    IF v_who_can_join LIKE '%level%' AND COALESCE(v_caller_profile.level, 1) < COALESCE((v_room_json->>'level_requirement')::int, 1) THEN
       RETURN jsonb_build_object(
         'join_allowed', false,
-        'reason', format('User Level %s required to enter this arena.', COALESCE(v_room.level_requirement, 1)),
+        'reason', format('User Level %s required to enter this arena.', COALESCE((v_room_json->>'level_requirement')::int, 1)),
         'level_required', true
       );
     END IF;
@@ -189,32 +271,33 @@ BEGIN
   -- 9. Upsert Member Join Session
   INSERT INTO public.room_members (room_id, user_id, role, joined_at)
   VALUES (v_room_id, v_caller_id, v_role, now())
-  ON CONFLICT (room_id, user_id) DO NOTHING;
+  ON CONFLICT (room_id, user_id) DO UPDATE 
+  SET role = EXCLUDED.role, joined_at = now();
 
   -- 10. Construct Single Consolidated Response
   RETURN jsonb_build_object(
     'join_allowed', true,
     'reason', 'Allowed',
     'room_info', jsonb_build_object(
-      'id', v_room.id,
-      'name', v_room.name,
-      'username', v_room.username,
-      'category', v_room.category,
-      'language', v_room.language,
-      'host_id', v_room.host_id,
-      'room_owner', v_room.room_owner,
-      'avatar', v_room.avatar,
-      'banner', v_room.banner,
-      'room_cover_url', v_room.room_cover_url,
-      'room_level', COALESCE(v_room.room_level, 1),
-      'is_emergency_mode', COALESCE(v_room.is_emergency_mode, false),
-      'security_score', COALESCE(v_room.security_score, 5.00),
-      'health_score', COALESCE(v_room.health_score, 100),
-      'governance_level', COALESCE(v_room.governance_level, 1)
+      'id', v_room_json->>'id',
+      'name', COALESCE(v_room_json->>'name', 'Arena'),
+      'username', COALESCE(v_room_json->>'username', ''),
+      'category', COALESCE(v_room_json->>'category', 'General'),
+      'language', COALESCE(v_room_json->>'language', 'English'),
+      'host_id', v_host_id,
+      'room_owner', v_room_owner_id,
+      'avatar', COALESCE(v_room_json->>'avatar', ''),
+      'banner', COALESCE(v_room_json->>'banner', ''),
+      'room_cover_url', COALESCE(v_room_json->>'room_cover_url', ''),
+      'room_level', COALESCE((v_room_json->>'room_level')::int, 1),
+      'is_emergency_mode', COALESCE((v_room_json->>'is_emergency_mode')::boolean, false),
+      'security_score', COALESCE((v_room_json->>'security_score')::numeric, 5.00),
+      'health_score', COALESCE((v_room_json->>'health_score')::int, 100),
+      'governance_level', COALESCE((v_room_json->>'governance_level')::int, 1)
     ),
     'host_profile', jsonb_build_object(
-      'id', v_host_profile.id,
-      'username', v_host_profile.username,
+      'id', COALESCE(v_host_profile.id, v_host_id),
+      'username', COALESCE(v_host_profile.username, 'Creania Host'),
       'display_name', COALESCE(v_host_profile.username, 'Creania Host'),
       'avatar', COALESCE(v_host_profile.avatar, ''),
       'gender', COALESCE(v_host_profile.gender, 'other'),
