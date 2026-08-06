@@ -10,6 +10,7 @@ import '../../../../widgets/room/creania_vp_progress_bar.dart';
 import '../dialogs/online_members_dialog.dart';
 import '../dialogs/seat_applications_dialog.dart';
 import '../dialogs/room_settings_dialog.dart';
+import '../dialogs/room_star_gift_stats_dialog.dart';
 
 class RoomCallHeader extends StatelessWidget {
   final String roomId;
@@ -62,30 +63,87 @@ class RoomCallHeader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Builder(
-                  builder: (context) {
-                    final freeVp = controller.getRoomFreeVp(roomId);
-                    final goldVp = controller.getRoomGoldVp(roomId);
-                    return CreaniaVpProgressBar(
-                      roomLevel: roomLevel,
-                      freeXp: freeVp,
-                      freeTarget: 700,
-                      extraXp: goldVp,
-                      extraTarget: 1000,
-                      roomId: '$liveId',
-                      roomName: liveName,
-                      coverUrl: coverUrl,
-                      onTap: () {
-                        onShowRoomOptionsMenuSheet(context);
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Builder(
+                      builder: (context) {
+                        final freeVp = controller.getRoomFreeVp(roomId);
+                        final goldVp = controller.getRoomGoldVp(roomId);
+                        return CreaniaVpProgressBar(
+                          roomLevel: roomLevel,
+                          freeXp: freeVp,
+                          freeTarget: 700,
+                          extraXp: goldVp,
+                          extraTarget: 1000,
+                          roomId: '$liveId',
+                          roomName: liveName,
+                          coverUrl: coverUrl,
+                          onTap: () {
+                            onShowRoomOptionsMenuSheet(context);
+                          },
+                          onPlusTap: () {
+                            Get.snackbar('Action', 'Inviting users to the arena.');
+                          },
+                        );
                       },
-                      onPlusTap: () {
-                        Get.snackbar('Action', 'Inviting users to the arena.');
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 32),
+                    child: Builder(
+                      builder: (context) {
+                        final totalStars = liveRoom?.totalRoomStars ?? 0;
+                        return GestureDetector(
+                          onTap: () {
+                            Get.dialog(
+                              RoomStarGiftStatsDialog(
+                                roomId: liveId,
+                                roomName: liveName,
+                                totalStars: totalStars,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.40),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '$totalStars',
+                                  style: GoogleFonts.poppins(
+                                    color: const Color(0xFFFFD700),
+                                    fontSize: 10.0,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 3.5),
+                                const Icon(
+                                  Icons.star_rounded,
+                                  color: Color(0xFFFFD700),
+                                  size: 11.5,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
                       },
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
 

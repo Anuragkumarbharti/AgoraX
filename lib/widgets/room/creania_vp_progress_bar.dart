@@ -87,7 +87,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
               children: [
                 // Top Header Row: "Today' AP" on left, "1700/1700" on right
                 SizedBox(
-                  width: 124,
+                  width: 176,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -140,10 +140,10 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                   animation: _animController,
                   builder: (context, child) {
                     return SizedBox(
-                      width: 124,
+                      width: 176,
                       height: 7.0,
                       child: CustomPaint(
-                        size: const Size(124, 7.0),
+                        size: const Size(176, 7.0),
                         painter: _LiquidProgressBarPainter(
                           freeRatio: freeRatio,
                           extraRatio: widget.isGoldMember ? extraRatio : 0.0,

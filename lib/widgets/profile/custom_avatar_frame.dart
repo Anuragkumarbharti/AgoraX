@@ -274,27 +274,49 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
             builder: (context, _) {
               final double waveVal = _glowAnimationController.value;
               final double baseTargetSize = hasFrame ? frameSize : seatSize;
-              final double rippleMaxSize = baseTargetSize * 1.05;
+              final double rippleMaxSize = baseTargetSize + 18.0;
               final double currentRippleSize = baseTargetSize + (rippleMaxSize - baseTargetSize) * waveVal;
-              final double rippleOpacity = (1.0 - waveVal) * 0.6 * volumeFactor.clamp(0.2, 1.0);
+              final double rippleOpacity = (1.0 - waveVal) * 0.7 * volumeFactor.clamp(0.3, 1.0);
 
-              return Container(
-                width: currentRippleSize,
-                height: currentRippleSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF00FF66).withOpacity(rippleOpacity),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00FF66).withOpacity(rippleOpacity * 0.5),
-                      blurRadius: 4.0 * waveVal,
-                      spreadRadius: 1.0 * waveVal,
+              final double waveVal2 = (waveVal + 0.5) % 1.0;
+              final double currentRippleSize2 = baseTargetSize + (rippleMaxSize - baseTargetSize) * waveVal2;
+              final double rippleOpacity2 = (1.0 - waveVal2) * 0.4 * volumeFactor.clamp(0.3, 1.0);
+
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Outer Wave Ring
+                  Container(
+                    width: currentRippleSize,
+                    height: currentRippleSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF00FF66).withOpacity(rippleOpacity),
+                        width: 2.0,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF00FF66).withOpacity(rippleOpacity * 0.6),
+                          blurRadius: 8.0 * waveVal,
+                          spreadRadius: 2.0 * waveVal,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  // Inner Pulse Wave
+                  Container(
+                    width: currentRippleSize2,
+                    height: currentRippleSize2,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF00FF66).withOpacity(rippleOpacity2),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
               );
             },
           ),

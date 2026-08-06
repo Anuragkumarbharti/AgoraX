@@ -7,15 +7,16 @@ class VoiceController extends GetxController {
   final RxString currentUserId = ''.obs;
   final RxString currentUserName = ''.obs;
   final RxString activeRoomId = ''.obs;
-  final RxString roomState = 'disconnected'.obs; // 'disconnected', 'connecting', 'connected', 'reconnecting'
-  
+  final RxString roomState = 'disconnected'
+      .obs; // 'disconnected', 'connecting', 'connected', 'reconnecting'
+
   final RxBool isMicEnabled = false.obs;
   final RxBool isCameraEnabled = false.obs;
 
   final RxMap<String, double> userSoundLevels = <String, double>{}.obs;
   final RxList<ZegoUser> roomUsers = <ZegoUser>[].obs;
   final RxString publishedStreamId = ''.obs;
-  
+
   // Track first audio packet arrival timestamp for performance monitoring
   final Rxn<DateTime> firstAudioPacketTime = Rxn<DateTime>();
 
