@@ -10,7 +10,7 @@ ADD COLUMN IF NOT EXISTS room_password text DEFAULT NULL;
 
 -- 2. Update RPC Function to update room password securely
 CREATE OR REPLACE FUNCTION public.update_room_password(
-  p_room_id uuid,
+  p_room_id text,
   p_new_password text
 )
 RETURNS jsonb

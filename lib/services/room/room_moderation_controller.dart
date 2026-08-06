@@ -321,7 +321,14 @@ class RoomModerationController extends GetxController {
       if (bulletin != null) updates['bulletin'] = bulletin;
       if (greetings != null) updates['greetings'] = greetings;
       if (theme != null) updates['room_theme'] = theme;
-      if (whoCanJoin != null) updates['who_can_join'] = whoCanJoin;
+      if (whoCanJoin != null) {
+        updates['who_can_join'] = whoCanJoin;
+        updates['entry_permission'] = whoCanJoin.toLowerCase().replaceAll(' ', '_');
+        // Clear room password if requirement mode is NOT Password Required
+        if (whoCanJoin != 'Password Required') {
+          updates['room_password'] = null;
+        }
+      }
       if (whoCanSpeak != null) updates['who_can_speak'] = whoCanSpeak;
       if (seatPermissions != null) updates['seat_permissions'] = seatPermissions;
       if (wordFilter != null) updates['word_filter'] = wordFilter;
