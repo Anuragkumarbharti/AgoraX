@@ -12,7 +12,7 @@ alter table public.profiles
 create table if not exists public.user_anti_abuse_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles(id) on delete cascade,
-  room_id uuid references public.rooms(id) on delete cascade,
+  room_id text references public.rooms(id) on delete cascade,
   device_fingerprint text,
   ip_address text,
   event_type text not null, -- 'self_gift_attempt', 'rapid_switch', 'idle_freeze', 'trust_change', 'multi_device'
@@ -24,17 +24,26 @@ create table if not exists public.user_anti_abuse_logs (
 -- RLS for Anti-Abuse Logs
 alter table public.user_anti_abuse_logs enable row level security;
 
-create policy "Admins can view anti abuse logs"
-  on public.user_anti_abuse_logs for select
-  using (
-    exists (
-      select 1 from public.admins where user_id = auth.uid()
-    )
-  );
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'user_anti_abuse_logs' and policyname = 'Admins can view anti abuse logs'
+  ) then
+    create policy "Admins can view anti abuse logs"
+      on public.user_anti_abuse_logs for select
+      using (
+        exists (
+          select 1 from public.admins where user_id = auth.uid()
+        )
+      );
+  end if;
+end;
+$$;
 
 -- 3. Room Activity Tracker Table (For 10-Min Idle Freeze & Solo Slow Mode)
 create table if not exists public.room_activity_tracker (
-  room_id uuid primary key references public.rooms(id) on delete cascade,
+  room_id text primary key references public.rooms(id) on delete cascade,
   last_interaction_at timestamptz default now(),
   active_occupants_count integer default 0,
   is_idle_frozen boolean default false,
@@ -75,7 +84,7 @@ $$ language plpgsql security definer;
 
 -- 5. Enhanced add_room_vp with 20 Anti-Fake Rules & Trust Score Validation
 create or replace function public.add_room_vp(
-  p_room_id uuid,
+  p_room_id text,
   p_vp integer,
   p_source text,
   p_user_id uuid default null,

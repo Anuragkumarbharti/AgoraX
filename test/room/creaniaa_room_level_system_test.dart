@@ -218,7 +218,7 @@ void main() {
       // Reset score
       progCtrl.userTrustScore.value = 85;
 
-      // 3. Self-gifting penalty reduces trust score by 30 and blocks VP
+      // 3. Self-gifting penalty reduces trust score by 30 and blocks VP (Rule 4)
       final canSelfGift = progCtrl.canEarnVp(
         roomId: roomId,
         userId: userId,
@@ -228,13 +228,41 @@ void main() {
       expect(canSelfGift, isFalse);
       expect(progCtrl.userTrustScore.value, equals(55));
 
-      // 4. Banned device guard blocks VP
+      // 4. Banned device guard blocks VP (Rule 17)
       final canBannedEarn = progCtrl.canEarnVp(
         roomId: roomId,
         userId: userId,
         isBannedDevice: true,
       );
       expect(canBannedEarn, isFalse);
+
+      // 5. Solo seat slow mode multiplier (Rule 1: 50% rate)
+      expect(RoomDailyVpConfig.getSoloSeatMultiplier(1), equals(0.5));
+      expect(RoomDailyVpConfig.getSoloSeatMultiplier(3), equals(1.0));
+
+      // 6. Minimum stay duration (Rule 12: 60s minimum)
+      expect(RoomDailyVpConfig.minStayDurationSeconds, equals(60));
+
+      // 7. Join Cooldown & Room Switch Cooldown (Rules 6 & 11)
+      expect(RoomDailyVpConfig.joinCooldownSeconds, equals(30));
+      expect(RoomDailyVpConfig.roomSwitchCooldownSeconds, equals(60));
+
+      // 8. UserTrustScore model brackets & multipliers
+      final highTrust = UserTrustScore(userId: 'u1', trustScore: 90);
+      expect(highTrust.trustLevel, equals('High'));
+      expect(highTrust.vpMultiplier, equals(1.0));
+
+      final lowTrust = UserTrustScore(userId: 'u2', trustScore: 40);
+      expect(lowTrust.trustLevel, equals('Low'));
+      expect(lowTrust.vpMultiplier, equals(0.5));
+
+      final untrusted = UserTrustScore(userId: 'u3', trustScore: 15);
+      expect(untrusted.trustLevel, equals('Untrusted'));
+      expect(untrusted.vpMultiplier, equals(0.0));
+
+      final banned = UserTrustScore(userId: 'u4', trustScore: 85, isDeviceBanned: true);
+      expect(banned.trustLevel, equals('Untrusted'));
+      expect(banned.vpMultiplier, equals(0.0));
     });
   });
 }

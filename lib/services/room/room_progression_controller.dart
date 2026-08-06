@@ -210,6 +210,54 @@ class RoomProgressionController extends GetxController {
     }
   }
 
+  Future<Map<String, dynamic>> validateAndAddRoomVp({
+    required String roomId,
+    required String userId,
+    required int vpAmount,
+    required String source,
+    int staySeconds = 60,
+    String? targetUserId,
+    String? deviceFingerprint,
+    bool isEmulator = false,
+    bool isVpn = false,
+  }) async {
+    try {
+      final client = Supabase.instance.client;
+      final resp = await client.rpc('validate_and_add_room_vp', params: {
+        'p_room_id': roomId,
+        'p_user_id': userId,
+        'p_vp': vpAmount,
+        'p_source': source,
+        'p_stay_seconds': staySeconds,
+        'p_target_user_id': targetUserId,
+        'p_device_fingerprint': deviceFingerprint,
+        'p_is_emulator': isEmulator,
+        'p_is_vpn': isVpn,
+      });
+
+      if (resp != null && resp['success'] == true) {
+        final addedVp = resp['added_vp'] as int? ?? 0;
+        final trustScore = resp['trust_score'] as int? ?? 80;
+        userTrustScore.value = trustScore;
+
+        if (resp['new_level'] != null) {
+          final newTotalVp = resp['new_total_vp'] as int? ?? 0;
+          final newLevel = resp['new_level'] as int? ?? 1;
+          roomLevelProgresses[roomId] = RoomLevelProgress(
+            roomId: roomId,
+            currentLevel: newLevel,
+            currentXp: newTotalVp,
+            consecutiveDaysCompleted: roomLevelProgresses[roomId]?.consecutiveDaysCompleted ?? 0,
+          );
+        }
+      }
+      return Map<String, dynamic>.from(resp as Map);
+    } catch (e) {
+      debugPrint('Error validating and adding room VP: $e');
+      return {'success': false, 'reason': e.toString(), 'added_vp': 0};
+    }
+  }
+
   Future<Map<String, dynamic>> claimTreasureBox(String boxTier) async {
     try {
       final client = Supabase.instance.client;
