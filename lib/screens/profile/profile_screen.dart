@@ -1118,6 +1118,58 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                                 // Action Buttons Row inside cover photo banner
                                 _buildActionButtonsRow(),
+                                const SizedBox(height: 14),
+
+                                // Social Stats Section (Followers, Following, Friends, Gifts)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                  child: _buildSocialStatsSection(),
+                                ),
+                                const SizedBox(height: 14),
+
+                                // 4. Bio & Links Section
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                  child: _glassCard(
+                                    child: Obx(() {
+                                      final u = UserProfileCacheManager.rxCache[_user.id] ??
+                                          _user;
+                                      final bioText = u.bio != null && u.bio!.isNotEmpty
+                                          ? u.bio!
+                                          : 'No bio written yet.';
+                                      final locationText =
+                                          (u.city != null && u.city!.isNotEmpty)
+                                              ? '${u.city}, ${u.country ?? ""}'
+                                              : (u.country ?? 'N/A');
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            bioText,
+                                            style: GoogleFonts.inter(
+                                                color: context.textPrimary,
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w500,
+                                                height: 1.4),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          _bioDetailRow(
+                                              Icons.location_on_outlined, locationText),
+                                          const SizedBox(height: 6),
+                                          _bioDetailRow(Icons.language_rounded,
+                                              u.language.toUpperCase()),
+                                          const SizedBox(height: 6),
+                                          _bioDetailRow(
+                                              Icons.link_rounded,
+                                              u.website != null && u.website!.isNotEmpty
+                                                  ? u.website!
+                                                  : 'N/A'),
+                                        ],
+                                      );
+                                    }),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
                               ],
                             ),
                           ),
@@ -1127,54 +1179,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ],
                 ),
 
-                // Rest of the profile content starting on white canvas below the curved divider panel
+                // Rest of the profile content starting on canvas below the header banner
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Social Stats Section (Followers, Following, Friends, Gifts)
-                      _buildSocialStatsSection(),
-                      const SizedBox(height: 16),
-                      // 4. Bio & Links Section
-                      _glassCard(
-                        child: Obx(() {
-                          final u = UserProfileCacheManager.rxCache[_user.id] ??
-                              _user;
-                          final bioText = u.bio != null && u.bio!.isNotEmpty
-                              ? u.bio!
-                              : 'No bio written yet.';
-                          final locationText =
-                              (u.city != null && u.city!.isNotEmpty)
-                                  ? '${u.city}, ${u.country ?? ""}'
-                                  : (u.country ?? 'N/A');
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                bioText,
-                                style: GoogleFonts.inter(
-                                    color: context.textPrimary,
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.4),
-                              ),
-                              const SizedBox(height: 12),
-                              _bioDetailRow(
-                                  Icons.location_on_outlined, locationText),
-                              const SizedBox(height: 6),
-                              _bioDetailRow(Icons.language_rounded,
-                                  u.language.toUpperCase()),
-                              const SizedBox(height: 6),
-                              _bioDetailRow(
-                                  Icons.link_rounded,
-                                  u.website != null && u.website!.isNotEmpty
-                                      ? u.website!
-                                      : 'N/A'),
-                            ],
-                          );
-                        }),
-                      ),
                       const SizedBox(height: 12),
 
                       // 5. Personal Info Section
