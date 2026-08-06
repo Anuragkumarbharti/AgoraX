@@ -833,21 +833,33 @@ class _ProfileScreenState extends State<ProfileScreen>
                       final profileId = _isMe
                           ? UserProfileCacheManager.currentUserId
                           : (widget.visitorUser?.id ?? _user.id);
-                      final liveUser = UserProfileCacheManager.rxCache[profileId] ??
-                          (_isMe ? UserProfileCacheManager.currentUser : null) ??
-                          _user;
+                      final liveUser =
+                          UserProfileCacheManager.rxCache[profileId] ??
+                              (_isMe
+                                  ? UserProfileCacheManager.currentUser
+                                  : null) ??
+                              _user;
 
                       final String rawCover = (liveUser.coverPhoto != null &&
                               liveUser.coverPhoto!.isNotEmpty &&
-                              !liveUser.coverPhoto!.contains('lh3.googleusercontent.com'))
+                              !liveUser.coverPhoto!
+                                  .contains('lh3.googleusercontent.com'))
                           ? liveUser.coverPhoto!
                           : 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809';
-                      final String optimizedCover = AssetCacheManager.getOptimizedUrl(rawCover, ImageQuality.medium);
+                      final String optimizedCover =
+                          AssetCacheManager.getOptimizedUrl(
+                              rawCover, ImageQuality.medium);
+
+                      final double screenHeight = MediaQuery.of(context).size.height;
+                      final double dynamicHeaderHeight = screenHeight * 0.50 + 15.0;
 
                       return ClipPath(
                         clipper: ProfileHeaderCurveClipper(),
                         child: Container(
                           width: double.infinity,
+                          constraints: BoxConstraints(
+                            minHeight: dynamicHeaderHeight,
+                          ),
                           decoration: BoxDecoration(
                             image: DecorationImage(
                               image: CachedNetworkImageProvider(
@@ -859,19 +871,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                           child: Container(
                             padding: const EdgeInsets.only(
-                                top: 40, left: 16, right: 16, bottom: 16),
+                                top: 40, left: 16, right: 16, bottom: 20),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
                                   Colors.black.withOpacity(0.35),
                                   Colors.transparent,
-                                  Colors.black.withOpacity(0.15),
+                                  Colors.black.withOpacity(0.20),
                                 ],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                               ),
                             ),
                             child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 // App bar buttons
@@ -885,13 +898,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                                           if (Navigator.canPop(context)) {
                                             Navigator.pop(context);
                                           } else {
-                                            Get.offAll(() => const MainScreen());
+                                            Get.offAll(
+                                                () => const MainScreen());
                                           }
                                         },
                                         child: Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(0.35),
+                                            color:
+                                                Colors.black.withOpacity(0.35),
                                             shape: BoxShape.circle,
                                             border: Border.all(
                                                 color: Colors.white
@@ -929,196 +944,203 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Centered Avatar Frame and Profile Photo
-                                Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    CustomAvatarFrame(
-                                      userId: liveUser.id,
-                                      username: liveUser.username,
-                                      size: (liveUser.avatarFrame != null &&
-                                                  liveUser.avatarFrame!
-                                                      .isNotEmpty &&
-                                                  liveUser.avatarFrame !=
-                                                      'none' &&
-                                                  liveUser.avatarFrame !=
-                                                      'normal') ||
-                                              liveUser.vipLevel > 0 ||
-                                              liveUser.novelLevel > 0
-                                          ? 112
-                                          : 96,
-                                      defaultVipLevel: liveUser.vipLevel,
-                                      defaultNovelLevel: liveUser.novelLevel,
-                                      showBadges: false,
-                                      child: CircleAvatar(
-                                        radius: 48,
-                                        backgroundColor:
-                                            const Color(0xFF11131C),
-                                        child: OptimizedImage(
-                                          imageUrl: (liveUser.avatar != null &&
-                                                  liveUser.avatar!.isNotEmpty &&
-                                                  !liveUser.avatar!.contains('lh3.googleusercontent.com'))
-                                              ? liveUser.avatar!
-                                              : 'https://api.dicebear.com/7.x/bottts/png?seed=${liveUser.username}',
-                                          quality: ImageQuality.thumbnail,
-                                          borderRadius:
-                                              BorderRadius.circular(48),
-                                          width: 96,
-                                          height: 96,
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      bottom: 4,
-                                      right: 4,
-                                      child: Container(
-                                        width: 16,
-                                        height: 16,
-                                        decoration: BoxDecoration(
-                                          color: Colors.green,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                              color: const Color(0xFF11131C),
-                                              width: 2),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-
-                                // First Row: Username (Bold, Primary Focus, 18 px)
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                // Overlapping elements group (Avatar frame, Username, ID, Tags, Status, Badges, Action buttons) shifted down together
+                                Column(
                                   mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    Flexible(
-                                      child: Text(
-                                        liveUser.displayName,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: GoogleFonts.poppins(
-                                          color: context.textPrimary,
-                                          fontSize: AppTypography.title,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: -0.4,
-                                          shadows: [
-                                            Shadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.3),
+                                    // Centered Avatar Frame and Profile Photo
+                                    Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        CustomAvatarFrame(
+                                          userId: liveUser.id,
+                                          username: liveUser.username,
+                                          size: (liveUser.avatarFrame != null &&
+                                                      liveUser.avatarFrame!
+                                                          .isNotEmpty &&
+                                                      liveUser.avatarFrame !=
+                                                          'none' &&
+                                                      liveUser.avatarFrame !=
+                                                          'normal') ||
+                                                  liveUser.vipLevel > 0 ||
+                                                  liveUser.novelLevel > 0
+                                              ? 112
+                                              : 96,
+                                          defaultVipLevel: liveUser.vipLevel,
+                                          defaultNovelLevel: liveUser.novelLevel,
+                                          showBadges: false,
+                                          child: CircleAvatar(
+                                            radius: 48,
+                                            backgroundColor:
+                                                const Color(0xFF11131C),
+                                            child: OptimizedImage(
+                                              imageUrl: (liveUser.avatar != null &&
+                                                      liveUser.avatar!.isNotEmpty &&
+                                                      !liveUser.avatar!.contains(
+                                                          'lh3.googleusercontent.com'))
+                                                  ? liveUser.avatar!
+                                                  : 'https://api.dicebear.com/7.x/bottts/png?seed=${liveUser.username}',
+                                              quality: ImageQuality.thumbnail,
+                                              borderRadius:
+                                                  BorderRadius.circular(48),
+                                              width: 96,
+                                              height: 96,
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          bottom: 4,
+                                          right: 4,
+                                          child: Container(
+                                            width: 16,
+                                            height: 16,
+                                            decoration: BoxDecoration(
+                                              color: Colors.green,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                  color: const Color(0xFF11131C),
+                                                  width: 2),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+
+                                    // First Row: Username (Bold, Primary Focus, 18 px)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            liveUser.displayName,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.poppins(
+                                              color: context.textPrimary,
+                                              fontSize: AppTypography.title,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: -0.4,
+                                              shadows: [
+                                                Shadow(
+                                                  color:
+                                                      Colors.black.withOpacity(0.3),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 2),
+                                                )
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Icon(
+                                          liveUser.gender == 'female'
+                                              ? Icons.female_rounded
+                                              : Icons.male_rounded,
+                                          color: liveUser.gender == 'female'
+                                              ? const Color(0xFFF472B6)
+                                              : const Color(0xFF60A5FA),
+                                          size: AppDimensions.minIconSize,
+                                        ),
+                                        if (_isMe) ...[
+                                          const SizedBox(width: 8),
+                                          GestureDetector(
+                                            onTap: () => Get.to(() =>
+                                                    const ProfileCustomizationScreen())
+                                                ?.then((_) {
+                                              UserProfileCacheManager
+                                                  .fetchUserProfile(_user.id,
+                                                      forceRefresh: true);
+                                            }),
+                                            child: Icon(Icons.edit_rounded,
+                                                color: context.textSecondary,
+                                                size: 14),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+
+                                    // Second Row: User ID (Smaller, 13 px, Secondary text)
+                                    GestureDetector(
+                                      onTap: () {
+                                        Clipboard.setData(
+                                            ClipboardData(text: liveUser.sid));
+                                        Get.snackbar(
+                                            'Copied', 'ID copied to clipboard.');
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              context.surfaceColor.withOpacity(0.9),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                              color: context.borderColor,
+                                              width: 1.0),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.04),
                                               blurRadius: 6,
                                               offset: const Offset(0, 2),
                                             )
                                           ],
                                         ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'ID: ${liveUser.sid}',
+                                              style: GoogleFonts.poppins(
+                                                color: context.textSecondary,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.content_copy_rounded,
+                                              color: context.textSecondary,
+                                              size: 11,
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                    const SizedBox(width: 6),
-                                    Icon(
-                                      liveUser.gender == 'female'
-                                          ? Icons.female_rounded
-                                          : Icons.male_rounded,
-                                      color: liveUser.gender == 'female'
-                                          ? const Color(0xFFF472B6)
-                                          : const Color(0xFF60A5FA),
-                                      size: AppDimensions.minIconSize,
-                                    ),
-                                    if (_isMe) ...[
-                                      const SizedBox(width: 8),
-                                      GestureDetector(
-                                        onTap: () => Get.to(() =>
-                                                const ProfileCustomizationScreen())
-                                            ?.then((_) {
-                                          UserProfileCacheManager
-                                              .fetchUserProfile(_user.id,
-                                                  forceRefresh: true);
-                                        }),
-                                        child: Icon(Icons.edit_rounded,
-                                            color: context.textSecondary,
-                                            size: 14),
+                                    const SizedBox(height: 6),
+
+                                    // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
+                                    ConstrainedBox(
+                                      constraints:
+                                          const BoxConstraints(maxWidth: 320),
+                                      child: Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: buildTagLightsWidget(
+                                            generateDynamicTagLights(liveUser),
+                                            context),
                                       ),
-                                    ],
+                                    ),
+                                    const SizedBox(height: 6),
+
+                                    // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
+                                    buildOfficialStatusRow(liveUser, context),
+                                    const SizedBox(height: 6),
+
+                                    // Fifth Row: Badge Showcase (with mockup container styling)
+                                    buildBadgesShowcaseWidget(
+                                        liveUser.showcasedBadges, context),
+                                    const SizedBox(height: 12),
+
+                                    // Action Buttons Row inside cover photo banner
+                                    _buildActionButtonsRow(),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
-
-                                // Second Row: User ID (Smaller, 13 px, Secondary text)
-                                GestureDetector(
-                                  onTap: () {
-                                    Clipboard.setData(
-                                        ClipboardData(text: liveUser.sid));
-                                    Get.snackbar(
-                                        'Copied', 'ID copied to clipboard.');
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          context.surfaceColor.withOpacity(0.9),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                          color: context.borderColor,
-                                          width: 1.0),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.04),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
-                                        )
-                                      ],
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          'ID: ${liveUser.sid}',
-                                          style: GoogleFonts.poppins(
-                                            color: context.textSecondary,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          Icons.content_copy_rounded,
-                                          color: context.textSecondary,
-                                          size: 11,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-
-                                // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
-                                ConstrainedBox(
-                                  constraints:
-                                      const BoxConstraints(maxWidth: 320),
-                                  child: Wrap(
-                                    alignment: WrapAlignment.center,
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: buildTagLightsWidget(
-                                        generateDynamicTagLights(liveUser),
-                                        context),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-
-                                // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
-                                buildOfficialStatusRow(liveUser, context),
-                                const SizedBox(height: 6),
-
-                                // Fifth Row: Badge Showcase (with mockup container styling)
-                                buildBadgesShowcaseWidget(
-                                    liveUser.showcasedBadges, context),
-                                const SizedBox(height: 12),
-
-                                // Action Buttons Row inside cover photo banner
-                                _buildActionButtonsRow(),
-                                const SizedBox(height: 24),
                               ],
                             ),
                           ),
@@ -1128,18 +1150,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ],
                 ),
 
-                // Rest of the profile content starting on canvas below the header banner
+                // Rest of the profile content starting on white canvas below the curved divider panel
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 16),
-
                       // Social Stats Section (Followers, Following, Friends, Gifts)
                       _buildSocialStatsSection(),
-                      const SizedBox(height: 14),
-
+                      const SizedBox(height: 16),
                       // 4. Bio & Links Section
                       _glassCard(
                         child: Obx(() {
@@ -1179,7 +1198,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           );
                         }),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
 
                       // 5. Personal Info Section
                       _glassCard(
@@ -2422,13 +2441,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                           borderRadius: BorderRadius.circular(16)),
                       padding: EdgeInsets.zero,
                     ),
-                    onPressed: () =>
-                        Get.to(() => const EditProfileScreen())?.then((res) async {
-                      final targetId = UserProfileCacheManager.currentUserId.isNotEmpty
-                          ? UserProfileCacheManager.currentUserId
-                          : _user.id;
-                      final refreshed = await UserProfileCacheManager.fetchUserProfile(
-                          targetId, forceRefresh: true);
+                    onPressed: () => Get.to(() => const EditProfileScreen())
+                        ?.then((res) async {
+                      final targetId =
+                          UserProfileCacheManager.currentUserId.isNotEmpty
+                              ? UserProfileCacheManager.currentUserId
+                              : _user.id;
+                      final refreshed =
+                          await UserProfileCacheManager.fetchUserProfile(
+                              targetId,
+                              forceRefresh: true);
                       if (refreshed != null && mounted) {
                         setState(() {
                           _user = refreshed;
@@ -2477,13 +2499,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                       padding: EdgeInsets.zero,
                       backgroundColor: Colors.transparent,
                     ),
-                    onPressed: () =>
-                        Get.to(() => const EditProfileScreen())?.then((res) async {
-                      final targetId = UserProfileCacheManager.currentUserId.isNotEmpty
-                          ? UserProfileCacheManager.currentUserId
-                          : _user.id;
-                      final refreshed = await UserProfileCacheManager.fetchUserProfile(
-                          targetId, forceRefresh: true);
+                    onPressed: () => Get.to(() => const EditProfileScreen())
+                        ?.then((res) async {
+                      final targetId =
+                          UserProfileCacheManager.currentUserId.isNotEmpty
+                              ? UserProfileCacheManager.currentUserId
+                              : _user.id;
+                      final refreshed =
+                          await UserProfileCacheManager.fetchUserProfile(
+                              targetId,
+                              forceRefresh: true);
                       if (refreshed != null && mounted) {
                         setState(() {
                           _user = refreshed;

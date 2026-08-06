@@ -55,6 +55,9 @@ class _ProfileSkeletonWidgetState extends State<ProfileSkeletonWidget>
 
   @override
   Widget build(BuildContext context) {
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double dynamicHeaderHeight = screenHeight * 0.50 + 15.0;
+
     return Scaffold(
       backgroundColor: const Color(0xFF11131C),
       body: SafeArea(
@@ -67,46 +70,65 @@ class _ProfileSkeletonWidgetState extends State<ProfileSkeletonWidget>
                 clipBehavior: Clip.none,
                 children: [
                   // Cover Photo
-                  _buildShimmerBox(width: double.infinity, height: 180, borderRadius: 0),
-                  
+                  _buildShimmerBox(
+                      width: double.infinity,
+                      height: dynamicHeaderHeight,
+                      borderRadius: 0),
+
                   // Content Header Overlay
                   Positioned.fill(
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 40, left: 16, right: 16),
+                      padding: const EdgeInsets.only(
+                          top: 40, left: 16, right: 16, bottom: 20),
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           // Top bar placeholders
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _buildShimmerBox(width: 32, height: 32, borderRadius: 16),
-                              _buildShimmerBox(width: 32, height: 32, borderRadius: 16),
+                              _buildShimmerBox(
+                                  width: 32, height: 32, borderRadius: 16),
+                              _buildShimmerBox(
+                                  width: 32, height: 32, borderRadius: 16),
                             ],
                           ),
                           const SizedBox(height: 16),
 
-                          // Avatar circle skeleton (96dp)
-                          _buildShimmerBox(width: 96, height: 96, shape: BoxShape.circle),
-                          const SizedBox(height: 12),
-
-                          // Username skeleton
-                          _buildShimmerBox(width: 140, height: 18, borderRadius: 6),
-                          const SizedBox(height: 8),
-
-                          // User ID pill skeleton
-                          _buildShimmerBox(width: 110, height: 22, borderRadius: 12),
-                          const SizedBox(height: 12),
-
-                          // Tags skeleton row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              _buildShimmerBox(width: 70, height: 20, borderRadius: 10),
-                              const SizedBox(width: 6),
-                              _buildShimmerBox(width: 80, height: 20, borderRadius: 10),
-                              const SizedBox(width: 6),
-                              _buildShimmerBox(width: 60, height: 20, borderRadius: 10),
+                              // Avatar circle skeleton (96dp)
+                              _buildShimmerBox(
+                                  width: 96, height: 96, shape: BoxShape.circle),
+                              const SizedBox(height: 12),
+
+                              // Username skeleton
+                              _buildShimmerBox(
+                                  width: 140, height: 18, borderRadius: 6),
+                              const SizedBox(height: 8),
+
+                              // User ID pill skeleton
+                              _buildShimmerBox(
+                                  width: 110, height: 22, borderRadius: 12),
+                              const SizedBox(height: 12),
+
+                              // Tags skeleton row
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildShimmerBox(
+                                      width: 70, height: 20, borderRadius: 10),
+                                  const SizedBox(width: 6),
+                                  _buildShimmerBox(
+                                      width: 80, height: 20, borderRadius: 10),
+                                  const SizedBox(width: 6),
+                                  _buildShimmerBox(
+                                      width: 60, height: 20, borderRadius: 10),
+                                ],
+                              ),
                             ],
                           ),
                         ],
