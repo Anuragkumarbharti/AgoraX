@@ -280,157 +280,124 @@ class _LiquidProgressBarPainter extends CustomPainter {
     canvas.save();
     canvas.clipPath(capsulePath);
 
-    // 2. Left Half Liquid Fluid Wave (Electric Cyan/Blue)
-    final double freeFillWidth = dividerX * freeRatio;
-    if (freeFillWidth > 0) {
+    // Calculate total liquid fill width
+    final double totalFillWidth = (isGoldMember && freeRatio >= 1.0)
+        ? dividerX + (width - dividerX) * extraRatio
+        : dividerX * freeRatio;
+
+    if (totalFillWidth > 0) {
+      // 2. UNIFIED CONTINUOUS LIQUID FLUID WAVE PATH
       final Path wavePath = Path();
       wavePath.moveTo(0, height);
 
-      const int waveSteps = 24;
-      final double stepWidth = freeFillWidth / waveSteps;
-      final double waveBaseY = height * 0.30;
-      final double amplitude = height * 0.22;
+      const int steps = 48;
+      final double stepWidth = totalFillWidth / steps;
+      final double waveBaseY = height * 0.32;
+      final double amplitude = height * 0.20;
 
-      final double startY = waveBaseY + math.sin(phase) * amplitude;
-      wavePath.lineTo(0, startY);
-
-      for (int i = 0; i <= waveSteps; i++) {
-        final double x = i * stepWidth;
-        final double waveAngle = (x / width) * 4 * math.pi + phase;
-        final double y =
-            (waveBaseY + math.sin(waveAngle) * amplitude).clamp(0.0, height);
-        wavePath.lineTo(x, y);
+      double getWaveY(double x) {
+        final double waveAngle = (x / width) * 3 * math.pi + phase;
+        return (waveBaseY + math.sin(waveAngle) * amplitude).clamp(0.0, height);
       }
 
-      wavePath.lineTo(freeFillWidth, height);
+      wavePath.lineTo(0, getWaveY(0));
+      for (int i = 0; i <= steps; i++) {
+        final double x = i * stepWidth;
+        wavePath.lineTo(x, getWaveY(x));
+      }
+      wavePath.lineTo(totalFillWidth, height);
       wavePath.close();
 
-      // Liquid Gradient Fill
-      final Rect freeRect = Rect.fromLTWH(0, 0, freeFillWidth, height);
-      final Paint cyanLiquidPaint = Paint()
-        ..shader = const LinearGradient(
+      // 3. UNIFIED DYNAMIC LIQUID GRADIENT SHADER (Smooth Cyan-to-Gold Transition)
+      final Rect fillRect = Rect.fromLTWH(0, 0, totalFillWidth, height);
+      final Shader liquidShader;
+
+      if (totalFillWidth <= dividerX) {
+        // Cyan-only liquid fill
+        liquidShader = const LinearGradient(
           colors: [
             Color(0xFF0052D4),
             Color(0xFF0072FF),
             Color(0xFF00C6FF),
             Color(0xFF6FB1FC),
           ],
-          begin: Alignment.bottomLeft,
-          end: Alignment.topRight,
-        ).createShader(freeRect);
-      canvas.drawPath(wavePath, cyanLiquidPaint);
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ).createShader(fillRect);
+      } else {
+        // Continuous Cyan-to-Gold Liquid Transition
+        final double splitStop = (dividerX / totalFillWidth).clamp(0.1, 0.9);
+        final double cyanFade = (splitStop - 0.06).clamp(0.0, splitStop);
+        final double goldStart = (splitStop + 0.06).clamp(splitStop, 1.0);
 
-      // Glowing liquid crest line (Highlight top edge of wave)
+        liquidShader = LinearGradient(
+          colors: const [
+            Color(0xFF0052D4),
+            Color(0xFF00C6FF),
+            Color(0xFF38BDF8),
+            Color(0xFFF59E0B),
+            Color(0xFFFFB800),
+            Color(0xFFFFF176),
+          ],
+          stops: [
+            0.0,
+            cyanFade,
+            splitStop,
+            splitStop,
+            goldStart,
+            1.0,
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ).createShader(fillRect);
+      }
+
+      final Paint liquidPaint = Paint()..shader = liquidShader;
+      canvas.drawPath(wavePath, liquidPaint);
+
+      // 4. UNIFIED TOP WAVE CREST HIGHLIGHT LINE
       final Path crestPath = Path();
-      for (int i = 0; i <= waveSteps; i++) {
+      for (int i = 0; i <= steps; i++) {
         final double x = i * stepWidth;
-        final double waveAngle = (x / width) * 4 * math.pi + phase;
-        final double y =
-            (waveBaseY + math.sin(waveAngle) * amplitude).clamp(0.0, height);
+        final double y = getWaveY(x);
         if (i == 0) {
           crestPath.moveTo(x, y);
         } else {
           crestPath.lineTo(x, y);
         }
       }
-      final Paint cyanCrestPaint = Paint()
+
+      final Paint crestPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0
-        ..color = const Color(0xFFE0F7FA).withValues(alpha: 0.95);
-      canvas.drawPath(crestPath, cyanCrestPaint);
-
-      // Micro floating liquid bubbles in cyan section
-      final Paint bubblePaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.6)
-        ..style = PaintingStyle.fill;
-      final double b1X =
-          (freeFillWidth * 0.3 + math.sin(phase) * 4).clamp(1.0, freeFillWidth - 1);
-      final double b1Y = height * 0.6 + math.cos(phase) * 1.5;
-      canvas.drawCircle(Offset(b1X, b1Y), 0.8, bubblePaint);
-
-      final double b2X =
-          (freeFillWidth * 0.7 + math.cos(phase * 1.3) * 5).clamp(1.0, freeFillWidth - 1);
-      final double b2Y = height * 0.5 + math.sin(phase * 1.3) * 1.2;
-      canvas.drawCircle(Offset(b2X, b2Y), 0.6, bubblePaint);
-    }
-
-    // 3. Right Half Liquid Fluid Wave (Gold/Amber)
-    if (extraRatio > 0 && isGoldMember) {
-      final double goldSpan = (width - dividerX);
-      final double goldFillWidth = goldSpan * extraRatio;
-      final double startGoldX = dividerX;
-      final double endGoldX = dividerX + goldFillWidth;
-
-      final Path goldWavePath = Path();
-      goldWavePath.moveTo(startGoldX, height);
-
-      const int waveSteps = 24;
-      final double stepWidth = goldFillWidth / waveSteps;
-      final double waveBaseY = height * 0.30;
-      final double amplitude = height * 0.22;
-
-      // Inverse phase shift for dynamic multi-liquid flow effect
-      final double goldPhase = phase + math.pi / 2;
-
-      for (int i = 0; i <= waveSteps; i++) {
-        final double x = startGoldX + i * stepWidth;
-        final double waveAngle = (x / width) * 4 * math.pi + goldPhase;
-        final double y =
-            (waveBaseY + math.cos(waveAngle) * amplitude).clamp(0.0, height);
-        if (i == 0) {
-          goldWavePath.lineTo(startGoldX, y);
-        }
-        goldWavePath.lineTo(x, y);
-      }
-
-      goldWavePath.lineTo(endGoldX, height);
-      goldWavePath.close();
-
-      // Gold Liquid Gradient Fill
-      final Rect goldRect = Rect.fromLTWH(dividerX, 0, goldFillWidth, height);
-      final Paint goldLiquidPaint = Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           colors: [
-            Color(0xFFB45309),
-            Color(0xFFD97706),
-            Color(0xFFF59E0B),
-            Color(0xFFFFD700),
+            const Color(0xFFE0F7FA).withValues(alpha: 0.95),
+            const Color(0xFFFFFDE7).withValues(alpha: 0.95),
           ],
-          begin: Alignment.bottomLeft,
-          end: Alignment.topRight,
-        ).createShader(goldRect);
-      canvas.drawPath(goldWavePath, goldLiquidPaint);
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ).createShader(fillRect);
+      canvas.drawPath(crestPath, crestPaint);
 
-      // Glowing gold liquid crest line
-      final Path goldCrestPath = Path();
-      for (int i = 0; i <= waveSteps; i++) {
-        final double x = startGoldX + i * stepWidth;
-        final double waveAngle = (x / width) * 4 * math.pi + goldPhase;
-        final double y =
-            (waveBaseY + math.cos(waveAngle) * amplitude).clamp(0.0, height);
-        if (i == 0) {
-          goldCrestPath.moveTo(x, y);
-        } else {
-          goldCrestPath.lineTo(x, y);
+      // 5. UNIFIED FLOATING MICRO BUBBLES
+      final Paint bubblePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.65)
+        ..style = PaintingStyle.fill;
+
+      for (int b = 0; b < 4; b++) {
+        final double bubbleProgress =
+            ((phase / (2 * math.pi)) + (b * 0.25)) % 1.0;
+        final double bx =
+            (totalFillWidth * bubbleProgress).clamp(1.0, totalFillWidth - 1);
+        final double by = getWaveY(bx) + 1.2 + math.sin(phase + b) * 0.8;
+        if (by < height - 0.5) {
+          canvas.drawCircle(Offset(bx, by), 0.7, bubblePaint);
         }
       }
-      final Paint goldCrestPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0
-        ..color = const Color(0xFFFFFDE7).withValues(alpha: 0.95);
-      canvas.drawPath(goldCrestPath, goldCrestPaint);
-
-      // Micro floating liquid bubbles in gold section
-      final Paint goldBubblePaint = Paint()
-        ..color = const Color(0xFFFFF59D).withValues(alpha: 0.7)
-        ..style = PaintingStyle.fill;
-      final double gb1X =
-          (startGoldX + goldFillWidth * 0.4 + math.cos(goldPhase) * 3).clamp(startGoldX, endGoldX);
-      final double gb1Y = height * 0.55 + math.sin(goldPhase) * 1.5;
-      canvas.drawCircle(Offset(gb1X, gb1Y), 0.7, goldBubblePaint);
     }
 
-    // 4. Glossy Upper Glass Reflection Highlight (Glass Capsule reflection)
+    // 6. Glossy Upper Glass Reflection Highlight (Glass Capsule reflection)
     final Path glossyPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, width, height * 0.40));
     final Paint glossyPaint = Paint()
@@ -446,29 +413,23 @@ class _LiquidProgressBarPainter extends CustomPainter {
 
     canvas.restore();
 
-    // 5. Glowing Central BLEND POINT Vertical Divider
+    // 7. Glowing Central BLEND POINT Vertical Seam (Subtle indicator without breaking liquid)
     final Paint glowDivider = Paint()
-      ..color = Colors.white.withValues(alpha: 0.85)
-      ..strokeWidth = 1.8
-      ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 2.0);
+      ..color = Colors.white.withValues(alpha: 0.50)
+      ..strokeWidth = 1.2
+      ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 1.5);
     canvas.drawLine(Offset(dividerX, 0), Offset(dividerX, height), glowDivider);
 
-    final Paint coreDivider = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 1.0;
-    canvas.drawLine(Offset(dividerX, 0), Offset(dividerX, height), coreDivider);
-
-    // Glowing Blend Point top indicator dot (matching Image 2 "BLEND POINT")
+    // Glowing Blend Point top indicator dot
     final Paint blendPointDotGlow = Paint()
       ..color = const Color(0xFFFFD700).withValues(alpha: 0.8)
       ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 2.0);
-    canvas.drawCircle(Offset(dividerX, 0.5), 1.8, blendPointDotGlow);
+    canvas.drawCircle(Offset(dividerX, 0.5), 1.6, blendPointDotGlow);
 
-    final Paint blendPointDot = Paint()
-      ..color = Colors.white;
-    canvas.drawCircle(Offset(dividerX, 0.5), 1.0, blendPointDot);
+    final Paint blendPointDot = Paint()..color = Colors.white;
+    canvas.drawCircle(Offset(dividerX, 0.5), 0.9, blendPointDot);
 
-    // 6. Sleek Outer Metallic Rim Glass Border
+    // 8. Sleek Outer Metallic Rim Glass Border
     final Paint glassRimBorder = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.9
