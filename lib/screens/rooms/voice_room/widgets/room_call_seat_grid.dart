@@ -169,6 +169,7 @@ class RoomCallSeatGrid extends StatelessWidget {
                 level: userLevel,
                 soundLevel: soundLevel,
                 isSpeaking: isSpeaking && micStatus != 'muted',
+                showBadges: false,
                 child: avatarUrl != null && avatarUrl.isNotEmpty
                     ? Image.network(avatarUrl, fit: BoxFit.cover)
                     : Container(

@@ -151,18 +151,23 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
         ? (currentUid ?? '')
         : widget.userId;
 
-    final u = UserProfileCacheManager.rxCache[resolvedId];
+    final u = UserProfileCacheManager.rxCache[resolvedId] ??
+        UserProfileCacheManager.getCachedUser(resolvedId) ??
+        (resolvedId == currentUid ? UserProfileCacheManager.currentUser : null);
     final String? dynamicFrameUrl = u?.membershipAssets['avatar_frame'];
-    final frame = u?.avatarFrame ?? UserProfileCacheManager.getCachedUser(resolvedId)?.avatarFrame;
-    final String lowerFrame = (frame ?? '').toLowerCase().trim();
-    
-    final int defaultVip = widget.vipLevel ?? widget.defaultVipLevel;
-    final int defaultNovel = widget.novelLevel ?? widget.defaultNovelLevel;
 
-    final bool hasFrame = (dynamicFrameUrl != null && dynamicFrameUrl.isNotEmpty) || 
-                         (frame != null && lowerFrame != 'normal' && lowerFrame != 'none' && lowerFrame.isNotEmpty) ||
-                         defaultVip > 0 ||
-                         defaultNovel > 0;
+    final String activeFrameName = isMe && Get.isRegistered<CustomizationController>()
+        ? Get.find<CustomizationController>().activeFrame.value
+        : (u?.avatarFrame ?? UserProfileCacheManager.getCachedUser(resolvedId)?.avatarFrame ?? '');
+    final String lowerActiveFrame = activeFrameName.toLowerCase().trim();
+    final bool isExplicitlyUnequipped = lowerActiveFrame == 'normal' ||
+        lowerActiveFrame == 'none' ||
+        lowerActiveFrame == 'unequipped' ||
+        lowerActiveFrame.isEmpty;
+
+    final bool hasFrame = !isExplicitlyUnequipped &&
+        ((dynamicFrameUrl != null && dynamicFrameUrl.isNotEmpty) ||
+         (activeFrameName.isNotEmpty && !isExplicitlyUnequipped));
 
     final double volumeFactor = widget.isSpeaking
         ? (0.4 + 0.6 * (widget.soundLevel / 40.0).clamp(0.0, 1.0))
@@ -207,8 +212,16 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
         );
       }
 
+      String? frame;
+      if (isMe && Get.isRegistered<CustomizationController>()) {
+        frame = Get.find<CustomizationController>().activeFrame.value;
+      }
+      frame ??= u?.avatarFrame ?? UserProfileCacheManager.getCachedUser(resolvedId)?.avatarFrame;
+      final String lowerF = (frame ?? '').toLowerCase().trim();
+      final bool unequipped = lowerF == 'normal' || lowerF == 'none' || lowerF == 'unequipped' || lowerF.isEmpty;
+
       final String? dynamicFrameUrl = u?.membershipAssets['avatar_frame'];
-      if (dynamicFrameUrl != null && dynamicFrameUrl.isNotEmpty) {
+      if (!unequipped && dynamicFrameUrl != null && dynamicFrameUrl.isNotEmpty) {
         return Stack(
           alignment: Alignment.center,
           children: [
@@ -230,40 +243,18 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
         );
       }
 
-      String? frame;
-      if (isMe && Get.isRegistered<CustomizationController>()) {
-        final active = Get.find<CustomizationController>().activeFrame.value;
-        if (active.isNotEmpty && active != 'Normal') {
-          frame = active;
-        }
-      }
-      frame ??= u?.avatarFrame ?? UserProfileCacheManager.getCachedUser(resolvedId)?.avatarFrame;
-
-      if (frame != null && frame.isNotEmpty && frame != 'Normal') {
+      if (!unequipped && frame != null && frame.isNotEmpty) {
         return _buildFrameWidget(frame, reactiveAvatarChild, frameSize);
       }
 
-      // Fallback behavior for other users based on default levels
-      final defaultVip = widget.vipLevel ?? widget.defaultVipLevel;
-      final defaultNovel = widget.novelLevel ?? widget.defaultNovelLevel;
-      if (defaultNovel > 0) {
-        return NovelAvatarDecorator(level: defaultNovel, size: frameSize, child: reactiveAvatarChild);
-      } else if (defaultVip > 0) {
-        // Route VIP 1 & 2 to their PNG frames; higher levels still use Novel 1 fallback
-        if (defaultVip <= 2) {
-          return VipAvatarDecorator(level: defaultVip, size: frameSize, child: reactiveAvatarChild);
-        }
-        return NovelAvatarDecorator(level: 1, size: frameSize, child: reactiveAvatarChild);
-      } else {
-        return Container(
-          width: avatarSize,
-          height: avatarSize,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-          ),
-          child: ClipOval(child: reactiveAvatarChild),
-        );
-      }
+      return Container(
+        width: avatarSize,
+        height: avatarSize,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+        ),
+        child: ClipOval(child: reactiveAvatarChild),
+      );
     });
 
     Widget seatBody = SizedBox(
