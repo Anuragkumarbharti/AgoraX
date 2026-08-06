@@ -105,21 +105,14 @@ class UltraFastRoomJoinEngine {
         final isInvalidPass = response != null && response['invalid_password'] == true;
 
         if (isPasswordReq || isInvalidPass) {
-          if (isInvalidPass) {
-            Get.snackbar(
-              'Incorrect Password 🔒',
-              'The entered PIN is incorrect. Please try again.',
-              backgroundColor: Colors.red.shade900,
-              colorText: Colors.white,
-              snackPosition: SnackPosition.TOP,
-            );
-          }
-          // Prompt password dialog for PIN input
           final String? enteredPass = await showModalBottomSheet<String>(
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
-            builder: (ctx) => RoomPasswordDialog(room: room),
+            builder: (ctx) => RoomPasswordDialog(
+              room: room,
+              isInvalidPass: isInvalidPass,
+            ),
           );
           if (enteredPass != null && enteredPass.trim().isNotEmpty) {
             return executeFastJoin(context: context, room: room, providedPassword: enteredPass.trim());
@@ -169,6 +162,7 @@ class UltraFastRoomJoinEngine {
       // ========================================================================
       // STAGE 2: Connect Voice Engine Stream (Requirement 2)
       // ========================================================================
+      RoomLockoutTracker.resetAttempts(room.id);
       final voiceStart = stopwatch.elapsedMilliseconds;
       await RoomVoiceManager().joinRoom(
         roomId: room.id,

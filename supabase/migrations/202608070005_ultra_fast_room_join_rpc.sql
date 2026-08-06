@@ -172,7 +172,11 @@ BEGIN
 
   -- 6. Evaluate Room Entry Permissions (Password, Followers Only, VIP Level, User Level, Community)
   v_who_can_join := LOWER(COALESCE(v_room_json->>'entry_permission', v_room_json->>'visibility', 'everyone'));
-  v_room_pass := v_room_json->>'room_password';
+  v_room_pass := COALESCE(
+    NULLIF(trim(v_room_json->>'room_password'), ''),
+    (SELECT NULLIF(trim(room_password), '') FROM public.room_settings WHERE room_id = v_room_id LIMIT 1),
+    '1234'
+  );
   
   IF NOT v_is_owner AND NOT v_is_co_owner AND NOT v_is_admin THEN
     -- A. Password Protection
@@ -183,7 +187,7 @@ BEGIN
           'reason', 'PASSWORD_REQUIRED',
           'password_required', true
         );
-      ELSIF trim(p_provided_password) != trim(COALESCE(v_room_pass, '1234')) THEN
+      ELSIF trim(p_provided_password) != trim(v_room_pass) THEN
         RETURN jsonb_build_object(
           'join_allowed', false,
           'reason', 'Incorrect room password. Access denied.',
