@@ -138,9 +138,9 @@ class RoomProgressionController extends GetxController {
     final _ = roomDailyTaskLists.length;
     final maxLimit = maxFreeDailyVp;
     final tasks = roomDailyTaskLists[roomId];
-    if (tasks == null || tasks.isEmpty) return maxLimit;
+    if (tasks == null || tasks.isEmpty) return 0;
     final freeTasks = tasks.where((t) => !t.taskKey.contains('gold'));
-    if (freeTasks.isEmpty) return maxLimit;
+    if (freeTasks.isEmpty) return 0;
     return freeTasks.fold(0, (sum, t) => sum + t.currentValue).clamp(0, maxLimit);
   }
 
@@ -148,9 +148,9 @@ class RoomProgressionController extends GetxController {
     final _ = roomDailyTaskLists.length;
     final maxLimit = maxGoldDailyVp;
     final tasks = roomDailyTaskLists[roomId];
-    if (tasks == null || tasks.isEmpty) return maxLimit;
+    if (tasks == null || tasks.isEmpty) return 0;
     final goldTasks = tasks.where((t) => t.taskKey.contains('gold'));
-    if (goldTasks.isEmpty) return maxLimit;
+    if (goldTasks.isEmpty) return 0;
     return goldTasks.fold(0, (sum, t) => sum + t.currentValue).clamp(0, maxLimit);
   }
 
@@ -320,12 +320,18 @@ class RoomProgressionController extends GetxController {
   }) async {
     try {
       final client = Supabase.instance.client;
+      final todayDateStr = DateTime.now()
+          .toUtc()
+          .add(const Duration(hours: 5, minutes: 30))
+          .subtract(const Duration(hours: 4))
+          .toIso8601String()
+          .split('T')[0];
 
       final results = await Future.wait<dynamic>([
         client.from('room_level_progress').select().eq('room_id', roomId).maybeSingle(),
         client.from('room_statistics').select().eq('room_id', roomId).maybeSingle(),
         client.from('room_daily_task_catalog').select(),
-        client.from('user_daily_task_progress').select(),
+        client.from('user_daily_task_progress').select().eq('task_date', todayDateStr),
         client.from('room_seats').select().eq('room_id', roomId).order('seat_index', ascending: true),
         client.from('room_seat_gifts').select().eq('room_id', roomId),
       ]);

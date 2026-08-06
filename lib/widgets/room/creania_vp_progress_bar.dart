@@ -20,9 +20,9 @@ class CreaniaVpProgressBar extends StatefulWidget {
   const CreaniaVpProgressBar({
     Key? key,
     this.roomLevel = 1,
-    this.freeXp = 700,
+    this.freeXp = 0,
     this.freeTarget = 700,
-    this.extraXp = 1000,
+    this.extraXp = 0,
     this.extraTarget = 1000,
     this.isGoldMember = true,
     this.roomId,

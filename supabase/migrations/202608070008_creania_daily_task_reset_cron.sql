@@ -38,7 +38,7 @@ end;
 $$ language plpgsql security definer;
 
 -- 2. Setup Automated pg_cron Schedule at 04:00 AM IST (22:30 UTC every day)
-do $$
+do $cron_block$
 begin
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
     -- Unschedule existing job if present
@@ -48,10 +48,10 @@ begin
     perform cron.schedule(
       'creania-daily-room-task-reset',
       '30 22 * * *',
-      $$ select public.reset_room_daily_tasks(); $$
+      'select public.reset_room_daily_tasks();'
     );
   end if;
 exception when others then
   raise notice 'pg_cron extension not active or permission restricted';
 end;
-$$;
+$cron_block$;
