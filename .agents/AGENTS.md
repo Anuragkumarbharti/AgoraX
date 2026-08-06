@@ -1,6 +1,6 @@
-# Creania - Study Vault System (Technical Logs & Rules)
+# Creania - Room Task Agent & Study Vault System (Technical Logs & Rules)
 
-This document contains a comprehensive record of the **Study Vault (Library)** system designed and implemented for the Creania codebase, explaining "kya kaise hua hai" (what has been built and how) to guide future agent interactions.
+This document contains a comprehensive record of the **Room Task Agent** and **Study Vault (Library)** systems designed and implemented for the Creania codebase, explaining "kya kaise hua hai" (what has been built and how) to guide future agent interactions.
 
 ---
 
