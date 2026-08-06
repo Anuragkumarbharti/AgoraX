@@ -76,16 +76,19 @@ class RoomCallHeader extends StatelessWidget {
                     child: Builder(
                       builder: (context) {
                         final progCtrl = Get.put(RoomProgressionController());
-                        final levelProg = progCtrl.roomLevelProgresses[liveId];
-                        final int currentVp = levelProg?.currentXp ?? liveRoom?.xp ?? 0;
-                        final nextConfig = RoomLevelMatrixConfig.getForLevel(roomLevel + 1);
-                        final int targetVp = nextConfig.requiredVp > 0 ? nextConfig.requiredVp : 35500;
+                        final freeVp = progCtrl.getRoomFreeVp(liveId);
+                        final freeTarget = progCtrl.maxFreeDailyVp;
+                        final goldVp = progCtrl.getRoomGoldVp(liveId);
+                        final goldTarget = progCtrl.maxGoldDailyVp;
+                        final isWeekend = progCtrl.isWeekend;
 
                         return CreaniaVpProgressBar(
                           roomLevel: roomLevel,
-                          freeXp: currentVp,
-                          freeTarget: targetVp,
-                          label: 'LV.$roomLevel / Arena VP',
+                          freeXp: freeVp,
+                          freeTarget: freeTarget,
+                          extraXp: goldVp,
+                          extraTarget: goldTarget,
+                          label: isWeekend ? "Weekend AP" : "Today's AP",
                           roomId: '$liveId',
                           roomName: liveName,
                           coverUrl: coverUrl,
