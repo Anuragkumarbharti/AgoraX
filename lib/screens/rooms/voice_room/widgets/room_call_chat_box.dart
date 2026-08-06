@@ -30,7 +30,7 @@ class RoomCallChatBox extends StatelessWidget {
       final messages = chatsMap[roomId] ?? <RoomChatMessage>[];
       return ListView.builder(
         controller: chatScrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 64),
         itemCount: messages.length,
         itemBuilder: (context, index) {
           final msg = messages[index];

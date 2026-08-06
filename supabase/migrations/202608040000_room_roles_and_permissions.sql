@@ -22,7 +22,7 @@ BEGIN
   IF p_room_id ~* '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' THEN
     v_room_id := p_room_id::uuid;
   ELSE
-    SELECT id INTO v_room_id FROM public.rooms WHERE numeric_id = p_room_id OR sid = p_room_id OR id::text = p_room_id LIMIT 1;
+    SELECT id INTO v_room_id FROM public.rooms WHERE id = p_room_id OR username = p_room_id LIMIT 1;
     IF v_room_id IS NULL THEN
       BEGIN v_room_id := p_room_id::uuid; EXCEPTION WHEN OTHERS THEN v_room_id := NULL; END;
     END IF;
@@ -64,7 +64,7 @@ BEGIN
   IF p_room_id ~* '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' THEN
     v_room_id := p_room_id::uuid;
   ELSE
-    SELECT id INTO v_room_id FROM public.rooms WHERE numeric_id = p_room_id OR sid = p_room_id OR id::text = p_room_id LIMIT 1;
+    SELECT id INTO v_room_id FROM public.rooms WHERE id = p_room_id OR username = p_room_id LIMIT 1;
     IF v_room_id IS NULL THEN
       BEGIN v_room_id := p_room_id::uuid; EXCEPTION WHEN OTHERS THEN RAISE EXCEPTION 'Room not found for ID: %', p_room_id; END;
     END IF;
@@ -158,7 +158,7 @@ BEGIN
   IF p_room_id ~* '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' THEN
     v_room_id := p_room_id::uuid;
   ELSE
-    SELECT id INTO v_room_id FROM public.rooms WHERE numeric_id = p_room_id OR sid = p_room_id OR id::text = p_room_id LIMIT 1;
+    SELECT id INTO v_room_id FROM public.rooms WHERE id = p_room_id OR username = p_room_id LIMIT 1;
     IF v_room_id IS NULL THEN
       BEGIN v_room_id := p_room_id::uuid; EXCEPTION WHEN OTHERS THEN RAISE EXCEPTION 'Room not found for ID: %', p_room_id; END;
     END IF;
@@ -210,7 +210,7 @@ BEGIN
   IF p_room_id ~* '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' THEN
     v_room_id := p_room_id::uuid;
   ELSE
-    SELECT id INTO v_room_id FROM public.rooms WHERE numeric_id = p_room_id OR sid = p_room_id OR id::text = p_room_id LIMIT 1;
+    SELECT id INTO v_room_id FROM public.rooms WHERE id = p_room_id OR username = p_room_id LIMIT 1;
     IF v_room_id IS NULL THEN
       BEGIN v_room_id := p_room_id::uuid; EXCEPTION WHEN OTHERS THEN RAISE EXCEPTION 'Room not found for ID: %', p_room_id; END;
     END IF;

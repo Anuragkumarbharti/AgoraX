@@ -33,7 +33,8 @@ class RoomCallBottomControls extends StatelessWidget {
     final RoomController controller = RoomController.to;
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-    final effectiveBottomInset = isKeyboardOpen ? 0.0 : bottomInset;
+    final effectiveBottomInset =
+        isKeyboardOpen ? 4.0 : (bottomInset > 0 ? bottomInset : 8.0);
     final isExpanded = chatInputFocusNode.hasFocus || isKeyboardOpen;
 
     return Container(
@@ -48,7 +49,7 @@ class RoomCallBottomControls extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(14, 10, 14, 10 + effectiveBottomInset),
+            padding: EdgeInsets.fromLTRB(14, 6, 14, effectiveBottomInset),
             child: Obx(() {
               final bg = controller.activeRoomBackground.value;
               final tokens = AdaptiveSeatThemeEngine.resolve(bg,
@@ -75,40 +76,61 @@ class RoomCallBottomControls extends StatelessWidget {
                         boxShadow: tokens.seatBoxShadows,
                       ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () => _showEmojiPickerSheet(context, tokens),
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: Icon(
+                                Icons.sentiment_satisfied_alt_rounded,
+                                color: tokens.chatBoxIconColor,
+                                size: 20,
+                              ),
+                            ),
+                          ),
                           Expanded(
-                            child: TextField(
-                              controller: chatInputController,
-                              focusNode: chatInputFocusNode,
-                              cursorColor: tokens.chatBoxTextColor,
-                              style: GoogleFonts.poppins(
-                                color: tokens.chatBoxTextColor,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: "Let's talk...",
-                                hintStyle: GoogleFonts.poppins(
-                                  color: tokens.chatBoxPlaceholderColor,
-                                  fontSize: 12.5,
+                            child: Center(
+                              child: TextField(
+                                controller: chatInputController,
+                                focusNode: chatInputFocusNode,
+                                cursorColor: tokens.chatBoxTextColor,
+                                maxLines: 1,
+                                minLines: 1,
+                                scrollPadding: EdgeInsets.zero,
+                                textAlignVertical: TextAlignVertical.center,
+                                style: GoogleFonts.poppins(
+                                  color: tokens.chatBoxTextColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.2,
                                 ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                disabledBorder: InputBorder.none,
-                                filled: false,
-                                fillColor: Colors.transparent,
-                                isDense: true,
+                                decoration: InputDecoration(
+                                  hintText: "Let's talk...",
+                                  hintStyle: GoogleFonts.poppins(
+                                    color: tokens.chatBoxPlaceholderColor,
+                                    fontSize: 12.5,
+                                    height: 1.2,
+                                  ),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                  filled: false,
+                                  fillColor: Colors.transparent,
+                                  isDense: true,
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                ),
+                                onSubmitted: (text) {
+                                  if (text.trim().isNotEmpty) {
+                                    controller.sendRoomBroadcastMessage(
+                                        roomId, text.trim());
+                                    chatInputController.clear();
+                                  }
+                                  chatInputFocusNode.unfocus();
+                                },
                               ),
-                              onSubmitted: (text) {
-                                if (text.trim().isNotEmpty) {
-                                  controller.sendRoomBroadcastMessage(
-                                      roomId, text.trim());
-                                  chatInputController.clear();
-                                }
-                                chatInputFocusNode.unfocus();
-                              },
                             ),
                           ),
                           // Smooth Fade/Scale Send Icon when expanded or text is present
@@ -313,6 +335,104 @@ class RoomCallBottomControls extends StatelessWidget {
         ),
         child: Icon(icon, color: tokens.iconColor, size: 18),
       ),
+    );
+  }
+
+  void _showEmojiPickerSheet(
+      BuildContext context, AdaptiveSeatThemeTokens tokens) {
+    final List<String> popularEmojis = [
+      '❤️', '😂', '🔥', '👏', '🎉', '👑', '👍', '😮',
+      '🙏', '💯', '😍', '🥳', '😎', '✨', '🚀', '💪',
+      '💖', '⭐', '🎈', '🤩', '🙌', '⚡', '😇', '🥳',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+          decoration: BoxDecoration(
+            color: tokens.chatBoxFillColor.withOpacity(0.95),
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: tokens.chatBoxBorderColor, width: 1.2),
+            boxShadow: tokens.seatBoxShadows,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: tokens.chatBoxPlaceholderColor.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Select Emoji",
+                style: GoogleFonts.poppins(
+                  color: tokens.chatBoxTextColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 6,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                ),
+                itemCount: popularEmojis.length,
+                itemBuilder: (context, index) {
+                  final emoji = popularEmojis[index];
+                  return GestureDetector(
+                    onTap: () {
+                      final currentText = chatInputController.text;
+                      final selection = chatInputController.selection;
+                      if (selection.isValid && selection.start >= 0) {
+                        final newText = currentText.replaceRange(
+                            selection.start, selection.end, emoji);
+                        chatInputController.text = newText;
+                        chatInputController.selection = TextSelection.collapsed(
+                            offset: selection.start + emoji.length);
+                      } else {
+                        chatInputController.text = currentText + emoji;
+                        chatInputController.selection = TextSelection.collapsed(
+                            offset: chatInputController.text.length);
+                      }
+                      Navigator.pop(ctx);
+                      chatInputFocusNode.requestFocus();
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: tokens.chatBoxFillColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: tokens.chatBoxBorderColor.withOpacity(0.5)),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        emoji,
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

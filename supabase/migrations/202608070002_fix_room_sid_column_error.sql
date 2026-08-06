@@ -1,5 +1,5 @@
--- Migration: Enforce Audience Default & No Automatic Seat Assignment
--- Date: 2026-08-06
+-- Migration: Fix Column "sid" Does Not Exist in Room RPCs
+-- Date: 2026-08-07
 
 CREATE OR REPLACE FUNCTION public.join_room(
   p_room_id text,

@@ -960,6 +960,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: false,
       body: Obx(() {
         final liveRoom =
             _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId) ??
@@ -1047,7 +1048,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               ),
 
               // 3. Floating Bottom Controls Dock
-              Positioned(
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
                 bottom: MediaQuery.of(context).viewInsets.bottom,
                 left: 0,
                 right: 0,
