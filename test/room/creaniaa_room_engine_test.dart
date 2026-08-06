@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:creania/models/room/room_model.dart';
 import 'package:creania/models/progression/room_progression_models.dart';
 import 'package:creania/services/room/room_controller.dart';
+import 'package:creania/services/room/room_seat_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -57,7 +58,7 @@ void main() {
         (index) => {
           'seatIndex': index,
           'userId': index == 0 ? 'owner_user_1' : null,
-          'name': index == 0 ? 'Owner Alice' : 'Seat ${index + 1}',
+          'name': index == 0 ? 'Owner Alice' : RoomSeatController.getSeatName(index),
           'avatar': null,
           'isLocked': false,
           'isSpeaking': false,

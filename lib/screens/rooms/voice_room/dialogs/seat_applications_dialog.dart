@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:creania/core/theme.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_seat_controller.dart';
 
 class SeatApplicationsDialog extends StatefulWidget {
   final String roomId;
@@ -121,7 +122,7 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
           .update({'status': 'accepted'}).eq('id', id);
 
       Get.snackbar('Accepted',
-          '$applicantName has been assigned to Seat ${emptyIndex + 1}.');
+          '$applicantName has been assigned to ${RoomSeatController.getSeatName(emptyIndex)}.');
       _fetchDetails();
     } catch (e) {
       Get.snackbar('Error', 'Failed to accept: $e');

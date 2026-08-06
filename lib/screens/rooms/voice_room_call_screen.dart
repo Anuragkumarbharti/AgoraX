@@ -14,6 +14,7 @@ import '../../services/voice/room_voice_manager.dart';
 import '../../services/voice/voice_controller.dart';
 import '../../services/user/permission_service.dart';
 import '../../services/room/room_controller.dart';
+import '../../services/room/room_seat_controller.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/user/premium_identity_controller.dart';
 import '../../services/user/customization_controller.dart';
@@ -43,6 +44,7 @@ import 'voice_room/dialogs/mini_profile_badges.dart';
 import 'voice_room/dialogs/room_settings_dialog.dart';
 import 'voice_room/dialogs/room_settings_management.dart';
 import 'voice_room/dialogs/seat_action_sheets.dart';
+import 'voice_room/dialogs/room_options_sheet.dart';
 
 export 'voice_room/models/floating_reaction.dart';
 export 'voice_room/animations/floating_emoji_item.dart';
@@ -66,6 +68,7 @@ export 'voice_room/dialogs/mini_profile_badges.dart';
 export 'voice_room/dialogs/room_settings_dialog.dart';
 export 'voice_room/dialogs/room_settings_management.dart';
 export 'voice_room/dialogs/seat_action_sheets.dart';
+export 'voice_room/dialogs/room_options_sheet.dart';
 
 class VoiceRoomCallScreen extends StatefulWidget {
   final String roomId;
@@ -361,7 +364,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 'userId': (index == 0 && widget.isHost) ? widget.userId : null,
                 'name': (index == 0 && widget.isHost)
                     ? widget.userName
-                    : 'Seat ${index + 1}',
+                    : RoomSeatController.getSeatName(index),
                 'isSpeaking': index == 0 && widget.isHost,
                 'isLocked': false,
               }));
@@ -502,7 +505,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     if (!_controller.canOccupySeat(widget.roomId, seatIndex, widget.userId)) {
       Get.snackbar(
         'Seat Access Locked 🔒',
-        'Seat ${seatIndex + 1} is reserved for Room Host, Co-Owners, and Admins.',
+        '${RoomSeatController.getSeatName(seatIndex)} is reserved for Room Host, Co-Owners, and Admins.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
         colorText: Colors.white,
@@ -517,7 +520,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
       Get.snackbar(
         'Stage Joined 🎤',
-        'You are now in Seat ${seatIndex + 1}. Speak freely!',
+        'You are now in ${RoomSeatController.getSeatName(seatIndex)}. Speak freely!',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: context.successColor.withOpacity(0.9),
         colorText: Colors.white,
@@ -950,47 +953,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   void _showRoomOptionsMenuSheet(BuildContext context) {
     Get.bottomSheet(
-      Container(
-        color: const Color(0xFF161822),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Room Options',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.settings, color: Colors.white),
-              title: const Text('Room Settings',
-                  style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Get.back();
-                final room = _controller.rooms
-                    .firstWhereOrNull((r) => r.id == widget.roomId);
-                if (room != null) {
-                  Get.dialog(
-                      RoomSettingsDialog(roomId: widget.roomId, room: room));
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.group, color: Colors.white),
-              title: const Text('Member List',
-                  style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Get.back();
-                final room = _controller.rooms
-                    .firstWhereOrNull((r) => r.id == widget.roomId) ??
-                    VoiceRoom.dummy();
-                Get.dialog(MemberListDialog(roomId: widget.roomId, room: room));
-              },
-            ),
-          ],
-        ),
-      ),
+      RoomOptionsSheet(roomId: widget.roomId),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
     );
   }
 
@@ -1077,7 +1042,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       glowController: _glowController,
                       getUserDp: _getUserDp,
                       onJoinSeat: _joinSeat,
-                      onShowLeaveSeatMenu: (idx) => SeatActionSheets.showSelfSeatActions(
+                      onShowLeaveSeatMenu: (idx) =>
+                          SeatActionSheets.showSelfSeatActions(
                         context: context,
                         roomId: widget.roomId,
                         seatIndex: idx,

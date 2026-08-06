@@ -6,6 +6,7 @@ import '../../widgets/gifting/gift_animation_overlay.dart';
 import '../../models/room/room_model.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../store/store_controller.dart';
+import 'room_seat_controller.dart';
 
 class RoomGiftController extends GetxController {
   static RoomGiftController get to => Get.find<RoomGiftController>();
@@ -121,7 +122,7 @@ class RoomGiftController extends GetxController {
 
       final seatInfo =
           seats?.firstWhereOrNull((s) => s['seatIndex'] == seatIndex);
-      final String receiverName = seatInfo?['name'] ?? 'Seat #${seatIndex + 1}';
+      final String receiverName = seatInfo?['name'] ?? RoomSeatController.getSeatName(seatIndex);
 
       final String message =
           '🎁 $uName sent $amount ${isGold ? 'Gold Coins' : 'Silver Coins'} to $receiverName.';

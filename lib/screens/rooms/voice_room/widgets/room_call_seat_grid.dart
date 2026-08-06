@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_seat_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/index.dart';
@@ -97,9 +98,7 @@ class RoomCallSeatGrid extends StatelessWidget {
           u?.avatarFrame ?? seat?['avatarFrame'] as String? ?? 'Normal';
       final userName = u?.username ??
           seat?['name'] as String? ??
-          (index == 0
-              ? 'Host'
-              : (index == 1 ? 'Co-Host' : 'Seat ${index + 1}'));
+          RoomSeatController.getSeatName(index);
       final userLevel = u?.level ?? seat?['level'] as int? ?? 1;
       final nobleLevel = u?.novelLevel ?? seat?['nobleLevel'] as int? ?? 0;
       final vipLevel = u?.vipLevel ?? seat?['vipLevel'] as int? ?? 0;
@@ -200,8 +199,7 @@ class RoomCallSeatGrid extends StatelessWidget {
 
               // Speaker red mic off badge (top right)
               if (isOccupied &&
-                  (controller.mutedUsers[roomId]?.contains(userId) ??
-                      false))
+                  (controller.mutedUsers[roomId]?.contains(userId) ?? false))
                 Positioned(
                   top: -1 * scale,
                   right: -1 * scale,

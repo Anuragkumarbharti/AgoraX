@@ -9,6 +9,7 @@ import '../../../../models/chat/chat_model.dart';
 import '../../../chat/chat_screen.dart';
 import '../../../../services/chat/chat_controller.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_seat_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/index.dart';
@@ -288,7 +289,7 @@ class MemberListDialog extends StatelessWidget {
       tagLabel = '🛡 Admin';
       tagBgColor = const Color(0xFF2563EB).withOpacity(0.2);
       tagTextColor = const Color(0xFF60A5FA);
-    } else if (lowerRole == 'host' || seatText.contains('Seat 1')) {
+    } else if (lowerRole == 'host' || seatText == 'Host') {
       tagLabel = '🎤 Host';
       tagBgColor = const Color(0xFFEF4444).withOpacity(0.2);
       tagTextColor = const Color(0xFFA7F3D0);
@@ -405,7 +406,7 @@ class MemberListDialog extends StatelessWidget {
         final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
         final role = RoomController.to.getUserRole(room, u.userID, seatsInfo: seatsList);
         final seatIndex = seatsList.indexWhere((s) => s['userId'] == u.userID);
-        final seatText = seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
+        final seatText = seatIndex != -1 ? RoomSeatController.getSeatName(seatIndex) : 'Audience';
         final isSpeaking =
             seatIndex != -1 && seatsList[seatIndex]['isSpeaking'] == true;
 
@@ -455,7 +456,7 @@ class MemberListDialog extends StatelessWidget {
           final seatIndex =
               seatsList.indexWhere((s) => s['userId'] == m.userId);
           final seatText =
-              seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
+              seatIndex != -1 ? RoomSeatController.getSeatName(seatIndex) : 'Audience';
 
           return _buildMemberTile(
             context,
@@ -500,7 +501,7 @@ class MemberListDialog extends StatelessWidget {
             role: seat['role'] ?? 'Speaker',
             isOnline: isOnline,
             isSpeaking: isOnline,
-            seatText: 'Seat ${seatIndex + 1}',
+            seatText: RoomSeatController.getSeatName(seatIndex),
             onViewProfile: () => _handleViewProfile(
                 uId, seat['name'] ?? 'Speaker', seat['role'] ?? 'Speaker'),
             onChatPressed: () =>

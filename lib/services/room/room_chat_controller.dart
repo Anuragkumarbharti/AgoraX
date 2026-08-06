@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../user/user_profile_cache_manager.dart';
 import 'room_realtime_controller.dart';
+import 'room_seat_controller.dart';
 
 class RoomChatMessage {
   final String id;
@@ -340,8 +341,7 @@ class RoomChatController extends GetxController {
       String role = 'Audience';
       if (mySeat != null) {
         final seatIndex = mySeat['seatIndex'] as int;
-        role =
-            seatIndex == 0 ? 'Host' : (seatIndex == 1 ? 'Co-Host' : 'Speaker');
+        role = RoomSeatController.getSeatName(seatIndex);
       }
 
       String? equippedFrame;

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:creania/models/room/room_model.dart';
 import 'package:creania/services/room/room_permission_controller.dart';
+import 'package:creania/services/room/room_seat_controller.dart';
 import 'package:creania/services/room/room_controller.dart';
 
 void main() {
@@ -95,12 +96,12 @@ void main() {
     test('2. Dynamic Host Role Resolution (Seat 1 Occupant Only)', () {
       final seatsWithAudienceOnSeat1 = [
         {'seatIndex': 0, 'userId': audienceId, 'name': 'Audience User'},
-        {'seatIndex': 1, 'userId': null, 'name': 'Seat 2'},
+        {'seatIndex': 1, 'userId': null, 'name': RoomSeatController.getSeatName(1)},
       ];
 
       final seatsWithoutSeat1 = [
-        {'seatIndex': 0, 'userId': null, 'name': 'Seat 1'},
-        {'seatIndex': 1, 'userId': audienceId, 'name': 'Seat 2'},
+        {'seatIndex': 0, 'userId': null, 'name': RoomSeatController.getSeatName(0)},
+        {'seatIndex': 1, 'userId': audienceId, 'name': RoomSeatController.getSeatName(1)},
       ];
 
       // Sitting on Seat 1 (Seat Index 0) resolves role as Host

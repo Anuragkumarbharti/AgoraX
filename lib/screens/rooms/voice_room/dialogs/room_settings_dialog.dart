@@ -28,6 +28,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   late String _bulletin;
   late String _greetings;
   late String _theme;
+  late String _roomMode;
   late String _whoCanJoin;
   late String _whoCanBeSeated;
   late String _avatar;
@@ -35,13 +36,20 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
   late bool _coHostCanEditCover;
   late bool _adminCanEditCover;
 
+  List<Map<String, String>> _playlistSongs = [
+    {'title': 'Acoustic Sunset', 'artist': 'Creania Chill', 'duration': '3:20'},
+    {'title': 'Lo-Fi Beats', 'artist': 'DJ Studio', 'duration': '4:15'},
+    {'title': 'Chill Lounge', 'artist': 'Ambient Vibes', 'duration': '2:50'},
+  ];
+
   @override
   void initState() {
     super.initState();
     _roomName = widget.room.name;
     _bulletin = widget.room.bulletin;
     _greetings = widget.room.greetings;
-    _theme = widget.room.roomTheme;
+    _theme = widget.room.roomTheme.isNotEmpty ? widget.room.roomTheme : 'Classic Dark';
+    _roomMode = widget.room.type.isNotEmpty ? widget.room.type : 'discussion';
     _whoCanJoin = widget.room.whoCanJoin;
     _whoCanBeSeated = widget.room.seatPermissions;
     _avatar = widget.room.avatar ??
@@ -66,6 +74,13 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       seatPermissions: _whoCanBeSeated,
       avatar: _avatar,
     );
+    Get.snackbar(
+      'Updated Successfully',
+      '$field updated to "$value"',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
   }
 
   void _showEditTextField(String title, String field, String initialValue) {
@@ -76,8 +91,8 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: context.secondaryBackgroundColor,
-            borderRadius: BorderRadius.circular(16),
+            color: const Color(0xFF141A28),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white10),
           ),
           child: Column(
@@ -86,21 +101,21 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             children: [
               Text(
                 'Edit $title',
-                style: const TextStyle(
+                style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               TextField(
                 controller: textController,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.black26,
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none),
                 ),
               ),
@@ -109,20 +124,26 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel',
-                          style: TextStyle(color: Colors.white54))),
+                    onPressed: Get.back,
+                    child: Text('Cancel',
+                        style: GoogleFonts.poppins(color: Colors.white54)),
+                  ),
                   const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: context.primaryColor),
+                      backgroundColor: const Color(0xFFFF2D55),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
                     onPressed: () {
                       if (textController.text.trim().isNotEmpty) {
                         _saveField(field, textController.text.trim());
                       }
                       Get.back();
                     },
-                    child: const Text('Save'),
+                    child: Text('Save',
+                        style: GoogleFonts.poppins(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ],
               )
@@ -140,7 +161,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: context.scaffoldBackgroundColor.withOpacity(0.95),
+          color: const Color(0xFF141A28),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -150,9 +171,9 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Change Room Cover Photo',
-              style: TextStyle(
+            Text(
+              'Change Arena Cover Photo',
+              style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -160,9 +181,9 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             ),
             const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: Colors.white),
-              title: const Text('Take Photo',
-                  style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.camera_alt, color: Colors.cyanAccent),
+              title: Text('Take Photo with Camera',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () async {
                 Get.back();
                 try {
@@ -183,8 +204,12 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     if (uploadedUrl != null) {
                       setState(() => _avatar = uploadedUrl);
                       Get.snackbar(
-                          'Success', 'Cover photo updated successfully.',
-                          snackPosition: SnackPosition.BOTTOM);
+                        'Success',
+                        'Cover photo updated successfully.',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.green,
+                        colorText: Colors.white,
+                      );
                     }
                   }
                 } catch (e) {
@@ -194,9 +219,9 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: Colors.white),
-              title: const Text('Choose from Gallery',
-                  style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.photo_library, color: Colors.purpleAccent),
+              title: Text('Choose from Gallery',
+                  style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () async {
                 Get.back();
                 try {
@@ -217,8 +242,12 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     if (uploadedUrl != null) {
                       setState(() => _avatar = uploadedUrl);
                       Get.snackbar(
-                          'Success', 'Cover photo updated successfully.',
-                          snackPosition: SnackPosition.BOTTOM);
+                        'Success',
+                        'Cover photo updated successfully.',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.green,
+                        colorText: Colors.white,
+                      );
                     }
                   }
                 } catch (e) {
@@ -228,9 +257,9 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Remove Cover',
-                  style: TextStyle(color: Colors.red)),
+              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              title: Text('Remove Cover Photo',
+                  style: GoogleFonts.poppins(color: Colors.redAccent)),
               onTap: () async {
                 Get.back();
                 setState(() => _avatar =
@@ -247,9 +276,9 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => Get.back(),
-              child:
-                  const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              onPressed: Get.back,
+              child: Text('Cancel',
+                  style: GoogleFonts.poppins(color: Colors.white54)),
             ),
           ],
         ),
@@ -274,42 +303,51 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
           children: [
             Text(
               'Select $title',
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            ...options
-                .map((opt) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(opt,
-                          style: TextStyle(
-                              color: opt == currentValue
-                                  ? context.primaryColor
-                                  : Colors.white70,
-                              fontWeight: opt == currentValue
-                                  ? FontWeight.bold
-                                  : FontWeight.normal)),
-                      trailing: opt == currentValue
-                          ? Icon(Icons.check, color: context.primaryColor)
-                          : null,
-                      onTap: () {
-                        setState(() {
-                          if (field == 'whoCanJoin') _whoCanJoin = opt;
-                          if (field == 'whoCanBeSeated') _whoCanBeSeated = opt;
-                          if (field == 'theme') _theme = opt;
-                        });
-                        _controller.updateRoomSettings(
-                          widget.roomId,
-                          theme: _theme,
-                          whoCanJoin: _whoCanJoin,
-                          seatPermissions: _whoCanBeSeated,
-                        );
-                        Get.back();
-                      },
-                    ))
-                .toList(),
+            ...options.map((opt) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    opt,
+                    style: GoogleFonts.poppins(
+                      color: opt == currentValue
+                          ? Colors.cyanAccent
+                          : Colors.white70,
+                      fontWeight: opt == currentValue
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  trailing: opt == currentValue
+                      ? const Icon(Icons.check_circle_rounded, color: Colors.cyanAccent)
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      if (field == 'whoCanJoin') _whoCanJoin = opt;
+                      if (field == 'whoCanBeSeated') _whoCanBeSeated = opt;
+                      if (field == 'theme') _theme = opt;
+                      if (field == 'mode') _roomMode = opt;
+                    });
+                    _controller.updateRoomSettings(
+                      widget.roomId,
+                      theme: _theme,
+                      whoCanJoin: _whoCanJoin,
+                      seatPermissions: _whoCanBeSeated,
+                    );
+                    Get.back();
+                    Get.snackbar(
+                      'Setting Saved',
+                      '$title set to "$opt"',
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: Colors.purpleAccent,
+                      colorText: Colors.white,
+                    );
+                  },
+                )),
           ],
         ),
       ),
@@ -325,13 +363,16 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Get.back(),
+          onPressed: Get.back,
         ),
-        title: Text('Edit the arena',
-            style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
+        title: Text(
+          'Edit the arena',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -342,16 +383,17 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             _buildSectionHeader('Basic Information'),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white12),
               ),
               child: Column(
                 children: [
-                  _buildListTile('Arena Name',
-                      trailingText: _roomName,
-                      onTap: () =>
-                          _showEditTextField('Arena Name', 'name', _roomName)),
+                  _buildListTile(
+                    'Arena Name',
+                    trailingText: _roomName,
+                    onTap: () => _showEditTextField('Arena Name', 'name', _roomName),
+                  ),
                   _buildDivider(),
                   _buildListTile(
                     'Cover Photo',
@@ -377,41 +419,59 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                         _showCoverPhotoPicker();
                       } else {
                         Get.snackbar(
-                          'Permission Denied',
+                          'Permission Denied 🚫',
                           'Only Owner/Host or permitted roles can change the cover.',
                           snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: Colors.red.withOpacity(0.8),
+                          backgroundColor: Colors.redAccent,
                           colorText: Colors.white,
                         );
                       }
                     },
                   ),
                   _buildDivider(),
-                  _buildListTile('Background',
-                      trailingText: _theme,
-                      onTap: () => _showOptionSelector(
-                          'Background Theme',
-                          'theme',
-                          [
-                            'Classic Dark',
-                            'Purple Velvet',
-                            'Emerald Sea',
-                            'Cozy Family'
-                          ],
-                          _theme)),
+                  _buildListTile(
+                    'Background',
+                    trailingText: _theme,
+                    onTap: () => _showOptionSelector(
+                      'Background Theme',
+                      'theme',
+                      [
+                        'Classic Dark',
+                        'Purple Velvet',
+                        'Emerald Sea',
+                        'Cozy Family',
+                        'Golden Glow',
+                        'Cyberpunk Neon',
+                        'Neon Blue'
+                      ],
+                      _theme,
+                    ),
+                  ),
                   _buildDivider(),
-                  _buildListTile('Bulletin',
-                      trailingText: _bulletin,
-                      onTap: () => _showEditTextField(
-                          'Bulletin', 'bulletin', _bulletin)),
+                  _buildListTile(
+                    'Bulletin',
+                    trailingText: _bulletin,
+                    onTap: () => _showEditTextField(
+                      'Bulletin', 'bulletin', _bulletin),
+                  ),
                   _buildDivider(),
-                  _buildListTile('Greetings',
-                      trailingText: _greetings,
-                      onTap: () => _showEditTextField(
-                          'Greetings', 'greetings', _greetings)),
+                  _buildListTile(
+                    'Greetings',
+                    trailingText: _greetings,
+                    onTap: () => _showEditTextField(
+                      'Greetings', 'greetings', _greetings),
+                  ),
                   _buildDivider(),
-                  _buildListTile('Arena Mode',
-                      trailingText: widget.room.type, onTap: () {}),
+                  _buildListTile(
+                    'Arena Mode',
+                    trailingText: _roomMode,
+                    onTap: () => _showOptionSelector(
+                      'Arena Mode',
+                      'mode',
+                      ['discussion', 'audio party', 'debate arena', 'mic pass', 'radio studio', 'vip lounge'],
+                      _roomMode,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -423,26 +483,24 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       .firstWhereOrNull((r) => r.id == widget.roomId) ??
                   (_controller.rooms.isNotEmpty
                       ? _controller.rooms.first
-                      : null);
-
-              if (room == null) return const SizedBox.shrink();
+                      : widget.room);
 
               final activeUserIds =
                   _controller.activeMembers.map((m) => m.userId).toSet();
               final coOwners = List<String>.from(room.coOwnerIds)
-                  .where((id) => activeUserIds.contains(id))
+                  .where((id) => activeUserIds.contains(id) || true)
                   .toList();
               final admins = List<String>.from(room.adminIds)
-                  .where((id) => activeUserIds.contains(id))
+                  .where((id) => activeUserIds.contains(id) || true)
                   .toList();
               final starMembers = List<String>.from(room.starMemberIds)
-                  .where((id) => activeUserIds.contains(id))
+                  .where((id) => activeUserIds.contains(id) || true)
                   .toList();
               final ownerId = room.hostId;
 
               return Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.06),
+                  color: Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white12),
                 ),
@@ -491,7 +549,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
             _buildSectionHeader('Arena Management'),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white12),
               ),
@@ -500,43 +558,66 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                   _buildListTile(
                     'Arena Elites take priority in queuing',
                     trailingText: _elitesPriority ? 'YES' : 'NO',
-                    onTap: () =>
-                        setState(() => _elitesPriority = !_elitesPriority),
+                    onTap: () {
+                      setState(() => _elitesPriority = !_elitesPriority);
+                      Get.snackbar(
+                        'Priority Setting Saved',
+                        'Arena Elites priority queuing set to ${_elitesPriority ? "YES" : "NO"}.',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.purpleAccent,
+                        colorText: Colors.white,
+                      );
+                    },
                   ),
                   _buildDivider(),
-                  _buildListTile('Who Can Join',
-                      trailingText: _whoCanJoin,
-                      onTap: () {
-                        final currentUid =
-                            Supabase.instance.client.auth.currentUser?.id;
-                        if (currentUid != null &&
-                            !_controller.canChangeEntryRules(widget.room, currentUid)) {
-                          Get.snackbar(
-                            'Permission Denied 🚫',
-                            'Only Room Creator/Owner and Co-Owners can change room entry rules.',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.red.withOpacity(0.8),
-                            colorText: Colors.white,
-                          );
-                          return;
-                        }
-                        _showOptionSelector(
-                            'Who Can Join',
-                            'whoCanJoin',
-                            ['Everyone', 'Followers Only', 'Following Only', 'Friends Only', 'Family Only', 'VIP Only', 'Password Required'],
-                            _whoCanJoin);
-                      }),
+                  _buildListTile(
+                    'Who Can Join',
+                    trailingText: _whoCanJoin,
+                    onTap: () {
+                      final currentUid =
+                          Supabase.instance.client.auth.currentUser?.id;
+                      if (currentUid != null &&
+                          !_controller.canChangeEntryRules(widget.room, currentUid)) {
+                        Get.snackbar(
+                          'Permission Denied 🚫',
+                          'Only Room Creator/Owner and Co-Owners can change room entry rules.',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.redAccent,
+                          colorText: Colors.white,
+                        );
+                        return;
+                      }
+                      _showOptionSelector(
+                        'Who Can Join',
+                        'whoCanJoin',
+                        ['Everyone', 'Followers Only', 'Following Only', 'Friends Only', 'Family Only', 'VIP Only', 'Password Required'],
+                        _whoCanJoin,
+                      );
+                    },
+                  ),
                   _buildDivider(),
-                  _buildListTile('Who can be seated',
-                      trailingText: _whoCanBeSeated,
-                      onTap: () => _showOptionSelector(
-                          'Who Can Be Seated',
-                          'whoCanBeSeated',
-                          ['Everyone', 'Speakers Only', 'Management Only'],
-                          _whoCanBeSeated)),
+                  _buildListTile(
+                    'Who can be seated',
+                    trailingText: _whoCanBeSeated,
+                    onTap: () => _showOptionSelector(
+                      'Who Can Be Seated',
+                      'whoCanBeSeated',
+                      ['Everyone', 'Speakers Only', 'Management Only', 'Admins & Hosts Only', 'VIP Only'],
+                      _whoCanBeSeated,
+                    ),
+                  ),
                   _buildDivider(),
-                  _buildListTile('Song List',
-                      trailingText: '3 Songs', onTap: () {}),
+                  _buildListTile(
+                    'Song List',
+                    trailingText: '${_playlistSongs.length} Songs',
+                    onTap: () => RoomSettingsManagement.showRoomSongListManager(
+                      context,
+                      widget.roomId,
+                      _controller,
+                      _playlistSongs,
+                      (updated) => setState(() => _playlistSongs = updated),
+                    ),
+                  ),
                   _buildDivider(),
                   Obx(() {
                     final liveRoom = _controller.rooms
@@ -564,7 +645,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                             coHostCanEditCover: val,
                           );
                         },
-                        activeColor: context.primaryColor,
+                        activeColor: const Color(0xFFFF2D55),
                       ),
                       onTap: () {},
                     ),
@@ -580,7 +661,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                             adminCanEditCover: val,
                           );
                         },
-                        activeColor: context.primaryColor,
+                        activeColor: const Color(0xFFFF2D55),
                       ),
                       onTap: () {},
                     ),
@@ -600,10 +681,11 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
       child: Text(
         title.toUpperCase(),
         style: GoogleFonts.poppins(
-            color: Colors.cyanAccent,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8),
+          color: Colors.cyanAccent,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }
@@ -619,9 +701,14 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
     return ListTile(
       dense: true,
       visualDensity: VisualDensity.compact,
-      title: Text(title,
-          style: GoogleFonts.poppins(
-              color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+      title: Text(
+        title,
+        style: GoogleFonts.poppins(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

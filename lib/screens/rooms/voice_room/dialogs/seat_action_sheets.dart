@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_seat_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/gifting/send_gift_dialog.dart';
 
@@ -15,6 +16,7 @@ class SeatActionSheets {
     required Function(int) onLeaveSeat,
     required List<Map<String, dynamic>> seats,
   }) {
+    final seatName = RoomSeatController.getSeatName(seatIndex);
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
@@ -29,9 +31,9 @@ class SeatActionSheets {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Your Seat Actions',
-              style: TextStyle(
+            Text(
+              'Actions for $seatName',
+              style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold),
@@ -40,8 +42,7 @@ class SeatActionSheets {
             ListTile(
               leading: Icon(isMicOn ? Icons.mic_off : Icons.mic,
                   color: context.primaryColor),
-              title: Text(
-                  isMicOn ? 'Mute Microphone' : 'Unmute Microphone',
+              title: Text(isMicOn ? 'Mute Microphone' : 'Unmute Microphone',
                   style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
@@ -68,8 +69,8 @@ class SeatActionSheets {
             ),
             ListTile(
               leading: const Icon(Icons.arrow_downward, color: Colors.orange),
-              title: const Text('Leave Stage (Move to Audience)',
-                  style: TextStyle(color: Colors.white)),
+              title: Text('Leave $seatName (Move to Audience)',
+                  style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
                 onLeaveSeat(seatIndex);
@@ -94,6 +95,7 @@ class SeatActionSheets {
     required Function(int) onJoinSeat,
     required VoidCallback onStateChanged,
   }) {
+    final seatName = RoomSeatController.getSeatName(seatIndex);
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
@@ -108,9 +110,9 @@ class SeatActionSheets {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Locked Seat Management',
-              style: TextStyle(
+            Text(
+              'Locked $seatName Management',
+              style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold),
@@ -118,8 +120,8 @@ class SeatActionSheets {
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.lock_open, color: Colors.greenAccent),
-              title: const Text('Unlock Seat',
-                  style: TextStyle(color: Colors.white)),
+              title: Text('Unlock $seatName',
+                  style: const TextStyle(color: Colors.white)),
               onTap: () async {
                 Get.back();
                 await controller.toggleSeatLock(roomId, seatIndex);
@@ -128,8 +130,8 @@ class SeatActionSheets {
             ),
             ListTile(
               leading: Icon(Icons.mic, color: context.primaryColor),
-              title: const Text('Take Seat & Unlock',
-                  style: TextStyle(color: Colors.white)),
+              title: Text('Take $seatName & Unlock',
+                  style: const TextStyle(color: Colors.white)),
               onTap: () async {
                 Get.back();
                 await controller.toggleSeatLock(roomId, seatIndex);
@@ -155,6 +157,7 @@ class SeatActionSheets {
     required Function(int) onJoinSeat,
     required VoidCallback onStateChanged,
   }) {
+    final seatName = RoomSeatController.getSeatName(seatIndex);
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
@@ -169,9 +172,9 @@ class SeatActionSheets {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Seat Management',
-              style: TextStyle(
+            Text(
+              '$seatName Management',
+              style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold),
@@ -179,8 +182,8 @@ class SeatActionSheets {
             const SizedBox(height: 16),
             ListTile(
               leading: Icon(Icons.mic, color: context.primaryColor),
-              title: const Text('Take Seat',
-                  style: TextStyle(color: Colors.white)),
+              title: Text('Take $seatName',
+                  style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Get.back();
                 onJoinSeat(seatIndex);
@@ -188,8 +191,8 @@ class SeatActionSheets {
             ),
             ListTile(
               leading: const Icon(Icons.lock, color: Colors.redAccent),
-              title: const Text('Close Seat (Lock)',
-                  style: TextStyle(color: Colors.white)),
+              title: Text('Close $seatName (Lock)',
+                  style: const TextStyle(color: Colors.white)),
               onTap: () async {
                 Get.back();
                 await controller.toggleSeatLock(roomId, seatIndex);

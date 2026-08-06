@@ -6,6 +6,7 @@ import 'package:zego_express_engine/zego_express_engine.dart' hide Text;
 
 import '../../../../models/room/room_model.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_seat_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/index.dart';
@@ -169,7 +170,7 @@ class OnlineMembersDialog extends StatelessWidget {
                       final seatIndex =
                           seatsList.indexWhere((s) => s['userId'] == u.userID);
                       final seatText =
-                          seatIndex != -1 ? 'Seat ${seatIndex + 1}' : null;
+                          seatIndex != -1 ? RoomSeatController.getSeatName(seatIndex) : null;
                       final isSpeaking = seatIndex != -1 &&
                           seatsList[seatIndex]['isSpeaking'] == true;
 
@@ -201,7 +202,7 @@ class OnlineMembersDialog extends StatelessWidget {
                           roleBgColor = const Color(0xFF2563EB);
                           roleTextColor = Colors.white;
                           roleLabel = '🛡 Admin';
-                        } else if (role == 'Host' || seatText == 'Seat 1') {
+                        } else if (role == 'Host' || seatText == 'Host') {
                           roleBgColor = const Color(0xFFEF4444);
                           roleTextColor = Colors.white;
                           roleLabel = '🎤 Host';

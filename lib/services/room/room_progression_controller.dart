@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/progression/room_progression_models.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../progression/progression_controller.dart';
+import 'room_seat_controller.dart';
 
 class RoomProgressionController extends GetxController {
   static RoomProgressionController get to => Get.find<RoomProgressionController>();
@@ -197,7 +198,7 @@ class RoomProgressionController extends GetxController {
         seatsList.add({
           'seatIndex': seatIdx,
           'userId': uId,
-          'name': profile?.username ?? (uId != null ? 'Member' : 'Seat ${seatIdx + 1}'),
+          'name': profile?.username ?? (uId != null ? 'Member' : RoomSeatController.getSeatName(seatIdx)),
           'avatar': profile?.avatar,
           'level': profile?.level ?? 1,
           'vipLevel': profile?.vipLevel ?? 0,

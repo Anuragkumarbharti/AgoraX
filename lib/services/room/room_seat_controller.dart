@@ -10,8 +10,38 @@ class RoomSeatController extends GetxController {
 
   final RxMap<String, List<Map<String, dynamic>>> roomSeatsInfo =
       <String, List<Map<String, dynamic>>>{}.obs;
-  final RxMap<String, int> roomSeatGiftsCounters =
-      <String, int>{}.obs;
+  final RxMap<String, int> roomSeatGiftsCounters = <String, int>{}.obs;
+
+  static String getSeatName(int seatIndex) {
+    switch (seatIndex) {
+      case 0:
+        return 'Host';
+      case 1:
+        return 'Co Host';
+      case 2:
+        return 'No.1';
+      case 3:
+        return 'No.2';
+      case 4:
+        return 'No.3';
+      case 5:
+        return 'No.4';
+      case 6:
+        return 'No.5';
+      case 7:
+        return 'No.6';
+      case 8:
+        return 'No.7';
+      case 9:
+        return 'No.8';
+      default:
+        return 'No.${seatIndex - 1}';
+    }
+  }
+
+  static String getSeatNameByNumber(int seatNumber) {
+    return getSeatName(seatNumber - 1);
+  }
 
   bool canOccupySeat(String roomId, int seatIndex, String userId) {
     if (seatIndex < 0 || seatIndex >= 10) return false;
@@ -27,8 +57,11 @@ class RoomSeatController extends GetxController {
     return true;
   }
 
-  Future<void> joinRoomSeat(String roomId, int seatIndex, {
-    required Function(String, String, int, String, Map<String, dynamic>) onEmitActivity,
+  Future<void> joinRoomSeat(
+    String roomId,
+    int seatIndex, {
+    required Function(String, String, int, String, Map<String, dynamic>)
+        onEmitActivity,
     required Future<void> Function() onRefreshProgression,
     required Future<void> Function() onRepairState,
   }) async {
@@ -37,7 +70,7 @@ class RoomSeatController extends GetxController {
     if (!canOccupySeat(roomId, seatIndex, currentUserId)) {
       Get.snackbar(
         'Seat Access Locked 🔒',
-        'Seat ${seatIndex + 1} is reserved for Room Host, Co-Owners, and Admins.',
+        '${getSeatName(seatIndex)} is reserved for Room Host, Co-Owners, and Admins.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
         colorText: Colors.white,
@@ -60,7 +93,7 @@ class RoomSeatController extends GetxController {
           updatedSeats[prevIdx] = {
             ...updatedSeats[prevIdx],
             'userId': null,
-            'name': 'Seat ${prevIdx + 1}',
+            'name': getSeatName(prevIdx),
             'avatar': null,
             'isSpeaking': false,
           };
@@ -95,10 +128,11 @@ class RoomSeatController extends GetxController {
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creaniaa Student';
 
+      final seatName = getSeatName(seatIndex);
       final seatJoinMsgs = [
-        '🎤 $uName took Seat #${seatIndex + 1}.',
-        '👑 $uName is now sitting on Seat #${seatIndex + 1}.',
-        '🎙️ $uName joined Seat #${seatIndex + 1}.'
+        '🎤 $uName took $seatName.',
+        '👑 $uName is now sitting on $seatName.',
+        '🎙️ $uName joined $seatName.'
       ];
       final message = seatJoinMsgs[Random().nextInt(seatJoinMsgs.length)];
 
@@ -125,8 +159,11 @@ class RoomSeatController extends GetxController {
     }
   }
 
-  Future<void> leaveRoomSeat(String roomId, int seatIndex, {
-    required Function(String, String, int, String, Map<String, dynamic>) onEmitActivity,
+  Future<void> leaveRoomSeat(
+    String roomId,
+    int seatIndex, {
+    required Function(String, String, int, String, Map<String, dynamic>)
+        onEmitActivity,
     required Future<void> Function() onRefreshProgression,
     required Future<void> Function() onRepairState,
   }) async {
@@ -145,7 +182,7 @@ class RoomSeatController extends GetxController {
           updatedSeats[targetIdx] = {
             ...updatedSeats[targetIdx],
             'userId': null,
-            'name': 'Seat ${seatIndex + 1}',
+            'name': getSeatName(seatIndex),
             'avatar': null,
             'isSpeaking': false,
           };
@@ -162,9 +199,10 @@ class RoomSeatController extends GetxController {
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creaniaa Student';
 
+      final seatName = getSeatName(seatIndex);
       final seatLeaveMsgs = [
-        '📤 $uName left Seat #${seatIndex + 1}.',
-        '🎤 Seat #${seatIndex + 1} is now available.',
+        '📤 $uName left $seatName.',
+        '🎤 $seatName is now available.',
         '🚪 $uName left the microphone.'
       ];
       final message = seatLeaveMsgs[Random().nextInt(seatLeaveMsgs.length)];
@@ -212,7 +250,7 @@ class RoomSeatController extends GetxController {
           updatedSeats[targetIdx] = {
             ...updatedSeats[targetIdx],
             'userId': null,
-            'name': 'Seat ${seatIndex + 1}',
+            'name': getSeatName(seatIndex),
             'avatar': null,
             'isSpeaking': false,
           };
@@ -225,16 +263,17 @@ class RoomSeatController extends GetxController {
         'p_seat_index': seatIndex,
       });
 
+      final seatName = getSeatName(seatIndex);
       await onEmitActivity(
         'seat_removed',
         targetUserId,
         seatIndex + 1,
-        '🚫 User was removed from Seat #${seatIndex + 1}.',
+        '🚫 User was removed from $seatName.',
       );
 
       Get.snackbar(
         'User Removed 🚪',
-        'Member removed from Seat ${seatIndex + 1}.',
+        'Member removed from $seatName.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: const Color(0xFFF59E0B).withOpacity(0.9),
         colorText: Colors.white,

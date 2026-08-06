@@ -5,7 +5,8 @@ import '../../models/room/room_model.dart';
 import 'room_discovery_controller.dart';
 
 class RoomPermissionController extends GetxController {
-  static RoomPermissionController get to => Get.find<RoomPermissionController>();
+  static RoomPermissionController get to =>
+      Get.find<RoomPermissionController>();
 
   final RxMap<String, bool> currentPermissions = <String, bool>{}.obs;
 
@@ -32,14 +33,19 @@ class RoomPermissionController extends GetxController {
     return currentPermissions[action] == true;
   }
 
-  String getUserRole(VoiceRoom room, String userId, {List<Map<String, dynamic>>? seatsInfo}) {
+  String getUserRole(VoiceRoom room, String userId,
+      {List<Map<String, dynamic>>? seatsInfo}) {
     if (room.hostId == userId || room.founderId == userId) return 'Creator';
     if (room.coOwnerIds.contains(userId) == true) return 'Co-Owner';
-    if (room.adminIds.contains(userId) == true || room.moderatorIds.contains(userId) == true) return 'Admin';
+    if (room.adminIds.contains(userId) == true ||
+        room.moderatorIds.contains(userId) == true) return 'Admin';
 
     // Check if user is currently occupying Seat 1 (Seat Index 0)
     if (seatsInfo != null && seatsInfo.isNotEmpty) {
-      final seat1 = seatsInfo.firstWhereOrNull((s) => s['seatIndex'] == 0 || s['seatNumber'] == 0 || seatsInfo.indexOf(s) == 0);
+      final seat1 = seatsInfo.firstWhereOrNull((s) =>
+          s['seatIndex'] == 0 ||
+          s['seatNumber'] == 0 ||
+          seatsInfo.indexOf(s) == 0);
       if (seat1 != null && seat1['userId'] == userId) {
         return 'Host';
       }
@@ -84,7 +90,10 @@ class RoomPermissionController extends GetxController {
 
   bool canChangeEntryRules(VoiceRoom room, String userId) {
     final role = getUserRole(room, userId);
-    return role == 'Creator' || role == 'Owner' || role == 'Co-Owner' || role == 'Co Owner';
+    return role == 'Creator' ||
+        role == 'Owner' ||
+        role == 'Co-Owner' ||
+        role == 'Co Owner';
   }
 
   bool isHost(String roomId, String userId, {VoiceRoom? room}) {

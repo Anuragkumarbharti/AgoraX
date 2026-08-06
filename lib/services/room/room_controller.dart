@@ -204,6 +204,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   Future<void> moderateSpeakerRequest(String roomId, String requestId, String status) => memberCtrl.moderateSpeakerRequest(roomId, requestId, status);
   void syncRoomFromMembers(String roomId, List<RoomMember> members) => discoveryCtrl.syncRoomFromMembers(roomId, members);
 
+  String getSeatName(int seatIndex) => RoomSeatController.getSeatName(seatIndex);
   bool canOccupySeat(String roomId, int seatIndex, String userId) => seatCtrl.canOccupySeat(roomId, seatIndex, userId);
   Future<void> joinRoomSeat(String roomId, int seatIndex) => seatCtrl.joinRoomSeat(roomId, seatIndex, onEmitActivity: (et, uid, snum, msg, meta) => emitRoomActivityEvent(roomId: roomId, eventType: et, userId: uid, seatNumber: snum, message: msg, metadata: meta), onRefreshProgression: () => fetchRoomProgression(roomId), onRepairState: () => repairRoomState(roomId));
   Future<void> leaveRoomSeat(String roomId, int seatIndex) => seatCtrl.leaveRoomSeat(roomId, seatIndex, onEmitActivity: (et, uid, snum, msg, meta) => emitRoomActivityEvent(roomId: roomId, eventType: et, userId: uid, seatNumber: snum, message: msg, metadata: meta), onRefreshProgression: () => fetchRoomProgression(roomId), onRepairState: () => repairRoomState(roomId));
