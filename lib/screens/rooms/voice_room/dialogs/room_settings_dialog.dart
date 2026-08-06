@@ -506,11 +506,26 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                   _buildDivider(),
                   _buildListTile('Who Can Join',
                       trailingText: _whoCanJoin,
-                      onTap: () => _showOptionSelector(
-                          'Who Can Join',
-                          'whoCanJoin',
-                          ['Everyone', 'Members Only', 'VIP Only'],
-                          _whoCanJoin)),
+                      onTap: () {
+                        final currentUid =
+                            Supabase.instance.client.auth.currentUser?.id;
+                        if (currentUid != null &&
+                            !_controller.canChangeEntryRules(widget.room, currentUid)) {
+                          Get.snackbar(
+                            'Permission Denied 🚫',
+                            'Only Room Creator/Owner and Co-Owners can change room entry rules.',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red.withOpacity(0.8),
+                            colorText: Colors.white,
+                          );
+                          return;
+                        }
+                        _showOptionSelector(
+                            'Who Can Join',
+                            'whoCanJoin',
+                            ['Everyone', 'Followers Only', 'Following Only', 'Friends Only', 'Family Only', 'VIP Only', 'Password Required'],
+                            _whoCanJoin);
+                      }),
                   _buildDivider(),
                   _buildListTile('Who can be seated',
                       trailingText: _whoCanBeSeated,

@@ -67,59 +67,85 @@ void main() async {
       FlutterError.presentError(details);
     };
 
-    // ── 2. Shader warmup (eliminates first-frame jank) ───────────────
+    // ── 2. Shader warmup & pre-frame initialization ───────────────────
     binding.deferFirstFrame();
-    await const AppShaderWarmup().execute();
+    try {
+      try {
+        await const AppShaderWarmup().execute();
+      } catch (e) {
+        debugPrint('[Main] ShaderWarmup skipped: $e');
+      }
 
-    // ── 3. Detect device refresh rate ────────────────────────────────
-    await PerformanceConfig.initialize();
+      try {
+        await PerformanceConfig.initialize();
+      } catch (e) {
+        debugPrint('[Main] PerformanceConfig init skipped: $e');
+      }
 
-    // ── 4. Critical services (blocking — needed before first screen) ──
-    await AdmobService.initialize();
+      try {
+        await AdmobService.initialize();
+      } catch (e) {
+        debugPrint('[Main] AdmobService init skipped: $e');
+      }
 
-    await Supabase.initialize(
-      url: const String.fromEnvironment('SUPABASE_URL',
-          defaultValue: 'https://zccrgiplrbeslgpcezul.supabase.co'),
-      anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY',
-          defaultValue:
-              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjY3JnaXBscmJlc2xncGNlenVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDQyNDAsImV4cCI6MjA5OTc4MDI0MH0.iYRR8y7Z_S0z_ROVzVyvj1M4rv6sWK2q7Z6K7vRwD4g'),
-    );
+      try {
+        await Supabase.initialize(
+          url: const String.fromEnvironment('SUPABASE_URL',
+              defaultValue: 'https://zccrgiplrbeslgpcezul.supabase.co'),
+          anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY',
+              defaultValue:
+                  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjY3JnaXBscmJlc2xncGNlenVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDQyNDAsImV4cCI6MjA5OTc4MDI0MH0.iYRR8y7Z_S0z_ROVzVyvj1M4rv6sWK2q7Z6K7vRwD4g'),
+        );
+      } catch (e) {
+        debugPrint('[Main] Supabase init error: $e');
+      }
 
-    final isarService = IsarStorageService();
-    await isarService.init();
-    Get.put(isarService);
+      try {
+        final isarService = IsarStorageService();
+        await isarService.init();
+        Get.put(isarService);
+      } catch (e) {
+        debugPrint('[Main] IsarStorageService init error: $e');
+      }
 
-    // Register network resilience & adaptive services
-    Get.put(NetworkConnectivityService());
-    Get.put(NetworkAdaptiveManager());
-    Get.put(UltraNetworkClient());
-    Get.put(RequestBatcher());
-    Get.put(DeltaSyncManager());
-    Get.put(OfflineQueueManager());
-    Get.put(WebSocketResilienceManager());
-    Get.put(AdaptiveMediaManager());
+      // Register network resilience & adaptive services
+      Get.put(NetworkConnectivityService());
+      Get.put(NetworkAdaptiveManager());
+      Get.put(UltraNetworkClient());
+      Get.put(RequestBatcher());
+      Get.put(DeltaSyncManager());
+      Get.put(OfflineQueueManager());
+      Get.put(WebSocketResilienceManager());
+      Get.put(AdaptiveMediaManager());
 
-    await UserProfileCacheManager.initOfflineCache();
+      try {
+        await UserProfileCacheManager.initOfflineCache();
+      } catch (e) {
+        debugPrint('[Main] initOfflineCache error: $e');
+      }
 
-    // ── 5. Register critical GetX controllers ─────────────────────────
-    Get.put(ThemeController());
-    Get.put(StoreController());
-    Get.put(CareerProgressionController());
-    Get.put(CareerDailyController());
-    Get.put(IdDailyController());
-    Get.put(VipController());
-    Get.put(NovelController());
-    Get.put(ChatController());
-    Get.put(RoomController());
-    Get.put(CustomizationController());
-    Get.put(PremiumIdentityController());
-    Get.put(VaultController());
-    Get.put(ProgressionController());
-    Get.put(StudyVaultController());
-    Get.put(VoiceController());
+      // ── Register critical GetX controllers ─────────────────────────
+      Get.put(ThemeController(), permanent: true);
+      Get.put(StoreController(), permanent: true);
+      Get.put(CareerProgressionController(), permanent: true);
+      Get.put(CareerDailyController(), permanent: true);
+      Get.put(IdDailyController(), permanent: true);
+      Get.put(VipController(), permanent: true);
+      Get.put(NovelController(), permanent: true);
+      Get.put(ChatController(), permanent: true);
+      Get.put(RoomController(), permanent: true);
+      Get.put(CustomizationController(), permanent: true);
+      Get.put(PremiumIdentityController(), permanent: true);
+      Get.put(VaultController(), permanent: true);
+      Get.put(ProgressionController(), permanent: true);
+      Get.put(StudyVaultController(), permanent: true);
+      Get.put(VoiceController(), permanent: true);
+    } catch (err, stack) {
+      debugPrint('[Main] Pre-frame init error: $err\n$stack');
+    } finally {
+      binding.allowFirstFrame();
+    }
 
-    // ── 6. Render the app immediately ────────────────────────────────
-    binding.allowFirstFrame();
     runApp(const MyApp());
 
     // ── 7. Defer non-critical services to after first frame ───────────

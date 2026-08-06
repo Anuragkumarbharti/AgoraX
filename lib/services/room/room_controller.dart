@@ -39,21 +39,21 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   static String get currentUserId => UserProfileCacheManager.currentUserId;
 
   // Sub-controller references
-  late final RoomConnectionController connCtrl;
-  late final RoomRealtimeController realtimeCtrl;
-  late final RoomChatController chatCtrl;
-  late final RoomMemberController memberCtrl;
-  late final RoomSeatController seatCtrl;
-  late final RoomPermissionController permissionCtrl;
-  late final RoomProgressionController progressionCtrl;
-  late final RoomGiftController giftCtrl;
-  late final RoomActivityController activityCtrl;
-  late final RoomModerationController moderationCtrl;
-  late final RoomBackgroundController backgroundCtrl;
-  late final RoomUploadController uploadCtrl;
-  late final RoomDiscoveryController discoveryCtrl;
-  late final RoomVoiceController voiceCtrl;
-  late final RoomPipController pipCtrl;
+  late RoomConnectionController connCtrl;
+  late RoomRealtimeController realtimeCtrl;
+  late RoomChatController chatCtrl;
+  late RoomMemberController memberCtrl;
+  late RoomSeatController seatCtrl;
+  late RoomPermissionController permissionCtrl;
+  late RoomProgressionController progressionCtrl;
+  late RoomGiftController giftCtrl;
+  late RoomActivityController activityCtrl;
+  late RoomModerationController moderationCtrl;
+  late RoomBackgroundController backgroundCtrl;
+  late RoomUploadController uploadCtrl;
+  late RoomDiscoveryController discoveryCtrl;
+  late RoomVoiceController voiceCtrl;
+  late RoomPipController pipCtrl;
 
   // Connection State Delegators
   String? get activeRoomId => connCtrl.activeRoomId;
@@ -107,27 +107,39 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       ? Get.find<StoreController>().coinsBalance
       : 0.obs;
 
+  bool _subControllersInitialized = false;
+
+  RoomController() {
+    _initSubControllers();
+  }
+
+  void _initSubControllers() {
+    if (_subControllersInitialized) return;
+    _subControllersInitialized = true;
+
+    connCtrl = Get.isRegistered<RoomConnectionController>() ? Get.find<RoomConnectionController>() : Get.put(RoomConnectionController());
+    realtimeCtrl = Get.isRegistered<RoomRealtimeController>() ? Get.find<RoomRealtimeController>() : Get.put(RoomRealtimeController());
+    chatCtrl = Get.isRegistered<RoomChatController>() ? Get.find<RoomChatController>() : Get.put(RoomChatController());
+    memberCtrl = Get.isRegistered<RoomMemberController>() ? Get.find<RoomMemberController>() : Get.put(RoomMemberController());
+    seatCtrl = Get.isRegistered<RoomSeatController>() ? Get.find<RoomSeatController>() : Get.put(RoomSeatController());
+    permissionCtrl = Get.isRegistered<RoomPermissionController>() ? Get.find<RoomPermissionController>() : Get.put(RoomPermissionController());
+    progressionCtrl = Get.isRegistered<RoomProgressionController>() ? Get.find<RoomProgressionController>() : Get.put(RoomProgressionController());
+    giftCtrl = Get.isRegistered<RoomGiftController>() ? Get.find<RoomGiftController>() : Get.put(RoomGiftController());
+    activityCtrl = Get.isRegistered<RoomActivityController>() ? Get.find<RoomActivityController>() : Get.put(RoomActivityController());
+    moderationCtrl = Get.isRegistered<RoomModerationController>() ? Get.find<RoomModerationController>() : Get.put(RoomModerationController());
+    backgroundCtrl = Get.isRegistered<RoomBackgroundController>() ? Get.find<RoomBackgroundController>() : Get.put(RoomBackgroundController());
+    uploadCtrl = Get.isRegistered<RoomUploadController>() ? Get.find<RoomUploadController>() : Get.put(RoomUploadController());
+    discoveryCtrl = Get.isRegistered<RoomDiscoveryController>() ? Get.find<RoomDiscoveryController>() : Get.put(RoomDiscoveryController());
+    voiceCtrl = Get.isRegistered<RoomVoiceController>() ? Get.find<RoomVoiceController>() : Get.put(RoomVoiceController());
+    pipCtrl = Get.isRegistered<RoomPipController>() ? Get.find<RoomPipController>() : Get.put(RoomPipController());
+  }
+
   @override
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
 
-    // Initialize module controllers
-    connCtrl = Get.put(RoomConnectionController());
-    realtimeCtrl = Get.put(RoomRealtimeController());
-    chatCtrl = Get.put(RoomChatController());
-    memberCtrl = Get.put(RoomMemberController());
-    seatCtrl = Get.put(RoomSeatController());
-    permissionCtrl = Get.put(RoomPermissionController());
-    progressionCtrl = Get.put(RoomProgressionController());
-    giftCtrl = Get.put(RoomGiftController());
-    activityCtrl = Get.put(RoomActivityController());
-    moderationCtrl = Get.put(RoomModerationController());
-    backgroundCtrl = Get.put(RoomBackgroundController());
-    uploadCtrl = Get.put(RoomUploadController());
-    discoveryCtrl = Get.put(RoomDiscoveryController());
-    voiceCtrl = Get.put(RoomVoiceController());
-    pipCtrl = Get.put(RoomPipController());
+    _initSubControllers();
 
     fetchRooms();
     subscribeToRoomsList();
@@ -169,6 +181,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   Future<bool> heartbeatRoomMember(String roomId, bool isSpeaking) => connCtrl.heartbeatRoomMember(roomId, isSpeaking);
   Future<void> repairRoomState(String roomId) => connCtrl.repairRoomState(roomId);
   void leaveActiveRoomLocally({String? reason, bool navigateToArena = false}) => connCtrl.leaveActiveRoomLocally(reason: reason, navigateToArena: navigateToArena);
+  Map<String, dynamic> validate12StepRoomEntry(String roomId, String userId) => connCtrl.validate12StepRoomEntry(roomId, userId);
   Future<void> enterRoom(String roomId, {String? password}) => connCtrl.enterRoom(roomId, password: password);
   Future<void> exitRoom(String roomId) => connCtrl.exitRoom(roomId);
 
@@ -201,7 +214,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
   Future<void> fetchRoomPermissions(String roomId) => permissionCtrl.fetchRoomPermissions(roomId);
   bool canPerformAction(String action) => permissionCtrl.canPerformAction(action);
-  String getUserRole(VoiceRoom room, String userId) => permissionCtrl.getUserRole(room, userId);
+  String getUserRole(VoiceRoom room, String userId, {List<Map<String, dynamic>>? seatsInfo}) => permissionCtrl.getUserRole(room, userId, seatsInfo: seatsInfo);
+  bool canChangeEntryRules(VoiceRoom room, String userId) => permissionCtrl.canChangeEntryRules(room, userId);
   int getRoleWeight(String role) => permissionCtrl.getRoleWeight(role);
   bool isHost(String roomId, String userId, {VoiceRoom? room}) => permissionCtrl.isHost(roomId, userId, room: room);
   bool isCoHost(String roomId, String userId, {VoiceRoom? room}) => permissionCtrl.isCoHost(roomId, userId, room: room);

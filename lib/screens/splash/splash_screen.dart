@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -25,6 +26,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _logoScale;
   late Animation<double> _textFade;
   late List<Particle> _particles;
+  bool _hasNavigated = false;
+  Timer? _failsafeTimer;
 
   @override
   void initState() {
@@ -32,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen>
     
     // Core animation controller
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1800),
       vsync: this,
     );
 
@@ -59,64 +62,117 @@ class _SplashScreenState extends State<SplashScreen>
     _particles = List.generate(40, (index) => Particle());
 
     _fadeController.forward();
+
+    // Failsafe timer guarantees the splash screen dissolves after 2.2 seconds max
+    _failsafeTimer = Timer(const Duration(milliseconds: 2200), () {
+      _performNavigation();
+    });
+
     _navigateToNextScreen();
   }
 
-  void _navigateToNextScreen() {
-    // Splash screen duration: 2.8 seconds
-    Future.delayed(const Duration(milliseconds: 2800), () async {
+  Future<void> _performNavigation([Widget? destination]) async {
+    if (_hasNavigated || !mounted) return;
+    _hasNavigated = true;
+    _failsafeTimer?.cancel();
+
+    if (destination != null) {
+      Get.offAll(() => destination);
+      return;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final firstLaunchDone = prefs.getBool('firstLaunchDone') ?? false;
+      
+      bool isLoggedIn = false;
       try {
-        final prefs = await SharedPreferences.getInstance();
-        final firstLaunchDone = prefs.getBool('firstLaunchDone') ?? false;
-        final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
+        isLoggedIn = Supabase.instance.client.auth.currentSession != null;
+      } catch (_) {}
 
-        if (!firstLaunchDone) {
-          Get.offAll(() => const OnboardingScreen());
-        } else if (isLoggedIn) {
-          final isValid = await UserProfileCacheManager.validateCurrentUserSession()
-              .timeout(const Duration(seconds: 4), onTimeout: () => false);
-          if (isValid) {
-            try {
-              await UserProfileCacheManager.getOrFetchCanonicalId();
-              final profile = await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true)
-                  .timeout(const Duration(seconds: 4), onTimeout: () => UserProfileCacheManager.currentUser!);
-              await UserProgressSyncService.syncFromSupabase()
-                  .timeout(const Duration(seconds: 4), onTimeout: () {});
-
-              if (profile != null && profile.signupStatus != 'completed') {
-                int startStep = 1;
-                if (profile.username.isNotEmpty && !profile.username.startsWith('user_')) {
-                  if (profile.age == 0 || (profile.gender?.isEmpty ?? true)) {
-                    startStep = 2; // Step 3
-                  } else if (profile.avatar?.isEmpty ?? true) {
-                    startStep = 3; // Step 4
-                  } else if (profile.bio?.isEmpty ?? true) {
-                    startStep = 4; // Step 5
-                  } else if (profile.interests.isEmpty) {
-                    startStep = 5; // Step 6
-                  } else {
-                    startStep = 6; // Step 7
-                  }
-                }
-                Get.offAll(() => SignupFlowScreen(userId: profile.id, startStep: startStep));
-                return;
-              }
-            } catch (_) {}
-            Get.offAll(() => const MainScreen());
-          } else {
-            Get.offAll(() => const LoginScreen());
-          }
-        } else {
-          Get.offAll(() => const LoginScreen());
-        }
-      } catch (_) {
+      if (!firstLaunchDone) {
+        Get.offAll(() => const OnboardingScreen());
+      } else if (isLoggedIn) {
+        Get.offAll(() => const MainScreen());
+      } else {
         Get.offAll(() => const LoginScreen());
       }
-    });
+    } catch (_) {
+      Get.offAll(() => const LoginScreen());
+    }
+  }
+
+  void _navigateToNextScreen() async {
+    try {
+      final prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(milliseconds: 1000),
+        onTimeout: () => throw TimeoutException('SharedPreferences timeout'),
+      );
+      final firstLaunchDone = prefs.getBool('firstLaunchDone') ?? false;
+      
+      bool isLoggedIn = false;
+      try {
+        isLoggedIn = Supabase.instance.client.auth.currentSession != null;
+      } catch (_) {}
+
+      if (!firstLaunchDone) {
+        await Future.delayed(const Duration(milliseconds: 1600));
+        _performNavigation(const OnboardingScreen());
+        return;
+      }
+
+      if (isLoggedIn) {
+        final isValid = await UserProfileCacheManager.validateCurrentUserSession()
+            .timeout(const Duration(milliseconds: 1000), onTimeout: () => true);
+        if (isValid) {
+          // Trigger profile background updates non-blocking
+          UserProfileCacheManager.getOrFetchCanonicalId().timeout(const Duration(seconds: 2)).catchError((_) => null);
+          UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true).timeout(const Duration(seconds: 2)).catchError((_) => null);
+          UserProgressSyncService.syncFromSupabase().timeout(const Duration(seconds: 2)).catchError((_) => null);
+
+          final profile = UserProfileCacheManager.currentUser;
+          if (profile != null && profile.signupStatus != 'completed') {
+            int startStep = 1;
+            if (profile.username.isNotEmpty && !profile.username.startsWith('user_')) {
+              if (profile.age == 0 || (profile.gender?.isEmpty ?? true)) {
+                startStep = 2;
+              } else if (profile.avatar?.isEmpty ?? true) {
+                startStep = 3;
+              } else if (profile.bio?.isEmpty ?? true) {
+                startStep = 4;
+              } else if (profile.interests.isEmpty) {
+                startStep = 5;
+              } else {
+                startStep = 6;
+              }
+            }
+            await Future.delayed(const Duration(milliseconds: 1600));
+            _performNavigation(SignupFlowScreen(userId: profile.id, startStep: startStep));
+            return;
+          }
+
+          await Future.delayed(const Duration(milliseconds: 1600));
+          _performNavigation(const MainScreen());
+          return;
+        } else {
+          await Future.delayed(const Duration(milliseconds: 1600));
+          _performNavigation(const LoginScreen());
+          return;
+        }
+      } else {
+        await Future.delayed(const Duration(milliseconds: 1600));
+        _performNavigation(const LoginScreen());
+        return;
+      }
+    } catch (_) {
+      await Future.delayed(const Duration(milliseconds: 1600));
+      _performNavigation();
+    }
   }
 
   @override
   void dispose() {
+    _failsafeTimer?.cancel();
     _fadeController.dispose();
     _particleController.dispose();
     super.dispose();

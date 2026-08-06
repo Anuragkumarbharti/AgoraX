@@ -275,7 +275,7 @@ class RoomModerationController extends GetxController {
     String newRole,
   ) async {
     try {
-      await Supabase.instance.client.rpc('change_room_member_role', params: {
+      await Supabase.instance.client.rpc('promote_room_member_role', params: {
         'p_room_id': roomId,
         'p_target_user_id': userId,
         'p_new_role': newRole,
@@ -285,27 +285,20 @@ class RoomModerationController extends GetxController {
     }
   }
 
-  Future<bool> promoteRoomMember(String roomId, String userId, String currentRole) =>
-      promoteRoomMemberRole(roomId, userId, currentRole);
+  Future<bool> promoteRoomMember(String roomId, String userId, String targetRole) =>
+      promoteRoomMemberRole(roomId, userId, targetRole);
 
   Future<bool> promoteRoomMemberRole(
     String roomId,
     String userId,
-    String currentRole,
+    String targetRole,
   ) async {
     try {
-      String newRole = 'Speaker';
-      if (currentRole == 'Speaker' || currentRole == 'Listener') {
-        newRole = 'Admin';
-      } else if (currentRole == 'Admin') {
-        newRole = 'Co-Host';
-      }
-
-      await changeMemberRole(roomId, userId, newRole);
+      await changeMemberRole(roomId, userId, targetRole);
 
       Get.snackbar(
-        'Role Promoted 🎉',
-        'User promoted to $newRole.',
+        'Role Updated 🎉',
+        'User assigned to $targetRole.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
         colorText: Colors.white,
@@ -323,15 +316,17 @@ class RoomModerationController extends GetxController {
     String? currentRole,
   ]) async {
     try {
-      final role = currentRole ?? 'Admin';
-      String newRole = 'Listener';
-      if (role == 'Co-Host') {
-        newRole = 'Admin';
-      } else if (role == 'Admin') {
-        newRole = 'Speaker';
-      }
-
-      await changeMemberRole(roomId, userId, newRole);
+      await Supabase.instance.client.rpc('demote_room_member_role', params: {
+        'p_room_id': roomId,
+        'p_target_user_id': userId,
+      });
+      Get.snackbar(
+        'Role Demoted 👤',
+        'User demoted to Audience.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orangeAccent.withOpacity(0.9),
+        colorText: Colors.white,
+      );
       return true;
     } catch (e) {
       return false;

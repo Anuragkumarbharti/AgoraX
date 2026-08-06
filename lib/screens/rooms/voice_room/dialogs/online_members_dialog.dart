@@ -189,30 +189,30 @@ class OnlineMembersDialog extends StatelessWidget {
                         Color roleTextColor;
                         String roleLabel;
 
-                        if (role == 'Owner' || role == 'Founder') {
-                          roleBgColor = const Color(0xFFFF3B30);
-                          roleTextColor = Colors.white;
-                          roleLabel = '👑 Owner';
-                        } else if (role == 'Co-owner') {
+                        if (role == 'Creator' || role == 'Owner' || role == 'Founder') {
+                          roleBgColor = const Color(0xFFFFD700).withOpacity(0.9);
+                          roleTextColor = Colors.black87;
+                          roleLabel = '👑 Creator';
+                        } else if (role == 'Co-owner' || role == 'Co-Owner' || role == 'Co Owner') {
                           roleBgColor = const Color(0xFF9C27B0);
                           roleTextColor = Colors.white;
-                          roleLabel = '🛡️ Co-Owner';
-                        } else if (role == 'Admin') {
-                          roleBgColor = const Color(0xFFFF9800);
+                          roleLabel = '💎 Co Owner';
+                        } else if (role == 'Admin' || role == 'Moderator') {
+                          roleBgColor = const Color(0xFF2563EB);
                           roleTextColor = Colors.white;
-                          roleLabel = '🛡️ Admin';
-                        } else if (role == 'Star Member') {
-                          roleBgColor = const Color(0xFFFFC107);
-                          roleTextColor = Colors.black87;
-                          roleLabel = '⭐ Star Member';
+                          roleLabel = '🛡 Admin';
+                        } else if (role == 'Host' || seatText == 'Seat 1') {
+                          roleBgColor = const Color(0xFFEF4444);
+                          roleTextColor = Colors.white;
+                          roleLabel = '🎤 Host';
                         } else if (seatText != null) {
                           roleBgColor = Colors.cyan;
                           roleTextColor = Colors.black87;
                           roleLabel = '🎙️ $seatText';
                         } else {
-                          roleBgColor = Colors.blueGrey;
-                          roleTextColor = Colors.white;
-                          roleLabel = '👤 Member';
+                          roleBgColor = Colors.blueGrey.withOpacity(0.5);
+                          roleTextColor = Colors.white70;
+                          roleLabel = '👤 Audience';
                         }
 
                         return Container(

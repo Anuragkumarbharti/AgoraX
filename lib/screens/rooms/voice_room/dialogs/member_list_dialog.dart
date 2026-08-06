@@ -214,15 +214,7 @@ class MemberListDialog extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                       ],
-                      Flexible(
-                        child: Text(
-                          seatText.isNotEmpty ? seatText : role,
-                          style: GoogleFonts.poppins(
-                              color: context.textSecondary, fontSize: 8),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+                      _buildRoleBadgeTag(role, seatText),
                     ],
                   ),
                 ],
@@ -276,6 +268,54 @@ class MemberListDialog extends StatelessWidget {
         ),
       );
     });
+  }
+
+  Widget _buildRoleBadgeTag(String role, String seatText) {
+    String tagLabel = '';
+    Color tagBgColor = Colors.transparent;
+    Color tagTextColor = Colors.white;
+
+    final lowerRole = role.toLowerCase();
+    if (lowerRole == 'creator' || lowerRole == 'owner' || lowerRole == 'founder') {
+      tagLabel = '👑 Creator';
+      tagBgColor = const Color(0xFFFFD700).withOpacity(0.2);
+      tagTextColor = const Color(0xFFFFD700);
+    } else if (lowerRole == 'co-owner' || lowerRole == 'co owner') {
+      tagLabel = '💎 Co Owner';
+      tagBgColor = const Color(0xFF9C27B0).withOpacity(0.2);
+      tagTextColor = const Color(0xFFCE93D8);
+    } else if (lowerRole == 'admin' || lowerRole == 'moderator') {
+      tagLabel = '🛡 Admin';
+      tagBgColor = const Color(0xFF2563EB).withOpacity(0.2);
+      tagTextColor = const Color(0xFF60A5FA);
+    } else if (lowerRole == 'host' || seatText.contains('Seat 1')) {
+      tagLabel = '🎤 Host';
+      tagBgColor = const Color(0xFFEF4444).withOpacity(0.2);
+      tagTextColor = const Color(0xFFA7F3D0);
+    } else if (seatText.isNotEmpty && seatText != 'Audience') {
+      tagLabel = '🎙️ $seatText';
+      tagBgColor = Colors.cyan.withOpacity(0.2);
+      tagTextColor = Colors.cyanAccent;
+    } else {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: tagBgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: tagTextColor.withOpacity(0.5), width: 0.8),
+      ),
+      child: Text(
+        tagLabel,
+        style: GoogleFonts.poppins(
+          color: tagTextColor,
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 
   @override
@@ -347,15 +387,23 @@ class MemberListDialog extends StatelessWidget {
           child: Text('No users online',
               style: TextStyle(color: context.textSecondary)));
     }
+
+    final sortedUsers = List<ZegoUser>.from(onlineUsers);
+    sortedUsers.sort((a, b) {
+      final roleA = RoomController.to.getUserRole(room, a.userID);
+      final roleB = RoomController.to.getUserRole(room, b.userID);
+      final weightA = RoomController.to.getRoleWeight(roleA);
+      final weightB = RoomController.to.getRoleWeight(roleB);
+      return weightB.compareTo(weightA);
+    });
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: onlineUsers.length,
+      itemCount: sortedUsers.length,
       itemBuilder: (context, index) {
-        final u = onlineUsers[index];
-        final member = RoomController.to.activeMembers
-            .firstWhereOrNull((m) => m.userId == u.userID);
-        final role = member?.role ?? 'Audience';
+        final u = sortedUsers[index];
         final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
+        final role = RoomController.to.getUserRole(room, u.userID, seatsInfo: seatsList);
         final seatIndex = seatsList.indexWhere((s) => s['userId'] == u.userID);
         final seatText = seatIndex != -1 ? 'Seat ${seatIndex + 1}' : 'Audience';
         final isSpeaking =

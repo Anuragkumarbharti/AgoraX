@@ -242,11 +242,17 @@ class MiniProfileSheets {
     required RoomController controller,
     required VoidCallback onStateChanged,
   }) {
-    final room =
-        controller.rooms.firstWhereOrNull((r) => r.id == roomId);
+    final room = controller.rooms.firstWhereOrNull((r) => r.id == roomId);
     final callerRole = room != null
         ? controller.getUserRole(room, callerUserId)
-        : 'Member';
+        : 'Audience';
+
+    final isCreator = callerRole == 'Creator' || callerRole == 'Owner';
+    final isCoOwner = callerRole == 'Co-Owner' || callerRole == 'Co Owner';
+
+    final limits = controller.permissionCtrl.getRoomRoleLimits(room?.level ?? 1);
+    final maxCoOwners = limits['co_owners'] ?? 1;
+    final maxAdmins = limits['admins'] ?? 4;
 
     Get.bottomSheet(
       Container(
@@ -271,13 +277,13 @@ class MiniProfileSheets {
               ),
             ),
             const SizedBox(height: 20),
-            if (callerRole == 'Owner')
+            if (isCreator)
               ListTile(
                 leading:
-                    const Icon(Icons.star_rounded, color: Colors.amberAccent),
-                title: Text('Promote to Co-Owner',
+                    const Icon(Icons.diamond_rounded, color: Color(0xFFCE93D8)),
+                title: Text('Promote to 💎 Co Owner',
                     style: GoogleFonts.poppins(color: Colors.white)),
-                subtitle: Text('Max limit based on room level',
+                subtitle: Text('Level ${room?.level ?? 1} Limit: Max $maxCoOwners Co Owner(s)',
                     style: GoogleFonts.poppins(
                         color: Colors.white54, fontSize: 10)),
                 onTap: () async {
@@ -287,15 +293,13 @@ class MiniProfileSheets {
                   onStateChanged();
                 },
               ),
-            if (callerRole == 'Owner' ||
-                callerRole == 'Co-Owner' ||
-                callerRole == 'Co Owner')
+            if (isCreator || isCoOwner)
               ListTile(
-                leading: const Icon(Icons.security_rounded,
-                    color: Colors.blueAccent),
-                title: Text('Promote to Admin',
+                leading: const Icon(Icons.shield_rounded,
+                    color: Color(0xFF60A5FA)),
+                title: Text('Promote to 🛡 Admin',
                     style: GoogleFonts.poppins(color: Colors.white)),
-                subtitle: Text('Max limit based on room level (4 × Level)',
+                subtitle: Text('Level ${room?.level ?? 1} Limit: Max $maxAdmins Admin(s)',
                     style: GoogleFonts.poppins(
                         color: Colors.white54, fontSize: 10)),
                 onTap: () async {
@@ -305,43 +309,10 @@ class MiniProfileSheets {
                   onStateChanged();
                 },
               ),
-            if (callerRole == 'Owner' ||
-                callerRole == 'Co-Owner' ||
-                callerRole == 'Co Owner')
-              ListTile(
-                leading:
-                    const Icon(Icons.mic_rounded, color: Color(0xFF10B981)),
-                title: Text('Promote to Host',
-                    style: GoogleFonts.poppins(color: Colors.white)),
-                onTap: () async {
-                  Get.back();
-                  await controller.promoteRoomMemberRole(
-                      roomId, targetUserId, 'Host');
-                  onStateChanged();
-                },
-              ),
-            if (callerRole == 'Owner' ||
-                callerRole == 'Co-Owner' ||
-                callerRole == 'Co Owner')
-              ListTile(
-                leading: const Icon(Icons.record_voice_over_rounded,
-                    color: Colors.purpleAccent),
-                title: Text('Promote to Co-Host',
-                    style: GoogleFonts.poppins(color: Colors.white)),
-                subtitle: Text('Max limit based on room level (2 × Level)',
-                    style: GoogleFonts.poppins(
-                        color: Colors.white54, fontSize: 10)),
-                onTap: () async {
-                  Get.back();
-                  await controller.promoteRoomMemberRole(
-                      roomId, targetUserId, 'Co-Host');
-                  onStateChanged();
-                },
-              ),
             ListTile(
               leading: const Icon(Icons.person_outline_rounded,
                   color: Colors.white70),
-              title: Text('Demote to Member',
+              title: Text('Demote to 👤 Audience',
                   style: GoogleFonts.poppins(color: Colors.white)),
               onTap: () async {
                 Get.back();
@@ -350,20 +321,6 @@ class MiniProfileSheets {
                 onStateChanged();
               },
             ),
-            if (callerRole == 'Owner')
-              ListTile(
-                leading: const Icon(Icons.king_bed_rounded,
-                    color: Colors.orangeAccent),
-                title: Text('Transfer Room Ownership',
-                    style: GoogleFonts.poppins(
-                        color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                onTap: () async {
-                  Get.back();
-                  await controller.transferRoomOwnership(
-                      roomId, targetUserId);
-                  onStateChanged();
-                },
-              ),
           ],
         ),
       ),

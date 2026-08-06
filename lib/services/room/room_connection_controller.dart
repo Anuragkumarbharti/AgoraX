@@ -18,6 +18,7 @@ import 'room_activity_controller.dart';
 import 'room_discovery_controller.dart';
 import 'room_voice_controller.dart';
 import 'room_gift_controller.dart';
+import 'room_moderation_controller.dart';
 
 class RoomConnectionController extends GetxController {
   static RoomConnectionController get to => Get.find<RoomConnectionController>();
@@ -30,6 +31,25 @@ class RoomConnectionController extends GetxController {
 
   Timer? _activeHeartbeatTimer;
   int _consecutiveHeartbeatFailures = 0;
+
+  Map<String, dynamic> validate12StepRoomEntry(String roomId, String userId) {
+    final rooms = Get.isRegistered<RoomDiscoveryController>()
+        ? RoomDiscoveryController.to.rooms
+        : <VoiceRoom>[];
+    final room = rooms.firstWhereOrNull((r) => r.id == roomId);
+
+    if (room != null && (room.hostId == userId || room.founderId == userId || room.coOwnerIds.contains(userId))) {
+      return {'canJoin': true, 'reason': 'Management Priority Access'};
+    }
+
+    final isBanned = Get.isRegistered<RoomModerationController>() &&
+        (RoomModerationController.to.bannedUsers[roomId]?.contains(userId) == true);
+    if (isBanned) {
+      return {'canJoin': false, 'reason': 'Permanently Banned from Room'};
+    }
+
+    return {'canJoin': true, 'reason': 'Allowed'};
+  }
 
   void triggerInRoomDisconnectOverlay({
     required String title,
@@ -163,7 +183,10 @@ class RoomConnectionController extends GetxController {
       _activeHeartbeatTimer = null;
       _consecutiveHeartbeatFailures = 0;
 
-      final currentUserId = UserProfileCacheManager.currentUserId;
+      String currentUserId = '';
+      try {
+        currentUserId = UserProfileCacheManager.currentUserId;
+      } catch (_) {}
       final roomId = activeRoomId;
       if (roomId != null) {
         try {
@@ -174,23 +197,27 @@ class RoomConnectionController extends GetxController {
                   seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
               if (seat != null) {
                 final seatIdx = seat['seatIndex'] as int;
-                Supabase.instance.client
-                    .rpc('leave_room_seat', params: {
-                      'p_room_id': roomId,
-                      'p_seat_index': seatIdx,
-                    })
-                    .then((_) => null)
-                    .catchError((_) => null);
+                try {
+                  Supabase.instance.client
+                      .rpc('leave_room_seat', params: {
+                        'p_room_id': roomId,
+                        'p_seat_index': seatIdx,
+                      })
+                      .then((_) => null)
+                      .catchError((_) => null);
+                } catch (_) {}
               }
             }
           }
 
-          Supabase.instance.client
-              .rpc('leave_room', params: {
-                'p_room_id': roomId,
-              })
-              .then((_) => null)
-              .catchError((_) => null);
+          try {
+            Supabase.instance.client
+                .rpc('leave_room', params: {
+                  'p_room_id': roomId,
+                })
+                .then((_) => null)
+                .catchError((_) => null);
+          } catch (_) {}
         } catch (_) {}
       }
 
