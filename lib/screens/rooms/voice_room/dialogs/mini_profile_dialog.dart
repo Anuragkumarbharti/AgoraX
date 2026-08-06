@@ -677,6 +677,36 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                     ),
                     const SizedBox(height: 6),
 
+                    // 4.5. ROLE SHIELD (Feature 16: Displays current room role & active tenure)
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.amber.shade900.withOpacity(0.3),
+                            Colors.purple.shade900.withOpacity(0.3),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.amber.withOpacity(0.5), width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('🛡️ Role Shield:', style: TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.role.isNotEmpty ? widget.role : 'Audience',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text('• Since 04 Aug 2026', style: TextStyle(color: Colors.white60, fontSize: 9)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
                     // 5. Official Status Tag
                     MiniProfileBadges.buildOfficialStatusRow(u, context),
                     const SizedBox(height: 6),

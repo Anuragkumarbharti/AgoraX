@@ -8,8 +8,16 @@ import 'package:creania/core/theme.dart';
 import '../../../../models/room/room_model.dart';
 import '../../../../services/room/room_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
+import '../governance/room_governance_dashboard_dialog.dart';
 
 class RoomSettingsManagement {
+  static void showGovernanceDashboard(
+    BuildContext context,
+    String roomId,
+    String roomName,
+  ) {
+    RoomGovernanceDashboardDialog.show(context, roomId: roomId, roomName: roomName);
+  }
   static String getRoomUserName(String userId) {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
     if (userId == 'me' || (currentUid != null && userId == currentUid)) {
