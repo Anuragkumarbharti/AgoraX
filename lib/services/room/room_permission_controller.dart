@@ -27,6 +27,7 @@ class RoomPermissionController extends GetxController {
   }
 
   bool canPerformAction(String action) {
+    final _ = currentPermissions.length;
     return currentPermissions[action] == true;
   }
 

@@ -52,6 +52,7 @@ class RoomProgressionController extends GetxController {
   }
 
   int getRoomFreeVp(String roomId) {
+    final _ = roomDailyTaskLists.length;
     final tasks = roomDailyTaskLists[roomId];
     if (tasks == null || tasks.isEmpty) return 700;
     final freeTasks = tasks.where((t) => !t.taskKey.contains('gold'));
@@ -60,6 +61,7 @@ class RoomProgressionController extends GetxController {
   }
 
   int getRoomGoldVp(String roomId) {
+    final _ = roomDailyTaskLists.length;
     final tasks = roomDailyTaskLists[roomId];
     if (tasks == null || tasks.isEmpty) return 1000;
     final goldTasks = tasks.where((t) => t.taskKey.contains('gold'));
