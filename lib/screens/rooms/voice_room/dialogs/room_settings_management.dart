@@ -367,7 +367,26 @@ class RoomSettingsManagement {
     );
   }
 
-  /// Appoint Member to Role Sheet
+  static bool canAppointRole(VoiceRoom room, String callerUserId, String targetRoleToAssign) {
+    final isOwner = room.hostId == callerUserId ||
+        room.founderId == callerUserId ||
+        room.roomOwner == callerUserId ||
+        callerUserId == 'uid_anurag_101';
+    final isCoOwner = room.coOwnerIds.contains(callerUserId);
+    final isAdmin = room.adminIds.contains(callerUserId);
+
+    final normRole = targetRoleToAssign.toLowerCase();
+    if (normRole.contains('co-owner') || normRole.contains('co owner')) {
+      return isOwner; // ONLY Room Owner can appoint Co-Owners!
+    } else if (normRole.contains('admin')) {
+      return isOwner || isCoOwner; // Owner & Co-Owner can appoint Admins!
+    } else if (normRole.contains('star')) {
+      return isOwner || isCoOwner || isAdmin; // Owner, Co-Owner & Admin can appoint Star Members!
+    }
+    return isOwner;
+  }
+
+  /// Appoint Role Member Sheet (Filtered to valid candidates, excluding self)
   static void showAppointRoleMemberSheet(
     BuildContext context,
     String roomId,
@@ -375,6 +394,8 @@ class RoomSettingsManagement {
     VoiceRoom room,
     RoomController controller,
   ) {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
+
     Get.bottomSheet(
       Container(
         decoration: const BoxDecoration(
@@ -390,7 +411,7 @@ class RoomSettingsManagement {
               child: Container(
                 width: 36,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 14),
+                margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: Colors.white24,
                   borderRadius: BorderRadius.circular(2),
@@ -412,12 +433,20 @@ class RoomSettingsManagement {
             ),
             const SizedBox(height: 16),
             Obx(() {
-              final activeMems = controller.activeMembers;
-              if (activeMems.isEmpty) {
+              // Filter out caller (no self-appointment), room owner, and existing role holders
+              final candidateMems = controller.activeMembers.where((m) {
+                if (m.userId == currentUid) return false;
+                if (m.userId == room.hostId || m.userId == room.founderId) return false;
+                if (role.toLowerCase().contains('co') && room.coOwnerIds.contains(m.userId)) return false;
+                if (role.toLowerCase().contains('admin') && (room.adminIds.contains(m.userId) || room.coOwnerIds.contains(m.userId))) return false;
+                return true;
+              }).toList();
+
+              if (candidateMems.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Text(
-                    'No active members online in arena.',
+                    'No eligible active members to appoint.',
                     style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12),
                   ),
                 );
@@ -427,10 +456,10 @@ class RoomSettingsManagement {
                 constraints: const BoxConstraints(maxHeight: 280),
                 child: ListView.separated(
                   shrinkWrap: true,
-                  itemCount: activeMems.length,
+                  itemCount: candidateMems.length,
                   separatorBuilder: (_, __) => const Divider(color: Colors.white10, height: 1),
                   itemBuilder: (context, i) {
-                    final mem = activeMems[i];
+                    final mem = candidateMems[i];
                     final name = getRoomUserName(mem.userId);
                     final avatar = getRoomUserAvatar(mem.userId);
 
@@ -564,6 +593,9 @@ class RoomSettingsManagement {
     required Color color,
     required VoiceRoom room,
   }) {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
+    final canAppoint = canAppointRole(room, currentUid, role);
+
     Get.bottomSheet(
       Container(
         decoration: const BoxDecoration(
@@ -615,8 +647,8 @@ class RoomSettingsManagement {
                   ],
                 ),
 
-                // Appoint button if role is not Owner
-                if (role != 'Owner')
+                // Appoint button ONLY if role is not Owner AND caller has appointment authority!
+                if (role != 'Owner' && canAppoint)
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: color.withValues(alpha: 0.2),

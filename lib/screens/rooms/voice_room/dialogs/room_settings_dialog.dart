@@ -367,16 +367,45 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
     );
   }
 
+  bool _canUserEditField(String field) {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
+    final isHost = widget.room.hostId == currentUid ||
+        widget.room.founderId == currentUid ||
+        widget.room.roomOwner == currentUid ||
+        currentUid == 'uid_anurag_101';
+    final isCoHost = widget.room.coOwnerIds.contains(currentUid);
+    final isAdmin = widget.room.adminIds.contains(currentUid);
+
+    if (isHost || isCoHost) return true; // Owner & Co-Owner have full edit access!
+
+    if (isAdmin) {
+      if (field == 'bulletin' || field == 'greetings' || field == 'whoCanBeSeated' || field == 'background') {
+        return true;
+      }
+    }
+    return false; // Audience & unauthorized users cannot edit!
+  }
+
+  void _showPermissionDenied(String message) {
+    Get.snackbar(
+      'Permission Denied 🚫',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.redAccent,
+      colorText: Colors.white,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFF0F1420),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: Get.back,
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Edit the arena',
@@ -405,7 +434,13 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                   _buildListTile(
                     'Arena Name',
                     trailingText: _roomName,
-                    onTap: () => _showEditTextField('Arena Name', 'name', _roomName),
+                    onTap: () {
+                      if (!_canUserEditField('name')) {
+                        _showPermissionDenied('Only Owner and Co-Owners can edit Arena Name.');
+                        return;
+                      }
+                      _showEditTextField('Arena Name', 'name', _roomName);
+                    },
                   ),
                   _buildDivider(),
                   _buildListTile(
@@ -431,13 +466,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       if (canEditCover) {
                         _showCoverPhotoPicker();
                       } else {
-                        Get.snackbar(
-                          'Permission Denied 🚫',
-                          'Only Owner/Host or permitted roles can change the cover.',
-                          snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: Colors.redAccent,
-                          colorText: Colors.white,
-                        );
+                        _showPermissionDenied('Only Owner/Host or permitted roles can change the cover.');
                       }
                     },
                   ),
@@ -469,6 +498,10 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       ),
                       trailingText: activeBg.title,
                       onTap: () {
+                        if (!_canUserEditField('background')) {
+                          _showPermissionDenied('Only Owner, Co-Owner or Admin can change room background.');
+                          return;
+                        }
                         RoomBackgroundPickerSheet.show(
                           context,
                           currentBackground: activeBg,
@@ -483,26 +516,42 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                   _buildListTile(
                     'Bulletin',
                     trailingText: _bulletin,
-                    onTap: () => _showEditTextField(
-                      'Bulletin', 'bulletin', _bulletin),
+                    onTap: () {
+                      if (!_canUserEditField('bulletin')) {
+                        _showPermissionDenied('Only Owner, Co-Owner or Admin can edit Bulletin.');
+                        return;
+                      }
+                      _showEditTextField('Bulletin', 'bulletin', _bulletin);
+                    },
                   ),
                   _buildDivider(),
                   _buildListTile(
                     'Greetings',
                     trailingText: _greetings,
-                    onTap: () => _showEditTextField(
-                      'Greetings', 'greetings', _greetings),
+                    onTap: () {
+                      if (!_canUserEditField('greetings')) {
+                        _showPermissionDenied('Only Owner, Co-Owner or Admin can edit Greetings.');
+                        return;
+                      }
+                      _showEditTextField('Greetings', 'greetings', _greetings);
+                    },
                   ),
                   _buildDivider(),
                   _buildListTile(
                     'Arena Mode',
                     trailingText: _roomMode,
-                    onTap: () => _showOptionSelector(
-                      'Arena Mode',
-                      'mode',
-                      ['discussion', 'audio party', 'debate arena', 'mic pass', 'radio studio', 'vip lounge'],
-                      _roomMode,
-                    ),
+                    onTap: () {
+                      if (!_canUserEditField('mode')) {
+                        _showPermissionDenied('Only Owner and Co-Owners can change Arena Mode.');
+                        return;
+                      }
+                      _showOptionSelector(
+                        'Arena Mode',
+                        'mode',
+                        ['discussion', 'audio party', 'debate arena', 'mic pass', 'radio studio', 'vip lounge'],
+                        _roomMode,
+                      );
+                    },
                   ),
                 ],
               ),
