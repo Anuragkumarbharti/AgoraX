@@ -98,7 +98,7 @@ class RoomSettingsManagement {
                       final blockedId = liveR.blockList[idx];
                       final name = getRoomUserName(blockedId);
                       final detailed = controller.roomBannedUsersDetailed[roomId]?[blockedId];
-                      final durationInfo = detailed != null ? ' (${detailed['duration']})' : '';
+                      final durationInfo = detailed != null ? ' (${detailed.reason})' : '';
 
                       return ListTile(
                         contentPadding: EdgeInsets.zero,

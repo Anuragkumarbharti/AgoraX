@@ -20,6 +20,7 @@ import '../../services/user/premium_identity_controller.dart';
 import '../../services/user/customization_controller.dart';
 import '../../widgets/memberships/vip_entry_animation.dart';
 import '../../widgets/memberships/novel_entry_animation.dart';
+import '../../services/room/room_entry_permission_engine.dart';
 
 // Extracted Sub-Modules
 import 'voice_room/models/floating_reaction.dart';
@@ -404,6 +405,26 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   Future<void> _startBackgroundRoomJoin() async {
     try {
+      // Validate Entry Permission before connecting voice or initializing chat
+      final liveRoom = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId) ??
+          VoiceRoom.dummy(widget.roomId);
+      final currentUid = widget.userId;
+      final userVip = UserProfileCacheManager.currentUser?.vipLevel ?? 1;
+
+      final validationResult = RoomEntryPermissionEngine().validateEntry(
+        room: liveRoom,
+        userId: currentUid,
+        userVipLevel: userVip,
+      );
+
+      if (!validationResult.isAllowed) {
+        debugPrint('[VoiceRoomCallScreen] Access Denied: ${validationResult.message}');
+        if (mounted) {
+          Get.back(); // Immediately exit room screen!
+        }
+        return; // Abort voice connection and chat initialization!
+      }
+
       final roomVoiceManager = RoomVoiceManager();
 
       if (widget.isHost) {

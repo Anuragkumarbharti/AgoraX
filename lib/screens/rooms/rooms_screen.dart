@@ -18,6 +18,8 @@ import '../../widgets/profile/premium_name_widget.dart';
 import '../../widgets/gifting/wallet_header_pill.dart';
 import '../../models/user/user_model.dart';
 import '../../utils/number_formatter.dart';
+import '../../services/room/room_entry_permission_engine.dart';
+import '../../widgets/room/room_entry_lock_badges.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({Key? key}) : super(key: key);
@@ -182,18 +184,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     // Record visit in recents
     _controller.addRecentRoom(room.id);
 
-    final currentUid = UserProfileCacheManager.currentUserId;
-    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student';
-
-    Get.to(
-      () => VoiceRoomCallScreen(
-        roomId: room.id,
-        roomName: room.name,
-        userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
-        userName: currentUsername != 'Creaniaa Student' ? currentUsername : 'anurag_kumar',
-        isHost: room.hostId == currentUid,
-      ),
-    );
+    RoomEntryPermissionEngine.validateAndJoin(context, room);
   }
 
   // Check role of current user in a room
@@ -1812,21 +1803,28 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Category Badge
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: context.primaryColor.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      room.category,
-                      style: GoogleFonts.poppins(
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  // Category & Lock Badges
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: context.primaryColor.withOpacity(0.85),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          room.category,
+                          style: GoogleFonts.poppins(
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      RoomEntryLockBadges(room: room, compact: true),
+                    ],
                   ),
 
                   // Level Badge

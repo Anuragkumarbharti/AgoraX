@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../models/room/room_model.dart';
 import '../../models/user/user_model.dart';
 import '../user/user_profile_cache_manager.dart';
+import 'room_realtime_controller.dart';
 
 class RoomDiscoveryController extends GetxController {
   static RoomDiscoveryController get to => Get.find<RoomDiscoveryController>();
@@ -13,8 +14,18 @@ class RoomDiscoveryController extends GetxController {
   final RxList<VoiceRoom> rooms = <VoiceRoom>[].obs;
   final RxList<String> favoriteRoomIds = <String>[].obs;
   final RxList<String> recentRoomIds = <String>[].obs;
-
   bool _isFetchingRooms = false;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchRooms();
+    try {
+      if (Get.isRegistered<RoomRealtimeController>()) {
+        RoomRealtimeController.to.subscribeToRoomsList(() => fetchRooms(forceRefresh: true));
+      }
+    } catch (_) {}
+  }
 
   Future<void> followRoom(String roomId) async {
     if (!favoriteRoomIds.contains(roomId)) {

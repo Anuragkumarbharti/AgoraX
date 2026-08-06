@@ -71,6 +71,9 @@ class VoiceRoom {
     this.totalGiftsReceived = 0,
     this.isPermanent = false,
     this.entryPermission = 'everyone',
+    List<String>? entryPermissions,
+    this.roomPassword,
+    this.requiredVipLevel = 3,
     required this.coOwnerIds,
     required this.adminIds,
     required this.starMemberIds,
@@ -119,11 +122,11 @@ class VoiceRoom {
     this.eventSettings = 'Enabled',
     this.autoModeration = 'Enabled',
 
-    // New Special Mode State
     this.activeMode = 'Social', // Social, Debate, Study, Coaching, Family, Music, Gaming, Community, Event
     this.pinnedAnnouncement = 'Check out the active Poll in the menu!',
     this.currentDebateRound = 1,
-  }) : username = username ?? ('@' + id.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), ''));
+  })  : entryPermissions = entryPermissions ?? [],
+        username = username ?? ('@' + id.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), ''));
 
   factory VoiceRoom.fromJson(Map<String, dynamic> json) {
     return VoiceRoom(
@@ -253,7 +256,44 @@ class VoiceRoom {
   final int totalGiftsReceived;
   final bool isPermanent;
   final String entryPermission;
+  final List<String> entryPermissions;
+  final String? roomPassword;
+  final int requiredVipLevel;
   final List<String> coOwnerIds;
+
+  List<String> get activeLocks {
+    final locks = <String>[];
+    final allPerms = <String>{
+      entryPermission.toLowerCase(),
+      ...entryPermissions.map((e) => e.toLowerCase()),
+      whoCanJoin.toLowerCase(),
+    };
+
+    if (allPerms.any((p) => p.contains('password')) || (roomPassword != null && roomPassword!.isNotEmpty)) {
+      locks.add('password');
+    }
+    if (allPerms.any((p) => p.contains('followers') || p == 'followers_only')) {
+      locks.add('followers_only');
+    }
+    if (allPerms.any((p) => p.contains('following') || p == 'following_only')) {
+      locks.add('following_only');
+    }
+    if (allPerms.any((p) => p.contains('friends') || p == 'friends_only')) {
+      locks.add('friends_only');
+    }
+    if (allPerms.any((p) => p.contains('family') || p == 'family_only')) {
+      locks.add('family_only');
+    }
+    if (allPerms.any((p) => p.contains('vip') || p == 'vip_only')) {
+      locks.add('vip_only');
+    }
+    if (allPerms.any((p) => p.contains('invite') || p == 'invite_only')) {
+      locks.add('invite_only');
+    }
+    return locks;
+  }
+
+  bool hasLock(String lockType) => activeLocks.contains(lockType.toLowerCase());
   final List<String> adminIds;
   final List<String> starMemberIds;
   final int extraCoOwnerSlots;

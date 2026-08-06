@@ -94,7 +94,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   RxMap<String, List<String>> get mutedUsers => moderationCtrl.mutedUsers;
   RxMap<String, List<String>> get mutedChatUsers => moderationCtrl.mutedChatUsers;
   RxMap<String, List<String>> get bannedUsers => moderationCtrl.bannedUsers;
-  RxMap<String, Map<String, Map<String, dynamic>>> get roomBannedUsersDetailed => moderationCtrl.roomBannedUsersDetailed;
+  RxMap<String, Map<String, RoomBanEntry>> get roomBannedUsersDetailed => moderationCtrl.roomBannedUsersDetailed;
 
   // Chat & Notifications State Delegators
   RxMap<String, RxList<RoomChatMessage>> get roomChats => chatCtrl.roomChats;

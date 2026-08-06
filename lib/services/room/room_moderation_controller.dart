@@ -4,6 +4,55 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/room/room_model.dart';
 import '../user/user_profile_cache_manager.dart';
 
+class RoomKickEntry {
+  final String roomId;
+  final String userId;
+  final String userName;
+  final String removedBy;
+  final String reason;
+  final Duration restrictionDuration;
+  final DateTime kickedAt;
+  final DateTime expiresAt;
+
+  RoomKickEntry({
+    required this.roomId,
+    required this.userId,
+    required this.userName,
+    required this.removedBy,
+    required this.reason,
+    required this.restrictionDuration,
+    required this.kickedAt,
+    DateTime? expiresAt,
+  }) : expiresAt = expiresAt ?? kickedAt.add(restrictionDuration);
+
+  Duration get remainingTime {
+    final diff = expiresAt.difference(DateTime.now());
+    return diff.isNegative ? Duration.zero : diff;
+  }
+
+  bool get isActive => remainingTime.inSeconds > 0;
+}
+
+class RoomBanEntry {
+  final String roomId;
+  final String userId;
+  final String userName;
+  final String actionBy;
+  final String reason;
+  final DateTime banDate;
+  final String appealStatus;
+
+  RoomBanEntry({
+    required this.roomId,
+    required this.userId,
+    required this.userName,
+    required this.actionBy,
+    required this.reason,
+    required this.banDate,
+    this.appealStatus = 'Available',
+  });
+}
+
 class RoomModerationController extends GetxController {
   static RoomModerationController get to => Get.find<RoomModerationController>();
 
@@ -12,9 +61,42 @@ class RoomModerationController extends GetxController {
       <String, List<String>>{}.obs;
   final RxMap<String, List<String>> bannedUsers = <String, List<String>>{}.obs;
 
-  final RxMap<String, Map<String, Map<String, dynamic>>>
-      roomBannedUsersDetailed =
-      <String, Map<String, Map<String, dynamic>>>{}.obs;
+  final RxMap<String, Map<String, RoomBanEntry>> roomBannedUsersDetailed =
+      <String, Map<String, RoomBanEntry>>{}.obs;
+  final RxMap<String, Map<String, RoomKickEntry>> roomKickedUsersDetailed =
+      <String, Map<String, RoomKickEntry>>{}.obs;
+
+  void recordTemporaryKick(RoomKickEntry kick) {
+    if (roomKickedUsersDetailed[kick.roomId] == null) {
+      roomKickedUsersDetailed[kick.roomId] = {};
+    }
+    roomKickedUsersDetailed[kick.roomId]![kick.userId] = kick;
+    roomKickedUsersDetailed.refresh();
+  }
+
+  void recordPermanentBan(RoomBanEntry ban) {
+    if (roomBannedUsersDetailed[ban.roomId] == null) {
+      roomBannedUsersDetailed[ban.roomId] = {};
+    }
+    roomBannedUsersDetailed[ban.roomId]![ban.userId] = ban;
+    if (bannedUsers[ban.roomId] == null) bannedUsers[ban.roomId] = [];
+    if (!bannedUsers[ban.roomId]!.contains(ban.userId)) {
+      bannedUsers[ban.roomId]!.add(ban.userId);
+    }
+    roomBannedUsersDetailed.refresh();
+  }
+
+  RoomKickEntry? getKickEntry(String roomId, String userId) {
+    final entry = roomKickedUsersDetailed[roomId]?[userId];
+    if (entry != null && entry.isActive) {
+      return entry;
+    }
+    return null;
+  }
+
+  RoomBanEntry? getBanEntry(String roomId, String userId) {
+    return roomBannedUsersDetailed[roomId]?[userId];
+  }
 
   Future<void> moderateMuteUser(
     String roomId,

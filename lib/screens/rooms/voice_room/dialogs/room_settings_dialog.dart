@@ -11,6 +11,7 @@ import '../../../../services/room/room_controller.dart';
 import '../../../../widgets/index.dart';
 import '../../../../widgets/profile/custom_image_editor.dart';
 import 'room_settings_management.dart';
+import 'room_password_settings_dialog.dart';
 
 class RoomSettingsDialog extends StatefulWidget {
   final String roomId;
@@ -612,6 +613,33 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                         'whoCanJoin',
                         ['Everyone', 'Followers Only', 'Following Only', 'Friends Only', 'Family Only', 'VIP Only', 'Password Required'],
                         _whoCanJoin,
+                      );
+                    },
+                  ),
+                  _buildDivider(),
+                  _buildListTile(
+                    'Password Settings',
+                    trailingText: widget.room.hasLock('password') ||
+                            (widget.room.roomPassword != null && widget.room.roomPassword!.isNotEmpty)
+                        ? 'Protected (${widget.room.roomPassword ?? '••••'})'
+                        : 'None (Unlocked)',
+                    onTap: () {
+                      final currentUid = Supabase.instance.client.auth.currentUser?.id ?? '';
+                      if (!_controller.canChangeEntryRules(widget.room, currentUid)) {
+                        Get.snackbar(
+                          'Permission Denied 🚫',
+                          'Only Room Creator/Owner and Co-Owners can change room password.',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.redAccent,
+                          colorText: Colors.white,
+                        );
+                        return;
+                      }
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (ctx) => RoomPasswordSettingsDialog(room: widget.room),
                       );
                     },
                   ),
