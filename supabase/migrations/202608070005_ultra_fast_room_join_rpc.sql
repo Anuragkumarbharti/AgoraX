@@ -121,9 +121,9 @@ BEGIN
   IF v_member_count = 0 THEN v_member_count := 1; END IF;
 
   -- 9. Upsert Member Join Session
-  INSERT INTO public.room_members (room_id, user_id, role, joined_at, updated_at)
-  VALUES (v_room_id, v_caller_id, v_role, now(), now())
-  ON CONFLICT (room_id, user_id) DO UPDATE SET updated_at = now();
+  INSERT INTO public.room_members (room_id, user_id, role, joined_at)
+  VALUES (v_room_id, v_caller_id, v_role, now())
+  ON CONFLICT (room_id, user_id) DO NOTHING;
 
   -- 10. Construct Single Consolidated Response
   RETURN jsonb_build_object(
