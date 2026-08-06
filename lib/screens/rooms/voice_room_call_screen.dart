@@ -958,10 +958,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      resizeToAvoidBottomInset: false,
-      body: Obx(() {
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      behavior: HitTestBehavior.translucent,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: false,
+        body: Obx(() {
         final liveRoom =
             _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId) ??
                 VoiceRoom.dummy();
@@ -1100,6 +1103,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           ),
         );
       }),
-    );
-  }
+    ),
+  );
+}
 }
