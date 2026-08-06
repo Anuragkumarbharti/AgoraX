@@ -205,13 +205,25 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
                     fontSize: 11,
                   ),
                 ),
-                Text(
-                  '$currentVp / $targetVp VP ($percent%)',
-                  style: GoogleFonts.poppins(
-                    color: const Color(0xFFFFB800),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Builder(
+                  builder: (context) {
+                    String fmt(int val) {
+                      if (val >= 1000000) return '${(val / 1000000).toStringAsFixed(1)}M';
+                      if (val >= 1000) {
+                        final double inK = val / 1000.0;
+                        return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
+                      }
+                      return '$val';
+                    }
+                    return Text(
+                      '${fmt(currentVp)} / ${fmt(targetVp)} VP ($percent%)',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFFFB800),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

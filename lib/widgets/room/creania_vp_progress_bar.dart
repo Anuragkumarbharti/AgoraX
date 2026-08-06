@@ -128,7 +128,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                           text: TextSpan(
                             children: [
                               TextSpan(
-                                text: '$totalEarned',
+                                text: earnedStr,
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 8.5,
@@ -144,7 +144,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                                 ),
                               ),
                               TextSpan(
-                                text: '$totalTarget',
+                                text: targetStr,
                                 style: GoogleFonts.poppins(
                                   color: const Color(0xFFFFB800),
                                   fontSize: 8.5,
