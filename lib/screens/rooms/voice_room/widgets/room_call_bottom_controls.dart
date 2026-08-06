@@ -94,6 +94,7 @@ class RoomCallBottomControls extends StatelessWidget {
                               child: TextField(
                                 controller: chatInputController,
                                 focusNode: chatInputFocusNode,
+                                textInputAction: TextInputAction.send,
                                 cursorColor: tokens.chatBoxTextColor,
                                 maxLines: 1,
                                 minLines: 1,
@@ -128,7 +129,7 @@ class RoomCallBottomControls extends StatelessWidget {
                                         roomId, text.trim());
                                     chatInputController.clear();
                                   }
-                                  chatInputFocusNode.unfocus();
+                                  chatInputFocusNode.requestFocus();
                                 },
                               ),
                             ),
@@ -153,7 +154,7 @@ class RoomCallBottomControls extends StatelessWidget {
                                             roomId, text);
                                         chatInputController.clear();
                                       }
-                                      chatInputFocusNode.unfocus();
+                                      chatInputFocusNode.requestFocus();
                                     },
                                     child: Container(
                                       padding: const EdgeInsets.all(7),
