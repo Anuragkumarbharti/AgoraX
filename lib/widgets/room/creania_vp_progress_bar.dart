@@ -13,7 +13,7 @@ class CreaniaVpProgressBar extends StatefulWidget {
   final String? roomName;
   final String? coverUrl;
   final String label;
-  final double? width;
+  final double width;
   final VoidCallback? onTap;
   final VoidCallback? onPlusTap;
 
@@ -29,7 +29,7 @@ class CreaniaVpProgressBar extends StatefulWidget {
     this.roomName,
     this.coverUrl,
     this.label = "Today' AP",
-    this.width,
+    this.width = 110.0,
     this.onTap,
     this.onPlusTap,
   }) : super(key: key);
@@ -59,10 +59,6 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
 
   @override
   Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double barWidth =
-        widget.width ?? (screenWidth * 0.60).clamp(216.0, 260.0);
-
     final double freeRatio =
         (widget.freeXp / (widget.freeTarget > 0 ? widget.freeTarget : 700))
             .clamp(0.0, 1.0);
@@ -93,47 +89,58 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
               children: [
                 // Top Header Row: "Today' AP" on left, "1700/1700" on right
                 SizedBox(
-                  width: barWidth,
+                  width: widget.width,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        widget.label,
-                        style: GoogleFonts.outfit(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.2,
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            widget.label,
+                            style: GoogleFonts.outfit(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
                         ),
                       ),
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '$totalEarned',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.bold,
+                      const SizedBox(width: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '$totalEarned',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            TextSpan(
-                              text: '/',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white.withValues(alpha: 0.6),
-                                fontSize: 9.0,
-                                fontWeight: FontWeight.w600,
+                              TextSpan(
+                                text: '/',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  fontSize: 8.0,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            TextSpan(
-                              text: '$totalTarget',
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFFFFB800),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w900,
+                              TextSpan(
+                                text: '$totalTarget',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFFFB800),
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -146,10 +153,10 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                   animation: _animController,
                   builder: (context, child) {
                     return SizedBox(
-                      width: barWidth,
+                      width: widget.width,
                       height: 7.0,
                       child: CustomPaint(
-                        size: Size(barWidth, 7.0),
+                        size: Size(widget.width, 7.0),
                         painter: _LiquidProgressBarPainter(
                           freeRatio: freeRatio,
                           extraRatio: widget.isGoldMember ? extraRatio : 0.0,
@@ -185,8 +192,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                           ),
                         ),
                         ConstrainedBox(
-                          constraints: BoxConstraints(
-                              maxWidth: (barWidth - 85).clamp(60.0, 150.0)),
+                          constraints: const BoxConstraints(maxWidth: 62),
                           child: Text(
                             widget.roomName!,
                             maxLines: 1,
