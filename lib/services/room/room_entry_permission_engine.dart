@@ -6,6 +6,7 @@ import 'room_moderation_controller.dart';
 import '../../widgets/room/dialogs/room_entry_denied_sheet.dart';
 import '../../widgets/room/dialogs/room_password_dialog.dart';
 import '../../screens/rooms/voice_room_call_screen.dart';
+import 'ultra_fast_room_join_engine.dart';
 
 enum RoomEntryStatus {
   allowed,
@@ -295,63 +296,7 @@ class RoomEntryPermissionEngine {
   /// High level helper method to validate room entry and automatically trigger
   /// Denial Sheets, Password Prompt Dialogs, or Navigation to VoiceRoomCallScreen.
   static Future<void> validateAndJoin(BuildContext context, VoiceRoom room) async {
-    final currentUid = UserProfileCacheManager.currentUserId.isNotEmpty
-        ? UserProfileCacheManager.currentUserId
-        : 'uid_anurag_101';
-    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'anurag_kumar';
-    final userVip = UserProfileCacheManager.currentUser?.vipLevel ?? 1;
-
-    final engine = RoomEntryPermissionEngine();
-    final initialResult = engine.validateEntry(
-      room: room,
-      userId: currentUid,
-      userVipLevel: userVip,
-    );
-
-    if (initialResult.isAllowed) {
-      _navigateToRoom(room, currentUid, currentUsername, initialResult.role);
-      return;
-    }
-
-    // Password Required Prompt
-    if (initialResult.status == RoomEntryStatus.passwordRequired) {
-      final String? enteredPass = await showModalBottomSheet<String>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (ctx) => RoomPasswordDialog(room: room),
-      );
-
-      if (enteredPass != null) {
-        final reResult = engine.validateEntry(
-          room: room,
-          userId: currentUid,
-          userVipLevel: userVip,
-          providedPassword: enteredPass,
-        );
-
-        if (reResult.isAllowed) {
-          _navigateToRoom(room, currentUid, currentUsername, reResult.role);
-          return;
-        }
-      }
-      return;
-    }
-
-    // Show Detailed Rejection / Kick-Ban Sheet ("Why Can't I Join?")
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => RoomEntryDeniedSheet(
-        room: room,
-        result: initialResult,
-        onPasswordTap: () async {
-          Navigator.pop(ctx);
-          validateAndJoin(context, room);
-        },
-      ),
-    );
+    await UltraFastRoomJoinEngine().executeFastJoin(context: context, room: room);
   }
 
   static void _navigateToRoom(VoiceRoom room, String uid, String username, String role) {
