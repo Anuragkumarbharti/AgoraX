@@ -23,7 +23,7 @@ void main() {
 
       final l3 = RoomLevelMatrixConfig.getForLevel(3);
       expect(l3.level, equals(3));
-      expect(l3.requiredVp, equals(300000));
+      expect(l3.requiredVp, equals(59500));
       expect(l3.maxCoOwners, equals(2));
       expect(l3.maxAdmins, equals(11));
       expect(l3.maxHostSeats, equals(8));
@@ -31,14 +31,14 @@ void main() {
 
       final l5 = RoomLevelMatrixConfig.getForLevel(5);
       expect(l5.level, equals(5));
-      expect(l5.requiredVp, equals(1500000));
+      expect(l5.requiredVp, equals(150000));
       expect(l5.maxCoOwners, equals(3));
       expect(l5.maxAdmins, equals(16));
       expect(l5.hasPermanentChatBubble, isTrue);
 
       final l7 = RoomLevelMatrixConfig.getForLevel(7);
       expect(l7.level, equals(7));
-      expect(l7.requiredVp, equals(6000000));
+      expect(l7.requiredVp, equals(370000));
       expect(l7.maxCoOwners, equals(3));
       expect(l7.maxAdmins, equals(20));
       expect(l7.maxHostSeats, equals(15));

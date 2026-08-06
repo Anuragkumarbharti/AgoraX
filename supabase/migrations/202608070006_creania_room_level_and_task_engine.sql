@@ -19,13 +19,13 @@ create table if not exists public.room_level_matrix (
 insert into public.room_level_matrix 
   (level, required_vp, max_co_owners, max_admins, max_host_seats, has_room_music, has_showcase_badge, has_permanent_chat_bubble, title, description)
 values
-  (1, 0, 1, 4, 4, true, false, false, 'Basic Room', 'Basic background, basic announcement, normal daily tasks, room music'),
-  (2, 100000, 1, 7, 6, true, false, false, 'Premium Room', 'Premium background, welcome banner, room statistics, room music'),
-  (3, 300000, 2, 11, 8, true, true, false, 'Animated Room', 'Animated room frame, gift wall, showcase badge, room music'),
-  (4, 700000, 2, 14, 11, true, true, false, 'Dynamic Room', 'Dynamic background, premium room effects, event scheduler, room music'),
-  (5, 1500000, 3, 16, 13, true, true, true, 'Official Room', 'Official room badge, permanent chat bubble, premium discovery, advanced analytics, room music'),
-  (6, 3000000, 3, 18, 14, true, true, true, 'Luxury Room', 'Luxury theme, animated entry, VIP room features, room music'),
-  (7, 6000000, 3, 20, 15, true, true, true, 'Legendary Room', 'Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation, room music')
+  (1, 0, 1, 4, 4, true, false, false, 'Basic Arena', 'Basic background, basic announcement, normal daily tasks, arena music'),
+  (2, 35500, 1, 7, 6, true, false, false, 'Premium Arena', 'Premium background, welcome banner, arena statistics, arena music'),
+  (3, 59500, 2, 11, 8, true, true, false, 'Animated Arena', 'Animated arena frame, gift wall, showcase badge, arena music'),
+  (4, 95000, 2, 14, 11, true, true, false, 'Dynamic Arena', 'Dynamic background, premium arena effects, event scheduler, arena music'),
+  (5, 150000, 3, 16, 13, true, true, true, 'Official Arena', 'Official arena badge, permanent chat bubble, premium discovery, advanced analytics, arena music'),
+  (6, 240000, 3, 18, 14, true, true, true, 'Luxury Arena', 'Luxury theme, animated entry, VIP arena features, arena music'),
+  (7, 370000, 3, 20, 15, true, true, true, 'Legendary Arena', 'Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation, arena music')
 on conflict (level) do update set
   required_vp = excluded.required_vp,
   max_co_owners = excluded.max_co_owners,

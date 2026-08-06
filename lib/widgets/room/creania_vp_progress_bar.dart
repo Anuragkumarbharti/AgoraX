@@ -61,7 +61,8 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
     if (num >= 1000000) {
       return '${(num / 1000000).toStringAsFixed(1)}M';
     } else if (num >= 1000) {
-      return '${(num / 1000).toStringAsFixed(0)}K';
+      final double inK = num / 1000.0;
+      return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
     }
     return '$num';
   }
@@ -69,14 +70,14 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
   @override
   Widget build(BuildContext context) {
     final double freeRatio =
-        (widget.freeXp / (widget.freeTarget > 0 ? widget.freeTarget : 700))
+        (widget.freeXp / (widget.freeTarget > 0 ? widget.freeTarget : 35500))
             .clamp(0.0, 1.0);
     final double extraRatio =
         (widget.extraXp / (widget.extraTarget > 0 ? widget.extraTarget : 1000))
             .clamp(0.0, 1.0);
 
     final int totalEarned = widget.freeXp;
-    final int totalTarget = widget.freeTarget > 0 ? widget.freeTarget : 100000;
+    final int totalTarget = widget.freeTarget > 0 ? widget.freeTarget : 35500;
 
     final String earnedStr = _formatNumber(totalEarned);
     final String targetStr = _formatNumber(totalTarget);
@@ -98,7 +99,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Header Row: "Tasks: 4/14" on left, "327.5K/700K VP" on right
+                // Top Header Row: "Today' AP" on left, "1700/1700" on right
                 SizedBox(
                   width: widget.width,
                   child: Row(
@@ -111,9 +112,9 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                           child: Text(
                             widget.label,
                             style: GoogleFonts.outfit(
-                              color: Colors.cyanAccent,
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 8.5,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               letterSpacing: 0.2,
                             ),
                           ),
@@ -127,7 +128,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                           text: TextSpan(
                             children: [
                               TextSpan(
-                                text: earnedStr,
+                                text: '$totalEarned',
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 8.5,
@@ -143,7 +144,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                                 ),
                               ),
                               TextSpan(
-                                text: targetStr,
+                                text: '$totalTarget',
                                 style: GoogleFonts.poppins(
                                   color: const Color(0xFFFFB800),
                                   fontSize: 8.5,

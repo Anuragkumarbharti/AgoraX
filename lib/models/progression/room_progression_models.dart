@@ -34,11 +34,12 @@ class RoomLevelMatrixConfig {
       hasShowcaseBadge: false,
       hasPermanentChatBubble: false,
       title: 'Basic Arena',
-      description: 'Basic background, basic announcement, normal daily tasks, arena music',
+      description:
+          'Basic background, basic announcement, normal daily tasks, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 2,
-      requiredVp: 100000,
+      requiredVp: 35500,
       maxCoOwners: 1,
       maxAdmins: 7,
       maxHostSeats: 6,
@@ -46,11 +47,12 @@ class RoomLevelMatrixConfig {
       hasShowcaseBadge: false,
       hasPermanentChatBubble: false,
       title: 'Premium Arena',
-      description: 'Premium background, welcome banner, arena statistics, arena music',
+      description:
+          'Premium background, welcome banner, arena statistics, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 3,
-      requiredVp: 300000,
+      requiredVp: 59500,
       maxCoOwners: 2,
       maxAdmins: 11,
       maxHostSeats: 8,
@@ -62,7 +64,7 @@ class RoomLevelMatrixConfig {
     ),
     RoomLevelMatrixConfig(
       level: 4,
-      requiredVp: 700000,
+      requiredVp: 95000,
       maxCoOwners: 2,
       maxAdmins: 14,
       maxHostSeats: 11,
@@ -70,11 +72,12 @@ class RoomLevelMatrixConfig {
       hasShowcaseBadge: true,
       hasPermanentChatBubble: false,
       title: 'Dynamic Arena',
-      description: 'Dynamic background, premium arena effects, event scheduler, arena music',
+      description:
+          'Dynamic background, premium arena effects, event scheduler, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 5,
-      requiredVp: 1500000,
+      requiredVp: 150000,
       maxCoOwners: 3,
       maxAdmins: 16,
       maxHostSeats: 13,
@@ -82,11 +85,12 @@ class RoomLevelMatrixConfig {
       hasShowcaseBadge: true,
       hasPermanentChatBubble: true,
       title: 'Official Arena',
-      description: 'Official arena badge, permanent chat bubble, premium discovery, advanced analytics, arena music',
+      description:
+          'Official arena badge, permanent chat bubble, premium discovery, advanced analytics, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 6,
-      requiredVp: 3000000,
+      requiredVp: 240000,
       maxCoOwners: 3,
       maxAdmins: 18,
       maxHostSeats: 14,
@@ -94,11 +98,12 @@ class RoomLevelMatrixConfig {
       hasShowcaseBadge: true,
       hasPermanentChatBubble: true,
       title: 'Luxury Arena',
-      description: 'Luxury theme, animated entry, VIP arena features, arena music',
+      description:
+          'Luxury theme, animated entry, VIP arena features, arena music',
     ),
     RoomLevelMatrixConfig(
       level: 7,
-      requiredVp: 6000000,
+      requiredVp: 370000,
       maxCoOwners: 3,
       maxAdmins: 20,
       maxHostSeats: 15,
@@ -106,7 +111,8 @@ class RoomLevelMatrixConfig {
       hasShowcaseBadge: true,
       hasPermanentChatBubble: true,
       title: 'Legendary Arena',
-      description: 'Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation, arena music',
+      description:
+          'Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation, arena music',
     ),
   ];
 
@@ -159,16 +165,23 @@ class RoomDailyTask {
       taskKey: json['task_key'] ?? json['taskKey'] ?? '',
       title: json['title'] ?? json['task_name'] ?? json['description'] ?? '',
       description: json['description'] ?? '',
-      category: json['category'] ?? (json['task_key']?.toString().contains('gold') == true ? 'gold' : 'normal'),
+      category: json['category'] ??
+          (json['task_key']?.toString().contains('gold') == true
+              ? 'gold'
+              : 'normal'),
       targetValue: json['target_value'] ?? json['targetValue'] ?? 1,
       currentValue: json['current_value'] ?? json['currentValue'] ?? 0,
-      minActiveMembers: json['min_active_members'] ?? json['minActiveMembers'] ?? 1,
-      taskPoints: json['task_points'] ?? json['taskPoints'] ?? json['vp_reward'] ?? 50,
-      xpReward: json['xp_reward'] ?? json['xpReward'] ?? json['vp_reward'] ?? 50,
+      minActiveMembers:
+          json['min_active_members'] ?? json['minActiveMembers'] ?? 1,
+      taskPoints:
+          json['task_points'] ?? json['taskPoints'] ?? json['vp_reward'] ?? 50,
+      xpReward:
+          json['xp_reward'] ?? json['xpReward'] ?? json['vp_reward'] ?? 50,
       coinReward: json['coin_reward'] ?? json['coinReward'] ?? 0,
       silverReward: json['silver_reward'] ?? json['silverReward'] ?? 0,
       goldReward: json['gold_reward'] ?? json['goldReward'] ?? 0,
-      treasureBoxTier: json['treasure_box_tier'] ?? json['treasureBoxTier'] ?? 'normal',
+      treasureBoxTier:
+          json['treasure_box_tier'] ?? json['treasureBoxTier'] ?? 'normal',
       iconName: json['icon_name'] ?? json['iconName'] ?? 'task',
       isCompleted: json['is_completed'] ?? json['isCompleted'] ?? false,
     );
@@ -237,9 +250,15 @@ class RoomLevelProgress {
     return RoomLevelProgress(
       roomId: json['room_id'] ?? json['roomId'] ?? '',
       currentLevel: json['current_level'] ?? json['currentLevel'] ?? 1,
-      currentXp: int.tryParse((json['current_xp'] ?? json['currentXp'] ?? 0).toString()) ?? 0,
-      consecutiveDaysCompleted: json['consecutive_days_completed'] ?? json['consecutiveDaysCompleted'] ?? 0,
-      lastCompletedDate: json['last_completed_date'] != null ? DateTime.parse(json['last_completed_date']) : null,
+      currentXp: int.tryParse(
+              (json['current_xp'] ?? json['currentXp'] ?? 0).toString()) ??
+          0,
+      consecutiveDaysCompleted: json['consecutive_days_completed'] ??
+          json['consecutiveDaysCompleted'] ??
+          0,
+      lastCompletedDate: json['last_completed_date'] != null
+          ? DateTime.parse(json['last_completed_date'])
+          : null,
     );
   }
 
@@ -278,13 +297,21 @@ class RoomStatistics {
   factory RoomStatistics.fromJson(Map<String, dynamic> json) {
     return RoomStatistics(
       roomId: json['room_id'] ?? json['roomId'] ?? '',
-      totalVisitors: int.tryParse((json['total_visitors'] ?? json['totalVisitors'] ?? 0).toString()) ?? 0,
+      totalVisitors: int.tryParse(
+              (json['total_visitors'] ?? json['totalVisitors'] ?? 0)
+                  .toString()) ??
+          0,
       todayVisitors: json['today_visitors'] ?? json['todayVisitors'] ?? 0,
-      todaySilverCoins: json['today_silver_coins'] ?? json['todaySilverCoins'] ?? 0,
+      todaySilverCoins:
+          json['today_silver_coins'] ?? json['todaySilverCoins'] ?? 0,
       todayGoldCoins: json['today_gold_coins'] ?? json['todayGoldCoins'] ?? 0,
-      todayTaskPoints: json['today_task_points'] ?? json['todayTaskPoints'] ?? 0,
-      todayExtraXpPoints: json['today_extra_xp_points'] ?? json['todayExtraXpPoints'] ?? 0,
-      lastHeartbeatAt: json['last_heartbeat_at'] != null ? DateTime.parse(json['last_heartbeat_at']) : null,
+      todayTaskPoints:
+          json['today_task_points'] ?? json['todayTaskPoints'] ?? 0,
+      todayExtraXpPoints:
+          json['today_extra_xp_points'] ?? json['todayExtraXpPoints'] ?? 0,
+      lastHeartbeatAt: json['last_heartbeat_at'] != null
+          ? DateTime.parse(json['last_heartbeat_at'])
+          : null,
     );
   }
 
@@ -301,4 +328,3 @@ class RoomStatistics {
     };
   }
 }
-

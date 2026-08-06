@@ -116,10 +116,11 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
     );
   }
 
-  Widget _buildHeader(
-      BuildContext context, RoomProgressionController progCtrl, RoomController roomCtrl) {
+  Widget _buildHeader(BuildContext context, RoomProgressionController progCtrl,
+      RoomController roomCtrl) {
     return Obx(() {
-      final room = roomCtrl.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+      final room =
+          roomCtrl.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
       final levelProg = progCtrl.roomLevelProgresses[widget.roomId];
 
       final int currentLevel = levelProg?.currentLevel ?? room?.level ?? 1;
@@ -128,12 +129,10 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
       final config = RoomLevelMatrixConfig.getForLevel(currentLevel);
       final nextConfig = RoomLevelMatrixConfig.getForLevel(currentLevel + 1);
 
-      final int targetVp = nextConfig.requiredVp > 0
-          ? nextConfig.requiredVp
-          : config.requiredVp;
-      final double fillRatio = targetVp > 0
-          ? (currentVp / targetVp).clamp(0.0, 1.0)
-          : 1.0;
+      final int targetVp =
+          nextConfig.requiredVp > 0 ? nextConfig.requiredVp : config.requiredVp;
+      final double fillRatio =
+          targetVp > 0 ? (currentVp / targetVp).clamp(0.0, 1.0) : 1.0;
       final int percent = (fillRatio * 100).toInt();
 
       final int activeMemberCount = VoiceController.to.roomUsers.length;
@@ -180,13 +179,15 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
                     IconButton(
                       icon: const Icon(Icons.info_outline,
                           color: Colors.amber, size: 18),
-                      onPressed: () => _showLevelPerksSheet(context, currentLevel),
+                      onPressed: () =>
+                          _showLevelPerksSheet(context, currentLevel),
                       tooltip: 'View Level Perks',
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                  icon:
+                      const Icon(Icons.close, color: Colors.white70, size: 20),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -198,7 +199,7 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Creania Arena VP Progress',
+                  'Room VP Progress',
                   style: GoogleFonts.outfit(
                     color: Colors.white70,
                     fontSize: 11,
@@ -244,7 +245,7 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Turbo Surge: ${surgeMultiplier}x VP Speed ($activeMemberCount Active Members in Arena)',
+                      'Turbo Surge: ${surgeMultiplier}x VP Speed ($activeMemberCount Active Members in Room)',
                       style: GoogleFonts.outfit(
                         color: Colors.amber,
                         fontSize: 11,
@@ -264,8 +265,7 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
   Widget _buildTaskList(RoomProgressionController progCtrl, String category) {
     return Obx(() {
       final tasks = progCtrl.roomDailyTaskLists[widget.roomId] ?? [];
-      final filteredTasks =
-          tasks.where((t) => t.category == category).toList();
+      final filteredTasks = tasks.where((t) => t.category == category).toList();
 
       if (filteredTasks.isEmpty) {
         return Center(
@@ -301,7 +301,9 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
                   radius: 18,
                   child: Icon(
                     task.isCompleted ? Icons.check_circle : Icons.star,
-                    color: task.isCompleted ? Colors.greenAccent : const Color(0xFF38BDF8),
+                    color: task.isCompleted
+                        ? Colors.greenAccent
+                        : const Color(0xFF38BDF8),
                     size: 20,
                   ),
                 ),
@@ -334,7 +336,9 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
                           minHeight: 5,
                           backgroundColor: Colors.white10,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            task.isCompleted ? Colors.greenAccent : const Color(0xFF38BDF8),
+                            task.isCompleted
+                                ? Colors.greenAccent
+                                : const Color(0xFF38BDF8),
                           ),
                         ),
                       ),
@@ -441,7 +445,7 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Creania Arena Level Perks & Unlocks',
+                'Room Level Perks & Unlocks',
                 style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontSize: 16,
@@ -480,7 +484,9 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
                               Text(
                                 'Level ${cfg.level}: ${cfg.title}',
                                 style: GoogleFonts.outfit(
-                                  color: isUnlocked ? Colors.amber : Colors.white60,
+                                  color: isUnlocked
+                                      ? Colors.amber
+                                      : Colors.white60,
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                 ),

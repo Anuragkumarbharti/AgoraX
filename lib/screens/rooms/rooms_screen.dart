@@ -7,7 +7,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:creania/core/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../models/room/room_model.dart';
-import '../../models/progression/room_progression_models.dart';
 import '../../services/room/room_controller.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import './create_room_screen.dart';
@@ -29,17 +28,18 @@ class RoomsScreen extends StatefulWidget {
   State<RoomsScreen> createState() => _RoomsScreenState();
 }
 
-class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin {
+class _RoomsScreenState extends State<RoomsScreen>
+    with TickerProviderStateMixin {
   final RoomController _controller = RoomController.to;
   late TabController _topTabController;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
+
   // State variables
   String _searchQuery = '';
   int _selectedCategoryIndex = 0; // Index for Discovery Categories
   String _myRoomsActiveRole = 'Owner'; // Selected sub-chip under "My Arenas"
-  
+
   // Simulated State variables
   bool _isLoading = false;
   bool _isRefreshing = false;
@@ -71,6 +71,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   String _formatXpValue(int value) {
     return formatCompactNumber(value);
   }
+
   String _sortBy = 'Trending'; // 'Trending' or 'Online Users'
 
   // Constant Categories
@@ -88,14 +89,20 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     {'name': 'Favorite Arenas', 'icon': Icons.bookmark_rounded},
   ];
 
-  final List<String> _myRoomsRoles = ['Owner', 'Co-owner', 'Admin', 'Host', 'Star Member'];
+  final List<String> _myRoomsRoles = [
+    'Owner',
+    'Co-owner',
+    'Admin',
+    'Host',
+    'Star Member'
+  ];
 
   @override
   void initState() {
     super.initState();
     _topTabController = TabController(length: 3, vsync: this);
     _scrollController.addListener(_onScroll);
-    
+
     // Initial pagination load
     _loadMoreData();
 
@@ -106,9 +113,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           for (var room in _controller.rooms) {
             if (room.isLive) {
               // Vary between -3 and +3
-              _liveCountsOffset[room.id] = (_liveCountsOffset[room.id] ?? 0) + (Random().nextInt(7) - 3);
+              _liveCountsOffset[room.id] =
+                  (_liveCountsOffset[room.id] ?? 0) + (Random().nextInt(7) - 3);
               // Avoid negative count
-              if ((room.participantCount + (_liveCountsOffset[room.id] ?? 0)) < 1) {
+              if ((room.participantCount + (_liveCountsOffset[room.id] ?? 0)) <
+                  1) {
                 _liveCountsOffset[room.id] = 1 - room.participantCount;
               }
             }
@@ -128,7 +137,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_isLoading && _hasMore && _selectedCategoryIndex != 0) {
         _loadMoreData();
       }
@@ -230,7 +240,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   // Filter Arenas based on Search, Category, and Filters
   List<VoiceRoom> _getFilteredArenas({String? categoryOverride}) {
     List<VoiceRoom> baseList = List<VoiceRoom>.from(_controller.rooms);
-    
+
     // Apply search query
     if (_searchQuery.trim().isNotEmpty) {
       final query = _searchQuery.toLowerCase().trim();
@@ -243,32 +253,50 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     }
 
     // Apply Discovery Category selection (if not "For You", "Recent", or "Favorite")
-    final selectedCategoryName = _discoveryCategories[_selectedCategoryIndex]['name'];
+    final selectedCategoryName =
+        _discoveryCategories[_selectedCategoryIndex]['name'];
     if (categoryOverride != null) {
       baseList = baseList.where((r) => r.category == categoryOverride).toList();
     } else if (selectedCategoryName != 'For You' &&
         selectedCategoryName != 'Recent Arenas' &&
         selectedCategoryName != 'Favorite Arenas') {
-      baseList = baseList.where((r) => r.category.toLowerCase() == selectedCategoryName.toLowerCase()).toList();
+      baseList = baseList
+          .where((r) =>
+              r.category.toLowerCase() == selectedCategoryName.toLowerCase())
+          .toList();
     } else if (selectedCategoryName == 'Recent Arenas') {
-      baseList = baseList.where((r) => _controller.recentRoomIds.contains(r.id)).toList();
+      baseList = baseList
+          .where((r) => _controller.recentRoomIds.contains(r.id))
+          .toList();
       // Maintain recent order
       baseList.sort((a, b) {
-        return _controller.recentRoomIds.indexOf(a.id).compareTo(_controller.recentRoomIds.indexOf(b.id));
+        return _controller.recentRoomIds
+            .indexOf(a.id)
+            .compareTo(_controller.recentRoomIds.indexOf(b.id));
       });
     } else if (selectedCategoryName == 'Favorite Arenas') {
-      baseList = baseList.where((r) => _controller.favoriteRoomIds.contains(r.id)).toList();
+      baseList = baseList
+          .where((r) => _controller.favoriteRoomIds.contains(r.id))
+          .toList();
     }
 
     // Apply Bottom Sheet filters
     if (_filterCategory != 'All') {
-      baseList = baseList.where((r) => r.category.toLowerCase() == _filterCategory.toLowerCase()).toList();
+      baseList = baseList
+          .where(
+              (r) => r.category.toLowerCase() == _filterCategory.toLowerCase())
+          .toList();
     }
     if (_filterLanguage != 'All') {
-      baseList = baseList.where((r) => r.language.toLowerCase().contains(_filterLanguage.toLowerCase())).toList();
+      baseList = baseList
+          .where((r) =>
+              r.language.toLowerCase().contains(_filterLanguage.toLowerCase()))
+          .toList();
     }
     if (_filterCountry != 'All') {
-      baseList = baseList.where((r) => r.country.toLowerCase() == _filterCountry.toLowerCase()).toList();
+      baseList = baseList
+          .where((r) => r.country.toLowerCase() == _filterCountry.toLowerCase())
+          .toList();
     }
     if (_filterRoomType != 'All') {
       baseList = baseList.where((r) {
@@ -365,15 +393,22 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   SizedBox(height: 12),
 
                   // Sort Options
-                  Text('Sort By', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  Text('Sort By',
+                      style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: context.textSecondary)),
                   SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildFilterChipModal('Trending', _sortBy == 'Trending', (selected) {
+                      _buildFilterChipModal('Trending', _sortBy == 'Trending',
+                          (selected) {
                         setModalState(() => _sortBy = 'Trending');
                       }),
                       SizedBox(width: 10),
-                      _buildFilterChipModal('Online Users', _sortBy == 'Online Users', (selected) {
+                      _buildFilterChipModal(
+                          'Online Users', _sortBy == 'Online Users',
+                          (selected) {
                         setModalState(() => _sortBy = 'Online Users');
                       }),
                     ],
@@ -381,13 +416,28 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   SizedBox(height: 20),
 
                   // Category Filter
-                  Text('Category', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  Text('Category',
+                      style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: context.textSecondary)),
                   SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: ['All', 'Communities', 'Music Lounge', 'Hangout', 'Gaming Zone', 'Study Hub', 'Coaching Hub', 'Debate Arena', 'Broadcast']
-                        .map((cat) => _buildFilterChipModal(cat, _filterCategory == cat, (selected) {
+                    children: [
+                      'All',
+                      'Communities',
+                      'Music Lounge',
+                      'Hangout',
+                      'Gaming Zone',
+                      'Study Hub',
+                      'Coaching Hub',
+                      'Debate Arena',
+                      'Broadcast'
+                    ]
+                        .map((cat) => _buildFilterChipModal(
+                                cat, _filterCategory == cat, (selected) {
                               setModalState(() => _filterCategory = cat);
                             }))
                         .toList(),
@@ -395,13 +445,18 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   SizedBox(height: 20),
 
                   // Language Filter
-                  Text('Language', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  Text('Language',
+                      style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: context.textSecondary)),
                   SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: ['All', 'English', 'Hindi', 'Spanish', 'Arabic']
-                        .map((lang) => _buildFilterChipModal(lang, _filterLanguage == lang, (selected) {
+                        .map((lang) => _buildFilterChipModal(
+                                lang, _filterLanguage == lang, (selected) {
                               setModalState(() => _filterLanguage = lang);
                             }))
                         .toList(),
@@ -409,13 +464,18 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   SizedBox(height: 20),
 
                   // Country Filter
-                  Text('Country', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  Text('Country',
+                      style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: context.textSecondary)),
                   SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: ['All', 'India', 'USA', 'Global']
-                        .map((country) => _buildFilterChipModal(country, _filterCountry == country, (selected) {
+                        .map((country) => _buildFilterChipModal(
+                                country, _filterCountry == country, (selected) {
                               setModalState(() => _filterCountry = country);
                             }))
                         .toList(),
@@ -423,19 +483,28 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   SizedBox(height: 20),
 
                   // Room Type Filter
-                  Text('Arena Status', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  Text('Arena Status',
+                      style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: context.textSecondary)),
                   SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildFilterChipModal('All', _filterRoomType == 'All', (selected) {
+                      _buildFilterChipModal('All', _filterRoomType == 'All',
+                          (selected) {
                         setModalState(() => _filterRoomType = 'All');
                       }),
                       SizedBox(width: 8),
-                      _buildFilterChipModal('Permanent', _filterRoomType == 'Permanent', (selected) {
+                      _buildFilterChipModal(
+                          'Permanent', _filterRoomType == 'Permanent',
+                          (selected) {
                         setModalState(() => _filterRoomType = 'Permanent');
                       }),
                       SizedBox(width: 8),
-                      _buildFilterChipModal('Temporary', _filterRoomType == 'Temporary', (selected) {
+                      _buildFilterChipModal(
+                          'Temporary', _filterRoomType == 'Temporary',
+                          (selected) {
                         setModalState(() => _filterRoomType = 'Temporary');
                       }),
                     ],
@@ -453,11 +522,15 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: context.primaryColor,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text(
                         'Apply Filters',
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                        style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.white),
                       ),
                     ),
                   ),
@@ -471,7 +544,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildFilterChipModal(String label, bool isSelected, Function(bool) onSelected) {
+  Widget _buildFilterChipModal(
+      String label, bool isSelected, Function(bool) onSelected) {
     return FilterChip(
       label: Text(label),
       selected: isSelected,
@@ -512,7 +586,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             Expanded(
               child: TabBarView(
                 controller: _topTabController,
-                physics: const NeverScrollableScrollPhysics(), // Handle navigation via tabs only
+                physics:
+                    const NeverScrollableScrollPhysics(), // Handle navigation via tabs only
                 children: [
                   // Tab 1: Explore View
                   _buildExploreTabContent(),
@@ -554,7 +629,11 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               SizedBox(width: 8),
               ShaderMask(
                 shaderCallback: (bounds) => LinearGradient(
-                  colors: [Color(0xFF6366F1), Color(0xFF8B5CF6), Color(0xFFF72585)],
+                  colors: [
+                    Color(0xFF6366F1),
+                    Color(0xFF8B5CF6),
+                    Color(0xFFF72585)
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ).createShader(bounds),
@@ -609,8 +688,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         dividerColor: Colors.transparent,
         labelColor: Colors.white,
         unselectedLabelColor: context.textSecondary,
-        labelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
-        unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
+        labelStyle:
+            GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
+        unselectedLabelStyle:
+            GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
         tabs: const [
           Tab(text: 'Explore'),
           Tab(text: 'Live'),
@@ -643,7 +724,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   Expanded(
                     child: TextField(
                       controller: _searchController,
-                      style: TextStyle(color: context.textPrimary, fontSize: 14),
+                      style:
+                          TextStyle(color: context.textPrimary, fontSize: 14),
                       onChanged: (val) {
                         setState(() {
                           _searchQuery = val;
@@ -652,7 +734,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       },
                       decoration: InputDecoration(
                         hintText: 'Search arenas by ID, name, tag...',
-                        hintStyle: TextStyle(color: context.caption, fontSize: 13),
+                        hintStyle:
+                            TextStyle(color: context.caption, fontSize: 13),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -689,14 +772,22 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                 color: context.secondaryBackgroundColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: (_filterCategory != 'All' || _filterLanguage != 'All' || _filterCountry != 'All' || _filterRoomType != 'All' || _sortBy != 'Trending')
+                  color: (_filterCategory != 'All' ||
+                          _filterLanguage != 'All' ||
+                          _filterCountry != 'All' ||
+                          _filterRoomType != 'All' ||
+                          _sortBy != 'Trending')
                       ? context.primaryColor
                       : context.borderColor,
                 ),
               ),
               child: Icon(
                 Icons.tune_rounded,
-                color: (_filterCategory != 'All' || _filterLanguage != 'All' || _filterCountry != 'All' || _filterRoomType != 'All' || _sortBy != 'Trending')
+                color: (_filterCategory != 'All' ||
+                        _filterLanguage != 'All' ||
+                        _filterCountry != 'All' ||
+                        _filterRoomType != 'All' ||
+                        _sortBy != 'Trending')
                     ? context.primaryColor
                     : context.textSecondary,
                 size: 20,
@@ -770,7 +861,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             // Header stats block
             Obx(() {
               final myUid = UserProfileCacheManager.currentUserId;
-              
+
               // Find first room where user is Owner, Co-owner, or Admin
               final activeRoom = _controller.rooms.firstWhereOrNull((r) {
                 final role = _getUserRoleInArena(r);
@@ -782,15 +873,21 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               final roomAvatar = hasRoom ? activeRoom.avatar : null;
               final roomId = hasRoom ? 'Arena ID: ${activeRoom.id}' : '';
 
-              final roomProgress = hasRoom ? _controller.roomLevelProgresses[activeRoom.id] : null;
-              final stats = hasRoom ? _controller.roomStats[activeRoom.id] : null;
+              final roomProgress = hasRoom
+                  ? _controller.roomLevelProgresses[activeRoom.id]
+                  : null;
+              final stats =
+                  hasRoom ? _controller.roomStats[activeRoom.id] : null;
 
-              final int currentLevel = roomProgress?.currentLevel ?? activeRoom?.level ?? 1;
-              final int currentXp = roomProgress?.currentXp ?? activeRoom?.xp ?? 0;
+              final int currentLevel =
+                  roomProgress?.currentLevel ?? activeRoom?.level ?? 1;
+              final int currentXp =
+                  roomProgress?.currentXp ?? activeRoom?.xp ?? 0;
               final int xpNeeded = _controller.getXpForNextLevel(currentLevel);
-              final double xpProgress = xpNeeded > 0 ? (currentXp / xpNeeded).clamp(0.0, 1.0) : 0.0;
+              final double xpProgress =
+                  xpNeeded > 0 ? (currentXp / xpNeeded).clamp(0.0, 1.0) : 0.0;
               final int todayExtraXp = stats?.todayExtraXpPoints ?? 0;
-              
+
               final String privilegeName = _getRoomPrivilege(currentLevel);
               final Color privilegeColor = _getPrivilegeColor(currentLevel);
 
@@ -824,7 +921,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                               color: hasRoom ? privilegeColor : context.caption,
                               width: 1.5,
                             ),
-                            image: hasRoom && roomAvatar != null && roomAvatar.isNotEmpty
+                            image: hasRoom &&
+                                    roomAvatar != null &&
+                                    roomAvatar.isNotEmpty
                                 ? DecorationImage(
                                     image: NetworkImage(roomAvatar),
                                     fit: BoxFit.cover,
@@ -871,21 +970,27 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         // Only show Privilege if hasRoom
                         if (hasRoom)
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: privilegeColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: privilegeColor, width: 0.5),
+                              border:
+                                  Border.all(color: privilegeColor, width: 0.5),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   privilegeName,
-                                  style: TextStyle(color: privilegeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      color: privilegeColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 SizedBox(width: 2),
-                                Icon(Icons.arrow_forward_ios, size: 8, color: privilegeColor),
+                                Icon(Icons.arrow_forward_ios,
+                                    size: 8, color: privilegeColor),
                               ],
                             ),
                           ),
@@ -898,11 +1003,15 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       children: [
                         Text(
                           'LV.$currentLevel / Creator EXP',
-                          style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.poppins(
+                              color: context.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold),
                         ),
                         Text(
                           '${_formatXpValue(currentXp)}/${_formatXpValue(xpNeeded)}',
-                          style: TextStyle(color: context.textSecondary, fontSize: 10),
+                          style: TextStyle(
+                              color: context.textSecondary, fontSize: 10),
                         ),
                       ],
                     ),
@@ -913,7 +1022,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         value: xpProgress,
                         minHeight: 5,
                         backgroundColor: context.borderColor,
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
                       ),
                     ),
                     SizedBox(height: 8),
@@ -922,7 +1032,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       children: [
                         Text(
                           'Today\'s EXP: +$todayExtraXp',
-                          style: TextStyle(color: context.caption, fontSize: 10),
+                          style:
+                              TextStyle(color: context.caption, fontSize: 10),
                         ),
                         Text(
                           'Next Reward at LV.${currentLevel + 1}',
@@ -941,10 +1052,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildMyRoomsQuickAction(Icons.account_balance_wallet_rounded, 'Income', Colors.amber),
-                  _buildMyRoomsQuickAction(Icons.analytics_rounded, 'Report', Colors.blue),
-                  _buildMyRoomsQuickAction(Icons.card_giftcard_rounded, 'Gifts', Colors.pink),
-                  _buildMyRoomsQuickAction(Icons.school_rounded, 'Academy', Colors.teal),
+                  _buildMyRoomsQuickAction(Icons.account_balance_wallet_rounded,
+                      'Income', Colors.amber),
+                  _buildMyRoomsQuickAction(
+                      Icons.analytics_rounded, 'Report', Colors.blue),
+                  _buildMyRoomsQuickAction(
+                      Icons.card_giftcard_rounded, 'Gifts', Colors.pink),
+                  _buildMyRoomsQuickAction(
+                      Icons.school_rounded, 'Academy', Colors.teal),
                 ],
               ),
             ),
@@ -961,7 +1076,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                 final ownerCount = _getMyRoomsByRole('Owner').length;
                 final coOwnerCount = _getMyRoomsByRole('Co-owner').length;
                 final adminCount = _getMyRoomsByRole('Admin').length;
-                final activeCount = _getMyRoomsByRole(_myRoomsActiveRole).length;
+                final activeCount =
+                    _getMyRoomsByRole(_myRoomsActiveRole).length;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -971,11 +1087,15 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       children: [
                         Text(
                           'Managed Arenas',
-                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: context.textSecondary),
+                          style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: context.textSecondary),
                         ),
                         Text(
                           '($activeCount Active)',
-                          style: GoogleFonts.poppins(fontSize: 12, color: context.caption),
+                          style: GoogleFonts.poppins(
+                              fontSize: 12, color: context.caption),
                         ),
                       ],
                     ),
@@ -1003,7 +1123,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
               if (matchingRooms.isNotEmpty) {
                 return Column(
-                  children: matchingRooms.map((room) => _buildOwnedRoomCard(room)).toList(),
+                  children: matchingRooms
+                      .map((room) => _buildOwnedRoomCard(room))
+                      .toList(),
                 );
               } else {
                 if (_myRoomsActiveRole == 'Owner') {
@@ -1020,7 +1142,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     child: Center(
                       child: Text(
                         'You are not a ${_myRoomsActiveRole.toLowerCase()} in any active arenas.',
-                        style: GoogleFonts.poppins(fontSize: 12, color: context.caption),
+                        style: GoogleFonts.poppins(
+                            fontSize: 12, color: context.caption),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -1059,7 +1182,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               color: context.primaryColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.add_to_photos_rounded, color: context.primaryColor, size: 24),
+            child: Icon(Icons.add_to_photos_rounded,
+                color: context.primaryColor, size: 24),
           ),
           SizedBox(height: 12),
           Text(
@@ -1112,7 +1236,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             roomId: room.id,
             roomName: room.name,
             userId: UserProfileCacheManager.currentUserId,
-            userName: UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student',
+            userName: UserProfileCacheManager.currentUser?.username ??
+                'Creaniaa Student',
             isHost: true,
           ),
         );
@@ -1128,10 +1253,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              child: (room.avatar != null && room.avatar!.isNotEmpty) || (room.banner != null && room.banner!.isNotEmpty)
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
+              child: (room.avatar != null && room.avatar!.isNotEmpty) ||
+                      (room.banner != null && room.banner!.isNotEmpty)
                   ? Image.network(
-                      (room.avatar != null && room.avatar!.isNotEmpty) ? room.avatar! : room.banner!,
+                      (room.avatar != null && room.avatar!.isNotEmpty)
+                          ? room.avatar!
+                          : room.banner!,
                       height: 100,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -1146,12 +1275,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   // Avatar / DP
                   CircleAvatar(
                     radius: 24,
-                    backgroundImage: room.avatar != null && room.avatar!.isNotEmpty
-                        ? NetworkImage(room.avatar!)
-                        : null,
+                    backgroundImage:
+                        room.avatar != null && room.avatar!.isNotEmpty
+                            ? NetworkImage(room.avatar!)
+                            : null,
                     backgroundColor: context.primaryColor.withOpacity(0.1),
                     child: room.avatar == null || room.avatar!.isEmpty
-                        ? Icon(Icons.meeting_room_rounded, color: context.primaryColor)
+                        ? Icon(Icons.meeting_room_rounded,
+                            color: context.primaryColor)
                         : null,
                   ),
                   SizedBox(width: 12),
@@ -1170,7 +1301,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         ),
                         SizedBox(height: 2),
                         Text(
-                          room.username.startsWith('@') ? room.username : '@${room.username}',
+                          room.username.startsWith('@')
+                              ? room.username
+                              : '@${room.username}',
                           style: TextStyle(
                             fontSize: 11,
                             color: context.primaryColor,
@@ -1191,9 +1324,18 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             final roomLvl = room.level > 0 ? room.level : 1;
                             final cfg = RoomLevelMatrixConfig.getForLevel(roomLvl);
                             final nextCfg = RoomLevelMatrixConfig.getForLevel(roomLvl + 1);
-                            final targetVp = nextCfg.requiredVp > 0 ? nextCfg.requiredVp : 100000;
+                            final targetVp = nextCfg.requiredVp > 0 ? nextCfg.requiredVp : 35500;
                             final fillRatio = (room.xp / targetVp).clamp(0.0, 1.0);
                             final percent = (fillRatio * 100).toInt();
+
+                            String formatVp(int val) {
+                              if (val >= 1000000) return '${(val / 1000000).toStringAsFixed(1)}M';
+                              if (val >= 1000) {
+                                final double inK = val / 1000.0;
+                                return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
+                              }
+                              return '$val';
+                            }
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1214,7 +1356,7 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      '${room.xp} / ${targetVp} VP ($percent%)',
+                                      '${formatVp(room.xp)} / ${formatVp(targetVp)} VP ($percent%)',
                                       style: GoogleFonts.poppins(color: const Color(0xFFFFB800), fontSize: 10, fontWeight: FontWeight.bold),
                                     ),
                                   ],
@@ -1244,12 +1386,15 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                           roomId: room.id,
                           roomName: room.name,
                           userId: UserProfileCacheManager.currentUserId,
-                          userName: UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student',
+                          userName:
+                              UserProfileCacheManager.currentUser?.username ??
+                                  'Creaniaa Student',
                           isHost: true,
                         ),
                       );
                     },
-                    icon: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 14),
+                    icon: Icon(Icons.arrow_forward_ios_rounded,
+                        color: Colors.white54, size: 14),
                   ),
                 ],
               ),
@@ -1305,7 +1450,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           SizedBox(height: 6),
           Text(
             label,
-            style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w500, color: context.textSecondary),
+            style: GoogleFonts.poppins(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: context.textSecondary),
           ),
         ],
       ),
@@ -1324,7 +1472,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.amber.withOpacity(0.1) : Colors.white.withOpacity(0.02),
+          color: isSelected
+              ? Colors.amber.withOpacity(0.1)
+              : Colors.white.withOpacity(0.02),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? Colors.amber : Colors.white.withOpacity(0.06),
@@ -1366,7 +1516,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
       padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Column(
         children: [
-          Icon(Icons.heart_broken_rounded, size: 48, color: Colors.pink.withOpacity(0.4)),
+          Icon(Icons.heart_broken_rounded,
+              size: 48, color: Colors.pink.withOpacity(0.4)),
           SizedBox(height: 10),
           Text(
             message,
@@ -1378,10 +1529,15 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             onPressed: () => _checkCreationAndNavigate(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFFF72585),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             ),
-            child: Text('Enter my arena', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+            child: Text('Enter my arena',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
           ),
         ],
       ),
@@ -1390,8 +1546,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
   // ── "MY ARENA" SPECIFIC CARD DESIGN ──
   Widget _buildMyArenaRoleCard(VoiceRoom room, String role) {
-    final liveParticipants = room.participantCount + (_liveCountsOffset[room.id] ?? 0);
-    
+    final liveParticipants =
+        room.participantCount + (_liveCountsOffset[room.id] ?? 0);
+
     return Container(
       margin: EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -1413,7 +1570,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   ? CachedNetworkImage(
                       imageUrl: room.avatar!,
                       fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Icon(Icons.radio, color: context.caption),
+                      errorWidget: (context, url, error) =>
+                          Icon(Icons.radio, color: context.caption),
                     )
                   : Icon(Icons.radio, color: context.caption),
             ),
@@ -1429,7 +1587,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     Expanded(
                       child: Text(
                         room.name,
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                        style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.white),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1441,7 +1602,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       decoration: BoxDecoration(
                         color: _getRoleBadgeColor(role).withOpacity(0.15),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: _getRoleBadgeColor(role).withOpacity(0.4), width: 0.5),
+                        border: Border.all(
+                            color: _getRoleBadgeColor(role).withOpacity(0.4),
+                            width: 0.5),
                       ),
                       child: Text(
                         role,
@@ -1471,7 +1634,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       ),
                       child: Text(
                         'LV.${room.level}',
-                        style: TextStyle(color: Colors.blueAccent, fontSize: 8, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: Colors.blueAccent,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -1481,14 +1647,19 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                 Row(
                   children: [
                     // Member count (simulated online)
-                    Icon(Icons.people_outline, color: room.isLive ? Color(0xFF10B981) : context.caption, size: 12),
+                    Icon(Icons.people_outline,
+                        color:
+                            room.isLive ? Color(0xFF10B981) : context.caption,
+                        size: 12),
                     SizedBox(width: 3),
                     Text(
                       room.isLive ? '$liveParticipants Online' : 'Offline',
                       style: TextStyle(
-                        color: room.isLive ? Color(0xFF10B981) : context.caption,
+                        color:
+                            room.isLive ? Color(0xFF10B981) : context.caption,
                         fontSize: 10,
-                        fontWeight: room.isLive ? FontWeight.bold : FontWeight.normal,
+                        fontWeight:
+                            room.isLive ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                     SizedBox(width: 12),
@@ -1515,12 +1686,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: _getRoleBadgeColor(role).withOpacity(0.4), width: 1),
+                side: BorderSide(
+                    color: _getRoleBadgeColor(role).withOpacity(0.4), width: 1),
               ),
             ),
             child: Text(
               'Enter',
-              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(
+                  fontSize: 11, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -1566,7 +1739,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: isSelected ? context.primaryColor : context.borderColor,
+                  color:
+                      isSelected ? context.primaryColor : context.borderColor,
                 ),
               ),
               padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1579,7 +1753,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
   // ── SWITCH TO CHOSEN DISCOVERY CATEGORY VIEW ──
   Widget _buildDiscoveryListContent() {
-    final activeCategoryName = _discoveryCategories[_selectedCategoryIndex]['name'];
+    final activeCategoryName =
+        _discoveryCategories[_selectedCategoryIndex]['name'];
     final baseFiltered = _getFilteredArenas();
 
     if (activeCategoryName == 'For You') {
@@ -1636,14 +1811,19 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            type == 'Favorite' ? Icons.bookmark_border_rounded : Icons.history_toggle_off_rounded,
+            type == 'Favorite'
+                ? Icons.bookmark_border_rounded
+                : Icons.history_toggle_off_rounded,
             size: 64,
             color: context.caption.withOpacity(0.5),
           ),
           SizedBox(height: 16),
           Text(
             message,
-            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 15, fontWeight: FontWeight.w500),
+            style: GoogleFonts.poppins(
+                color: context.textSecondary,
+                fontSize: 15,
+                fontWeight: FontWeight.w500),
             textAlign: TextAlign.center,
           ),
         ],
@@ -1655,14 +1835,28 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   Widget _buildForYouDiscoveryLayout() {
     return Column(
       children: [
-        _buildTrendingLane('🔥 Trending Now', _getFilteredArenas().take(4).toList()),
-        _buildTrendingLane('🚀 Rising Arenas', _getFilteredArenas().where((r) => r.isLive).toList()),
-        _buildTrendingLane('👑 Elite Arenas', _getFilteredArenas().where((r) => r.level >= 3).toList()),
-        _buildTrendingLane('🎁 Top Gifted', _getFilteredArenas().where((r) => r.totalGiftsReceived > 5000).toList()),
-        _buildTrendingLane('🎤 Most Active', _getFilteredArenas().where((r) => r.participantCount > 40).toList()),
-        _buildTrendingLane('🎮 Gaming Trends', _getFilteredArenas(categoryOverride: 'Gaming Zone')),
-        _buildTrendingLane('🎓 Study Trends', _getFilteredArenas(categoryOverride: 'Study Hub')),
-        _buildTrendingLane('🆕 New Arenas', _getFilteredArenas().where((r) => !r.isPermanent).toList()),
+        _buildTrendingLane(
+            '🔥 Trending Now', _getFilteredArenas().take(4).toList()),
+        _buildTrendingLane('🚀 Rising Arenas',
+            _getFilteredArenas().where((r) => r.isLive).toList()),
+        _buildTrendingLane('👑 Elite Arenas',
+            _getFilteredArenas().where((r) => r.level >= 3).toList()),
+        _buildTrendingLane(
+            '🎁 Top Gifted',
+            _getFilteredArenas()
+                .where((r) => r.totalGiftsReceived > 5000)
+                .toList()),
+        _buildTrendingLane(
+            '🎤 Most Active',
+            _getFilteredArenas()
+                .where((r) => r.participantCount > 40)
+                .toList()),
+        _buildTrendingLane('🎮 Gaming Trends',
+            _getFilteredArenas(categoryOverride: 'Gaming Zone')),
+        _buildTrendingLane('🎓 Study Trends',
+            _getFilteredArenas(categoryOverride: 'Study Hub')),
+        _buildTrendingLane('🆕 New Arenas',
+            _getFilteredArenas().where((r) => !r.isPermanent).toList()),
         SizedBox(height: 40),
       ],
     );
@@ -1702,10 +1896,14 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                   children: [
                     Text(
                       'View All',
-                      style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: context.primaryColor),
+                      style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: context.primaryColor),
                     ),
                     SizedBox(width: 2),
-                    Icon(Icons.arrow_forward_ios, size: 10, color: context.primaryColor),
+                    Icon(Icons.arrow_forward_ios,
+                        size: 10, color: context.primaryColor),
                   ],
                 ),
               ),
@@ -1772,7 +1970,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
   // ── HIGH-FIDELITY GLASSMORPHIC CARD DESIGN ──
   Widget _buildPremiumArenaCard(VoiceRoom room, {bool isGrid = false}) {
-    final liveParticipants = room.participantCount + (_liveCountsOffset[room.id] ?? 0);
+    final liveParticipants =
+        room.participantCount + (_liveCountsOffset[room.id] ?? 0);
     final isFavorite = _controller.favoriteRoomIds.contains(room.id);
 
     Widget cardContent = Container(
@@ -1782,7 +1981,9 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         color: context.secondaryBackgroundColor.withOpacity(0.55),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: room.isPermanent ? Colors.amber.withOpacity(0.3) : Colors.white.withOpacity(0.06),
+          color: room.isPermanent
+              ? Colors.amber.withOpacity(0.3)
+              : Colors.white.withOpacity(0.06),
           width: room.isPermanent ? 1.2 : 0.8,
         ),
         boxShadow: [
@@ -1799,13 +2000,18 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           fit: StackFit.expand,
           children: [
             // Cover Image
-            (room.avatar != null && room.avatar!.isNotEmpty) || (room.banner != null && room.banner!.isNotEmpty)
+            (room.avatar != null && room.avatar!.isNotEmpty) ||
+                    (room.banner != null && room.banner!.isNotEmpty)
                 ? CachedNetworkImage(
-                    imageUrl: (room.avatar != null && room.avatar!.isNotEmpty) ? room.avatar! : room.banner!,
+                    imageUrl: (room.avatar != null && room.avatar!.isNotEmpty)
+                        ? room.avatar!
+                        : room.banner!,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
                       color: context.secondaryBackgroundColor,
-                      child: Center(child: CircularProgressIndicator(color: context.primaryColor, strokeWidth: 2)),
+                      child: Center(
+                          child: CircularProgressIndicator(
+                              color: context.primaryColor, strokeWidth: 2)),
                     ),
                     errorWidget: (context, url, error) => Container(
                       decoration: BoxDecoration(
@@ -1815,7 +2021,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                           end: Alignment.bottomRight,
                         ),
                       ),
-                      child: Icon(Icons.radio, color: Colors.white.withOpacity(0.15), size: 36),
+                      child: Icon(Icons.radio,
+                          color: Colors.white.withOpacity(0.15), size: 36),
                     ),
                   )
                 : Container(
@@ -1826,7 +2033,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         end: Alignment.bottomRight,
                       ),
                     ),
-                    child: Icon(Icons.radio, color: Colors.white.withOpacity(0.15), size: 36),
+                    child: Icon(Icons.radio,
+                        color: Colors.white.withOpacity(0.15), size: 36),
                   ),
 
             // Gradient Overlay for text readability
@@ -1857,7 +2065,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                         decoration: BoxDecoration(
                           color: context.primaryColor.withOpacity(0.85),
                           borderRadius: BorderRadius.circular(6),
@@ -1887,7 +2096,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       'LV.${room.level}',
                       style: GoogleFonts.poppins(
                         fontSize: 8,
-                        fontWeight: FontWeight.w900, // Fixed: FontWeight.black -> FontWeight.w900
+                        fontWeight: FontWeight
+                            .w900, // Fixed: FontWeight.black -> FontWeight.w900
                         color: Colors.black87,
                       ),
                     ),
@@ -1905,13 +2115,17 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                 child: Container(
                   padding: EdgeInsets.all(5),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5), // Fixed: Colors.black50 -> Colors.black.withOpacity(0.5)
+                    color: Colors.black.withOpacity(
+                        0.5), // Fixed: Colors.black50 -> Colors.black.withOpacity(0.5)
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white12),
                   ),
                   child: Icon(
-                    isFavorite ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-                    color: isFavorite ? Colors.redAccent : context.textSecondary,
+                    isFavorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_outline_rounded,
+                    color:
+                        isFavorite ? Colors.redAccent : context.textSecondary,
                     size: 14,
                   ),
                 ),
@@ -1943,7 +2157,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       SizedBox(width: 4),
                       Text(
                         'LIVE',
-                        style: GoogleFonts.poppins(fontSize: 7, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: GoogleFonts.poppins(
+                            fontSize: 7,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
                       ),
                     ],
                   ),
@@ -1977,18 +2194,23 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: room.tags.map((tag) => Container(
-                            margin: EdgeInsets.only(right: 4),
-                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: Colors.white12,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '#$tag',
-                              style: TextStyle(color: context.textSecondary, fontSize: 7),
-                            ),
-                          )).toList(),
+                          children: room.tags
+                              .map((tag) => Container(
+                                    margin: EdgeInsets.only(right: 4),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 4, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white12,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '#$tag',
+                                      style: TextStyle(
+                                          color: context.textSecondary,
+                                          fontSize: 7),
+                                    ),
+                                  ))
+                              .toList(),
                         ),
                       ),
                     ),
@@ -2015,8 +2237,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
                   // Host Details and Participant Counts
                   Obx(() {
-                    final u = UserProfileCacheManager.rxCache[room.hostId] ?? UserProfileCacheManager.getCachedUser(room.hostId);
-                    final String uName = u?.username ?? room.ownerName ?? 'Host';
+                    final u = UserProfileCacheManager.rxCache[room.hostId] ??
+                        UserProfileCacheManager.getCachedUser(room.hostId);
+                    final String uName =
+                        u?.username ?? room.ownerName ?? 'Host';
                     final String uAvatar = u?.avatar ?? '';
                     final int uLevel = u?.level ?? 1;
 
@@ -2032,9 +2256,15 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                               size: 20,
                               child: CircleAvatar(
                                 radius: 10,
-                                backgroundImage: uAvatar.isNotEmpty ? CachedNetworkImageProvider(uAvatar) : null,
-                                backgroundColor: context.primaryColor.withOpacity(0.1),
-                                child: uAvatar.isEmpty ? Icon(Icons.person, size: 10, color: context.textSecondary) : null,
+                                backgroundImage: uAvatar.isNotEmpty
+                                    ? CachedNetworkImageProvider(uAvatar)
+                                    : null,
+                                backgroundColor:
+                                    context.primaryColor.withOpacity(0.1),
+                                child: uAvatar.isEmpty
+                                    ? Icon(Icons.person,
+                                        size: 10, color: context.textSecondary)
+                                    : null,
                               ),
                             ),
                             SizedBox(width: 6),
@@ -2059,36 +2289,50 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                             Row(
                               children: [
                                 Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: Colors.blueAccent.withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     'LV.$uLevel',
-                                    style: TextStyle(color: Colors.blueAccent, fontSize: 8, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                        color: Colors.blueAccent,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ),
                                 SizedBox(width: 4),
                                 Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: Colors.amber.withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     'Owner',
-                                    style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                        color: Colors.amber,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],
                             ),
                             Text(
-                              room.isLive ? '$liveParticipants live' : 'Offline',
+                              room.isLive
+                                  ? '$liveParticipants live'
+                                  : 'Offline',
                               style: TextStyle(
-                                color: room.isLive ? Color(0xFF10B981) : Colors.white54,
+                                color: room.isLive
+                                    ? Color(0xFF10B981)
+                                    : Colors.white54,
                                 fontSize: 8.5,
-                                fontWeight: room.isLive ? FontWeight.bold : FontWeight.normal,
+                                fontWeight: room.isLive
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                             ),
                           ],
@@ -2124,11 +2368,13 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.radio_button_off, size: 64, color: context.caption.withOpacity(0.5)),
+                  Icon(Icons.radio_button_off,
+                      size: 64, color: context.caption.withOpacity(0.5)),
                   SizedBox(height: 16),
                   Text(
                     'No live arenas active right now.',
-                    style: TextStyle(color: context.textSecondary, fontSize: 16),
+                    style:
+                        TextStyle(color: context.textSecondary, fontSize: 16),
                   ),
                 ],
               ),
@@ -2151,7 +2397,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
 
   // ── EVENTS TAB CONTENT ──
   Widget _buildEventsTabContent() {
-    final scheduledArenas = _getFilteredArenas().where((r) => !r.isLive).toList();
+    final scheduledArenas =
+        _getFilteredArenas().where((r) => !r.isLive).toList();
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
@@ -2162,11 +2409,13 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.event_note_rounded, size: 64, color: context.caption.withOpacity(0.5)),
+                  Icon(Icons.event_note_rounded,
+                      size: 64, color: context.caption.withOpacity(0.5)),
                   SizedBox(height: 16),
                   Text(
                     'No scheduled events currently.',
-                    style: TextStyle(color: context.textSecondary, fontSize: 16),
+                    style:
+                        TextStyle(color: context.textSecondary, fontSize: 16),
                   ),
                 ],
               ),
@@ -2193,7 +2442,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                           width: 70,
                           height: 70,
                           color: context.primaryColor.withOpacity(0.1),
-                          child: Icon(Icons.rocket_launch_rounded, color: context.primaryColor, size: 36),
+                          child: Icon(Icons.rocket_launch_rounded,
+                              color: context.primaryColor, size: 36),
                         ),
                       ),
                       SizedBox(width: 14),
@@ -2203,36 +2453,48 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: context.primaryColor.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 room.category.toUpperCase(),
-                                style: TextStyle(color: context.primaryColor, fontSize: 8, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                    color: context.primaryColor,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                             SizedBox(height: 6),
                             Text(
                               room.name,
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                              style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.white),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             SizedBox(height: 4),
                             Text(
                               'Host: ${room.ownerName}',
-                              style: TextStyle(color: context.caption, fontSize: 11),
+                              style: TextStyle(
+                                  color: context.caption, fontSize: 11),
                             ),
                             SizedBox(height: 6),
                             Row(
                               children: [
-                                Icon(Icons.calendar_month, color: Colors.amber, size: 12),
+                                Icon(Icons.calendar_month,
+                                    color: Colors.amber, size: 12),
                                 SizedBox(width: 4),
                                 Text(
                                   'Tomorrow, 7:00 PM',
-                                  style: GoogleFonts.poppins(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.w600),
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.amber,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600),
                                 ),
                               ],
                             ),
@@ -2253,10 +2515,16 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
                         },
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: context.primaryColor),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
-                        child: Text('RSVP', style: TextStyle(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                        child: Text('RSVP',
+                            style: TextStyle(
+                                color: context.primaryColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -2267,7 +2535,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
   }
 
   Future<void> _checkCreationAndNavigate(BuildContext context) async {
-    final user = UserProfileCacheManager.getCachedUser(UserProfileCacheManager.currentUserId);
+    final user = UserProfileCacheManager.getCachedUser(
+        UserProfileCacheManager.currentUserId);
     final userLevel = user?.level ?? 1;
     final userCoins = _controller.walletBalance.value;
 
@@ -2294,7 +2563,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
     }
   }
 
-  void _showRequirementsDialog(BuildContext context, int currentLevel, int currentCoins, int currentTickets) {
+  void _showRequirementsDialog(BuildContext context, int currentLevel,
+      int currentCoins, int currentTickets) {
     final hasLevel = currentLevel >= 15;
     final hasCoins = currentCoins >= 499;
     final hasTicket = currentTickets > 0;
@@ -2305,7 +2575,8 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Requirements Unmet',
-          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: GoogleFonts.poppins(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2313,14 +2584,18 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
           children: [
             Text(
               'To create an Arena, you must meet at least ONE of the following criteria:',
-              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+              style:
+                  TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
             ),
             const SizedBox(height: 16),
-            _requirementItem(context, 'User Level 15 or above', hasLevel, 'Current: Lv.$currentLevel'),
+            _requirementItem(context, 'User Level 15 or above', hasLevel,
+                'Current: Lv.$currentLevel'),
             const SizedBox(height: 12),
-            _requirementItem(context, '499 Gold Coins', hasCoins, 'Current: $currentCoins Coins'),
+            _requirementItem(context, '499 Gold Coins', hasCoins,
+                'Current: $currentCoins Coins'),
             const SizedBox(height: 12),
-            _requirementItem(context, 'Arena Creation Ticket', hasTicket, 'Current: $currentTickets Tickets'),
+            _requirementItem(context, 'Arena Creation Ticket', hasTicket,
+                'Current: $currentTickets Tickets'),
           ],
         ),
         actions: [
@@ -2328,16 +2603,20 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             onPressed: () => Get.back(),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            child: const Text('Close',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  Widget _requirementItem(BuildContext context, String label, bool isMet, String detail) {
+  Widget _requirementItem(
+      BuildContext context, String label, bool isMet, String detail) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2353,7 +2632,10 @@ class _RoomsScreenState extends State<RoomsScreen> with TickerProviderStateMixin
             children: [
               Text(
                 label,
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 2),
               Text(
