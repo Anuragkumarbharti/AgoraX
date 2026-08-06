@@ -6,6 +6,7 @@ import '../../models/room/room_model.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../voice/room_voice_manager.dart';
 import 'room_controller.dart';
+import 'room_realtime_controller.dart';
 import '../../screens/rooms/voice_room_call_screen.dart';
 import '../../widgets/room/dialogs/room_password_dialog.dart';
 import '../../widgets/room/dialogs/room_entry_denied_sheet.dart';
@@ -134,8 +135,11 @@ class UltraFastRoomJoinEngine {
         };
 
         final matchedStatus = statusMap.entries
-            .firstWhereOrNull((e) => reason.toLowerCase().contains(e.key.toLowerCase()))
-            ?.value ?? RoomEntryStatus.followersOnly;
+            .firstWhere(
+              (e) => reason.toLowerCase().contains(e.key.toLowerCase()),
+              orElse: () => const MapEntry('followers_only', RoomEntryStatus.followersOnly),
+            )
+            .value;
 
         showModalBottomSheet(
           context: context,
@@ -169,8 +173,18 @@ class UltraFastRoomJoinEngine {
       // ========================================================================
       // STAGE 3: Realtime Socket Registration & Initial State Sync
       // ========================================================================
-      if (Get.isRegistered<RoomController>()) {
-        await RoomController.to.joinRoomRealtimeChannel(room.id);
+      if (Get.isRegistered<RoomRealtimeController>()) {
+        final realtimeCtrl = RoomRealtimeController.to;
+        realtimeCtrl.subscribeToRoomRealtime(
+          room.id,
+          activeRoomId: room.id,
+          onFetchMembers: (_) async {},
+          onFetchPermissions: (_) async {},
+          onFetchRequests: (_) async {},
+          onFetchPolls: (_) async {},
+          onFetchProgression: (_) async {},
+          onCleanupResources: () {},
+        );
       }
 
       // ========================================================================
@@ -220,8 +234,8 @@ class UltraFastRoomJoinEngine {
   Future<void> _rollbackJoinTransaction(String roomId) async {
     try {
       await RoomVoiceManager().leaveRoom();
-      if (Get.isRegistered<RoomController>()) {
-        await RoomController.to.leaveRoomRealtimeChannel(roomId);
+      if (Get.isRegistered<RoomRealtimeController>()) {
+        RoomRealtimeController.to.unsubscribeRoomRealtime();
       }
       debugPrint('[UltraFastRoomJoinEngine] Rollback complete for room $roomId.');
     } catch (e) {
