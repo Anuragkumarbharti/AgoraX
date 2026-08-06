@@ -106,45 +106,61 @@ class RoomCallSeatGrid extends StatelessWidget {
       final totalStars = seat?['seatTotalStars'] as int? ?? 0;
       final double size = ((index == 0 || index == 1) ? 56.0 : 44.0) * scale;
 
-      final lockedColor = context.lockedSeatColor;
+      final bg = controller.activeRoomBackground.value;
+      final tokens = AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
 
       final seatBackground = AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOutCubic,
         width: size,
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.08),
+          color: tokens.seatFillColor,
           border: isLocked
               ? Border.all(
-                  color: lockedColor.withOpacity(0.40),
+                  color: tokens.seatBorderColor,
+                  width: tokens.seatBorderWidth,
+                )
+              : Border.all(
+                  color: tokens.seatBorderColor.withOpacity(0.30),
                   width: 1.0,
-                )
-              : null,
-        ),
-        child: Center(
-          child: isLocked
-              ? TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutBack,
-                  builder: (context, val, child) {
-                    return Transform.scale(
-                      scale: val,
-                      child: Icon(
-                        Icons.lock_rounded,
-                        color: lockedColor.withOpacity(0.45),
-                        size: 16 * scale,
-                      ),
-                    );
-                  },
-                )
-              : Icon(
-                  Icons.chair_rounded,
-                  color: Colors.white24,
-                  size: 16 * scale,
                 ),
+          boxShadow: isLocked
+              ? tokens.seatBoxShadows
+              : [
+                  BoxShadow(
+                    color: tokens.seatGlowColor,
+                    blurRadius: tokens.seatGlowRadius,
+                    spreadRadius: 0.5,
+                  ),
+                ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(size / 2),
+          child: Center(
+            child: isLocked
+                ? TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutBack,
+                    builder: (context, val, child) {
+                      return Transform.scale(
+                        scale: val,
+                        child: Icon(
+                          Icons.lock_rounded,
+                          color: tokens.lockIconColor,
+                          size: 16 * scale,
+                        ),
+                      );
+                    },
+                  )
+                : Icon(
+                    Icons.chair_rounded,
+                    color: tokens.emptySeatIconColor,
+                    size: 16 * scale,
+                  ),
+          ),
         ),
       );
 
@@ -175,7 +191,7 @@ class RoomCallSeatGrid extends StatelessWidget {
                                 ? userName[0].toUpperCase()
                                 : 'U',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: tokens.usernameColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 14 * scale,
                             ),
@@ -202,14 +218,19 @@ class RoomCallSeatGrid extends StatelessWidget {
                 Positioned(
                   top: -1 * scale,
                   right: -1 * scale,
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeInOutCubic,
                     padding: EdgeInsets.all(1.5 * scale),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF3B30),
+                    decoration: BoxDecoration(
+                      color: tokens.micOffBadgeBg,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.mic_off,
-                        color: Colors.white, size: 7 * scale),
+                    child: Icon(
+                      Icons.mic_off,
+                      color: tokens.micOffIconColor,
+                      size: 7 * scale,
+                    ),
                   ),
                 ),
             ],
@@ -221,16 +242,19 @@ class RoomCallSeatGrid extends StatelessWidget {
             width: 72 * scale,
             height: 14 * scale,
             child: Center(
-              child: Text(
-                userName,
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeInOutCubic,
                 style: GoogleFonts.poppins(
-                  color: Colors.white,
+                  color: tokens.usernameColor,
                   fontSize: 8.5 * scale,
                   fontWeight: FontWeight.bold,
+                  shadows: tokens.usernameShadows,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
+                child: Text(userName),
               ),
             ),
           ),
@@ -245,16 +269,21 @@ class RoomCallSeatGrid extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.star,
-                            color: Colors.amber, size: 7.5 * scale),
+                        Icon(
+                          Icons.star,
+                          color: tokens.starIconColor,
+                          size: 7.5 * scale,
+                        ),
                         SizedBox(width: 1 * scale),
-                        Text(
-                          '$totalStars',
+                        AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeInOutCubic,
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: tokens.starTextColor,
                             fontSize: 7 * scale,
                             fontWeight: FontWeight.bold,
                           ),
+                          child: Text('$totalStars'),
                         ),
                       ],
                     ),

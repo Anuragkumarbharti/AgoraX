@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
+import '../services/room/room_controller.dart';
+import './theme/adaptive_seat_theme.dart';
 export './responsive.dart';
+export './theme/adaptive_seat_theme.dart';
 
 class AppTheme {
   // ── LIGHT THEME COLS (Creania Premium Design System v2.0) ──
@@ -371,10 +375,22 @@ extension ThemeExtension on BuildContext {
   Color get accentGold =>
       isDark ? AppTheme.darkAccentGold : AppTheme.lightAccentGold;
 
-  Color get lockedSeatColor => accentPurple;
-  Color get lockedSeatGlowColor => lockedSeatColor.withOpacity(0.25);
-  double get lockedSeatGlowRadius => 6.0;
-  double get lockedSeatBorderWidth => 1.5;
+  AdaptiveSeatThemeTokens get adaptiveSeatTheme {
+    try {
+      if (Get.isRegistered<RoomController>()) {
+        final bg = RoomController.to.activeRoomBackground.value;
+        return AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: isDark);
+      }
+    } catch (_) {}
+    return isDark
+        ? AdaptiveSeatThemeTokens.darkFallback(lockedAccent: accentPurple)
+        : AdaptiveSeatThemeTokens.lightFallback(lockedAccent: accentPurple);
+  }
+
+  Color get lockedSeatColor => adaptiveSeatTheme.lockIconColor;
+  Color get lockedSeatGlowColor => adaptiveSeatTheme.seatGlowColor;
+  double get lockedSeatGlowRadius => adaptiveSeatTheme.seatGlowRadius;
+  double get lockedSeatBorderWidth => adaptiveSeatTheme.seatBorderWidth;
 
   Color get successColor =>
       isDark ? AppTheme.darkSuccess : AppTheme.lightSuccess;

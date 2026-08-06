@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../services/voice/voice_controller.dart';
+import '../../../../core/theme.dart';
 
 class SeatVoiceEffect extends StatelessWidget {
   final String userId;
@@ -18,6 +19,10 @@ class SeatVoiceEffect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeColor = frameColor != Colors.transparent && frameColor != Colors.white24
+        ? frameColor
+        : context.adaptiveSeatTheme.speakingRingColor;
+
     if (isMuted) {
       return Container(
         width: size,
@@ -25,7 +30,7 @@ class SeatVoiceEffect extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white24,
+            color: context.adaptiveSeatTheme.emptySeatIconColor,
             width: 1.5,
           ),
         ),
@@ -62,14 +67,14 @@ class SeatVoiceEffect extends StatelessWidget {
                     height: size + 4.0 + (14.0 * factor),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: frameColor.withOpacity(0.15 * (1 - factor)),
+                      color: activeColor.withOpacity(0.15 * (1 - factor)),
                       border: Border.all(
-                        color: frameColor.withOpacity(0.6 * (1 - factor)),
+                        color: activeColor.withOpacity(0.6 * (1 - factor)),
                         width: 1.5 + (2.0 * factor),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: frameColor.withOpacity(0.5 + (0.5 * factor)),
+                          color: activeColor.withOpacity(0.5 + (0.5 * factor)),
                           blurRadius: 6.0 + (18.0 * factor),
                           spreadRadius: 1.0 + (5.0 * factor),
                         )
@@ -85,7 +90,7 @@ class SeatVoiceEffect extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSpeaking ? frameColor : Colors.white24,
+                    color: isSpeaking ? activeColor : context.adaptiveSeatTheme.emptySeatIconColor,
                     width: isSpeaking ? 2.5 : 1.5,
                   ),
                 ),

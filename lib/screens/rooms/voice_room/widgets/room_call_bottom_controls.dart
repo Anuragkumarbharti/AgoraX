@@ -214,20 +214,19 @@ class RoomCallBottomControls extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: isMicActive
                                           ? accentColor.withOpacity(0.25)
-                                          : Colors.redAccent.withOpacity(0.25),
+                                          : Colors.white.withOpacity(0.10),
                                       shape: BoxShape.circle,
                                       border: Border.all(
                                         color: isMicActive
                                             ? accentColor
-                                            : Colors.redAccent,
+                                            : Colors.white24,
                                         width: 1.8,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: (isMicActive
-                                                  ? accentColor
-                                                  : Colors.redAccent)
-                                              .withOpacity(0.40),
+                                          color: isMicActive
+                                              ? accentColor.withOpacity(0.40)
+                                              : Colors.black.withOpacity(0.25),
                                           blurRadius: 8,
                                           spreadRadius: 1,
                                         ),
@@ -237,7 +236,7 @@ class RoomCallBottomControls extends StatelessWidget {
                                       isMicActive ? Icons.mic : Icons.mic_off,
                                       color: isMicActive
                                           ? Colors.white
-                                          : Colors.redAccent,
+                                          : const Color(0xFFF87171),
                                       size: 18,
                                     ),
                                   ),
