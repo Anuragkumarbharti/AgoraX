@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../models/room/room_model.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../core/theme.dart';
 
 class RoomPasswordSettingsDialog extends StatefulWidget {
@@ -86,6 +87,7 @@ class _RoomPasswordSettingsDialogState extends State<RoomPasswordSettingsDialog>
       await Supabase.instance.client.rpc('update_room_password', params: {
         'p_room_id': roomId,
         'p_new_password': enteredPin,
+        'p_user_id': UserProfileCacheManager.currentUserId,
       });
 
       // Update local Room Controller model

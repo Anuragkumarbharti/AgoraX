@@ -171,23 +171,24 @@ BEGIN
   END IF;
 
   -- 6. Evaluate Room Entry Permissions (Password, Followers Only, VIP Level, User Level, Community)
-  v_who_can_join := LOWER(COALESCE(v_room_json->>'entry_permission', v_room_json->>'visibility', 'everyone'));
+  v_who_can_join := LOWER(COALESCE(v_room_json->>'entry_permission', v_room_json->>'visibility', v_room_json->>'who_can_join', 'everyone'));
+  
+  -- Resolve specific custom password created by the room owner in public.rooms or public.room_settings
   v_room_pass := COALESCE(
     NULLIF(trim(v_room_json->>'room_password'), ''),
-    (SELECT NULLIF(trim(room_password), '') FROM public.room_settings WHERE room_id = v_room_id LIMIT 1),
-    '1234'
+    (SELECT NULLIF(trim(room_password), '') FROM public.room_settings WHERE room_id = v_room_id LIMIT 1)
   );
   
   IF NOT v_is_owner AND NOT v_is_co_owner AND NOT v_is_admin THEN
-    -- A. Password Protection
-    IF v_who_can_join LIKE '%password%' OR (v_room_pass IS NOT NULL AND length(trim(v_room_pass)) > 0) THEN
+    -- A. Unique Room Password Verification
+    IF v_who_can_join LIKE '%password%' OR (v_room_pass IS NOT NULL AND length(v_room_pass) > 0) THEN
       IF p_provided_password IS NULL OR length(trim(p_provided_password)) = 0 THEN
         RETURN jsonb_build_object(
           'join_allowed', false,
           'reason', 'PASSWORD_REQUIRED',
           'password_required', true
         );
-      ELSIF trim(p_provided_password) != trim(v_room_pass) THEN
+      ELSIF v_room_pass IS NOT NULL AND length(v_room_pass) > 0 AND trim(p_provided_password) != trim(v_room_pass) THEN
         RETURN jsonb_build_object(
           'join_allowed', false,
           'reason', 'Incorrect room password. Access denied.',
