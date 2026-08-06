@@ -104,7 +104,7 @@ class RoomCallSeatGrid extends StatelessWidget {
       final nobleLevel = u?.novelLevel ?? seat?['nobleLevel'] as int? ?? 0;
       final vipLevel = u?.vipLevel ?? seat?['vipLevel'] as int? ?? 0;
       final totalStars = seat?['seatTotalStars'] as int? ?? 0;
-      final double size = ((index == 0 || index == 1) ? 56.0 : 44.0) * scale;
+      final double size = ((index == 0 || index == 1) ? 50.0 : 48.0) * scale;
 
       final bg = controller.activeRoomBackground.value;
       final tokens =

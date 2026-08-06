@@ -361,11 +361,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 'seatIndex': index,
                 'role':
                     index == 0 ? 'Owner' : (index == 1 ? 'Co-owner' : 'Guest'),
-                'userId': (index == 0 && widget.isHost) ? widget.userId : null,
-                'name': (index == 0 && widget.isHost)
-                    ? widget.userName
-                    : RoomSeatController.getSeatName(index),
-                'isSpeaking': index == 0 && widget.isHost,
+                'userId': null,
+                'name': RoomSeatController.getSeatName(index),
+                'isSpeaking': false,
                 'isLocked': false,
               }));
     }
@@ -399,40 +397,21 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         }
       }
 
+      // Every user joins as Audience/Listener with mic OFF by default.
+      // No automatic seat assignment for any user (Owner, Co-Host, Admin, Moderator, VIP, Regular User).
       await roomVoiceManager.joinRoom(
         roomId: widget.roomId,
         userId: widget.userId,
         userName: widget.userName,
-        enableMic: widget.isHost,
+        enableMic: false,
       );
 
       await _controller.enterRoom(widget.roomId);
-
-      if (widget.isHost) {
-        await _controller.joinRoomSeat(widget.roomId, 0);
-      } else {
-        await _controller.fetchRoomProgression(widget.roomId);
-        final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
-        final mySeat =
-            seatsList.firstWhereOrNull((s) => s['userId'] == widget.userId);
-        if (mySeat != null) {
-          final micStatus = mySeat['micStatus'] ?? 'unmuted';
-          await roomVoiceManager.toggleMic(micStatus == 'unmuted');
-        }
-      }
+      await _controller.fetchRoomProgression(widget.roomId);
 
       if (mounted) {
         setState(() {
-          if (widget.isHost) {
-            _isMicOn.value = true;
-          } else {
-            final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
-            final mySeat =
-                seatsList.firstWhereOrNull((s) => s['userId'] == widget.userId);
-            if (mySeat != null) {
-              _isMicOn.value = (mySeat['micStatus'] ?? 'unmuted') == 'unmuted';
-            }
-          }
+          _isMicOn.value = false;
         });
       }
 

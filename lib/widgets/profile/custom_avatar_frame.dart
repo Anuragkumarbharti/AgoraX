@@ -143,8 +143,8 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
     final isMe = widget.userId == 'me' || widget.userId == currentUid || widget.userId == 'uid_anurag_101';
 
     final double seatSize = widget.size;
-    final double avatarSize = seatSize * 0.96; // Avatar fills 96% of seat
-    final double frameSize = seatSize;         // Frame occupies 100% of seat
+    final double avatarSize = seatSize;          // Avatar completely fills seat with 100% coverage
+    final double frameSize = seatSize * 1.065;   // Avatar frame is +6.5% larger (within +5% to +8% range)
 
     // Determine if frame is equipped
     final resolvedId = (widget.userId == 'me' || widget.userId == 'uid_anurag_101' || widget.userId == currentUid)
@@ -258,10 +258,8 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
         return Container(
           width: avatarSize,
           height: avatarSize,
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white24, width: 1.5),
           ),
           child: ClipOval(child: reactiveAvatarChild),
         );
@@ -269,8 +267,8 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
     });
 
     Widget seatBody = SizedBox(
-      width: seatSize,
-      height: seatSize,
+      width: hasFrame ? frameSize : seatSize,
+      height: hasFrame ? frameSize : seatSize,
       child: mainWidget,
     );
 
@@ -278,6 +276,38 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
       alignment: Alignment.center,
       clipBehavior: Clip.none,
       children: [
+        // 360° Circular Voice Ripple Wave
+        if (widget.isSpeaking)
+          AnimatedBuilder(
+            animation: _glowAnimationController,
+            builder: (context, _) {
+              final double waveVal = _glowAnimationController.value;
+              final double baseTargetSize = hasFrame ? frameSize : seatSize;
+              final double rippleMaxSize = baseTargetSize * 1.05;
+              final double currentRippleSize = baseTargetSize + (rippleMaxSize - baseTargetSize) * waveVal;
+              final double rippleOpacity = (1.0 - waveVal) * 0.6 * volumeFactor.clamp(0.2, 1.0);
+
+              return Container(
+                width: currentRippleSize,
+                height: currentRippleSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF00FF66).withOpacity(rippleOpacity),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00FF66).withOpacity(rippleOpacity * 0.5),
+                      blurRadius: 4.0 * waveVal,
+                      spreadRadius: 1.0 * waveVal,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
         seatBody,
 
         if (widget.isSpeaking)

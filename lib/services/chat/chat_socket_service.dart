@@ -437,45 +437,58 @@ class ChatSocketService extends GetxService with WidgetsBindingObserver {
     _isExplicitlyUnsubscribing = false;
 
     // Subscribe channels with auto-resubscription logic
+    Timer? _resubscribeTimer;
+
+    void _scheduleResubscription() {
+      if (_isExplicitlyUnsubscribing) return;
+      _resubscribeTimer?.cancel();
+      _log('Scheduling debounced Realtime resubscription in 3s...');
+      _resubscribeTimer = Timer(const Duration(seconds: 3), () {
+        if (!_isExplicitlyUnsubscribing && Supabase.instance.client.auth.currentSession != null) {
+          startSupabaseRealtimeSubscription(userId);
+        }
+      });
+    }
+
     // ✅ BUG #11 FIX: Only one channel triggers resend — use broadcast as primary, postgres as fallback
     bool _broadcastResendTriggered = false;
     _supabaseBroadcastChannel?.subscribe((status, [error]) {
       _log('Supabase Broadcast Channel Status: $status (error: $error)');
-      if (status == RealtimeSubscribeStatus.subscribed && !_broadcastResendTriggered) {
-        _broadcastResendTriggered = true;
-        resendPendingOfflineMessages();
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        _resubscribeTimer?.cancel();
+        _resubscribeTimer = null;
+        if (!_broadcastResendTriggered) {
+          _broadcastResendTriggered = true;
+          resendPendingOfflineMessages();
+        }
       }
       if (!_isExplicitlyUnsubscribing &&
           (status == RealtimeSubscribeStatus.timedOut || status == RealtimeSubscribeStatus.closed)) {
-        _log('Broadcast channel timed out/closed. Resubscribing in 3s...');
-        Timer(const Duration(seconds: 3), () {
-          if (!_isExplicitlyUnsubscribing && Supabase.instance.client.auth.currentSession != null) {
-            startSupabaseRealtimeSubscription(userId);
-          }
-        });
+        _scheduleResubscription();
       }
     });
 
     _supabaseMessagesChannel?.subscribe((status, [error]) {
       _log('Supabase Postgres WAL Channel Status: $status (error: $error)');
-      if (status == RealtimeSubscribeStatus.subscribed && !_broadcastResendTriggered) {
-        // Only trigger if broadcast channel didn't already
-        _broadcastResendTriggered = true;
-        resendPendingOfflineMessages();
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        _resubscribeTimer?.cancel();
+        _resubscribeTimer = null;
+        if (!_broadcastResendTriggered) {
+          _broadcastResendTriggered = true;
+          resendPendingOfflineMessages();
+        }
       }
       if (!_isExplicitlyUnsubscribing &&
           (status == RealtimeSubscribeStatus.timedOut || status == RealtimeSubscribeStatus.closed)) {
-        Timer(const Duration(seconds: 3), () {
-          if (!_isExplicitlyUnsubscribing && Supabase.instance.client.auth.currentSession != null) {
-            startSupabaseRealtimeSubscription(userId);
-          }
-        });
+        _scheduleResubscription();
       }
     });
 
     _supabasePresenceChannel?.subscribe((status, [error]) async {
       _log('Supabase Presence Channel Status: $status (error: $error)');
       if (status == RealtimeSubscribeStatus.subscribed) {
+        _resubscribeTimer?.cancel();
+        _resubscribeTimer = null;
         await _supabasePresenceChannel?.track({
           'user_id': userId,
           'online_at': DateTime.now().toIso8601String(),

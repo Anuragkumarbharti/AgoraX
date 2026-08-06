@@ -21,9 +21,20 @@ subprojects {
 }
 
 subprojects {
-    tasks.withType<JavaCompile> {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
+    fun configureJavaCompile(p: Project) {
+        p.tasks.withType<JavaCompile> {
+            sourceCompatibility = "17"
+            targetCompatibility = "17"
+            options.compilerArgs.addAll(listOf("-Xlint:-options", "-Xlint:-deprecation"))
+        }
+    }
+
+    if (state.executed) {
+        configureJavaCompile(this)
+    } else {
+        afterEvaluate {
+            configureJavaCompile(this)
+        }
     }
 }
 
