@@ -416,11 +416,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 'seatIndex': index,
                 'role':
                     index == 0 ? 'Owner' : (index == 1 ? 'Co-owner' : 'Guest'),
-                'userId': (index == 0 && widget.isHost) ? widget.userId : null,
-                'name': (index == 0 && widget.isHost)
-                    ? widget.userName
-                    : 'Seat ${index + 1}',
-                'isSpeaking': index == 0 && widget.isHost,
+                'userId': null,
+                'name': 'Seat ${index + 1}',
+                'isSpeaking': false,
                 'isLocked': false,
               }));
     }
@@ -469,7 +467,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         roomId: widget.roomId,
         userId: widget.userId,
         userName: widget.userName,
-        enableMic: widget.isHost,
+        enableMic: false, // Audience/Listener mode by default
       );
       final zegoInitEnd = DateTime.now();
       
@@ -480,34 +478,19 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       // 3. Connect to Supabase Room in the background
       await _controller.enterRoom(widget.roomId);
 
-      // 4. Auto-seat Host or Restore return seats
-      if (widget.isHost) {
-        await _controller.joinRoomSeat(widget.roomId, 0);
-      } else {
-        await _controller.fetchRoomProgression(widget.roomId);
-        final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
-        final mySeat = seatsList.firstWhereOrNull((s) => s['userId'] == widget.userId);
-        if (mySeat != null) {
-          final micStatus = mySeat['micStatus'] ?? 'unmuted';
-          await roomVoiceManager.toggleMic(micStatus == 'unmuted');
-        }
-      }
+      // 4. Fetch room progression and seats snapshot
+      await _controller.fetchRoomProgression(widget.roomId);
+
+      // Microphone MUST remain OFF until user explicitly unmutes via mic button after joining a seat
+      await roomVoiceManager.toggleMic(false);
+      _isMicOn.value = false;
 
       // Seat sync time
       _seatSyncTimeMs = _seatSyncStopwatch.elapsedMilliseconds.toDouble();
 
-      // Sync local mic status
       if (mounted) {
         setState(() {
-          if (widget.isHost) {
-            _isMicOn.value = true;
-          } else {
-            final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
-            final mySeat = seatsList.firstWhereOrNull((s) => s['userId'] == widget.userId);
-            if (mySeat != null) {
-              _isMicOn.value = (mySeat['micStatus'] ?? 'unmuted') == 'unmuted';
-            }
-          }
+          _isMicOn.value = false;
         });
       }
 
@@ -692,12 +675,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     try {
       await _controller.joinRoomSeat(widget.roomId, seatIndex);
 
-      await RoomVoiceManager().toggleMic(true);
-      _isMicOn.value = true;
+      // Microphone remains OFF when joining seat until user explicitly unmutes via mic button
+      await RoomVoiceManager().toggleMic(false);
+      _isMicOn.value = false;
 
       Get.snackbar(
         'Stage Joined 🎤',
-        'You are now in Seat ${seatIndex + 1}. Speak freely!',
+        'You joined Seat ${seatIndex + 1}. Tap the microphone icon when you are ready to unmute and speak.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: context.successColor.withOpacity(0.9),
         colorText: Colors.white,
