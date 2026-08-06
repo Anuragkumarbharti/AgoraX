@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:creania/core/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../models/room/room_model.dart';
+import '../../models/progression/room_progression_models.dart';
 import '../../services/room/room_controller.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import './create_room_screen.dart';

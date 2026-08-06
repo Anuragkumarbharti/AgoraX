@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
 
 import '../../../../models/room/room_model.dart';
+import '../../../../models/progression/room_progression_models.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_progression_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../widgets/room/creania_vp_progress_bar.dart';
 import '../dialogs/online_members_dialog.dart';
