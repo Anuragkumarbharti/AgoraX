@@ -7,6 +7,7 @@ import '../../../../services/room/room_seat_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/index.dart';
+import '../../../../core/theme.dart';
 
 class RoomCallSeatGrid extends StatelessWidget {
   final String roomId;
@@ -103,8 +104,9 @@ class RoomCallSeatGrid extends StatelessWidget {
       final nobleLevel = u?.novelLevel ?? seat?['nobleLevel'] as int? ?? 0;
       final vipLevel = u?.vipLevel ?? seat?['vipLevel'] as int? ?? 0;
       final totalStars = seat?['seatTotalStars'] as int? ?? 0;
-
       final double size = ((index == 0 || index == 1) ? 56.0 : 44.0) * scale;
+
+      final lockedColor = context.lockedSeatColor;
 
       final seatBackground = AnimatedContainer(
         duration: const Duration(milliseconds: 250),
@@ -113,21 +115,12 @@ class RoomCallSeatGrid extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isLocked
-              ? Colors.black.withOpacity(0.65)
-              : Colors.white.withOpacity(0.08),
+          color: Colors.white.withOpacity(0.08),
           border: isLocked
               ? Border.all(
-                  color: Colors.amberAccent.withOpacity(0.85), width: 1.5)
-              : null,
-          boxShadow: isLocked
-              ? [
-                  BoxShadow(
-                    color: Colors.amberAccent.withOpacity(0.35),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  )
-                ]
+                  color: lockedColor.withOpacity(0.40),
+                  width: 1.0,
+                )
               : null,
         ),
         child: Center(
@@ -139,13 +132,19 @@ class RoomCallSeatGrid extends StatelessWidget {
                   builder: (context, val, child) {
                     return Transform.scale(
                       scale: val,
-                      child: Icon(Icons.lock_rounded,
-                          color: Colors.amberAccent, size: 16 * scale),
+                      child: Icon(
+                        Icons.lock_rounded,
+                        color: lockedColor.withOpacity(0.45),
+                        size: 16 * scale,
+                      ),
                     );
                   },
                 )
-              : Icon(Icons.chair_rounded,
-                  color: Colors.white24, size: 16 * scale),
+              : Icon(
+                  Icons.chair_rounded,
+                  color: Colors.white24,
+                  size: 16 * scale,
+                ),
         ),
       );
 

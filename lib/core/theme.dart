@@ -371,6 +371,11 @@ extension ThemeExtension on BuildContext {
   Color get accentGold =>
       isDark ? AppTheme.darkAccentGold : AppTheme.lightAccentGold;
 
+  Color get lockedSeatColor => accentPurple;
+  Color get lockedSeatGlowColor => lockedSeatColor.withOpacity(0.25);
+  double get lockedSeatGlowRadius => 6.0;
+  double get lockedSeatBorderWidth => 1.5;
+
   Color get successColor =>
       isDark ? AppTheme.darkSuccess : AppTheme.lightSuccess;
   Color get warningColor =>
