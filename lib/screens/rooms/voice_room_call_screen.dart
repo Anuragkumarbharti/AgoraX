@@ -677,15 +677,19 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       return;
     }
 
-    try {
-      // Call backend RPC to validate seat restrictions
-      try {
-        await Supabase.instance.client.rpc('join_room_seat_v3', params: {
-          'p_room_id': widget.roomId,
-          'p_seat_index': seatIndex,
-        });
-      } catch (_) {}
+    // Local Host Seat Protection Guard (Seats 1 & 2 restricted to Owner, Co-Owner, Admin)
+    if (!_controller.canOccupySeat(widget.roomId, seatIndex, widget.userId)) {
+      Get.snackbar(
+        'Seat Access Locked 🔒',
+        'Seat ${seatIndex + 1} is reserved for Room Host, Co-Owners, and Admins.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return;
+    }
 
+    try {
       await _controller.joinRoomSeat(widget.roomId, seatIndex);
 
       await RoomVoiceManager().toggleMic(true);
@@ -2228,10 +2232,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                               bottom: bottomPadding + 70, // Leave space for bottom control bar
                     child: Column(
                       children: [
-                        // Task Badges and Program Info Row
-                        _buildTaskBadgesAndProgramInfo(),
-
-                        const SizedBox(height: 16),
+                        // Task Badges and Program Info Row removed
+                        const SizedBox(height: 8),
 
                         // The 10-seat native grid layout matching the screenshot
                         _buildCustomSeatGrid(),
@@ -2875,40 +2877,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             children: [
               seatAndAvatarStack,
 
-              // Top Role Badge for Host/Co-host
-              if (index == 0 || index == 1)
-                Positioned(
-                  top: -8 * scale,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 6 * scale, vertical: 1.5 * scale),
-                    decoration: BoxDecoration(
-                      color: index == 0
-                          ? const Color(0xFF8B5CF6)
-                          : const Color(0xFFFFB800),
-                      borderRadius: BorderRadius.circular(4 * scale),
-                    ),
-                    child: Text(
-                      index == 0 ? 'Host' : 'Co-Host',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 7 * scale,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Bottom-right indicator badge (Crown/Star) for Host/Co-host
-              if (index == 0 || index == 1)
-                Positioned(
-                  bottom: -1 * scale,
-                  right: -3 * scale,
-                  child: index == 0
-                      ? Text('👑', style: TextStyle(fontSize: 11 * scale))
-                      : Text('⭐', style: TextStyle(fontSize: 11 * scale)),
-                ),
-
               // Speaker red mic off badge (top right)
               if (isOccupied &&
                   (_controller.mutedUsers[widget.roomId]?.contains(userId) ??
@@ -2927,20 +2895,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                   ),
                 ),
 
-              // Speaker green check badge (bottom center)
-              if (index >= 2 && isOccupied)
-                Positioned(
-                  bottom: -4 * scale,
-                  child: Container(
-                    padding: EdgeInsets.all(1 * scale),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF34C759),
-                      shape: BoxShape.circle,
-                    ),
-                    child:
-                        Icon(Icons.check, color: Colors.white, size: 7 * scale),
-                  ),
-                ),
             ],
           ),
           SizedBox(height: 5 * scale),
@@ -3196,39 +3150,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             ),
           ),
 
-        // Top Host/Co-host pill labels
-        if (index == 0 || index == 1)
-          Positioned(
-            top: -16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1.5),
-              decoration: BoxDecoration(
-                color: index == 0
-                    ? const Color(0xFF8A2BE2)
-                    : const Color(0xFFFF8C00),
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(
-                index == 0 ? 'Host' : 'Co-Host',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-
-        // Bottom-Right Overlap Badges (Crown/Star)
-        if (index == 0 || index == 1)
-          Positioned(
-            bottom: 2,
-            right: -4,
-            child: index == 0
-                ? const Text('👑', style: TextStyle(fontSize: 14))
-                : const Text('⭐', style: TextStyle(fontSize: 14)),
-          ),
-
         // Bottom labels & Neon Active Soundwave for Host/Co-host
         if (index == 0 || index == 1)
           Positioned(
@@ -3239,7 +3160,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 Text(
                   isOccupied
                       ? (user?.userName ?? _seats[index]['name'] as String)
-                      : (index == 0 ? 'Host' : 'Co-Host'),
+                      : (index == 0 ? 'Seat 1' : 'Seat 2'),
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 9.5,
@@ -4276,12 +4197,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.chat_bubble_outline_rounded,
-                            color: accentColor,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           Expanded(
                             child: TextField(
                               controller: _chatInputController,
@@ -5207,22 +5123,26 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Left: Room Capsule + Invite button
-            CreaniaVpProgressBar(
-              roomLevel: roomLevel,
-              freeXp: 1700,
-              freeTarget: 1700,
-              extraXp: 1700,
-              extraTarget: 1700,
-              roomId: '$roomId',
-              coverUrl: coverUrl,
-              onTap: () {
-                _showRoomOptionsMenuSheet(context);
-              },
-              onPlusTap: () {
-                Get.snackbar('Action', 'Inviting users to the arena.');
-              },
-            ),
+            Obx(() {
+              final freeVp = _controller.getRoomFreeVp(widget.roomId);
+              final goldVp = _controller.getRoomGoldVp(widget.roomId);
+              return CreaniaVpProgressBar(
+                roomLevel: roomLevel,
+                freeXp: freeVp,
+                freeTarget: 700,
+                extraXp: goldVp,
+                extraTarget: 1000,
+                roomId: '$roomId',
+                roomName: roomName,
+                coverUrl: coverUrl,
+                onTap: () {
+                  _showRoomOptionsMenuSheet(context);
+                },
+                onPlusTap: () {
+                  Get.snackbar('Action', 'Inviting users to the arena.');
+                },
+              );
+            }),
 
             // Right: Participant capsule + leave button
             Row(
@@ -6592,9 +6512,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                     ),
                     child: Row(
                       children: [
-                        const SizedBox(width: 12),
-                        Icon(Icons.chat_bubble_outline_rounded,
-                            color: accentColor, size: 15),
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextField(
@@ -7955,30 +7872,17 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
       final String cleanUrl = (imageUrl ?? '').trim().toLowerCase();
       final String cleanType = (type ?? '').trim().toLowerCase();
 
-      if (cleanUrl.contains('vip_1_tag.png') ||
-          cleanUrl.contains('vip_level_1.png') ||
-          cleanLabel == 'vip 1' ||
-          cleanLabel == 'vip1') {
-        localAsset = 'assets/identity_tags/vip_level_1.png';
-      } else if (cleanUrl.contains('vip_2_tag.png') ||
-          cleanUrl.contains('vip_level_2.png') ||
-          cleanLabel == 'vip 2' ||
-          cleanLabel == 'vip2') {
-        localAsset = 'assets/identity_tags/vip_level_2.png';
-      } else if (cleanUrl.contains('id_level_1.png') ||
-          (cleanType == 'id_level' &&
-              (cleanLabel.contains('1') ||
-                  cleanLabel.contains('level 1') ||
-                  cleanLabel.contains('lv.1') ||
-                  cleanLabel.contains('lv. 1')))) {
-        localAsset = 'assets/identity_tags/id_level_1.png';
-      } else if (cleanUrl.contains('id_level_2.png') ||
-          (cleanType == 'id_level' &&
-              (cleanLabel.contains('2') ||
-                  cleanLabel.contains('level 2') ||
-                  cleanLabel.contains('lv.2') ||
-                  cleanLabel.contains('lv. 2')))) {
-        localAsset = 'assets/identity_tags/id_level_2.png';
+      if (cleanUrl.contains('vip') ||
+          cleanUrl.contains('id_level') ||
+          cleanType.contains('vip') ||
+          cleanType.contains('id_level') ||
+          cleanLabel.startsWith('vip') ||
+          cleanLabel.startsWith('v1') ||
+          cleanLabel.startsWith('v2') ||
+          cleanLabel.startsWith('l1') ||
+          cleanLabel.startsWith('l2') ||
+          cleanLabel.startsWith('lv')) {
+        return const SizedBox.shrink();
       }
 
       final String? officialCommAsset = getOfficialCommunityTagAssetPath(cleanLabel) ??

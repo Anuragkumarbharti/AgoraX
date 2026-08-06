@@ -549,3 +549,624 @@ Each user avatar displays their role tag and color badge directly beneath the av
 ✓ Core Rule Validation: Room Role = Permanent Until Changed
 ✓ Auto Role & Tag Recovery (Postgres DB reload on restart, logout/login, reconnect, device switch)
 ✓ 12-Step Room Join Validation Sequence & Fixed 10-Seat Protected Access
+
+==================================================
+
+# CREANIAA ROOM ENGINE - STARMAKER LEVEL PERFORMANCE (MASTER PROMPT)
+
+### MISSION
+
+Transform the entire room engine into a production grade, ultra low latency, real time system that feels as fast as or faster than StarMaker.
+
+The room must never feel slow.
+
+Every tap should produce immediate visual feedback.
+
+Every online user should see the same changes almost simultaneously.
+
+The room must remain smooth with hundreds or thousands of concurrent users.
+
+====================================================
+CORE OBJECTIVES
+====================================================
+
+• Zero noticeable delay
+• Zero fake data
+• Zero duplicate events
+• Zero inconsistent room state
+• Zero unnecessary API calls
+• Zero unnecessary widget rebuilds
+• Zero frame drops
+• Zero UI freezing
+• Zero memory leaks
+• Zero polling inside rooms
+
+Target 60 FPS minimum.
+
+Support 120 FPS devices.
+
+====================================================
+NETWORK ARCHITECTURE
+====================================================
+
+Technology Stack
+
+Frontend
+Flutter
+
+Backend
+Supabase
+
+Database
+PostgreSQL
+
+Realtime
+WebSocket
+
+Cache
+Redis
+
+Realtime Broadcast
+Redis Pub/Sub
+
+Storage
+Supabase Storage
+
+CDN
+Cloudflare CDN or equivalent
+
+Background Jobs
+Queue Workers
+
+====================================================
+ROOM COMMUNICATION
+====================================================
+
+Everything inside a room must work through WebSocket.
+
+Never use REST API for room actions.
+
+Room actions include
+
+Seat Lock
+Seat Unlock
+Take Seat
+Leave Seat
+Kick User
+Role Change
+Host Change
+Mic
+Mute
+Gift
+Chat
+Typing
+Room XP
+VP
+Leaderboard
+Online Count
+Notifications
+Room Settings
+
+Only Login, Profile, History, Settings and Room List should use REST APIs.
+
+====================================================
+REDIS ROOM STATE
+====================================================
+
+Keep complete live room state inside Redis.
+
+Store
+
+Current Seats
+Locked Seats
+Host
+Moderators
+Mic Status
+Mute Status
+Online Users
+Viewer Count
+Room XP
+VP
+Gift Count
+Today's Gifts
+Current Background
+Room Settings
+
+Never fetch PostgreSQL for every room action.
+
+Redis is the source of truth for live room state.
+
+====================================================
+POSTGRESQL
+====================================================
+
+Use PostgreSQL only for permanent storage.
+
+Store
+
+Gift History
+Transactions
+User Profiles
+Room History
+Daily Statistics
+Leaderboards
+Reports
+Analytics
+
+Never update full rows.
+
+Update only modified fields.
+
+Always use indexes.
+
+Use prepared statements.
+
+Use connection pooling.
+
+====================================================
+EVENT FLOW
+====================================================
+
+Every room event follows this flow.
+
+User taps button
+↓
+Immediate local UI update
+↓
+WebSocket event
+↓
+Backend validation
+↓
+Redis update
+↓
+Redis Pub/Sub
+↓
+Broadcast
+↓
+Every client updates instantly
+
+Never wait for server before showing UI changes.
+
+Use optimistic UI everywhere.
+
+Rollback only if validation fails.
+
+====================================================
+WEBSOCKET
+====================================================
+
+Persistent connection.
+
+Automatic reconnect.
+
+Heartbeat every twenty seconds.
+
+Resume after reconnect.
+
+Restore missed events.
+
+Guarantee event ordering.
+
+Prevent duplicate events.
+
+Use event acknowledgements.
+
+Compress packets.
+
+====================================================
+SUPPORTED EVENTS
+====================================================
+
+seat_locked
+seat_unlocked
+seat_taken
+seat_left
+seat_removed
+host_changed
+role_changed
+gift_sent
+message_sent
+message_deleted
+typing_started
+typing_stopped
+user_joined
+user_left
+mute_changed
+mic_changed
+background_changed
+room_updated
+xp_updated
+vp_updated
+leaderboard_updated
+notification
+
+====================================================
+ROOM JOIN
+====================================================
+
+Join room under 300 milliseconds.
+
+Immediately load
+
+Cached avatars
+Cached room background
+Cached seats
+Cached gifts
+Cached room info
+Cached user list
+
+Then silently synchronize.
+
+Never show blank screen.
+
+Never block UI.
+
+====================================================
+ROOM EXIT
+====================================================
+
+Immediately
+
+Dispose websocket listeners.
+Dispose RTC resources.
+Dispose animations.
+Dispose timers.
+Dispose microphone.
+Dispose providers.
+Dispose controllers.
+Dispose streams.
+Clear temporary cache.
+
+Prevent memory leaks.
+
+====================================================
+SEAT ENGINE
+====================================================
+
+Tap seat
+
+Avatar appears instantly.
+Seat animation starts instantly.
+Seat status changes instantly.
+Background synchronization begins.
+
+If server rejects
+
+Rollback instantly.
+
+====================================================
+LOCK SYSTEM
+====================================================
+
+Tap Lock
+
+Immediately
+
+Lock icon changes.
+Seat disabled.
+Animation plays.
+Toast: Seat Locked
+Send websocket event.
+
+If failed
+
+Rollback.
+
+Same for Unlock.
+
+====================================================
+HOST SEAT
+====================================================
+
+Host seat validation happens locally.
+
+If non host taps
+
+Instant popup: You can't take Host Seat.
+
+No API request.
+
+====================================================
+REMOVE USER
+====================================================
+
+Host taps Remove.
+
+Immediately
+
+Seat becomes empty.
+Removed animation.
+Removed user popup.
+
+Synchronize later.
+
+Rollback only if backend rejects.
+
+====================================================
+CHAT
+====================================================
+
+Message appears immediately.
+
+Status: Sending
+
+After acknowledgement: Sent
+
+Retry only on failure.
+
+Incoming messages through WebSocket only.
+
+No polling.
+
+====================================================
+GIFTS
+====================================================
+
+Gift animation starts instantly.
+
+Coins deducted locally.
+
+Gift counter updates.
+
+Leaderboard updates.
+
+Room XP updates.
+
+VP updates.
+
+Background synchronization.
+
+Rollback only for payment failure.
+
+====================================================
+ROOM XP
+====================================================
+
+Realtime.
+
+No refresh.
+
+Progress bar updates instantly.
+
+Everyone sees identical values.
+
+====================================================
+VP
+====================================================
+
+Realtime.
+
+Update every connected client.
+
+No refresh.
+
+====================================================
+LEADERBOARD
+====================================================
+
+Realtime.
+
+Only changed users update.
+
+Never reload whole leaderboard.
+
+====================================================
+ONLINE USERS
+====================================================
+
+Realtime join.
+Realtime leave.
+Realtime seat movement.
+Realtime role updates.
+Realtime mic updates.
+
+====================================================
+IMAGE SYSTEM
+====================================================
+
+Use AVIF or WebP.
+
+Lazy loading.
+
+Memory cache.
+
+Disk cache.
+
+Preload visible images.
+
+Thumbnail first.
+
+High quality later.
+
+Never reload cached avatars.
+
+====================================================
+CDN
+====================================================
+
+Serve
+
+Avatars
+Room Backgrounds
+Gift Assets
+Animations
+Icons
+Images
+Videos
+
+Only through CDN.
+
+Never directly from backend.
+
+====================================================
+FLUTTER PERFORMANCE
+====================================================
+
+Use const widgets.
+
+Use RepaintBoundary.
+
+Avoid unnecessary setState.
+
+Separate providers.
+
+Virtual scrolling.
+
+Image preloading.
+
+Widget caching.
+
+Animation caching.
+
+Background isolates.
+
+Debounce events.
+
+Throttle rapid actions.
+
+Render only visible widgets.
+
+Never rebuild the entire room.
+
+Only rebuild affected widgets.
+
+====================================================
+DATABASE PERFORMANCE
+====================================================
+
+Indexed queries.
+
+Atomic transactions.
+
+Batch updates.
+
+Prepared statements.
+
+Connection pooling.
+
+Async writes.
+
+Avoid N+1 queries.
+
+Avoid full document updates.
+
+Update only modified fields.
+
+====================================================
+REDIS PERFORMANCE
+====================================================
+
+Redis stores only live state.
+
+Expire inactive rooms automatically.
+
+Redis Pub/Sub synchronizes multiple backend servers.
+
+Never query PostgreSQL for live room state.
+
+====================================================
+FAILURE HANDLING
+====================================================
+
+Reconnect automatically.
+
+Restore room state.
+
+Replay missed events.
+
+Prevent duplicate users.
+
+Prevent duplicate gifts.
+
+Prevent duplicate messages.
+
+Prevent duplicate seat assignments.
+
+Recover gracefully after network interruption.
+
+====================================================
+SECURITY
+====================================================
+
+Validate every event server side.
+
+Prevent double seat.
+
+Prevent fake gifts.
+
+Prevent fake VP.
+
+Prevent fake XP.
+
+Prevent unauthorized role changes.
+
+Prevent race conditions.
+
+Use atomic locking where needed.
+
+====================================================
+MONITORING
+====================================================
+
+Track
+
+API latency
+WebSocket latency
+Redis latency
+Database latency
+Frame rendering
+Dropped frames
+Memory usage
+CPU usage
+Crash logs
+Realtime errors
+
+====================================================
+TARGET PERFORMANCE
+====================================================
+
+Tap Feedback: Under 10 ms
+UI Response: Under 16 ms
+Seat Animation: Under 16 ms
+Popup: Under 20 ms
+Redis Update: Under 5 ms
+Backend Validation: Under 20 ms
+WebSocket Broadcast: Under 20 ms
+Client Event Processing: Under 10 ms
+Room Join: Under 300 ms
+Avatar From Cache: Under 10 ms
+Gift Animation: Instant
+Message Visible: Instant
+Room FPS: 60 minimum
+High Refresh Devices: 120 FPS
+
+====================================================
+FINAL REQUIREMENT
+====================================================
+
+The room must behave like a premium production application similar to StarMaker.
+
+Every tap must feel instant.
+
+Every room participant must see identical room state almost simultaneously.
+
+No loading spinners for normal room actions.
+
+No visible delay.
+
+No polling.
+
+No fake data.
+
+No inconsistent UI.
+
+No duplicate events.
+
+No full room refresh.
+
+No unnecessary API calls.
+
+No unnecessary widget rebuilds.
+
+The implementation must prioritize low latency, scalability, reliability, consistency, fault tolerance, and an exceptional user experience while supporting thousands of concurrent users without degrading performance.
+

@@ -480,30 +480,17 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
     final String cleanUrl = (imageUrl ?? '').trim().toLowerCase();
     final String cleanType = (type ?? '').trim().toLowerCase();
 
-    if (cleanUrl.contains('vip_1_tag.png') ||
-        cleanUrl.contains('vip_level_1.png') ||
-        cleanLabel == 'vip 1' ||
-        cleanLabel == 'vip1') {
-      localAsset = 'assets/identity_tags/vip_level_1.png';
-    } else if (cleanUrl.contains('vip_2_tag.png') ||
-        cleanUrl.contains('vip_level_2.png') ||
-        cleanLabel == 'vip 2' ||
-        cleanLabel == 'vip2') {
-      localAsset = 'assets/identity_tags/vip_level_2.png';
-    } else if (cleanUrl.contains('id_level_1.png') ||
-        (cleanType == 'id_level' &&
-            (cleanLabel.contains('1') ||
-                cleanLabel.contains('level 1') ||
-                cleanLabel.contains('lv.1') ||
-                cleanLabel.contains('lv. 1')))) {
-      localAsset = 'assets/identity_tags/id_level_1.png';
-    } else if (cleanUrl.contains('id_level_2.png') ||
-        (cleanType == 'id_level' &&
-            (cleanLabel.contains('2') ||
-                cleanLabel.contains('level 2') ||
-                cleanLabel.contains('lv.2') ||
-                cleanLabel.contains('lv. 2')))) {
-      localAsset = 'assets/identity_tags/id_level_2.png';
+    if (cleanUrl.contains('vip') ||
+        cleanUrl.contains('id_level') ||
+        cleanType.contains('vip') ||
+        cleanType.contains('id_level') ||
+        cleanLabel.startsWith('vip') ||
+        cleanLabel.startsWith('v1') ||
+        cleanLabel.startsWith('v2') ||
+        cleanLabel.startsWith('l1') ||
+        cleanLabel.startsWith('l2') ||
+        cleanLabel.startsWith('lv')) {
+      return const SizedBox.shrink();
     }
 
     final String? officialCommAsset = getOfficialCommunityTagAssetPath(cleanLabel) ??

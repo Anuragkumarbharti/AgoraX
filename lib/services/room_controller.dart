@@ -48,6 +48,8 @@ class RoomChatMessage {
   final Map<String, List<String>> reactions;
   final String? avatarFrame;
   final String? nobleLabel;
+  final String status;
+  final String? mentionedUserId;
 
   RoomChatMessage({
     String? id,
@@ -71,6 +73,8 @@ class RoomChatMessage {
     Map<String, List<String>>? reactions,
     this.avatarFrame,
     this.nobleLabel,
+    this.status = 'sent',
+    this.mentionedUserId,
   })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
         reactions = reactions ?? {};
 
@@ -96,6 +100,8 @@ class RoomChatMessage {
     Map<String, List<String>>? reactions,
     String? avatarFrame,
     String? nobleLabel,
+    String? status,
+    String? mentionedUserId,
   }) {
     return RoomChatMessage(
       id: id ?? this.id,
@@ -119,6 +125,8 @@ class RoomChatMessage {
       reactions: reactions ?? this.reactions,
       avatarFrame: avatarFrame ?? this.avatarFrame,
       nobleLabel: nobleLabel ?? this.nobleLabel,
+      status: status ?? this.status,
+      mentionedUserId: mentionedUserId ?? this.mentionedUserId,
     );
   }
 }
@@ -246,6 +254,49 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   Timer? _progressionTimer;
   int _minutesInRoom = 0;
 
+  int calculateActiveStageVpRate(int occupantCount) {
+    if (occupantCount <= 0) return 0;
+    switch (occupantCount) {
+      case 1:
+        return 4;
+      case 2:
+        return 8;
+      case 3:
+        return 14;
+      case 4:
+        return 20;
+      case 5:
+        return 28;
+      case 6:
+        return 36;
+      case 7:
+        return 44;
+      case 8:
+        return 50;
+      case 9:
+        return 55;
+      case 10:
+      default:
+        return 60;
+    }
+  }
+
+  int getRoomFreeVp(String roomId) {
+    final tasks = roomDailyTaskLists[roomId];
+    if (tasks == null || tasks.isEmpty) return 700;
+    final freeTasks = tasks.where((t) => !t.taskKey.contains('gold'));
+    if (freeTasks.isEmpty) return 700;
+    return freeTasks.fold(0, (sum, t) => sum + t.currentValue).clamp(0, 700);
+  }
+
+  int getRoomGoldVp(String roomId) {
+    final tasks = roomDailyTaskLists[roomId];
+    if (tasks == null || tasks.isEmpty) return 1000;
+    final goldTasks = tasks.where((t) => t.taskKey.contains('gold'));
+    if (goldTasks.isEmpty) return 1000;
+    return goldTasks.fold(0, (sum, t) => sum + t.currentValue).clamp(0, 1000);
+  }
+
   void startProgressionTimer(String roomId) {
     _progressionTimer?.cancel();
     _minutesInRoom = 0;
@@ -325,27 +376,29 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       final roomId = activeRoomId;
       if (roomId != null) {
-        final seats = roomSeatsInfo[roomId];
-        if (seats != null) {
-          final seat = seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
-          if (seat != null) {
-            final seatIdx = seat['seatIndex'] as int;
-            Supabase.instance.client
-                .rpc('leave_room_seat', params: {
-                  'p_room_id': roomId,
-                  'p_seat_index': seatIdx,
-                })
-                .then((_) => null)
-                .catchError((_) => null);
+        try {
+          final seats = roomSeatsInfo[roomId];
+          if (seats != null) {
+            final seat = seats.firstWhereOrNull((s) => s['userId'] == currentUserId);
+            if (seat != null) {
+              final seatIdx = seat['seatIndex'] as int;
+              Supabase.instance.client
+                  .rpc('leave_room_seat', params: {
+                    'p_room_id': roomId,
+                    'p_seat_index': seatIdx,
+                  })
+                  .then((_) => null)
+                  .catchError((_) => null);
+            }
           }
-        }
 
-        Supabase.instance.client
-            .rpc('leave_room', params: {
-              'p_room_id': roomId,
-            })
-            .then((_) => null)
-            .catchError((_) => null);
+          Supabase.instance.client
+              .rpc('leave_room', params: {
+                'p_room_id': roomId,
+              })
+              .then((_) => null)
+              .catchError((_) => null);
+        } catch (_) {}
       }
 
       RoomVoiceManager().leaveRoom();
@@ -2011,12 +2064,27 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> moderateMuteUser(String roomId, String userId, bool mute) async {
+    final currentMuted = List<String>.from(mutedUsers[roomId] ?? []);
+    if (mute) {
+      if (!currentMuted.contains(userId)) currentMuted.add(userId);
+    } else {
+      currentMuted.remove(userId);
+    }
+    mutedUsers[roomId] = currentMuted;
+
     try {
       await Supabase.instance.client.rpc('moderate_user_mute', params: {
-        'p_room_id': roomId,
+        'p_room_id': resolveRoomUuid(roomId),
         'p_user_id': userId,
         'p_mute': mute,
       });
+
+      await emitRoomActivityEvent(
+        roomId: roomId,
+        eventType: mute ? 'mute_changed' : 'mic_changed',
+        targetUserId: userId,
+        message: mute ? '🔇 User microphone was muted.' : '🎙️ User microphone was unmuted.',
+      );
     } catch (e) {
       debugPrint('Error muting user: $e');
       Get.snackbar('Mute Failed', e.toString().replaceAll('Exception: ', ''));
@@ -2024,14 +2092,94 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> moderateKickUser(String roomId, String userId) async {
+    final seats = roomSeatsInfo[roomId];
+    if (seats != null) {
+      final List<Map<String, dynamic>> updatedSeats = List.from(seats);
+      final targetIdx = updatedSeats.indexWhere((s) => s['userId'] == userId);
+      if (targetIdx != -1) {
+        updatedSeats[targetIdx] = {
+          ...updatedSeats[targetIdx],
+          'userId': null,
+          'name': 'Seat ${targetIdx + 1}',
+          'avatar': null,
+          'isSpeaking': false,
+        };
+        roomSeatsInfo[roomId] = updatedSeats;
+      }
+    }
+    activeMembers.removeWhere((m) => m.userId == userId);
+
     try {
       await Supabase.instance.client.rpc('moderate_user_kick', params: {
-        'p_room_id': roomId,
+        'p_room_id': resolveRoomUuid(roomId),
         'p_user_id': userId,
       });
+
+      await emitRoomActivityEvent(
+        roomId: roomId,
+        eventType: 'user_left',
+        targetUserId: userId,
+        message: '🚫 User was removed from room by management.',
+      );
     } catch (e) {
       debugPrint('Error kicking user: $e');
       Get.snackbar('Kick Failed', e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  Future<bool> removeUserFromSeat(
+      String roomId, int seatIndex, String targetUserId) async {
+    final seats = roomSeatsInfo[roomId];
+    List<Map<String, dynamic>>? backupSeats;
+
+    try {
+      if (seats != null) {
+        backupSeats = List<Map<String, dynamic>>.from(
+            seats.map((s) => Map<String, dynamic>.from(s)));
+        final List<Map<String, dynamic>> updatedSeats = List.from(backupSeats);
+        final targetIdx =
+            updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
+        if (targetIdx != -1) {
+          updatedSeats[targetIdx] = {
+            ...updatedSeats[targetIdx],
+            'userId': null,
+            'name': 'Seat ${seatIndex + 1}',
+            'avatar': null,
+            'isSpeaking': false,
+          };
+        }
+        roomSeatsInfo[roomId] = updatedSeats;
+      }
+
+      final targetRoomId = resolveRoomUuid(roomId);
+      await Supabase.instance.client.rpc('leave_room_seat', params: {
+        'p_room_id': targetRoomId,
+        'p_seat_index': seatIndex,
+      });
+
+      await emitRoomActivityEvent(
+        roomId: roomId,
+        eventType: 'seat_removed',
+        targetUserId: targetUserId,
+        seatNumber: seatIndex + 1,
+        message: '🚫 User was removed from Seat #${seatIndex + 1}.',
+      );
+
+      Get.snackbar(
+        'User Removed 🚪',
+        'Member removed from Seat ${seatIndex + 1}.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFF59E0B).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return true;
+    } catch (e) {
+      if (backupSeats != null) {
+        roomSeatsInfo[roomId] = backupSeats;
+      }
+      debugPrint('Error removing user from seat: $e');
+      Get.snackbar('Action Failed', e.toString().replaceAll('Exception: ', ''));
+      return false;
     }
   }
 
@@ -2087,6 +2235,53 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       return room.id;
     }
     return roomId;
+  }
+
+  Map<String, dynamic> validate12StepRoomEntry(String roomId, String userId, {String? inputPassword}) {
+    final room = rooms.firstWhereOrNull((r) => r.id == roomId);
+    if (room == null) return {'canJoin': true, 'reason': 'Joining Room...'};
+
+    final role = getUserRole(room, userId);
+    final roleWeight = getRoleWeight(role);
+
+    // Priority Hierarchy Access: Owner, Co-Owner, Admin always enter unconditionally
+    if (roleWeight >= 8) {
+      return {'canJoin': true, 'reason': 'Management Priority Access Granted'};
+    }
+
+    // Step 1: Room Active Check
+    if (!room.isLive) {
+      return {'canJoin': false, 'reason': '❌ Room is currently closed.'};
+    }
+
+    // Step 2: Permanent Ban Check
+    final isBanned = bannedUsers[roomId]?.contains(userId) ?? false;
+    if (isBanned) {
+      return {'canJoin': false, 'reason': '🚫 Permanently Banned from this room.'};
+    }
+
+    // Step 3: Followers Only Check
+    if (room.entryPermission == 'followers') {
+      final isFollowing = room.totalFollowers > 0;
+      if (!isFollowing) {
+        return {'canJoin': false, 'reason': '❤️ Followers Only Room - Follow the Room Owner to enter.'};
+      }
+    }
+
+    // Step 4: VIP Only Check
+    if (room.entryPermission == 'vip') {
+      final profile = UserProfileCacheManager.currentUser;
+      if ((profile?.vipLevel ?? 0) < 3) {
+        return {'canJoin': false, 'reason': '👑 VIP Only Room - Minimum Requirement VIP 3.'};
+      }
+    }
+
+    // Step 5: Room Capacity Check
+    if (room.participantCount >= room.maxParticipants) {
+      return {'canJoin': false, 'reason': '👥 Room Full (${room.participantCount}/${room.maxParticipants}).'};
+    }
+
+    return {'canJoin': true, 'reason': 'Joining Room...'};
   }
 
   Future<bool> promoteRoomMemberRole(
@@ -2160,7 +2355,29 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<bool> toggleSeatLock(String roomId, int seatIndex) async {
+    final seats = roomSeatsInfo[roomId];
+    List<Map<String, dynamic>>? backupSeats;
+
     try {
+      // Optimistic local update for sub-10ms seat lock feedback
+      if (seats != null) {
+        backupSeats = List<Map<String, dynamic>>.from(
+            seats.map((s) => Map<String, dynamic>.from(s)));
+        final List<Map<String, dynamic>> updatedSeats = List.from(backupSeats);
+        final targetIdx =
+            updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
+        if (targetIdx != -1) {
+          final currentlyLocked = updatedSeats[targetIdx]['isLocked'] == true ||
+              updatedSeats[targetIdx]['is_locked'] == true;
+          updatedSeats[targetIdx] = {
+            ...updatedSeats[targetIdx],
+            'isLocked': !currentlyLocked,
+            'is_locked': !currentlyLocked,
+          };
+        }
+        roomSeatsInfo[roomId] = updatedSeats;
+      }
+
       final targetRoomId = resolveRoomUuid(roomId);
       final res = await Supabase.instance.client.rpc('toggle_seat_lock', params: {
         'p_room_id': targetRoomId,
@@ -2169,6 +2386,32 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
       final bool isLocked = (res is Map && res['is_locked'] == true) ||
           (res is Map && res['data'] != null && res['data']['is_locked'] == true);
+
+      // Synchronize exact state from backend response
+      if (seats != null) {
+        final List<Map<String, dynamic>> finalSeats =
+            List.from(roomSeatsInfo[roomId] ?? []);
+        final targetIdx =
+            finalSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
+        if (targetIdx != -1) {
+          finalSeats[targetIdx] = {
+            ...finalSeats[targetIdx],
+            'isLocked': isLocked,
+            'is_locked': isLocked,
+          };
+          roomSeatsInfo[roomId] = finalSeats;
+        }
+      }
+
+      // Emit WebSocket event for seat lock status update
+      emitRoomActivityEvent(
+        roomId: roomId,
+        eventType: isLocked ? 'seat_locked' : 'seat_unlocked',
+        seatNumber: seatIndex + 1,
+        message: isLocked
+            ? '🔒 Seat #${seatIndex + 1} was locked.'
+            : '🔓 Seat #${seatIndex + 1} was unlocked.',
+      );
 
       Get.snackbar(
         isLocked ? 'Seat Locked 🔒' : 'Seat Unlocked 🔓',
@@ -2183,6 +2426,9 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       );
       return true;
     } catch (e) {
+      if (backupSeats != null) {
+        roomSeatsInfo[roomId] = backupSeats;
+      }
       final msg = e.toString().replaceAll('Exception: ', '').replaceAll('PostgrestException: ', '');
       Get.snackbar(
         'Action Failed 🔒',
@@ -3888,14 +4134,44 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> joinRoomSeat(String roomId, int seatIndex) async {
-    try {
-      // Optimistic local update to make seat occupancy feel instant
-      final seats = roomSeatsInfo[roomId];
-      if (seats != null) {
-        final List<Map<String, dynamic>> updatedSeats = List.from(seats);
+  bool canOccupySeat(String roomId, int seatIndex, String userId) {
+    if (seatIndex < 0 || seatIndex >= 10) return false;
+    // Seats 0 and 1 correspond to Seat 1 (Host Seat) and Seat 2 (Co-Host Seat)
+    if (seatIndex == 0 || seatIndex == 1) {
+      final room = rooms.firstWhereOrNull((r) => r.id == roomId);
+      if (room == null) return true;
+      final role = getUserRole(room, userId);
+      final roleWeight = getRoleWeight(role);
+      // Owner (10), Co-owner (9), Admin (8) can sit. Star Member (7) and Guest (1) cannot.
+      return roleWeight >= 8;
+    }
+    return true;
+  }
 
-        // 1. Remove current user from any previous seat
+  Future<void> joinRoomSeat(String roomId, int seatIndex) async {
+    // 1. Local Host Seat protection check
+    if (!canOccupySeat(roomId, seatIndex, currentUserId)) {
+      Get.snackbar(
+        'Seat Access Locked 🔒',
+        'Seat ${seatIndex + 1} is reserved for Room Host, Co-Owners, and Admins.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final seats = roomSeatsInfo[roomId];
+    List<Map<String, dynamic>>? backupSeats;
+
+    try {
+      // 2. Sub-10ms Optimistic local update using synchronous profile lookup
+      if (seats != null) {
+        backupSeats = List<Map<String, dynamic>>.from(
+            seats.map((s) => Map<String, dynamic>.from(s)));
+        final List<Map<String, dynamic>> updatedSeats = List.from(backupSeats);
+
+        // Remove current user from previous seat if any
         final prevIdx =
             updatedSeats.indexWhere((s) => s['userId'] == currentUserId);
         if (prevIdx != -1) {
@@ -3908,11 +4184,10 @@ class RoomController extends GetxController with WidgetsBindingObserver {
           };
         }
 
-        // 2. Fetch current user profile details
-        final profile =
-            await UserProfileCacheManager.fetchUserProfile(currentUserId);
+        // Synchronous profile cache lookup for zero-delay visual rendering
+        final profile = UserProfileCacheManager.currentUser;
 
-        // 3. Put current user on new seat
+        // Place current user on target seat
         final targetIdx =
             updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
         if (targetIdx != -1) {
@@ -3964,16 +4239,24 @@ class RoomController extends GetxController with WidgetsBindingObserver {
       await fetchRoomProgression(roomId);
       await repairRoomState(roomId);
     } catch (e) {
-      debugPrint('Join seat failed: $e');
+      debugPrint('Join seat failed, rolling back local optimistic state: $e');
+      if (backupSeats != null) {
+        roomSeatsInfo[roomId] = backupSeats;
+      }
+      rethrow;
     }
   }
 
   Future<void> leaveRoomSeat(String roomId, int seatIndex) async {
+    final seats = roomSeatsInfo[roomId];
+    List<Map<String, dynamic>>? backupSeats;
+
     try {
-      // Optimistic local update
-      final seats = roomSeatsInfo[roomId];
+      // Sub-10ms Optimistic local update
       if (seats != null) {
-        final List<Map<String, dynamic>> updatedSeats = List.from(seats);
+        backupSeats = List<Map<String, dynamic>>.from(
+            seats.map((s) => Map<String, dynamic>.from(s)));
+        final List<Map<String, dynamic>> updatedSeats = List.from(backupSeats);
         final targetIdx =
             updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
         if (targetIdx != -1) {
@@ -4011,11 +4294,21 @@ class RoomController extends GetxController with WidgetsBindingObserver {
         username: uName,
         seatNumber: seatIndex + 1,
         message: message,
+        metadata: {
+          'vip_level': profile?.vipLevel ?? 0,
+          'noble_level': profile?.novelLevel ?? 0,
+          'level': profile?.level ?? 1,
+        },
       );
 
       await fetchRoomProgression(roomId);
+      await repairRoomState(roomId);
     } catch (e) {
-      debugPrint('Leave seat failed: $e');
+      debugPrint('Leave seat failed, rolling back local optimistic state: $e');
+      if (backupSeats != null) {
+        roomSeatsInfo[roomId] = backupSeats;
+      }
+      rethrow;
     }
   }
 

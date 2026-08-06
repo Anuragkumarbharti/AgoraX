@@ -10,6 +10,7 @@ class CreaniaVpProgressBar extends StatelessWidget {
   final int extraTarget;
   final bool isGoldMember;
   final String? roomId;
+  final String? roomName;
   final String? coverUrl;
   final String label;
   final VoidCallback? onTap;
@@ -24,6 +25,7 @@ class CreaniaVpProgressBar extends StatelessWidget {
     this.extraTarget = 1000,
     this.isGoldMember = true,
     this.roomId,
+    this.roomName,
     this.coverUrl,
     this.label = "Today' AP",
     this.onTap,
@@ -119,7 +121,7 @@ class CreaniaVpProgressBar extends StatelessWidget {
                   ),
                 ),
 
-                // Subtitle Row: ID: 88533076 • [Avatar Badge] (NO ROOM NAME)
+                // Subtitle Row: ID: 88533076 • roomName [Avatar Badge]
                 if (roomId != null && roomId!.isNotEmpty) ...[
                   const SizedBox(height: 3),
                   Row(
@@ -133,7 +135,7 @@ class CreaniaVpProgressBar extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      if (coverUrl != null && coverUrl!.isNotEmpty) ...[
+                      if (roomName != null && roomName!.isNotEmpty) ...[
                         Text(
                           '  •  ',
                           style: GoogleFonts.poppins(
@@ -141,15 +143,16 @@ class CreaniaVpProgressBar extends StatelessWidget {
                             fontSize: 9.0,
                           ),
                         ),
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFFFB800), width: 1),
-                            image: DecorationImage(
-                              image: NetworkImage(coverUrl!),
-                              fit: BoxFit.cover,
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 60),
+                          child: Text(
+                            roomName!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontSize: 9.0,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -158,29 +161,6 @@ class CreaniaVpProgressBar extends StatelessWidget {
                   ),
                 ],
               ],
-            ),
-
-            const SizedBox(width: 8),
-
-            // 3. Pink Plus (+) Button (Far Right)
-            GestureDetector(
-              onTap: onPlusTap,
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFF2D55), // Pink Accent
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x66FF2D55),
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    )
-                  ],
-                ),
-                child: const Icon(Icons.add, color: Colors.white, size: 14),
-              ),
             ),
           ],
         ),
