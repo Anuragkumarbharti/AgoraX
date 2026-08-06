@@ -209,6 +209,28 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
     _initializeSeats();
 
+    _chatScrollController.addListener(() {
+      if (_chatScrollController.hasClients) {
+        final maxScroll = _chatScrollController.position.maxScrollExtent;
+        final currentScroll = _chatScrollController.offset;
+        _isChatAtBottom = (maxScroll - currentScroll) <= 40.0;
+      }
+    });
+
+    _chatInputFocusNode.addListener(() {
+      if (_chatInputFocusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (_chatScrollController.hasClients && _isChatAtBottom) {
+            _chatScrollController.animateTo(
+              _chatScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+      }
+    });
+
     _seatsSyncWorker = ever(_controller.roomSeatsInfo,
         (Map<String, List<Map<String, dynamic>>> infoMap) {
       final list = infoMap[widget.roomId];
@@ -958,6 +980,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardOpen = bottomInset > 0;
+    final dynamicShift =
+        isKeyboardOpen ? (bottomInset * 0.42).clamp(0.0, 150.0) : 0.0;
+
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       behavior: HitTestBehavior.translucent,
@@ -965,107 +992,121 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         backgroundColor: Colors.transparent,
         resizeToAvoidBottomInset: false,
         body: Obx(() {
-        final liveRoom =
-            _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId) ??
-                VoiceRoom.dummy();
-        final offset = _shakeOffset.value;
+          final liveRoom =
+              _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId) ??
+                  VoiceRoom.dummy();
+          final offset = _shakeOffset.value;
 
-        return Transform.translate(
-          offset: offset,
-          child: Stack(
-            children: [
-              // 1. Dynamic Background Layer
-              RoomCallBannerAndXp.buildCustomBackground(),
+          return Transform.translate(
+            offset: offset,
+            child: Stack(
+              children: [
+                // 1. Dynamic Background Layer (100% Fixed background)
+                RoomCallBannerAndXp.buildCustomBackground(),
 
-              // 2. Main Content Body
-              SafeArea(
-                child: Column(
-                  children: [
-                    RoomCallHeader(
-                      roomId: widget.roomId,
-                      roomName: widget.roomName,
-                      room: liveRoom,
-                      userId: widget.userId,
-                      getUserDp: _getUserDp,
-                      onLeaveRoom: _leaveRoom,
-                      onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Seat Grid Section
-                    RoomCallSeatGrid(
-                      roomId: widget.roomId,
-                      seatKeys: _seatKeys,
-                      onSeatClick: _handleSeatClick,
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Special Arena Panel (Debate/Study/Music/Event)
-                    RoomCallSpecialPanels(
-                      roomId: widget.roomId,
-                      room: liveRoom,
-                      userId: widget.userId,
-                      userName: widget.userName,
-                      debateRound: _debateRound,
-                      debateTimerSeconds: _debateTimerSeconds,
-                      isDebateTimerRunning: _isDebateTimerRunning,
-                      scoreCandidateA: _scoreCandidateA,
-                      scoreCandidateB: _scoreCandidateB,
-                      debateTimer: _debateTimer,
-                      quizVotes: _quizVotes,
-                      quizSelectedOption: _quizSelectedOption,
-                      quizVoted: _quizVoted,
-                      songQueue: _songQueue,
-                      pollVotes: _pollVotes,
-                      pollSelectedOption: _pollSelectedOption,
-                      pollVoted: _pollVoted,
-                      seats: _seats,
-                      glowController: _glowController,
-                      getUserDp: _getUserDp,
-                      onJoinSeat: _joinSeat,
-                      onShowLeaveSeatMenu: (idx) =>
-                          SeatActionSheets.showSelfSeatActions(
-                        context: context,
+                // 2. Main Content Body with Fixed Header & Smart Shiftable Stage
+                SafeArea(
+                  child: Column(
+                    children: [
+                      // Top App Bar (100% Fixed at top of screen)
+                      RoomCallHeader(
                         roomId: widget.roomId,
-                        seatIndex: idx,
-                        isMicOn: _isMicOn.value,
-                        onToggleMic: _toggleMic,
-                        onLeaveSeat: _leaveSeat,
-                        seats: _seats,
-                      ),
-                      onShowMiniProfileDialog: _showMiniProfileDialog,
-                    ),
-
-                    // Chat Stream Box
-                    Expanded(
-                      child: RoomCallChatBox(
-                        roomId: widget.roomId,
-                        chatScrollController: _chatScrollController,
+                        roomName: widget.roomName,
+                        room: liveRoom,
+                        userId: widget.userId,
                         getUserDp: _getUserDp,
+                        onLeaveRoom: _leaveRoom,
+                        onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
                       ),
-                    ),
-                  ],
-                ),
-              ),
 
-              // 3. Floating Bottom Controls Dock
-              Positioned(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 0,
-                right: 0,
-                child: RoomCallBottomControls(
-                  roomId: widget.roomId,
-                  chatInputController: _chatInputController,
-                  chatInputFocusNode: _chatInputFocusNode,
-                  isMicOn: _isMicOn,
-                  isCurrentUserOnSeat: _isCurrentUserOnSeat(),
-                  onToggleMic: _toggleMic,
-                  onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
-                  onTriggerReaction: () => _triggerReaction('❤️'),
+                      // Shiftable Stage Content (Seats, Special Panels, Chat Stream)
+                      Expanded(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutCubic,
+                          transform:
+                              Matrix4.translationValues(0, -dynamicShift, 0),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 8),
+
+                              // Seat Grid Section (Host & Audience seats shift up together)
+                              RoomCallSeatGrid(
+                                roomId: widget.roomId,
+                                seatKeys: _seatKeys,
+                                onSeatClick: _handleSeatClick,
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              // Special Arena Panel (Debate/Study/Music/Event)
+                              RoomCallSpecialPanels(
+                                roomId: widget.roomId,
+                                room: liveRoom,
+                                userId: widget.userId,
+                                userName: widget.userName,
+                                debateRound: _debateRound,
+                                debateTimerSeconds: _debateTimerSeconds,
+                                isDebateTimerRunning: _isDebateTimerRunning,
+                                scoreCandidateA: _scoreCandidateA,
+                                scoreCandidateB: _scoreCandidateB,
+                                debateTimer: _debateTimer,
+                                quizVotes: _quizVotes,
+                                quizSelectedOption: _quizSelectedOption,
+                                quizVoted: _quizVoted,
+                                songQueue: _songQueue,
+                                pollVotes: _pollVotes,
+                                pollSelectedOption: _pollSelectedOption,
+                                pollVoted: _pollVoted,
+                                seats: _seats,
+                                glowController: _glowController,
+                                getUserDp: _getUserDp,
+                                onJoinSeat: _joinSeat,
+                                onShowLeaveSeatMenu: (idx) =>
+                                    SeatActionSheets.showSelfSeatActions(
+                                  context: context,
+                                  roomId: widget.roomId,
+                                  seatIndex: idx,
+                                  isMicOn: _isMicOn.value,
+                                  onToggleMic: _toggleMic,
+                                  onLeaveSeat: _leaveSeat,
+                                  seats: _seats,
+                                ),
+                                onShowMiniProfileDialog: _showMiniProfileDialog,
+                              ),
+
+                              // Chat Stream Box (Expands above keyboard)
+                              Expanded(
+                                child: RoomCallChatBox(
+                                  roomId: widget.roomId,
+                                  chatScrollController: _chatScrollController,
+                                  getUserDp: _getUserDp,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+
+                // 3. Floating Bottom Controls Dock (Pinned above keyboard)
+                Positioned(
+                  bottom: bottomInset,
+                  left: 0,
+                  right: 0,
+                  child: RoomCallBottomControls(
+                    roomId: widget.roomId,
+                    chatInputController: _chatInputController,
+                    chatInputFocusNode: _chatInputFocusNode,
+                    isMicOn: _isMicOn,
+                    isCurrentUserOnSeat: _isCurrentUserOnSeat(),
+                    onToggleMic: _toggleMic,
+                    onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
+                    onTriggerReaction: () => _triggerReaction('❤️'),
+                  ),
+                ),
 
               // 4. Floating Reactions Animation Layer
               Positioned.fill(
