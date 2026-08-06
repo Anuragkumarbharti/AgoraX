@@ -8,6 +8,7 @@ import 'package:creania/core/theme.dart';
 
 import '../../../../models/room/room_model.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../widgets/index.dart';
 import '../../../../widgets/profile/custom_image_editor.dart';
 import 'room_settings_management.dart';
 
@@ -429,24 +430,43 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     },
                   ),
                   _buildDivider(),
-                  _buildListTile(
-                    'Background',
-                    trailingText: _theme,
-                    onTap: () => _showOptionSelector(
-                      'Background Theme',
-                      'theme',
-                      [
-                        'Classic Dark',
-                        'Purple Velvet',
-                        'Emerald Sea',
-                        'Cozy Family',
-                        'Golden Glow',
-                        'Cyberpunk Neon',
-                        'Neon Blue'
-                      ],
-                      _theme,
-                    ),
-                  ),
+                  Obx(() {
+                    final activeBg = _controller.activeRoomBackground.value;
+                    return _buildListTile(
+                      'Background',
+                      trailingWidget: Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.white30, width: 1.2),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4.8),
+                          child: Image.asset(
+                            activeBg.assetPath,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                Container(color: Colors.white12),
+                          ),
+                        ),
+                      ),
+                      trailingText: activeBg.title,
+                      onTap: () {
+                        RoomBackgroundPickerSheet.show(
+                          context,
+                          currentBackground: activeBg,
+                          onBackgroundSelected: (selectedTheme) {
+                            _controller.changeRoomBackground(selectedTheme);
+                          },
+                        );
+                      },
+                    );
+                  }),
                   _buildDivider(),
                   _buildListTile(
                     'Bulletin',

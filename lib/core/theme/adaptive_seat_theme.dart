@@ -183,19 +183,8 @@ class AdaptiveSeatThemeEngine {
     }
 
     // 1. Analyze background luminance & light state
-    double avgLuminance = 0.15;
     Color dominantColor = isDarkMode ? AppTheme.darkAccentPurple : AppTheme.lightAccentPurple;
-
-    if (bg.gradientColors != null && bg.gradientColors!.isNotEmpty) {
-      double totalLum = 0.0;
-      for (final c in bg.gradientColors!) {
-        totalLum += calculateRelativeLuminance(c);
-      }
-      avgLuminance = totalLum / bg.gradientColors!.length;
-      dominantColor = bg.gradientColors!.first;
-    }
-
-    final bool isLight = bg.isLightBackground || avgLuminance > 0.45;
+    final bool isLight = bg.isLightBackground;
 
     // 2. Extract dynamic accent tone (Material You / iOS style tinting)
     HSLColor hsl = HSLColor.fromColor(dominantColor);

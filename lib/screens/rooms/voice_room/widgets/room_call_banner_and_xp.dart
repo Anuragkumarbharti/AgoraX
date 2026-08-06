@@ -113,31 +113,7 @@ class RoomCallBannerAndXp {
 
     return Obx(() {
       final bg = controller.activeRoomBackground.value;
-      if (bg.wallpaperUrl != null && bg.wallpaperUrl!.isNotEmpty) {
-        return Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: bg.wallpaperUrl!.startsWith('http')
-                  ? NetworkImage(bg.wallpaperUrl!)
-                  : AssetImage(bg.wallpaperUrl!) as ImageProvider,
-              fit: BoxFit.cover,
-            ),
-          ),
-        );
-      } else if (bg.gradientColors != null && bg.gradientColors!.isNotEmpty) {
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: bg.gradientColors!,
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-        );
-      }
-      return Container(
-        color: const Color(0xFF0F172A),
-      );
+      return RoomDynamicBackgroundWidget(background: bg);
     });
   }
 }

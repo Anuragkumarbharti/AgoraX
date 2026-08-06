@@ -6,7 +6,7 @@ import 'package:creania/models/room/room_background_model.dart';
 void main() {
   group('Adaptive Seat Theme Engine & Dynamic Token Tests', () {
     test('Dark room background generates high contrast, bright border, and high glow tokens', () {
-      final bgDark = RoomBackgroundCatalog.allBackgrounds.firstWhere((b) => b.id == 'midnight_galaxy');
+      final bgDark = RoomBackgroundCatalog.allBackgrounds.firstWhere((b) => b.id == 'theme_1');
       final tokens = AdaptiveSeatThemeEngine.resolve(bgDark, isDarkMode: true);
 
       expect(tokens.isLightBackground, isFalse);
@@ -21,7 +21,12 @@ void main() {
     });
 
     test('Light room background automatically reduces glow and uses dark text & borders', () {
-      final bgLight = RoomBackgroundCatalog.allBackgrounds.firstWhere((b) => b.id == 'modern_light_glass');
+      const bgLight = RoomBackgroundItem(
+        id: 'light_test',
+        title: 'Light Test',
+        assetPath: 'assets/backgroundroom/1.webp',
+        isLightBackground: true,
+      );
       final tokens = AdaptiveSeatThemeEngine.resolve(bgLight, isDarkMode: false);
 
       expect(tokens.isLightBackground, isTrue);

@@ -18,6 +18,7 @@ import 'room_activity_controller.dart';
 import 'room_discovery_controller.dart';
 import '../voice/room_voice_manager.dart';
 import 'room_gift_controller.dart';
+import 'room_background_controller.dart';
 import 'room_moderation_controller.dart';
 
 class RoomConnectionController extends GetxController {
@@ -290,6 +291,10 @@ class RoomConnectionController extends GetxController {
       }
 
       activeRoomId = roomId;
+
+      if (Get.isRegistered<RoomBackgroundController>()) {
+        RoomBackgroundController.to.loadRoomBackgroundForRoom(roomId);
+      }
 
       if (Get.isRegistered<RoomChatController>()) {
         final chatCtrl = RoomChatController.to;

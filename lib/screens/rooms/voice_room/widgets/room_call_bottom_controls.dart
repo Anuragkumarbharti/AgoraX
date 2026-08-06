@@ -50,10 +50,7 @@ class RoomCallBottomControls extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(14, 10, 14, 10 + effectiveBottomInset),
             child: Obx(() {
               final bg = controller.activeRoomBackground.value;
-              final accentColor =
-                  (bg.gradientColors != null && bg.gradientColors!.isNotEmpty)
-                      ? bg.gradientColors!.first
-                      : const Color(0xFFFF2D55);
+              final accentColor = const Color(0xFFFF2D55);
 
               return Row(
                 children: [

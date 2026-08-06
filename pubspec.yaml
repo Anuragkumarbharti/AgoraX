@@ -111,6 +111,7 @@ flutter:
   
   assets:
     - assets/images/
+    - assets/backgroundroom/
     - assets/identity_tags/
     - assets/identity_tags/officialcomunity_tags/
     - assets/avtarframes/novel/

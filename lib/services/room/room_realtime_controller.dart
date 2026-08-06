@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/room/room_background_model.dart';
 import '../user/user_profile_cache_manager.dart';
 import 'room_chat_controller.dart';
@@ -415,12 +416,42 @@ class RoomRealtimeController extends GetxController {
               }
             },
           )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'rooms',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'id',
+              value: roomId,
+            ),
+            callback: (payload) {
+              if (payload.newRecord != null && Get.isRegistered<RoomBackgroundController>()) {
+                final newThemeId = payload.newRecord!['room_theme'];
+                if (newThemeId != null && newThemeId is String) {
+                  final bgItem = RoomBackgroundCatalog.findById(newThemeId);
+                  RoomBackgroundController.to.activeRoomBackground.value = bgItem;
+                  SharedPreferences.getInstance().then((prefs) {
+                    prefs.setString('room_bg_theme_$roomId', bgItem.id);
+                  });
+                  debugPrint('[RoomRealtimeController] DB UPDATE on rooms table detected background: ${bgItem.id}');
+                }
+              }
+            },
+          )
           .onBroadcast(
             event: 'room_background_changed',
             callback: (payload) {
               if (payload['background'] != null && Get.isRegistered<RoomBackgroundController>()) {
-                RoomBackgroundController.to.activeRoomBackground.value =
-                    RoomBackgroundItem.fromJson(payload['background']);
+                final bgItem = RoomBackgroundItem.fromJson(payload['background']);
+                RoomBackgroundController.to.activeRoomBackground.value = bgItem;
+                final roomId = payload['room_id'];
+                if (roomId != null && roomId is String) {
+                  SharedPreferences.getInstance().then((prefs) {
+                    prefs.setString('room_bg_theme_$roomId', bgItem.id);
+                  });
+                }
+                debugPrint('[RoomRealtimeController] Realtime background updated to: ${bgItem.id}');
               }
             },
           );
