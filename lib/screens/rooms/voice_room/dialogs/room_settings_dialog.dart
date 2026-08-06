@@ -334,6 +334,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       if (field == 'theme') _theme = opt;
                       if (field == 'mode') _roomMode = opt;
                     });
+
                     _controller.updateRoomSettings(
                       widget.roomId,
                       theme: _theme,
@@ -341,13 +342,23 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       seatPermissions: _whoCanBeSeated,
                     );
                     Get.back();
-                    Get.snackbar(
-                      'Setting Saved',
-                      '$title set to "$opt"',
-                      snackPosition: SnackPosition.BOTTOM,
-                      backgroundColor: Colors.purpleAccent,
-                      colorText: Colors.white,
-                    );
+
+                    if (field == 'whoCanJoin' && opt == 'Password Required') {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (ctx) => RoomPasswordSettingsDialog(room: widget.room),
+                      );
+                    } else {
+                      Get.snackbar(
+                        'Setting Saved ⚙️',
+                        '$title set to "$opt"',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: const Color(0xFF3B82F6),
+                        colorText: Colors.white,
+                      );
+                    }
                   },
                 )),
           ],

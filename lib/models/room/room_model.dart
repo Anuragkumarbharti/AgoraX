@@ -263,31 +263,33 @@ class VoiceRoom {
 
   List<String> get activeLocks {
     final locks = <String>[];
-    final allPerms = <String>{
-      entryPermission.toLowerCase(),
-      ...entryPermissions.map((e) => e.toLowerCase()),
-      whoCanJoin.toLowerCase(),
-    };
+    final wJoin = whoCanJoin.toLowerCase().trim();
+    final ePerm = entryPermission.toLowerCase().trim();
 
-    if (allPerms.any((p) => p.contains('password')) || (roomPassword != null && roomPassword!.isNotEmpty)) {
+    // Password lock is ONLY active if whoCanJoin or entryPermission explicitly specifies password mode
+    final isExplicitPasswordMode = wJoin.contains('password') ||
+        ePerm.contains('password') ||
+        entryPermissions.any((e) => e.toLowerCase().contains('password'));
+
+    if (isExplicitPasswordMode && !wJoin.startsWith('everyone') && !ePerm.startsWith('everyone')) {
       locks.add('password');
     }
-    if (allPerms.any((p) => p.contains('followers') || p == 'followers_only')) {
+    if (wJoin.contains('followers') || ePerm.contains('followers') || ePerm == 'followers_only') {
       locks.add('followers_only');
     }
-    if (allPerms.any((p) => p.contains('following') || p == 'following_only')) {
+    if (wJoin.contains('following') || ePerm.contains('following') || ePerm == 'following_only') {
       locks.add('following_only');
     }
-    if (allPerms.any((p) => p.contains('friends') || p == 'friends_only')) {
+    if (wJoin.contains('friends') || ePerm.contains('friends') || ePerm == 'friends_only') {
       locks.add('friends_only');
     }
-    if (allPerms.any((p) => p.contains('family') || p == 'family_only')) {
+    if (wJoin.contains('family') || ePerm.contains('family') || ePerm == 'family_only') {
       locks.add('family_only');
     }
-    if (allPerms.any((p) => p.contains('vip') || p == 'vip_only')) {
+    if (wJoin.contains('vip') || ePerm.contains('vip') || ePerm == 'vip_only') {
       locks.add('vip_only');
     }
-    if (allPerms.any((p) => p.contains('invite') || p == 'invite_only')) {
+    if (wJoin.contains('invite') || ePerm.contains('invite') || ePerm == 'invite_only') {
       locks.add('invite_only');
     }
     return locks;
