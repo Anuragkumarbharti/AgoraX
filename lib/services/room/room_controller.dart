@@ -25,7 +25,7 @@ import 'room_moderation_controller.dart';
 import 'room_background_controller.dart';
 import 'room_upload_controller.dart';
 import 'room_discovery_controller.dart';
-import 'room_voice_controller.dart';
+import '../voice/room_voice_manager.dart';
 import 'room_pip_controller.dart';
 
 export 'room_chat_controller.dart';
@@ -52,7 +52,6 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   late RoomBackgroundController backgroundCtrl;
   late RoomUploadController uploadCtrl;
   late RoomDiscoveryController discoveryCtrl;
-  late RoomVoiceController voiceCtrl;
   late RoomPipController pipCtrl;
 
   // Connection State Delegators
@@ -130,7 +129,6 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     backgroundCtrl = Get.isRegistered<RoomBackgroundController>() ? Get.find<RoomBackgroundController>() : Get.put(RoomBackgroundController());
     uploadCtrl = Get.isRegistered<RoomUploadController>() ? Get.find<RoomUploadController>() : Get.put(RoomUploadController());
     discoveryCtrl = Get.isRegistered<RoomDiscoveryController>() ? Get.find<RoomDiscoveryController>() : Get.put(RoomDiscoveryController());
-    voiceCtrl = Get.isRegistered<RoomVoiceController>() ? Get.find<RoomVoiceController>() : Get.put(RoomVoiceController());
     pipCtrl = Get.isRegistered<RoomPipController>() ? Get.find<RoomPipController>() : Get.put(RoomPipController());
   }
 
@@ -271,8 +269,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   Future<void> saveRooms() => discoveryCtrl.saveRooms();
   Future<void> loadSavedRooms() => discoveryCtrl.loadSavedRooms();
 
-  Future<void> joinRoomVoice({required String roomId, required String userId, required String userName, bool enableMic = false}) => voiceCtrl.joinRoomVoice(roomId: roomId, userId: userId, userName: userName, enableMic: enableMic);
-  Future<void> leaveRoomVoice() => voiceCtrl.leaveRoomVoice();
+  Future<void> joinRoomVoice({required String roomId, required String userId, required String userName, bool enableMic = false}) => RoomVoiceManager().joinRoom(roomId: roomId, userId: userId, userName: userName, enableMic: enableMic);
+  Future<void> leaveRoomVoice() => RoomVoiceManager().leaveRoom();
 
   void showPipBubble(String roomId, String roomName, String avatarUrl) => pipCtrl.showPipBubble(roomId: roomId, roomName: roomName, avatarUrl: avatarUrl, isHostChecker: (rid) => isHost(rid, currentUserId));
   void hidePipBubble() => pipCtrl.hidePipBubble();

@@ -16,7 +16,7 @@ import 'room_progression_controller.dart';
 import 'room_permission_controller.dart';
 import 'room_activity_controller.dart';
 import 'room_discovery_controller.dart';
-import 'room_voice_controller.dart';
+import '../voice/room_voice_manager.dart';
 import 'room_gift_controller.dart';
 import 'room_moderation_controller.dart';
 
@@ -221,9 +221,7 @@ class RoomConnectionController extends GetxController {
         } catch (_) {}
       }
 
-      if (Get.isRegistered<RoomVoiceController>()) {
-        RoomVoiceController.to.leaveRoomVoice();
-      }
+      RoomVoiceManager().leaveRoom();
 
       activeRoomId = null;
       if (Get.isRegistered<RoomRealtimeController>()) {
@@ -439,9 +437,7 @@ class RoomConnectionController extends GetxController {
   Future<void> exitRoom(String roomId) async {
     try {
       final currentUserId = UserProfileCacheManager.currentUserId;
-      if (Get.isRegistered<RoomVoiceController>()) {
-        RoomVoiceController.to.leaveRoomVoice();
-      }
+      RoomVoiceManager().leaveRoom();
       if (Get.isRegistered<RoomProgressionController>()) {
         RoomProgressionController.to.stopProgressionTimer();
       }
