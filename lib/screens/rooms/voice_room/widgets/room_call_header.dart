@@ -61,6 +61,7 @@ class RoomCallHeader extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(16, topInset + 6, 12, 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Column(
