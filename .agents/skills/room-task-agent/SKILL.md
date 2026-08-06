@@ -31,6 +31,34 @@ This skill defines the rules, backend RPC integration, level progression thresho
 * **10-Minute Idle Freeze Anti-Abuse Guard:** Pauses seat VP if no interaction occurs for 10 minutes. Resumes instantly on new interaction.
 * **Overflow Carry Forward Protection:** Extra progress on level upgrade carries forward into the next level target.
 
+## 5. Daily Task Anti-Fake Rules & Hidden Trust Score Engine (0-100)
+1. **Hidden Trust Score Engine (0–100):** Hidden score assigned per profile (Default: 80).
+   - **Score < 30:** VP earning, task progress, & daily chests are **strictly disabled/blocked** (`VP = 0`).
+   - **Score 30–69:** 50% slow mode applied to VP generation.
+   - **Score 70–100:** 1.0x full VP generation rate.
+   - **Deductions:** Self-gifting (-30), Multi-device abuse (-40), Emulator/VPN abuse (-25), Chargeback (-60).
+   - **Increases:** Old verified account (+10), genuine purchases (+15), PK participation (+5), interaction with unique real users (+5).
+2. **20 Mandatory Anti-Abuse Guards:**
+   - **Rule 1 (Min Member & Solo Slow Mode):** Requires 1 seated occupant; solo idle user >5 min slows VP rate by 50%.
+   - **Rule 2 (10-Min Idle Freeze):** 10 minutes of zero room interaction automatically pauses VP.
+   - **Rule 3 & 4 (Multi-Device & Self-Support Block):** Self-gifting or alt IDs on same device ID generate **0 VP**.
+   - **Rule 5 (Spam ID Filter):** Banned/high-risk IDs generate 0 VP.
+   - **Rule 6 (Join Cooldown):** 30s cooldown required between room joins to count stay time.
+   - **Rule 7 (Seat Jump Guard):** First seat occupancy bonus (+20 VP) is strictly 1-time per user daily.
+   - **Rule 8 (Fake Gift Filter):** Refunded/cancelled gifts generate 0 VP.
+   - **Rule 9 (Bot Detection):** 24x7 robotic pattern accounts have VP disabled.
+   - **Rule 10 (Value-Based Gift VP):** VP is calculated by Gift Value/Stars, never gift counts.
+   - **Rule 11 (Room Switch Cooldown):** 60s cooldown required when switching rooms before stay VP starts.
+   - **Rule 12 (Min Stay Validation):** Stays under 60s grant 0 VP; min valid stay = 1 min.
+   - **Rule 13 (Hidden Room Protection):** Private rooms require unique verified user interaction.
+   - **Rule 14 (Suspicious Pattern Detection):** Exact daily login/logout timings raise risk score.
+   - **Rule 15 (Daily VP Cap):** Hard caps enforced (700/1000 Mon-Fri, 1400/2400 Sat-Sun).
+   - **Rule 16 (Server Validation):** All VP additions are validated server-side via Postgres RPC (`add_room_vp`).
+   - **Rule 17 (Banned Device Block):** Banned device fingerprints receive 0 VP.
+   - **Rule 18 (VPN / Proxy Block):** High-risk VPN/datacenter IPs temporarily disable tasks.
+   - **Rule 19 (Human Activity Score):** Dynamic score modifier enforces 0x / 0.5x / 1.0x multipliers.
+   - **Rule 20 (Fair Play Enforcement):** Server revokes VP, cancels tasks, and flags accounts on violation.
+
 ## 3. Core File Architecture
 * **Migration SQL**: `supabase/migrations/202608070006_creania_room_level_and_task_engine.sql`
 * **Models**: `lib/models/progression/room_progression_models.dart`

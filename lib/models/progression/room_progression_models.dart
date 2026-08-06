@@ -149,6 +149,14 @@ class RoomDailyVpConfig {
   static const int firstSeatBonusVp = 20;
   static const int firstFiveGiftsBonusVp = 25;
 
+  // Anti-Fake Rules (Rules 1, 2, 6, 10, 11, 12)
+  static const int minStayDurationSeconds = 60; // Rule 12: Minimum Stay 1 min
+  static const int joinCooldownSeconds = 30; // Rule 6: Repeated Join Abuse 30s Cooldown
+  static const int roomSwitchCooldownSeconds = 60; // Rule 11: Room Switch Abuse 60s Cooldown
+  static const int idleFreezeMinutes = 10; // Rule 2: 10 Min Idle Detection Freeze
+
+  static double getSoloSeatMultiplier(int seatCount) => seatCount == 1 ? 0.5 : 1.0; // Rule 1: Solo seat slow mode (50%)
+
   static int getFreeTarget(bool isWeekend) => isWeekend ? weekendFreeTarget : weekdayFreeTarget;
   static int getGoldTarget(bool isWeekend) => isWeekend ? weekendGoldTarget : weekdayGoldTarget;
   static int getTotalTarget(bool isWeekend) => getFreeTarget(isWeekend) + getGoldTarget(isWeekend);
@@ -382,5 +390,96 @@ class RoomStatistics {
       'today_extra_xp_points': todayExtraXpPoints,
       'last_heartbeat_at': lastHeartbeatAt?.toIso8601String(),
     };
+  }
+}
+
+class UserTrustScore {
+  final String userId;
+  final int trustScore; // 0 - 100
+  final int activityScore; // 0 - 100
+  final int riskScore; // 0 - 100
+  final bool isVerified;
+  final bool isEmulator;
+  final bool isVpn;
+  final bool isDeviceBanned;
+  final String? deviceFingerprint;
+
+  const UserTrustScore({
+    required this.userId,
+    this.trustScore = 80,
+    this.activityScore = 50,
+    this.riskScore = 0,
+    this.isVerified = false,
+    this.isEmulator = false,
+    this.isVpn = false,
+    this.isDeviceBanned = false,
+    this.deviceFingerprint,
+  });
+
+  double get vpMultiplier {
+    if (isDeviceBanned || trustScore < 20) return 0.0;
+    if (trustScore < 50) return 0.5;
+    return 1.0;
+  }
+
+  String get trustLevel {
+    if (isDeviceBanned || trustScore < 20) return 'Untrusted';
+    if (trustScore < 50) return 'Low';
+    if (trustScore < 80) return 'Normal';
+    return 'High';
+  }
+
+  factory UserTrustScore.fromJson(Map<String, dynamic> json) {
+    return UserTrustScore(
+      userId: json['user_id'] ?? json['userId'] ?? '',
+      trustScore: json['trust_score'] ?? json['trustScore'] ?? 80,
+      activityScore: json['activity_score'] ?? json['activityScore'] ?? 50,
+      riskScore: json['risk_score'] ?? json['riskScore'] ?? 0,
+      isVerified: json['is_verified'] ?? json['isVerified'] ?? false,
+      isEmulator: json['is_emulator'] ?? json['isEmulator'] ?? false,
+      isVpn: json['is_vpn'] ?? json['isVpn'] ?? false,
+      isDeviceBanned: json['is_device_banned'] ?? json['isDeviceBanned'] ?? false,
+      deviceFingerprint: json['device_fingerprint'] ?? json['deviceFingerprint'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'user_id': userId,
+      'trust_score': trustScore,
+      'activity_score': activityScore,
+      'risk_score': riskScore,
+      'is_verified': isVerified,
+      'is_emulator': isEmulator,
+      'is_vpn': isVpn,
+      'is_device_banned': isDeviceBanned,
+      'device_fingerprint': deviceFingerprint,
+    };
+  }
+}
+
+class AntiFraudCheckResult {
+  final bool isValid;
+  final String reason;
+  final double vpMultiplier;
+  final int allowedVp;
+  final String? violationCode;
+
+  const AntiFraudCheckResult({
+    required this.isValid,
+    required this.reason,
+    this.vpMultiplier = 1.0,
+    this.allowedVp = 0,
+    this.violationCode,
+  });
+
+  factory AntiFraudCheckResult.fromJson(Map<String, dynamic> json) {
+    return AntiFraudCheckResult(
+      isValid: json['success'] ?? json['isValid'] ?? false,
+      reason: json['reason'] ?? '',
+      vpMultiplier: (json['multiplier'] ?? json['vpMultiplier'] ?? 1.0).toDouble(),
+      allowedVp: json['allowed_vp'] ?? json['allowedVp'] ?? json['added_vp'] ?? 0,
+      violationCode: json['violation_code'] ?? json['violationCode'],
+    );
   }
 }

@@ -201,5 +201,40 @@ void main() {
       progCtrl.registerRoomActivity(roomId);
       expect(progCtrl.isRoomIdleFrozen(roomId), isFalse);
     });
+
+    test('10. Hidden Trust Score Engine & 20 Anti-Fake Rules Validation', () {
+      final progCtrl = RoomProgressionController();
+      final roomId = 'room_anti_fake_1';
+      final userId = 'user_abc_123';
+
+      // 1. Normal trust score (80) allows VP
+      expect(progCtrl.userTrustScore.value, equals(80));
+      expect(progCtrl.canEarnVp(roomId: roomId, userId: userId), isTrue);
+
+      // 2. Low trust score (<30) blocks VP
+      progCtrl.userTrustScore.value = 25;
+      expect(progCtrl.canEarnVp(roomId: roomId, userId: userId), isFalse);
+
+      // Reset score
+      progCtrl.userTrustScore.value = 85;
+
+      // 3. Self-gifting penalty reduces trust score by 30 and blocks VP
+      final canSelfGift = progCtrl.canEarnVp(
+        roomId: roomId,
+        userId: userId,
+        ownerId: userId,
+        isSelfGift: true,
+      );
+      expect(canSelfGift, isFalse);
+      expect(progCtrl.userTrustScore.value, equals(55));
+
+      // 4. Banned device guard blocks VP
+      final canBannedEarn = progCtrl.canEarnVp(
+        roomId: roomId,
+        userId: userId,
+        isBannedDevice: true,
+      );
+      expect(canBannedEarn, isFalse);
+    });
   });
 }

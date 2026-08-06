@@ -57,16 +57,77 @@ class RoomProgressionController extends GetxController {
   int get maxGoldDailyVp => isWeekend ? 2400 : 1000;
   int get maxTotalDailyVp => maxFreeDailyVp + maxGoldDailyVp;
 
+  final RxInt userTrustScore = 80.obs;
   final RxMap<String, DateTime> _lastActivityTime = <String, DateTime>{}.obs;
+  final RxMap<String, DateTime> _lastRoomJoinTimes = <String, DateTime>{}.obs;
+  final RxMap<String, DateTime> _lastSeatChangeTimes = <String, DateTime>{}.obs;
+  final RxSet<String> _firstSeatBonusAwardedUsers = <String>{}.obs;
 
   void registerRoomActivity(String roomId) {
     _lastActivityTime[roomId] = DateTime.now();
+  }
+
+  void registerRoomJoin(String roomId) {
+    _lastRoomJoinTimes[roomId] = DateTime.now();
+    registerRoomActivity(roomId);
+  }
+
+  void registerSeatChange(String roomId) {
+    _lastSeatChangeTimes[roomId] = DateTime.now();
+    registerRoomActivity(roomId);
   }
 
   bool isRoomIdleFrozen(String roomId) {
     final lastAct = _lastActivityTime[roomId];
     if (lastAct == null) return false;
     return DateTime.now().difference(lastAct) > const Duration(minutes: 10);
+  }
+
+  bool isRoomSwitchCooldown(String roomId) {
+    final lastJoin = _lastRoomJoinTimes[roomId];
+    if (lastJoin == null) return false;
+    return DateTime.now().difference(lastJoin) < const Duration(seconds: 60);
+  }
+
+  bool isJoinLeaveSpamCooldown(String roomId) {
+    final lastJoin = _lastRoomJoinTimes[roomId];
+    if (lastJoin == null) return false;
+    return DateTime.now().difference(lastJoin) < const Duration(seconds: 30);
+  }
+
+  bool awardFirstSeatBonus(String userId) {
+    if (_firstSeatBonusAwardedUsers.contains(userId)) return false;
+    _firstSeatBonusAwardedUsers.add(userId);
+    return true;
+  }
+
+  bool canEarnVp({
+    required String roomId,
+    required String userId,
+    String? ownerId,
+    String? deviceFingerprint,
+    bool isSelfGift = false,
+    bool isBannedDevice = false,
+  }) {
+    // Rule 17: Banned Device Guard
+    if (isBannedDevice) return false;
+
+    // Rule 20 & Hidden Trust Score Engine Guard (<30 Trust Score = 0 VP)
+    if (userTrustScore.value < 30) return false;
+
+    // Rule 2: 10-Minute Idle Freeze Guard
+    if (isRoomIdleFrozen(roomId)) return false;
+
+    // Rule 3 & 4: Self-Gifting / Same Account Protection
+    if (isSelfGift || (ownerId != null && ownerId == userId && isSelfGift)) {
+      userTrustScore.value = (userTrustScore.value - 30).clamp(0, 100);
+      return false;
+    }
+
+    // Rule 11: Room Switch Cooldown (60s)
+    if (isRoomSwitchCooldown(roomId)) return false;
+
+    return true;
   }
 
   int getXpForNextLevel(int level) {
