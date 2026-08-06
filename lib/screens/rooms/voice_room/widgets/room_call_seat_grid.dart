@@ -110,31 +110,18 @@ class RoomCallSeatGrid extends StatelessWidget {
       final tokens = AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
 
       final seatBackground = AnimatedContainer(
-        duration: const Duration(milliseconds: 350),
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeInOutCubic,
         width: size,
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: tokens.seatFillColor,
-          border: isLocked
-              ? Border.all(
-                  color: tokens.seatBorderColor,
-                  width: tokens.seatBorderWidth,
-                )
-              : Border.all(
-                  color: tokens.seatBorderColor.withOpacity(0.30),
-                  width: 1.0,
-                ),
-          boxShadow: isLocked
-              ? tokens.seatBoxShadows
-              : [
-                  BoxShadow(
-                    color: tokens.seatGlowColor,
-                    blurRadius: tokens.seatGlowRadius,
-                    spreadRadius: 0.5,
-                  ),
-                ],
+          border: Border.all(
+            color: tokens.seatBorderColor,
+            width: tokens.seatBorderWidth,
+          ),
+          boxShadow: tokens.seatBoxShadows,
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(size / 2),
@@ -219,7 +206,7 @@ class RoomCallSeatGrid extends StatelessWidget {
                   top: -1 * scale,
                   right: -1 * scale,
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 350),
+                    duration: const Duration(milliseconds: 280),
                     curve: Curves.easeInOutCubic,
                     padding: EdgeInsets.all(1.5 * scale),
                     decoration: BoxDecoration(
@@ -243,12 +230,12 @@ class RoomCallSeatGrid extends StatelessWidget {
             height: 14 * scale,
             child: Center(
               child: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 350),
+                duration: const Duration(milliseconds: 280),
                 curve: Curves.easeInOutCubic,
                 style: GoogleFonts.poppins(
                   color: tokens.usernameColor,
                   fontSize: 8.5 * scale,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: tokens.usernameFontWeight,
                   shadows: tokens.usernameShadows,
                 ),
                 maxLines: 1,
@@ -276,7 +263,7 @@ class RoomCallSeatGrid extends StatelessWidget {
                         ),
                         SizedBox(width: 1 * scale),
                         AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 350),
+                          duration: const Duration(milliseconds: 280),
                           curve: Curves.easeInOutCubic,
                           style: TextStyle(
                             color: tokens.starTextColor,

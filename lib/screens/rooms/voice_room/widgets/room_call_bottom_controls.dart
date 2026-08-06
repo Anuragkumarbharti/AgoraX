@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/theme.dart';
 import '../../../../services/room/room_controller.dart';
 import '../../../../widgets/gifting/send_gift_dialog.dart';
 
@@ -50,11 +51,11 @@ class RoomCallBottomControls extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(14, 10, 14, 10 + effectiveBottomInset),
             child: Obx(() {
               final bg = controller.activeRoomBackground.value;
-              final accentColor = const Color(0xFFFF2D55);
+              final tokens = AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
 
               return Row(
                 children: [
-                  // StarMaker Style Smooth Expanding Chat Input Bar
+                  // Adaptive Liquid Glass Expanding Chat Input Bar
                   Expanded(
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 280),
@@ -63,25 +64,13 @@ class RoomCallBottomControls extends StatelessWidget {
                       clipBehavior: Clip.antiAlias,
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.black.withOpacity(
-                                bg.isLightBackground ? 0.75 : 0.50),
-                            accentColor.withOpacity(0.25),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(22),
+                        color: tokens.chatBoxFillColor,
+                        borderRadius: BorderRadius.circular(tokens.chatBoxCornerRadius),
                         border: Border.all(
-                          color: accentColor.withOpacity(0.55),
+                          color: tokens.chatBoxBorderColor,
                           width: 1.2,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: accentColor.withOpacity(0.20),
-                            blurRadius: 10,
-                            spreadRadius: 1,
-                          )
-                        ],
+                        boxShadow: tokens.seatBoxShadows,
                       ),
                       child: Row(
                         children: [
@@ -90,16 +79,16 @@ class RoomCallBottomControls extends StatelessWidget {
                             child: TextField(
                               controller: chatInputController,
                               focusNode: chatInputFocusNode,
-                              cursorColor: accentColor,
+                              cursorColor: tokens.chatBoxTextColor,
                               style: GoogleFonts.poppins(
-                                color: Colors.white,
+                                color: tokens.chatBoxTextColor,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                               decoration: InputDecoration(
                                 hintText: "Let's talk...",
                                 hintStyle: GoogleFonts.poppins(
-                                  color: Colors.white60,
+                                  color: tokens.chatBoxPlaceholderColor,
                                   fontSize: 12.5,
                                 ),
                                 border: InputBorder.none,
@@ -145,12 +134,15 @@ class RoomCallBottomControls extends StatelessWidget {
                                     child: Container(
                                       padding: const EdgeInsets.all(7),
                                       decoration: BoxDecoration(
-                                        color: accentColor,
+                                        color: tokens.chatBoxFillColor,
                                         shape: BoxShape.circle,
+                                        border: Border.all(
+                                            color: tokens.chatBoxBorderColor,
+                                            width: 1.0),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.send_rounded,
-                                        color: Colors.white,
+                                        color: tokens.chatBoxIconColor,
                                         size: 13,
                                       ),
                                     ),
@@ -163,7 +155,7 @@ class RoomCallBottomControls extends StatelessWidget {
                     ),
                   ),
 
-                  // Action Buttons Row (Seat Action, Menu, Gift) smoothly fading out when expanded
+                  // Action Buttons Row (Seat Action, Mic, Menu, Gift) smoothly fading out when expanded
                   AnimatedCrossFade(
                     duration: const Duration(milliseconds: 280),
                     firstCurve: Curves.easeInOutCubic,
@@ -179,7 +171,7 @@ class RoomCallBottomControls extends StatelessWidget {
                           const SizedBox(width: 4),
                           _buildIconButton(
                             icon: Icons.arrow_upward_rounded,
-                            color: Colors.white70,
+                            tokens: tokens,
                             onTap: () => Get.snackbar('Seat Action',
                                 'Requesting seat or raising hand.'),
                           ),
@@ -206,34 +198,27 @@ class RoomCallBottomControls extends StatelessWidget {
                                     }
                                   },
                                   child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
+                                    duration: const Duration(milliseconds: 280),
+                                    curve: Curves.easeInOutCubic,
                                     padding: const EdgeInsets.all(9),
                                     decoration: BoxDecoration(
                                       color: isMicActive
-                                          ? accentColor.withOpacity(0.25)
-                                          : Colors.white.withOpacity(0.10),
+                                          ? tokens.chatBoxFillColor
+                                          : tokens.chatBoxFillColor,
                                       shape: BoxShape.circle,
                                       border: Border.all(
                                         color: isMicActive
-                                            ? accentColor
-                                            : Colors.white24,
-                                        width: 1.8,
+                                            ? tokens.chatBoxBorderColor
+                                            : tokens.chatBoxBorderColor,
+                                        width: 1.2,
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: isMicActive
-                                              ? accentColor.withOpacity(0.40)
-                                              : Colors.black.withOpacity(0.25),
-                                          blurRadius: 8,
-                                          spreadRadius: 1,
-                                        ),
-                                      ],
+                                      boxShadow: tokens.seatBoxShadows,
                                     ),
                                     child: Icon(
                                       isMicActive ? Icons.mic : Icons.mic_off,
                                       color: isMicActive
-                                          ? Colors.white
-                                          : const Color(0xFFF87171),
+                                          ? tokens.iconColor
+                                          : tokens.micOffIconColor,
                                       size: 18,
                                     ),
                                   ),
@@ -246,7 +231,7 @@ class RoomCallBottomControls extends StatelessWidget {
                             children: [
                               _buildIconButton(
                                 icon: Icons.menu,
-                                color: Colors.white70,
+                                tokens: tokens,
                                 onTap: () => onShowRoomOptionsMenuSheet(context),
                               ),
                               Positioned(
@@ -276,13 +261,19 @@ class RoomCallBottomControls extends StatelessWidget {
                               Get.dialog(SendGiftDialog(
                                   roomId: roomId, occupiedSeatsCount: 3));
                             },
-                            child: Container(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeInOutCubic,
                               padding: const EdgeInsets.all(9),
-                              decoration: const BoxDecoration(
-                                  color: Colors.pinkAccent,
-                                  shape: BoxShape.circle),
-                              child: const Icon(Icons.card_giftcard,
-                                  color: Colors.white, size: 19),
+                              decoration: BoxDecoration(
+                                color: tokens.chatBoxFillColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: tokens.chatBoxBorderColor, width: 1.2),
+                                boxShadow: tokens.seatBoxShadows,
+                              ),
+                              child: Icon(Icons.card_giftcard,
+                                  color: tokens.iconColor, size: 19),
                             ),
                           ),
                         ],
@@ -301,17 +292,20 @@ class RoomCallBottomControls extends StatelessWidget {
 
   Widget _buildIconButton(
       {required IconData icon,
-      required Color color,
+      required AdaptiveSeatThemeTokens tokens,
       required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOutCubic,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: tokens.chatBoxFillColor,
           shape: BoxShape.circle,
+          border: Border.all(color: tokens.chatBoxBorderColor, width: 1.0),
         ),
-        child: Icon(icon, color: color, size: 18),
+        child: Icon(icon, color: tokens.iconColor, size: 18),
       ),
     );
   }

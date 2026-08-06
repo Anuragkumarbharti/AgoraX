@@ -53,6 +53,9 @@ class RoomCallHeader extends StatelessWidget {
 
       final topInset = MediaQuery.of(context).padding.top;
 
+      final bg = controller.activeRoomBackground.value;
+      final tokens = AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
+
       return Container(
         padding: EdgeInsets.fromLTRB(16, topInset + 6, 12, 10),
         child: Row(
@@ -99,20 +102,22 @@ class RoomCallHeader extends StatelessWidget {
                           OnlineMembersDialog(roomId: liveId, room: liveRoom));
                     }
                   },
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeInOutCubic,
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.4),
+                      color: tokens.chatBoxFillColor,
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.05), width: 0.8),
+                          color: tokens.chatBoxBorderColor, width: 0.8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.remove_red_eye_rounded,
-                            color: Colors.cyanAccent, size: 13),
+                        Icon(Icons.remove_red_eye_rounded,
+                            color: tokens.iconColor, size: 13),
                         const SizedBox(width: 4),
                         Builder(
                           builder: (context) {
@@ -121,18 +126,20 @@ class RoomCallHeader extends StatelessWidget {
                             final displayCount = onlineUsersCount > 0
                                 ? onlineUsersCount
                                 : (liveRoom?.totalMembers ?? 1);
-                            return Text(
-                              '$displayCount',
+                            return AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeInOutCubic,
                               style: GoogleFonts.poppins(
-                                  color: Colors.white,
+                                  color: tokens.primaryTextColor,
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.bold),
+                              child: Text('$displayCount'),
                             );
                           },
                         ),
                         const SizedBox(width: 3),
-                        const Icon(Icons.keyboard_arrow_down_rounded,
-                            color: Colors.white70, size: 12),
+                        Icon(Icons.keyboard_arrow_down_rounded,
+                            color: tokens.secondaryIconColor, size: 12),
                       ],
                     ),
                   ),
@@ -142,6 +149,7 @@ class RoomCallHeader extends StatelessWidget {
                 // Top Bar Dropdown Button for Seat Applications
                 _buildTopBarButton(
                   icon: Icons.keyboard_arrow_down_rounded,
+                  tokens: tokens,
                   onTap: () {
                     Get.dialog(SeatApplicationsDialog(roomId: liveId));
                   },
@@ -151,6 +159,7 @@ class RoomCallHeader extends StatelessWidget {
                 // Close / Exit Button
                 _buildTopBarButton(
                   icon: Icons.close_rounded,
+                  tokens: tokens,
                   onTap: onLeaveRoom,
                 ),
               ],
@@ -161,17 +170,23 @@ class RoomCallHeader extends StatelessWidget {
     });
   }
 
-  Widget _buildTopBarButton(
-      {required IconData icon, required VoidCallback onTap}) {
+  Widget _buildTopBarButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required AdaptiveSeatThemeTokens tokens,
+  }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOutCubic,
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: tokens.chatBoxFillColor,
           shape: BoxShape.circle,
+          border: Border.all(color: tokens.chatBoxBorderColor, width: 0.8),
         ),
-        child: Icon(icon, color: Colors.white, size: 16),
+        child: Icon(icon, color: tokens.iconColor, size: 16),
       ),
     );
   }

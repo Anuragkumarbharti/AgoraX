@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../models/room/room_background_model.dart';
 import '../theme.dart';
 
-/// Immutable design tokens for seat components in voice rooms.
+/// Immutable design tokens for room and seat components in voice rooms.
 class AdaptiveSeatThemeTokens {
   final bool isLightBackground;
+
+  // Seat Tokens
   final Color seatBorderColor;
   final Color seatFillColor;
   final Color seatGlowColor;
@@ -13,14 +15,35 @@ class AdaptiveSeatThemeTokens {
   final double seatBorderWidth;
   final Color lockIconColor;
   final Color emptySeatIconColor;
+  final Color occupiedSeatRingColor;
   final Color speakingRingColor;
   final Color speakingGlowColor;
+
+  // Text & Label Tokens
+  final Color primaryTextColor;
+  final Color secondaryTextColor;
   final Color usernameColor;
+  final FontWeight usernameFontWeight;
   final List<Shadow> usernameShadows;
+  final Color seatNumberColor;
   final Color starIconColor;
   final Color starTextColor;
   final Color micOffBadgeBg;
   final Color micOffIconColor;
+
+  // Icon Tokens
+  final Color iconColor;
+  final Color secondaryIconColor;
+
+  // Chat Box & Glass Surface Tokens
+  final Color chatBoxFillColor;
+  final Color chatBoxBorderColor;
+  final Color chatBoxPlaceholderColor;
+  final Color chatBoxTextColor;
+  final Color chatBoxIconColor;
+  final double chatBoxBlur;
+  final double chatBoxCornerRadius;
+
   final double glassBlurSigma;
   final List<BoxShadow> seatBoxShadows;
 
@@ -33,46 +56,73 @@ class AdaptiveSeatThemeTokens {
     required this.seatBorderWidth,
     required this.lockIconColor,
     required this.emptySeatIconColor,
+    required this.occupiedSeatRingColor,
     required this.speakingRingColor,
     required this.speakingGlowColor,
+    required this.primaryTextColor,
+    required this.secondaryTextColor,
     required this.usernameColor,
+    required this.usernameFontWeight,
     required this.usernameShadows,
+    required this.seatNumberColor,
     required this.starIconColor,
     required this.starTextColor,
     required this.micOffBadgeBg,
     required this.micOffIconColor,
+    required this.iconColor,
+    required this.secondaryIconColor,
+    required this.chatBoxFillColor,
+    required this.chatBoxBorderColor,
+    required this.chatBoxPlaceholderColor,
+    required this.chatBoxTextColor,
+    required this.chatBoxIconColor,
+    required this.chatBoxBlur,
+    required this.chatBoxCornerRadius,
     required this.glassBlurSigma,
     required this.seatBoxShadows,
   });
 
   /// Dark mode fallback seat theme tokens.
   factory AdaptiveSeatThemeTokens.darkFallback({Color? lockedAccent}) {
-    final accent = lockedAccent ?? AppTheme.darkAccentPurple;
     return AdaptiveSeatThemeTokens(
       isLightBackground: false,
-      seatBorderColor: accent.withOpacity(0.60),
-      seatFillColor: Colors.white.withOpacity(0.08),
-      seatGlowColor: accent.withOpacity(0.25),
+      seatBorderColor: Colors.white.withOpacity(0.28),
+      seatFillColor: Colors.white.withOpacity(0.12),
+      seatGlowColor: Colors.white.withOpacity(0.18),
       seatGlowRadius: 6.0,
-      seatBorderWidth: 1.5,
-      lockIconColor: accent.withOpacity(0.85),
-      emptySeatIconColor: Colors.white24,
+      seatBorderWidth: 1.2,
+      lockIconColor: Colors.white.withOpacity(0.85),
+      emptySeatIconColor: Colors.white.withOpacity(0.40),
+      occupiedSeatRingColor: Colors.white.withOpacity(0.85),
       speakingRingColor: const Color(0xFF22C55E),
       speakingGlowColor: const Color(0xFF22C55E).withOpacity(0.40),
+      primaryTextColor: Colors.white.withOpacity(0.95),
+      secondaryTextColor: Colors.white.withOpacity(0.70),
       usernameColor: Colors.white,
+      usernameFontWeight: FontWeight.w600,
       usernameShadows: const [
         Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
       ],
+      seatNumberColor: Colors.white.withOpacity(0.90),
       starIconColor: const Color(0xFFFBBF24),
-      starTextColor: Colors.white70,
-      micOffBadgeBg: const Color(0xFF0F172A).withOpacity(0.85),
+      starTextColor: Colors.white.withOpacity(0.90),
+      micOffBadgeBg: Colors.white.withOpacity(0.15),
       micOffIconColor: const Color(0xFFF87171),
+      iconColor: Colors.white.withOpacity(0.95),
+      secondaryIconColor: Colors.white.withOpacity(0.70),
+      chatBoxFillColor: Colors.white.withOpacity(0.12),
+      chatBoxBorderColor: Colors.white.withOpacity(0.28),
+      chatBoxPlaceholderColor: Colors.white.withOpacity(0.60),
+      chatBoxTextColor: Colors.white.withOpacity(0.95),
+      chatBoxIconColor: Colors.white.withOpacity(0.95),
+      chatBoxBlur: 20.0,
+      chatBoxCornerRadius: 30.0,
       glassBlurSigma: 8.0,
       seatBoxShadows: [
         BoxShadow(
-          color: accent.withOpacity(0.20),
-          blurRadius: 8.0,
-          spreadRadius: 1.0,
+          color: Colors.white.withOpacity(0.15),
+          blurRadius: 6.0,
+          spreadRadius: 0.5,
         ),
       ],
     );
@@ -80,30 +130,43 @@ class AdaptiveSeatThemeTokens {
 
   /// Light mode fallback seat theme tokens.
   factory AdaptiveSeatThemeTokens.lightFallback({Color? lockedAccent}) {
-    final accent = lockedAccent ?? AppTheme.lightAccentPurple;
     return AdaptiveSeatThemeTokens(
       isLightBackground: true,
-      seatBorderColor: const Color(0xFF1E293B).withOpacity(0.45),
-      seatFillColor: const Color(0xFF0F172A).withOpacity(0.08),
-      seatGlowColor: accent.withOpacity(0.12),
-      seatGlowRadius: 2.0,
-      seatBorderWidth: 1.5,
-      lockIconColor: accent.withOpacity(0.90),
-      emptySeatIconColor: const Color(0xFF334155).withOpacity(0.65),
+      seatBorderColor: const Color(0xFF111111).withOpacity(0.28),
+      seatFillColor: const Color(0xFF111111).withOpacity(0.12),
+      seatGlowColor: Colors.transparent,
+      seatGlowRadius: 0.0,
+      seatBorderWidth: 1.2,
+      lockIconColor: const Color(0xFF111111).withOpacity(0.85),
+      emptySeatIconColor: const Color(0xFF111111).withOpacity(0.40),
+      occupiedSeatRingColor: const Color(0xFF111111).withOpacity(0.85),
       speakingRingColor: const Color(0xFF16A34A),
       speakingGlowColor: const Color(0xFF16A34A).withOpacity(0.25),
-      usernameColor: const Color(0xFF0F172A),
+      primaryTextColor: const Color(0xFF111111).withOpacity(0.95),
+      secondaryTextColor: const Color(0xFF111111).withOpacity(0.70),
+      usernameColor: const Color(0xFF111111),
+      usernameFontWeight: FontWeight.w600,
       usernameShadows: const [
         Shadow(color: Colors.white70, blurRadius: 4, offset: Offset(0, 1)),
       ],
+      seatNumberColor: const Color(0xFF111111).withOpacity(0.90),
       starIconColor: const Color(0xFFD97706),
-      starTextColor: const Color(0xFF334155),
-      micOffBadgeBg: const Color(0xFFE2E8F0).withOpacity(0.90),
+      starTextColor: const Color(0xFF111111).withOpacity(0.90),
+      micOffBadgeBg: const Color(0xFF111111).withOpacity(0.15),
       micOffIconColor: const Color(0xFFEF4444),
+      iconColor: const Color(0xFF111111).withOpacity(0.95),
+      secondaryIconColor: const Color(0xFF111111).withOpacity(0.70),
+      chatBoxFillColor: const Color(0xFF111111).withOpacity(0.12),
+      chatBoxBorderColor: const Color(0xFF111111).withOpacity(0.28),
+      chatBoxPlaceholderColor: const Color(0xFF111111).withOpacity(0.60),
+      chatBoxTextColor: const Color(0xFF111111).withOpacity(0.95),
+      chatBoxIconColor: const Color(0xFF111111).withOpacity(0.95),
+      chatBoxBlur: 20.0,
+      chatBoxCornerRadius: 30.0,
       glassBlurSigma: 6.0,
       seatBoxShadows: [
         BoxShadow(
-          color: const Color(0xFF0F172A).withOpacity(0.08),
+          color: const Color(0xFF111111).withOpacity(0.15),
           blurRadius: 4.0,
           spreadRadius: 0.5,
         ),
@@ -113,8 +176,15 @@ class AdaptiveSeatThemeTokens {
 }
 
 /// Intelligent engine that analyzes room background in real time and computes
-/// high-contrast, Material You / iOS style adaptive seat theme tokens.
+/// ultra transparent, high-contrast, Apple Liquid Glass / iOS 26 style adaptive seat theme tokens.
 class AdaptiveSeatThemeEngine {
+  static final Map<String, AdaptiveSeatThemeTokens> _tokenCache = {};
+
+  /// Clear token cache when background catalog reloads or resets.
+  static void clearCache() {
+    _tokenCache.clear();
+  }
+
   /// Calculate relative luminance according to WCAG specifications (0.0 to 1.0).
   static double calculateRelativeLuminance(Color c) {
     double transform(int channel) {
@@ -149,7 +219,6 @@ class AdaptiveSeatThemeEngine {
     }
 
     final double bgLum = calculateRelativeLuminance(background);
-    // If background is dark, lighten foreground towards white; else darken towards dark navy.
     if (bgLum <= 0.45) {
       Color candidate = foreground;
       for (double factor = 0.1; factor <= 1.0; factor += 0.1) {
@@ -162,12 +231,12 @@ class AdaptiveSeatThemeEngine {
     } else {
       Color candidate = foreground;
       for (double factor = 0.1; factor <= 1.0; factor += 0.1) {
-        candidate = Color.lerp(foreground, const Color(0xFF0F172A), factor)!;
+        candidate = Color.lerp(foreground, const Color(0xFF111111), factor)!;
         if (calculateContrastRatio(candidate, background) >= minRatio) {
           return candidate;
         }
       }
-      return const Color(0xFF0F172A);
+      return const Color(0xFF111111);
     }
   }
 
@@ -182,86 +251,105 @@ class AdaptiveSeatThemeEngine {
           : AdaptiveSeatThemeTokens.lightFallback();
     }
 
-    // 1. Analyze background luminance & light state
-    Color dominantColor = isDarkMode ? AppTheme.darkAccentPurple : AppTheme.lightAccentPurple;
+    final String cacheKey = '${bg.id}_$isDarkMode';
+    if (_tokenCache.containsKey(cacheKey)) {
+      return _tokenCache[cacheKey]!;
+    }
+
     final bool isLight = bg.isLightBackground;
 
-    // 2. Extract dynamic accent tone (Material You / iOS style tinting)
-    HSLColor hsl = HSLColor.fromColor(dominantColor);
-    final Color dynamicAccent = isLight
-        ? HSLColor.fromAHSL(1.0, hsl.hue, math.min(hsl.saturation, 0.70), 0.35).toColor()
-        : HSLColor.fromAHSL(1.0, hsl.hue, math.max(hsl.saturation, 0.60), 0.65).toColor();
-
+    final AdaptiveSeatThemeTokens tokens;
     if (isLight) {
-      // Light / White Background adaptation
-      final Color seatFill = const Color(0xFF0F172A).withOpacity(0.08);
-      final Color borderCol = dynamicAccent.withOpacity(0.55);
-      final Color lockCol = ensureWcagContrast(dynamicAccent, const Color(0xFFF1F5F9), minRatio: 3.5);
-      final Color userCol = ensureWcagContrast(const Color(0xFF0F172A), const Color(0xFFF8FAFC), minRatio: 4.5);
-
-      return AdaptiveSeatThemeTokens(
+      // Light background -> Black UI (#111111) with adaptive glass transparency
+      tokens = AdaptiveSeatThemeTokens(
         isLightBackground: true,
-        seatBorderColor: borderCol,
-        seatFillColor: seatFill,
-        seatGlowColor: dynamicAccent.withOpacity(0.15),
-        seatGlowRadius: 2.0,
-        seatBorderWidth: 1.5,
-        lockIconColor: lockCol,
-        emptySeatIconColor: const Color(0xFF334155).withOpacity(0.70),
+        seatBorderColor: const Color(0xFF111111).withOpacity(0.28),
+        seatFillColor: const Color(0xFF111111).withOpacity(0.12),
+        seatGlowColor: Colors.transparent,
+        seatGlowRadius: 0.0,
+        seatBorderWidth: 1.2,
+        lockIconColor: const Color(0xFF111111).withOpacity(0.85),
+        emptySeatIconColor: const Color(0xFF111111).withOpacity(0.40),
+        occupiedSeatRingColor: const Color(0xFF111111).withOpacity(0.85),
         speakingRingColor: const Color(0xFF16A34A),
-        speakingGlowColor: const Color(0xFF16A34A).withOpacity(0.30),
-        usernameColor: userCol,
+        speakingGlowColor: const Color(0xFF16A34A).withOpacity(0.25),
+        primaryTextColor: const Color(0xFF111111).withOpacity(0.95),
+        secondaryTextColor: const Color(0xFF111111).withOpacity(0.70),
+        usernameColor: const Color(0xFF111111),
+        usernameFontWeight: FontWeight.w600,
         usernameShadows: const [
-          Shadow(color: Color(0x99FFFFFF), blurRadius: 4, offset: Offset(0, 1)),
+          Shadow(color: Colors.white70, blurRadius: 4, offset: Offset(0, 1)),
         ],
+        seatNumberColor: const Color(0xFF111111).withOpacity(0.90),
         starIconColor: const Color(0xFFD97706),
-        starTextColor: const Color(0xFF334155),
-        micOffBadgeBg: const Color(0xFFE2E8F0).withOpacity(0.90),
+        starTextColor: const Color(0xFF111111).withOpacity(0.90),
+        micOffBadgeBg: const Color(0xFF111111).withOpacity(0.15),
         micOffIconColor: const Color(0xFFEF4444),
+        iconColor: const Color(0xFF111111).withOpacity(0.95),
+        secondaryIconColor: const Color(0xFF111111).withOpacity(0.70),
+        chatBoxFillColor: const Color(0xFF111111).withOpacity(0.12),
+        chatBoxBorderColor: const Color(0xFF111111).withOpacity(0.28),
+        chatBoxPlaceholderColor: const Color(0xFF111111).withOpacity(0.60),
+        chatBoxTextColor: const Color(0xFF111111).withOpacity(0.95),
+        chatBoxIconColor: const Color(0xFF111111).withOpacity(0.95),
+        chatBoxBlur: 20.0,
+        chatBoxCornerRadius: 30.0,
         glassBlurSigma: 6.0,
         seatBoxShadows: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.10),
+            color: const Color(0xFF111111).withOpacity(0.15),
             blurRadius: 4.0,
             spreadRadius: 0.5,
           ),
         ],
       );
     } else {
-      // Dark Background adaptation
-      final Color seatFill = Colors.white.withOpacity(0.09);
-      final Color borderCol = dynamicAccent.withOpacity(0.75);
-      final Color lockCol = ensureWcagContrast(dynamicAccent, const Color(0xFF0F172A), minRatio: 3.5);
-      final Color userCol = ensureWcagContrast(Colors.white, const Color(0xFF0F172A), minRatio: 4.5);
-
-      return AdaptiveSeatThemeTokens(
+      // Dark background -> White UI (#FFFFFF) with adaptive glass transparency
+      tokens = AdaptiveSeatThemeTokens(
         isLightBackground: false,
-        seatBorderColor: borderCol,
-        seatFillColor: seatFill,
-        seatGlowColor: dynamicAccent.withOpacity(0.30),
+        seatBorderColor: Colors.white.withOpacity(0.28),
+        seatFillColor: Colors.white.withOpacity(0.12),
+        seatGlowColor: Colors.white.withOpacity(0.18),
         seatGlowRadius: 6.0,
-        seatBorderWidth: 1.5,
-        lockIconColor: lockCol,
-        emptySeatIconColor: Colors.white38,
+        seatBorderWidth: 1.2,
+        lockIconColor: Colors.white.withOpacity(0.85),
+        emptySeatIconColor: Colors.white.withOpacity(0.40),
+        occupiedSeatRingColor: Colors.white.withOpacity(0.85),
         speakingRingColor: const Color(0xFF22C55E),
-        speakingGlowColor: const Color(0xFF22C55E).withOpacity(0.45),
-        usernameColor: userCol,
+        speakingGlowColor: const Color(0xFF22C55E).withOpacity(0.40),
+        primaryTextColor: Colors.white.withOpacity(0.95),
+        secondaryTextColor: Colors.white.withOpacity(0.70),
+        usernameColor: Colors.white,
+        usernameFontWeight: FontWeight.w600,
         usernameShadows: const [
           Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
         ],
+        seatNumberColor: Colors.white.withOpacity(0.90),
         starIconColor: const Color(0xFFFBBF24),
-        starTextColor: Colors.white70,
-        micOffBadgeBg: const Color(0xFF0F172A).withOpacity(0.85),
+        starTextColor: Colors.white.withOpacity(0.90),
+        micOffBadgeBg: Colors.white.withOpacity(0.15),
         micOffIconColor: const Color(0xFFF87171),
+        iconColor: Colors.white.withOpacity(0.95),
+        secondaryIconColor: Colors.white.withOpacity(0.70),
+        chatBoxFillColor: Colors.white.withOpacity(0.12),
+        chatBoxBorderColor: Colors.white.withOpacity(0.28),
+        chatBoxPlaceholderColor: Colors.white.withOpacity(0.60),
+        chatBoxTextColor: Colors.white.withOpacity(0.95),
+        chatBoxIconColor: Colors.white.withOpacity(0.95),
+        chatBoxBlur: 20.0,
+        chatBoxCornerRadius: 30.0,
         glassBlurSigma: 8.0,
         seatBoxShadows: [
           BoxShadow(
-            color: dynamicAccent.withOpacity(0.25),
-            blurRadius: 8.0,
-            spreadRadius: 1.0,
+            color: Colors.white.withOpacity(0.15),
+            blurRadius: 6.0,
+            spreadRadius: 0.5,
           ),
         ],
       );
     }
+
+    _tokenCache[cacheKey] = tokens;
+    return tokens;
   }
 }

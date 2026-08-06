@@ -29,9 +29,9 @@ void main() {
 
       // Verify border and lock icon sample exact same color token
       expect(borderCol, equals(lockIconCol));
-      expect(glowCol, equals(AppTheme.darkAccentPurple.withOpacity(0.25)));
+      expect(glowCol, equals(Colors.white.withOpacity(0.18)));
       expect(glowRadius, equals(6.0));
-      expect(borderWidth, equals(1.5));
+      expect(borderWidth, equals(1.2));
     });
 
     testWidgets('ThemeExtension locked seat getters update dynamically in light mode', (WidgetTester tester) async {

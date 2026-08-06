@@ -31,7 +31,7 @@ void main() {
 
       expect(tokens.isLightBackground, isTrue);
       expect(tokens.seatGlowRadius, lessThanOrEqualTo(3.0));
-      expect(tokens.usernameColor, equals(const Color(0xFF0F172A)));
+      expect(tokens.usernameColor, equals(const Color(0xFF111111)));
       expect(tokens.starIconColor, equals(const Color(0xFFD97706)));
 
       // Calculate WCAG contrast against light background

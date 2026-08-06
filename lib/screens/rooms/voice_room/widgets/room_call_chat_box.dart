@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/theme.dart';
 import '../../../../models/chat/chat_model.dart';
 import '../../../../services/room/room_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
@@ -54,6 +55,9 @@ class RoomCallChatBox extends StatelessWidget {
   Widget buildCustomChatMessage(BuildContext context, RoomChatMessage message,
       {bool isConsecutive = false}) {
     final RoomController controller = RoomController.to;
+    final bg = controller.activeRoomBackground.value;
+    final tokens = AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
+
     final isSystem = message.isSystem;
     final isActivity = message.messageType == 'activity';
 
@@ -90,38 +94,44 @@ class RoomCallChatBox extends StatelessWidget {
 
       return Align(
         alignment: Alignment.centerLeft,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeInOutCubic,
           margin: const EdgeInsets.symmetric(vertical: 4),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: eventColor.withOpacity(0.12),
+            color: tokens.chatBoxFillColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: eventColor.withOpacity(0.3), width: 0.8),
+            border: Border.all(color: tokens.chatBoxBorderColor, width: 0.8),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(icon, color: eventColor, size: 13),
+              Icon(icon, color: tokens.iconColor, size: 13),
               const SizedBox(width: 6),
               Flexible(
-                child: Text(
-                  message.text,
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeInOutCubic,
                   style: GoogleFonts.poppins(
-                    color: Colors.white.withOpacity(0.95),
+                    color: tokens.primaryTextColor,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
                   ),
+                  child: Text(message.text),
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                timestampStr,
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeInOutCubic,
                 style: GoogleFonts.poppins(
-                  color: Colors.white30,
+                  color: tokens.secondaryTextColor,
                   fontSize: 7.5,
                   fontWeight: FontWeight.w500,
                 ),
+                child: Text(timestampStr),
               ),
             ],
           ),
@@ -257,7 +267,7 @@ class RoomCallChatBox extends StatelessWidget {
         case 'Speaker':
           return const Color(0xFF007AFF);
         default:
-          return Colors.white54;
+          return tokens.secondaryTextColor;
       }
     }
 
@@ -285,12 +295,12 @@ class RoomCallChatBox extends StatelessWidget {
               decoration: BoxDecoration(
                 color: hasReacted
                     ? Colors.pinkAccent.withOpacity(0.2)
-                    : Colors.white.withOpacity(0.06),
+                    : tokens.chatBoxFillColor,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: hasReacted
                       ? Colors.pinkAccent.withOpacity(0.5)
-                      : Colors.white12,
+                      : tokens.chatBoxBorderColor,
                   width: 0.8,
                 ),
               ),
@@ -302,7 +312,7 @@ class RoomCallChatBox extends StatelessWidget {
                   Text(
                     usersList.length.toString(),
                     style: GoogleFonts.poppins(
-                      color: hasReacted ? Colors.pinkAccent : Colors.white70,
+                      color: hasReacted ? Colors.pinkAccent : tokens.secondaryTextColor,
                       fontSize: 8.5,
                       fontWeight: FontWeight.bold,
                     ),
@@ -332,23 +342,19 @@ class RoomCallChatBox extends StatelessWidget {
           children: [
             leftSide,
             Expanded(
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeInOutCubic,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.38),
+                  color: tokens.chatBoxFillColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.12),
+                    color: tokens.chatBoxBorderColor,
                     width: 0.8,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.25),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
+                  boxShadow: tokens.seatBoxShadows,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,14 +394,16 @@ class RoomCallChatBox extends StatelessWidget {
                                   ),
                                 );
                               },
-                              child: Text(
-                                message.senderName,
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 280),
+                                curve: Curves.easeInOutCubic,
                                 style: GoogleFonts.poppins(
-                                  color: Colors.cyanAccent,
+                                  color: tokens.primaryTextColor,
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                 ),
                                 overflow: TextOverflow.ellipsis,
+                                child: Text(message.senderName),
                               ),
                             ),
                           ),
@@ -429,7 +437,7 @@ class RoomCallChatBox extends StatelessWidget {
                     ],
                     RichText(
                       text: TextSpan(
-                        children: _parseMentionsAndText(message.text),
+                        children: _parseMentionsAndText(message.text, tokens),
                       ),
                     ),
                     Row(
@@ -447,18 +455,20 @@ class RoomCallChatBox extends StatelessWidget {
                               },
                               child: Icon(
                                 Icons.favorite_border_rounded,
-                                color: Colors.white.withOpacity(0.4),
+                                color: tokens.secondaryIconColor,
                                 size: 12,
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              timestampStr,
+                            AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeInOutCubic,
                               style: GoogleFonts.poppins(
-                                color: Colors.white30,
+                                color: tokens.secondaryTextColor,
                                 fontSize: 8,
                                 fontWeight: FontWeight.w500,
                               ),
+                              child: Text(timestampStr),
                             ),
                           ],
                         ),
@@ -474,7 +484,7 @@ class RoomCallChatBox extends StatelessWidget {
     );
   }
 
-  List<InlineSpan> _parseMentionsAndText(String text) {
+  List<InlineSpan> _parseMentionsAndText(String text, AdaptiveSeatThemeTokens tokens) {
     final List<InlineSpan> spans = [];
     final RegExp exp = RegExp(r'(@[a-zA-Z0-9_\u00a1-\uffff]+)');
     final Iterable<RegExpMatch> matches = exp.allMatches(text);
@@ -484,7 +494,7 @@ class RoomCallChatBox extends StatelessWidget {
         TextSpan(
           text: text,
           style: GoogleFonts.poppins(
-            color: Colors.white.withOpacity(0.9),
+            color: tokens.primaryTextColor,
             fontSize: 11,
             fontWeight: FontWeight.w400,
           ),
@@ -500,7 +510,7 @@ class RoomCallChatBox extends StatelessWidget {
           TextSpan(
             text: text.substring(start, match.start),
             style: GoogleFonts.poppins(
-              color: Colors.white.withOpacity(0.9),
+              color: tokens.primaryTextColor,
               fontSize: 11,
               fontWeight: FontWeight.w400,
             ),
@@ -525,7 +535,7 @@ class RoomCallChatBox extends StatelessWidget {
         TextSpan(
           text: text.substring(start),
           style: GoogleFonts.poppins(
-            color: Colors.white.withOpacity(0.9),
+            color: tokens.primaryTextColor,
             fontSize: 11,
             fontWeight: FontWeight.w400,
           ),
