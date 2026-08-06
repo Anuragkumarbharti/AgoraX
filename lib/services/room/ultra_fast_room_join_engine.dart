@@ -8,6 +8,8 @@ import '../voice/room_voice_manager.dart';
 import 'room_controller.dart';
 import '../../screens/rooms/voice_room_call_screen.dart';
 import '../../widgets/room/dialogs/room_password_dialog.dart';
+import '../../widgets/room/dialogs/room_entry_denied_sheet.dart';
+import 'room_entry_permission_engine.dart';
 
 class RoomJoinPerformanceMetrics {
   final String roomId;
@@ -120,13 +122,34 @@ class UltraFastRoomJoinEngine {
           return;
         }
 
-        // Handle General Rejection (Banned, Kicked, Full, Closed)
-        Get.snackbar(
-          'Access Denied 🛡️',
-          reason,
-          backgroundColor: Colors.red.shade900,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
+        // Handle Rejections with detailed RoomEntryDeniedSheet
+        final statusMap = <String, RoomEntryStatus>{
+          'followers_only': RoomEntryStatus.followersOnly,
+          'vip_only': RoomEntryStatus.vipOnly,
+          'level_required': RoomEntryStatus.vipOnly,
+          'temporary_kick': RoomEntryStatus.temporaryKick,
+          'permanent_ban': RoomEntryStatus.permanentBan,
+          'room_closed': RoomEntryStatus.roomClosed,
+          'room_full': RoomEntryStatus.roomFull,
+        };
+
+        final matchedStatus = statusMap.entries
+            .firstWhereOrNull((e) => reason.toLowerCase().contains(e.key.toLowerCase()))
+            ?.value ?? RoomEntryStatus.followersOnly;
+
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => RoomEntryDeniedSheet(
+            room: room,
+            result: RoomEntryResult(
+              isAllowed: false,
+              status: matchedStatus,
+              role: 'Audience',
+              message: reason,
+            ),
+          ),
         );
         return;
       }

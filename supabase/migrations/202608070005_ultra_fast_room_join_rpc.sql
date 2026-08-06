@@ -89,20 +89,56 @@ BEGIN
     );
   END IF;
 
-  -- 6. Evaluate Password Protection (Persistent Database Password Check)
+  -- 6. Evaluate Room Entry Permissions (Password, Followers Only, VIP Level, User Level, Community)
   v_who_can_join := LOWER(COALESCE(v_room.entry_permission, v_room.visibility, 'everyone'));
-  IF (v_who_can_join LIKE '%password%' OR v_room.room_password IS NOT NULL) AND NOT v_is_owner AND NOT v_is_co_owner AND NOT v_is_admin THEN
-    IF p_provided_password IS NULL OR length(trim(p_provided_password)) = 0 THEN
+  
+  IF NOT v_is_owner AND NOT v_is_co_owner AND NOT v_is_admin THEN
+    -- A. Password Protection
+    IF v_who_can_join LIKE '%password%' OR v_room.room_password IS NOT NULL THEN
+      IF p_provided_password IS NULL OR length(trim(p_provided_password)) = 0 THEN
+        RETURN jsonb_build_object(
+          'join_allowed', false,
+          'reason', 'PASSWORD_REQUIRED',
+          'password_required', true
+        );
+      ELSIF trim(p_provided_password) != trim(COALESCE(v_room.room_password, v_room.rules[1], '1234')) THEN
+        RETURN jsonb_build_object(
+          'join_allowed', false,
+          'reason', 'Incorrect room password. Access denied.',
+          'invalid_password', true
+        );
+      END IF;
+    END IF;
+
+    -- B. Followers Only Mode (Must follow Room Host/Owner)
+    IF v_who_can_join LIKE '%follow%' THEN
+      IF NOT EXISTS (
+        SELECT 1 FROM public.user_followers 
+        WHERE follower_id = v_caller_id AND following_id = v_room.host_id
+      ) THEN
+        RETURN jsonb_build_object(
+          'join_allowed', false,
+          'reason', 'This arena is restricted to Owner Followers only.',
+          'follower_required', true
+        );
+      END IF;
+    END IF;
+
+    -- C. VIP Level Requirement
+    IF v_who_can_join LIKE '%vip%' AND COALESCE(v_caller_profile.vip_level, 1) < COALESCE(v_room.required_vip_level, 1) THEN
       RETURN jsonb_build_object(
         'join_allowed', false,
-        'reason', 'PASSWORD_REQUIRED',
-        'password_required', true
+        'reason', format('VIP Level %s required to enter this arena.', COALESCE(v_room.required_vip_level, 1)),
+        'vip_required', true
       );
-    ELSIF trim(p_provided_password) != trim(COALESCE(v_room.room_password, v_room.rules[1], '1234')) THEN
+    END IF;
+
+    -- D. User Level Requirement
+    IF v_who_can_join LIKE '%level%' AND COALESCE(v_caller_profile.level, 1) < COALESCE(v_room.required_level, 1) THEN
       RETURN jsonb_build_object(
         'join_allowed', false,
-        'reason', 'Incorrect room password. Access denied.',
-        'invalid_password', true
+        'reason', format('User Level %s required to enter this arena.', COALESCE(v_room.required_level, 1)),
+        'level_required', true
       );
     END IF;
   END IF;
