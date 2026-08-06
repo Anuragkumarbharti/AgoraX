@@ -48,26 +48,49 @@ class RoomProgressionController extends GetxController {
     }
   }
 
+  bool get isWeekend {
+    final now = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30));
+    return now.weekday == DateTime.saturday || now.weekday == DateTime.sunday;
+  }
+
+  int get maxFreeDailyVp => isWeekend ? 1250 : 700;
+  int get maxGoldDailyVp => isWeekend ? 1250 : 1000;
+  int get maxTotalDailyVp => maxFreeDailyVp + maxGoldDailyVp;
+
+  final RxMap<String, DateTime> _lastActivityTime = <String, DateTime>{}.obs;
+
+  void registerRoomActivity(String roomId) {
+    _lastActivityTime[roomId] = DateTime.now();
+  }
+
+  bool isRoomIdleFrozen(String roomId) {
+    final lastAct = _lastActivityTime[roomId];
+    if (lastAct == null) return false;
+    return DateTime.now().difference(lastAct) > const Duration(minutes: 10);
+  }
+
   int getXpForNextLevel(int level) {
     return level * 1000;
   }
 
   int getRoomFreeVp(String roomId) {
     final _ = roomDailyTaskLists.length;
+    final maxLimit = maxFreeDailyVp;
     final tasks = roomDailyTaskLists[roomId];
-    if (tasks == null || tasks.isEmpty) return 700;
+    if (tasks == null || tasks.isEmpty) return maxLimit;
     final freeTasks = tasks.where((t) => !t.taskKey.contains('gold'));
-    if (freeTasks.isEmpty) return 700;
-    return freeTasks.fold(0, (sum, t) => sum + t.currentValue).clamp(0, 700);
+    if (freeTasks.isEmpty) return maxLimit;
+    return freeTasks.fold(0, (sum, t) => sum + t.currentValue).clamp(0, maxLimit);
   }
 
   int getRoomGoldVp(String roomId) {
     final _ = roomDailyTaskLists.length;
+    final maxLimit = maxGoldDailyVp;
     final tasks = roomDailyTaskLists[roomId];
-    if (tasks == null || tasks.isEmpty) return 1000;
+    if (tasks == null || tasks.isEmpty) return maxLimit;
     final goldTasks = tasks.where((t) => t.taskKey.contains('gold'));
-    if (goldTasks.isEmpty) return 1000;
-    return goldTasks.fold(0, (sum, t) => sum + t.currentValue).clamp(0, 1000);
+    if (goldTasks.isEmpty) return maxLimit;
+    return goldTasks.fold(0, (sum, t) => sum + t.currentValue).clamp(0, maxLimit);
   }
 
   double calculateActiveMemberSurgeMultiplier(int activeMemberCount) {
@@ -79,12 +102,32 @@ class RoomProgressionController extends GetxController {
     return 4.0;
   }
 
-  Future<Map<String, dynamic>> addRoomVp(String roomId, int vpAmount, String source) async {
+  Future<Map<String, dynamic>> addRoomVp(String roomId, int vpAmount, String source, {bool isGoldMember = false}) async {
     try {
+      final currentFree = getRoomFreeVp(roomId);
+      final currentGold = getRoomGoldVp(roomId);
+      final currentDailyTotal = currentFree + currentGold;
+      final dailyMax = maxTotalDailyVp;
+
+      // Capping check: If daily limit reached, grant 0 VP
+      if (currentDailyTotal >= dailyMax) {
+        return {
+          'success': false,
+          'reason': 'Daily limit reached (Reset at 04:00 AM IST)',
+          'added_vp': 0,
+        };
+      }
+
+      // Clamp VP addition to remaining daily allowance
+      final int allowedVp = vpAmount.clamp(0, dailyMax - currentDailyTotal);
+      if (allowedVp <= 0) {
+        return {'success': false, 'reason': 'Daily limit capped', 'added_vp': 0};
+      }
+
       final client = Supabase.instance.client;
       final resp = await client.rpc('add_room_vp', params: {
         'p_room_id': roomId,
-        'p_vp': vpAmount,
+        'p_vp': allowedVp,
         'p_source': source,
       });
 

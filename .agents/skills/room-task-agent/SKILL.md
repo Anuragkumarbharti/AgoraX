@@ -20,9 +20,16 @@ This skill defines the rules, backend RPC integration, level progression thresho
 | **LV 7 (Legendary Arena)** | `1,590,000 XP` | **🎁 12,000 Gold Coins + VIP 3 (1 Year)** | 3 Co-Owners (Max), 20 Admins (Max), 15 Host Seats (Max) | Legendary crown, exclusive backgrounds, highest discovery priority, official recommendation |
 
 ## 2. Daily Task & Reset Rules
-* **32 Total Tasks per Day:** 14 Normal Daily Tasks, 8 Gold Tasks, 6 Team Arena Tasks, 4 Community Arena Tasks.
-* **4:00 AM Reset:** Daily progress counters reset to 0 every morning at 4:00 AM; Total Arena XP is preserved permanently.
-* **Active Member Turbo Surge:** `Surge Multiplier = 1.0 + (activeMemberCount * 0.15)`.
+* **04:00 AM IST Daily Reset:** Daily progress resets to 0 every morning at 04:00 AM IST. Total Arena XP is preserved permanently.
+* **Daily Capping & Weekend Bonus:**
+  - Weekday Limit: 🟢 Free Tasks = 700 VP, 🟡 Gold Tasks = 1000 VP (1700 Total).
+  - Weekend Limit (Sat + Sun): 🟢 Free Tasks = 1250 VP, 🟡 Gold Tasks = 1250 VP (2500 Total + Legendary Chest).
+  - Once daily limit is reached (7001st / 1701st task), 0 VP is granted until 04:00 AM IST reset.
+* **Active Stage Seat Per-Minute Matrix:** 1: 4 VP, 2: 8 VP, 3: 14 VP, 4: 20 VP, 5: 28 VP, 6: 36 VP, 7: 44 VP, 8: 50 VP, 9: 55 VP, 10: 60 VP.
+* **Bonuses:** First 5 Gifts Daily Bonus (+25 VP per gift); First Seat Occupancy Bonus (+20 VP).
+* **Gold Dual Progress Rule:** Gold gifts add progress to BOTH Free Task & Gold Task progress bars simultaneously; Silver gifts add progress ONLY to Free Task.
+* **10-Minute Idle Freeze Anti-Abuse Guard:** Pauses seat VP if no interaction occurs for 10 minutes. Resumes instantly on new interaction.
+* **Overflow Carry Forward Protection:** Extra progress on level upgrade carries forward into the next level target.
 
 ## 3. Core File Architecture
 * **Migration SQL**: `supabase/migrations/202608070006_creania_room_level_and_task_engine.sql`

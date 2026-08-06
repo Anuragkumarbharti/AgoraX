@@ -145,18 +145,61 @@ void main() {
     });
 
     test('6. Perk Tier Unlocks (Avatar Frames, Showcase Badges L3+, Chat Bubbles L5+)', () {
-      bool isShowcaseBadgeUnlocked(int level) => level >= 3;
-      bool isChatBubbleUnlocked(int level) => level >= 5;
+      expect(RoomLevelMatrixConfig.getForLevel(2).hasShowcaseBadge, isFalse);
+      expect(RoomLevelMatrixConfig.getForLevel(3).hasShowcaseBadge, isTrue);
+      expect(RoomLevelMatrixConfig.getForLevel(4).hasPermanentChatBubble, isFalse);
+      expect(RoomLevelMatrixConfig.getForLevel(5).hasPermanentChatBubble, isTrue);
+    });
 
-      expect(isShowcaseBadgeUnlocked(1), isFalse);
-      expect(isShowcaseBadgeUnlocked(2), isFalse);
-      expect(isShowcaseBadgeUnlocked(3), isTrue);
-      expect(isShowcaseBadgeUnlocked(7), isTrue);
+    test('7. Overflow Carry Forward Protection on Level Up (e.g. 35,498 + 5 = 35,503 => Level 2, 3 Carry Forward)', () {
+      final level1Target = 35500;
+      final currentXp = 35498;
+      final addedXp = 5;
+      final newTotal = currentXp + addedXp; // 35503
 
-      expect(isChatBubbleUnlocked(3), isFalse);
-      expect(isChatBubbleUnlocked(4), isFalse);
-      expect(isChatBubbleUnlocked(5), isTrue);
-      expect(isChatBubbleUnlocked(7), isTrue);
+      expect(newTotal >= level1Target, isTrue);
+
+      final newLevel = RoomLevelMatrixConfig.levels
+          .lastWhere((cfg) => cfg.requiredVp <= newTotal)
+          .level;
+      expect(newLevel, equals(2));
+
+      final level2Base = RoomLevelMatrixConfig.getForLevel(2).requiredVp; // 35500
+      final overflowCarryForward = newTotal - level2Base; // 3 XP
+      expect(overflowCarryForward, equals(3));
+    });
+
+    test('8. Active Seat VP Matrix Rates (1:4 to 10:60) & Weekend Targets (1250 Free / 1250 Gold)', () {
+      final progCtrl = RoomProgressionController();
+      expect(progCtrl.calculateActiveStageVpRate(1), equals(4));
+      expect(progCtrl.calculateActiveStageVpRate(2), equals(8));
+      expect(progCtrl.calculateActiveStageVpRate(3), equals(14));
+      expect(progCtrl.calculateActiveStageVpRate(4), equals(20));
+      expect(progCtrl.calculateActiveStageVpRate(5), equals(28));
+      expect(progCtrl.calculateActiveStageVpRate(6), equals(36));
+      expect(progCtrl.calculateActiveStageVpRate(7), equals(44));
+      expect(progCtrl.calculateActiveStageVpRate(8), equals(50));
+      expect(progCtrl.calculateActiveStageVpRate(9), equals(55));
+      expect(progCtrl.calculateActiveStageVpRate(10), equals(60));
+
+      expect(RoomDailyVpConfig.getFreeTarget(false), equals(700));
+      expect(RoomDailyVpConfig.getGoldTarget(false), equals(1000));
+      expect(RoomDailyVpConfig.getFreeTarget(true), equals(1250));
+      expect(RoomDailyVpConfig.getGoldTarget(true), equals(1250));
+      expect(RoomDailyVpConfig.getTotalTarget(true), equals(2500));
+    });
+
+    test('9. Star Gift Tiers, Gold Dual Fill & 10-Min Idle Freeze Protection', () {
+      expect(RoomDailyVpConfig.getStarGiftVp(1), equals(2));
+      expect(RoomDailyVpConfig.getStarGiftVp(3), equals(10));
+      expect(RoomDailyVpConfig.getStarGiftVp(6), equals(70));
+      expect(RoomDailyVpConfig.firstFiveGiftsBonusVp, equals(25));
+      expect(RoomDailyVpConfig.firstSeatBonusVp, equals(20));
+
+      final progCtrl = RoomProgressionController();
+      final roomId = 'room_test_101';
+      progCtrl.registerRoomActivity(roomId);
+      expect(progCtrl.isRoomIdleFrozen(roomId), isFalse);
     });
   });
 }

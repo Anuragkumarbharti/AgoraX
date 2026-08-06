@@ -140,6 +140,47 @@ class RoomLevelMatrixConfig {
   }
 }
 
+class RoomDailyVpConfig {
+  static const int weekdayFreeTarget = 700;
+  static const int weekdayGoldTarget = 1000;
+  static const int weekendFreeTarget = 1250;
+  static const int weekendGoldTarget = 1250;
+
+  static const int firstSeatBonusVp = 20;
+  static const int firstFiveGiftsBonusVp = 25;
+
+  static int getFreeTarget(bool isWeekend) => isWeekend ? weekendFreeTarget : weekdayFreeTarget;
+  static int getGoldTarget(bool isWeekend) => isWeekend ? weekendGoldTarget : weekdayGoldTarget;
+  static int getTotalTarget(bool isWeekend) => getFreeTarget(isWeekend) + getGoldTarget(isWeekend);
+
+  static int getStarGiftVp(int starCount) {
+    switch (starCount) {
+      case 1:
+        return 2;
+      case 2:
+        return 5;
+      case 3:
+        return 10;
+      case 4:
+        return 20;
+      case 5:
+        return 40;
+      case 6:
+      default:
+        return 70;
+    }
+  }
+
+  static int getGoldGiftVp(int goldAmount) {
+    if (goldAmount >= 700) return 700;
+    if (goldAmount >= 500) return 500;
+    if (goldAmount >= 100) return 350;
+    if (goldAmount >= 20) return 120;
+    if (goldAmount >= 5) return 40;
+    return (goldAmount * 8).clamp(1, 700);
+  }
+}
+
 class RoomDailyTask {
   final String taskKey;
   final String title;
