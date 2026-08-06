@@ -184,9 +184,9 @@ void main() {
 
       expect(RoomDailyVpConfig.getFreeTarget(false), equals(700));
       expect(RoomDailyVpConfig.getGoldTarget(false), equals(1000));
-      expect(RoomDailyVpConfig.getFreeTarget(true), equals(1250));
-      expect(RoomDailyVpConfig.getGoldTarget(true), equals(1250));
-      expect(RoomDailyVpConfig.getTotalTarget(true), equals(2500));
+      expect(RoomDailyVpConfig.getFreeTarget(true), equals(1400));
+      expect(RoomDailyVpConfig.getGoldTarget(true), equals(2400));
+      expect(RoomDailyVpConfig.getTotalTarget(true), equals(3800));
     });
 
     test('9. Star Gift Tiers, Gold Dual Fill & 10-Min Idle Freeze Protection', () {

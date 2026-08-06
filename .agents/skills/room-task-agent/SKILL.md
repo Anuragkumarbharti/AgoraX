@@ -23,7 +23,7 @@ This skill defines the rules, backend RPC integration, level progression thresho
 * **04:00 AM IST Daily Reset:** Daily progress resets to 0 every morning at 04:00 AM IST. Total Arena XP is preserved permanently.
 * **Daily Capping & Weekend Bonus:**
   - Weekday Limit: 🟢 Free Tasks = 700 VP, 🟡 Gold Tasks = 1000 VP (1700 Total).
-  - Weekend Limit (Sat + Sun): 🟢 Free Tasks = 1250 VP, 🟡 Gold Tasks = 1250 VP (2500 Total + Legendary Chest).
+  - Weekend Limit (Sat + Sun): 🟢 Free Tasks = 1400 VP, 🟡 Gold Tasks = 2400 VP (3800 Total + Legendary Chest).
   - Once daily limit is reached (7001st / 1701st task), 0 VP is granted until 04:00 AM IST reset.
 * **Active Stage Seat Per-Minute Matrix:** 1: 4 VP, 2: 8 VP, 3: 14 VP, 4: 20 VP, 5: 28 VP, 6: 36 VP, 7: 44 VP, 8: 50 VP, 9: 55 VP, 10: 60 VP.
 * **Bonuses:** First 5 Gifts Daily Bonus (+25 VP per gift); First Seat Occupancy Bonus (+20 VP).

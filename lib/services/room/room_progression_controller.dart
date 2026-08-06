@@ -53,8 +53,8 @@ class RoomProgressionController extends GetxController {
     return now.weekday == DateTime.saturday || now.weekday == DateTime.sunday;
   }
 
-  int get maxFreeDailyVp => isWeekend ? 1250 : 700;
-  int get maxGoldDailyVp => isWeekend ? 1250 : 1000;
+  int get maxFreeDailyVp => isWeekend ? 1400 : 700;
+  int get maxGoldDailyVp => isWeekend ? 2400 : 1000;
   int get maxTotalDailyVp => maxFreeDailyVp + maxGoldDailyVp;
 
   final RxMap<String, DateTime> _lastActivityTime = <String, DateTime>{}.obs;

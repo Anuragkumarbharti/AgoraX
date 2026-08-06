@@ -143,8 +143,8 @@ class RoomLevelMatrixConfig {
 class RoomDailyVpConfig {
   static const int weekdayFreeTarget = 700;
   static const int weekdayGoldTarget = 1000;
-  static const int weekendFreeTarget = 1250;
-  static const int weekendGoldTarget = 1250;
+  static const int weekendFreeTarget = 1400;
+  static const int weekendGoldTarget = 2400;
 
   static const int firstSeatBonusVp = 20;
   static const int firstFiveGiftsBonusVp = 25;
