@@ -13,6 +13,7 @@ class CreaniaVpProgressBar extends StatefulWidget {
   final String? roomName;
   final String? coverUrl;
   final String label;
+  final double? width;
   final VoidCallback? onTap;
   final VoidCallback? onPlusTap;
 
@@ -28,6 +29,7 @@ class CreaniaVpProgressBar extends StatefulWidget {
     this.roomName,
     this.coverUrl,
     this.label = "Today' AP",
+    this.width,
     this.onTap,
     this.onPlusTap,
   }) : super(key: key);
@@ -57,6 +59,10 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double barWidth =
+        widget.width ?? (screenWidth * 0.60).clamp(216.0, 260.0);
+
     final double freeRatio =
         (widget.freeXp / (widget.freeTarget > 0 ? widget.freeTarget : 700))
             .clamp(0.0, 1.0);
@@ -87,7 +93,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
               children: [
                 // Top Header Row: "Today' AP" on left, "1700/1700" on right
                 SizedBox(
-                  width: 176,
+                  width: barWidth,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -140,10 +146,10 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                   animation: _animController,
                   builder: (context, child) {
                     return SizedBox(
-                      width: 176,
+                      width: barWidth,
                       height: 7.0,
                       child: CustomPaint(
-                        size: const Size(176, 7.0),
+                        size: Size(barWidth, 7.0),
                         painter: _LiquidProgressBarPainter(
                           freeRatio: freeRatio,
                           extraRatio: widget.isGoldMember ? extraRatio : 0.0,
@@ -179,7 +185,8 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                           ),
                         ),
                         ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 62),
+                          constraints: BoxConstraints(
+                              maxWidth: (barWidth - 85).clamp(60.0, 150.0)),
                           child: Text(
                             widget.roomName!,
                             maxLines: 1,
