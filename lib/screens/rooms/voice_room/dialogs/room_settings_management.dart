@@ -370,7 +370,6 @@ class RoomSettingsManagement {
   static bool canAppointRole(VoiceRoom room, String callerUserId, String targetRoleToAssign) {
     final isOwner = room.hostId == callerUserId ||
         room.founderId == callerUserId ||
-        room.roomOwner == callerUserId ||
         callerUserId == 'uid_anurag_101';
     final isCoOwner = room.coOwnerIds.contains(callerUserId);
     final isAdmin = room.adminIds.contains(callerUserId);

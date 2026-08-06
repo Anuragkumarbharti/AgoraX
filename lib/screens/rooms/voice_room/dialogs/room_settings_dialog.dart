@@ -371,7 +371,6 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
     final currentUid = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
     final isHost = widget.room.hostId == currentUid ||
         widget.room.founderId == currentUid ||
-        widget.room.roomOwner == currentUid ||
         currentUid == 'uid_anurag_101';
     final isCoHost = widget.room.coOwnerIds.contains(currentUid);
     final isAdmin = widget.room.adminIds.contains(currentUid);
