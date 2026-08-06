@@ -49,7 +49,7 @@ BEGIN
   FROM public.profiles WHERE id = v_caller_id;
 
   -- 3. Resolve User Role in Room
-  IF v_room.host_id = v_caller_id OR v_room.room_owner = v_caller_id THEN
+  IF v_room.host_id = v_caller_id OR (v_room.room_owner IS NOT NULL AND v_room.room_owner = v_caller_id) THEN
     v_role := 'Owner';
     v_is_owner := true;
   ELSE
@@ -149,19 +149,19 @@ BEGIN
     END IF;
 
     -- C. VIP Level Requirement
-    IF v_who_can_join LIKE '%vip%' AND COALESCE(v_caller_profile.vip_level, 1) < COALESCE(v_room.required_vip_level, 1) THEN
+    IF v_who_can_join LIKE '%vip%' AND COALESCE(v_caller_profile.vip_level, 1) < COALESCE(v_room.vip_requirement, 0) THEN
       RETURN jsonb_build_object(
         'join_allowed', false,
-        'reason', format('VIP Level %s required to enter this arena.', COALESCE(v_room.required_vip_level, 1)),
+        'reason', format('VIP Level %s required to enter this arena.', COALESCE(v_room.vip_requirement, 0)),
         'vip_required', true
       );
     END IF;
 
     -- D. User Level Requirement
-    IF v_who_can_join LIKE '%level%' AND COALESCE(v_caller_profile.level, 1) < COALESCE(v_room.required_level, 1) THEN
+    IF v_who_can_join LIKE '%level%' AND COALESCE(v_caller_profile.level, 1) < COALESCE(v_room.level_requirement, 1) THEN
       RETURN jsonb_build_object(
         'join_allowed', false,
-        'reason', format('User Level %s required to enter this arena.', COALESCE(v_room.required_level, 1)),
+        'reason', format('User Level %s required to enter this arena.', COALESCE(v_room.level_requirement, 1)),
         'level_required', true
       );
     END IF;

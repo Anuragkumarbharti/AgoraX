@@ -100,25 +100,28 @@ class UltraFastRoomJoinEngine {
 
       if (response == null || response['join_allowed'] == false) {
         final reason = response != null ? response['reason']?.toString() ?? '' : 'Join Denied';
-        final isInvalidPass = response != null && (response['invalid_password'] == true || response['password_required'] == true);
+        final isPasswordReq = response != null && response['password_required'] == true;
+        final isInvalidPass = response != null && response['invalid_password'] == true;
 
-        if (isInvalidPass) {
-          Get.snackbar(
-            'Incorrect Password 🔒',
-            'The entered PIN is incorrect. Please try again.',
-            backgroundColor: Colors.red.shade900,
-            colorText: Colors.white,
-            snackPosition: SnackPosition.TOP,
-          );
-          // Re-prompt password dialog cleanly
-          final String? retryPass = await showModalBottomSheet<String>(
+        if (isPasswordReq || isInvalidPass) {
+          if (isInvalidPass) {
+            Get.snackbar(
+              'Incorrect Password 🔒',
+              'The entered PIN is incorrect. Please try again.',
+              backgroundColor: Colors.red.shade900,
+              colorText: Colors.white,
+              snackPosition: SnackPosition.TOP,
+            );
+          }
+          // Prompt password dialog for PIN input
+          final String? enteredPass = await showModalBottomSheet<String>(
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
             builder: (ctx) => RoomPasswordDialog(room: room),
           );
-          if (retryPass != null && retryPass.isNotEmpty) {
-            return executeFastJoin(context: context, room: room, providedPassword: retryPass.trim());
+          if (enteredPass != null && enteredPass.trim().isNotEmpty) {
+            return executeFastJoin(context: context, room: room, providedPassword: enteredPass.trim());
           }
           return;
         }
