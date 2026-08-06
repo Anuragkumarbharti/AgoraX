@@ -107,7 +107,8 @@ class RoomCallSeatGrid extends StatelessWidget {
       final double size = ((index == 0 || index == 1) ? 56.0 : 44.0) * scale;
 
       final bg = controller.activeRoomBackground.value;
-      final tokens = AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
+      final tokens =
+          AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
 
       final seatBackground = AnimatedContainer(
         duration: const Duration(milliseconds: 280),

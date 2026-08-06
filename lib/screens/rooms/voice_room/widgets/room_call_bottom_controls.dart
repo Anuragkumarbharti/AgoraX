@@ -51,7 +51,8 @@ class RoomCallBottomControls extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(14, 10, 14, 10 + effectiveBottomInset),
             child: Obx(() {
               final bg = controller.activeRoomBackground.value;
-              final tokens = AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
+              final tokens = AdaptiveSeatThemeEngine.resolve(bg,
+                  isDarkMode: context.isDark);
 
               return Row(
                 children: [
@@ -65,7 +66,8 @@ class RoomCallBottomControls extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
                         color: tokens.chatBoxFillColor,
-                        borderRadius: BorderRadius.circular(tokens.chatBoxCornerRadius),
+                        borderRadius:
+                            BorderRadius.circular(tokens.chatBoxCornerRadius),
                         border: Border.all(
                           color: tokens.chatBoxBorderColor,
                           width: 1.2,
@@ -178,7 +180,8 @@ class RoomCallBottomControls extends StatelessWidget {
                           // Self-Mute Mic Quick Toggle Button (right next to Up-Arrow)
                           Builder(
                             builder: (context) {
-                              final isMicActive = isCurrentUserOnSeat && isMicOn.value;
+                              final isMicActive =
+                                  isCurrentUserOnSeat && isMicOn.value;
 
                               return Padding(
                                 padding: const EdgeInsets.only(left: 8),
@@ -232,7 +235,8 @@ class RoomCallBottomControls extends StatelessWidget {
                               _buildIconButton(
                                 icon: Icons.menu,
                                 tokens: tokens,
-                                onTap: () => onShowRoomOptionsMenuSheet(context),
+                                onTap: () =>
+                                    onShowRoomOptionsMenuSheet(context),
                               ),
                               Positioned(
                                 top: 0,
@@ -240,7 +244,8 @@ class RoomCallBottomControls extends StatelessWidget {
                                 child: Container(
                                   padding: const EdgeInsets.all(3),
                                   decoration: const BoxDecoration(
-                                      color: Colors.red, shape: BoxShape.circle),
+                                      color: Colors.red,
+                                      shape: BoxShape.circle),
                                   constraints: const BoxConstraints(
                                       minWidth: 12, minHeight: 12),
                                   child: const Text(
@@ -269,7 +274,8 @@ class RoomCallBottomControls extends StatelessWidget {
                                 color: tokens.chatBoxFillColor,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                    color: tokens.chatBoxBorderColor, width: 1.2),
+                                    color: tokens.chatBoxBorderColor,
+                                    width: 1.2),
                                 boxShadow: tokens.seatBoxShadows,
                               ),
                               child: Icon(Icons.card_giftcard,

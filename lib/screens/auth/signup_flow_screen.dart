@@ -17,6 +17,7 @@ import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/storage/universal_image_optimizer.dart';
 import '../../services/storage/asset_cache_manager.dart';
 import '../../services/user/user_progress_sync_service.dart';
+import '../../services/user/smart_default_avatar_service.dart';
 import '../home/main_screen.dart';
 import './login_screen.dart';
 import '../../services/user/email_validation_service.dart';
@@ -711,16 +712,19 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           uploadedUrl = optRes.publicUrl;
         } catch (storageError) {
           debugPrint('Storage Upload Warning: $storageError');
-          uploadedUrl = 'https://api.dicebear.com/7.x/bottts/png?seed=${_usernameCtrl.text.trim()}';
+          uploadedUrl = SmartDefaultAvatarService.getRandomDefaultAvatar(_selectedGender);
         }
       }
+
+      final avatarToSave = uploadedUrl ?? SmartDefaultAvatarService.getRandomDefaultAvatar(_selectedGender);
 
       // 2. Update Database Record
       await Supabase.instance.client.from('profiles').upsert({
         'id': userIdToUse,
         'username': _usernameCtrl.text.trim().toLowerCase(),
-        'avatar_url': uploadedUrl ?? 'https://api.dicebear.com/7.x/bottts/png?seed=${_usernameCtrl.text.trim()}',
-        'profile_photo': uploadedUrl ?? 'https://api.dicebear.com/7.x/bottts/png?seed=${_usernameCtrl.text.trim()}',
+        'avatar_url': avatarToSave,
+        'profile_photo': avatarToSave,
+        'avatar': avatarToSave,
         'bio': _bioCtrl.text.trim().isNotEmpty ? _bioCtrl.text.trim() : 'Learning every day 🚀',
         'dob': _dob?.toIso8601String(),
         'age': _calculatedAge,

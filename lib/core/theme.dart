@@ -175,9 +175,15 @@ class AppTheme {
       titleMedium: GoogleFonts.plusJakartaSans(
           fontSize: 17, fontWeight: FontWeight.bold, color: lightTextPrimary),
       bodyLarge: GoogleFonts.inter(
-          fontSize: 15, fontWeight: FontWeight.normal, color: lightTextSecondary, height: 1.5),
+          fontSize: 15,
+          fontWeight: FontWeight.normal,
+          color: lightTextSecondary,
+          height: 1.5),
       bodyMedium: GoogleFonts.inter(
-          fontSize: 14, fontWeight: FontWeight.normal, color: lightCaption, height: 1.5),
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+          color: lightCaption,
+          height: 1.5),
       bodySmall: GoogleFonts.inter(
           fontSize: 12, fontWeight: FontWeight.w500, color: lightCaption),
       labelLarge: GoogleFonts.inter(
@@ -272,9 +278,15 @@ class AppTheme {
       titleMedium: GoogleFonts.plusJakartaSans(
           fontSize: 17, fontWeight: FontWeight.bold, color: darkTextPrimary),
       bodyLarge: GoogleFonts.inter(
-          fontSize: 15, fontWeight: FontWeight.normal, color: darkTextSecondary, height: 1.5),
+          fontSize: 15,
+          fontWeight: FontWeight.normal,
+          color: darkTextSecondary,
+          height: 1.5),
       bodyMedium: GoogleFonts.inter(
-          fontSize: 14, fontWeight: FontWeight.normal, color: darkCaption, height: 1.5),
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+          color: darkCaption,
+          height: 1.5),
       bodySmall: GoogleFonts.inter(
           fontSize: 12, fontWeight: FontWeight.w500, color: darkCaption),
       labelLarge: GoogleFonts.inter(
@@ -407,8 +419,7 @@ extension ThemeExtension on BuildContext {
       isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
   Color get elevatedSurfaceColor =>
       isDark ? AppTheme.darkElevatedSurface : AppTheme.lightSecBg;
-  Color get cardColor =>
-      isDark ? AppTheme.darkCardBg : AppTheme.lightSurface;
+  Color get cardColor => isDark ? AppTheme.darkCardBg : AppTheme.lightSurface;
   Color get floatingCardColor =>
       isDark ? AppTheme.darkCardBg : AppTheme.lightFloatingCard;
   Color get dialogBackgroundColor =>
@@ -441,7 +452,8 @@ extension ThemeExtension on BuildContext {
   Color get iconPrimary => isDark ? Colors.white : AppTheme.lightTextPrimary;
   Color get iconSecondary =>
       isDark ? AppTheme.darkPlaceholder : AppTheme.lightTextSecondary;
-  Color get iconSelected => isDark ? AppTheme.darkPrimary : AppTheme.lightPrimary;
+  Color get iconSelected =>
+      isDark ? AppTheme.darkPrimary : AppTheme.lightPrimary;
   Color get iconCoin => AppTheme.darkAccentGold;
   Color get iconVip => AppTheme.darkAccentGold;
   Color get iconNotification => AppTheme.darkError;
@@ -468,7 +480,9 @@ extension ThemeExtension on BuildContext {
 
   List<BoxShadow> get smallShadow => [
         BoxShadow(
-          color: isDark ? Colors.black.withOpacity(0.42) : const Color(0xFF0F172A).withOpacity(0.06),
+          color: isDark
+              ? Colors.black.withOpacity(0.42)
+              : const Color(0xFF0F172A).withOpacity(0.06),
           blurRadius: 24,
           offset: const Offset(0, 8),
         ),
@@ -476,7 +490,9 @@ extension ThemeExtension on BuildContext {
 
   List<BoxShadow> get largeShadow => [
         BoxShadow(
-          color: isDark ? Colors.black.withOpacity(0.55) : const Color(0xFF0F172A).withOpacity(0.08),
+          color: isDark
+              ? Colors.black.withOpacity(0.55)
+              : const Color(0xFF0F172A).withOpacity(0.08),
           blurRadius: 40,
           offset: const Offset(0, 16),
         ),

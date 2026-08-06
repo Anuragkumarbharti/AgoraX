@@ -18,6 +18,7 @@ import '../../models/chat/isar_chat_model.dart';
 import '../storage/asset_cache_manager.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../core/api_error_handler.dart';
+import './smart_default_avatar_service.dart';
 import 'package:flutter/material.dart';
 
 class UserProfileCacheManager {
@@ -293,6 +294,14 @@ class UserProfileCacheManager {
 
       if (data != null) {
         var userObj = User.fromJson(data);
+        if (!SmartDefaultAvatarService.hasCustomAvatar(userObj.avatar) && idToQuery == currentId) {
+          final assignedAvatar = await SmartDefaultAvatarService.ensureDefaultAvatarAssigned(
+            userId: idToQuery,
+            currentAvatar: userObj.avatar,
+            gender: userObj.gender,
+          );
+          userObj = userObj.copyWith(avatar: assignedAvatar);
+        }
         if (idToQuery == currentId) {
           // Backend is now the single source of truth.
           // No local lock overlay — VIP/Novel state comes directly from DB via subscriptions table.

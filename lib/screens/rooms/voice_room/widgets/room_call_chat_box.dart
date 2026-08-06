@@ -46,7 +46,8 @@ class RoomCallChatBox extends StatelessWidget {
               isConsecutive = true;
             }
           }
-          return buildCustomChatMessage(context, msg, isConsecutive: isConsecutive);
+          return buildCustomChatMessage(context, msg,
+              isConsecutive: isConsecutive);
         },
       );
     });
@@ -56,7 +57,8 @@ class RoomCallChatBox extends StatelessWidget {
       {bool isConsecutive = false}) {
     final RoomController controller = RoomController.to;
     final bg = controller.activeRoomBackground.value;
-    final tokens = AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
+    final tokens =
+        AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
 
     final isSystem = message.isSystem;
     final isActivity = message.messageType == 'activity';
@@ -167,8 +169,8 @@ class RoomCallChatBox extends StatelessWidget {
               role: message.senderRole ?? 'Guest',
               seatIndex: -1,
               isHost: (() {
-                final room = controller.rooms
-                    .firstWhereOrNull((r) => r.id == roomId);
+                final room =
+                    controller.rooms.firstWhereOrNull((r) => r.id == roomId);
                 return room?.hostId == RoomController.currentUserId ||
                     room?.founderId == RoomController.currentUserId;
               })(),
@@ -312,7 +314,9 @@ class RoomCallChatBox extends StatelessWidget {
                   Text(
                     usersList.length.toString(),
                     style: GoogleFonts.poppins(
-                      color: hasReacted ? Colors.pinkAccent : tokens.secondaryTextColor,
+                      color: hasReacted
+                          ? Colors.pinkAccent
+                          : tokens.secondaryTextColor,
                       fontSize: 8.5,
                       fontWeight: FontWeight.bold,
                     ),
@@ -369,8 +373,7 @@ class RoomCallChatBox extends StatelessWidget {
                               behavior: HitTestBehavior.opaque,
                               onTap: () {
                                 final occupiedSeats =
-                                    (controller.roomSeatsInfo[roomId] ??
-                                            [])
+                                    (controller.roomSeatsInfo[roomId] ?? [])
                                         .where((s) => s['userId'] != null)
                                         .length;
                                 Get.dialog(
@@ -484,7 +487,8 @@ class RoomCallChatBox extends StatelessWidget {
     );
   }
 
-  List<InlineSpan> _parseMentionsAndText(String text, AdaptiveSeatThemeTokens tokens) {
+  List<InlineSpan> _parseMentionsAndText(
+      String text, AdaptiveSeatThemeTokens tokens) {
     final List<InlineSpan> spans = [];
     final RegExp exp = RegExp(r'(@[a-zA-Z0-9_\u00a1-\uffff]+)');
     final Iterable<RegExpMatch> matches = exp.allMatches(text);

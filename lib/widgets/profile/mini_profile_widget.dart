@@ -180,10 +180,16 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
                             Container(color: context.secondaryBackgroundColor),
                         errorWidget: (context, url, error) => _buildInitials(),
                       )
-                    : Image.file(
-                        File(avatarUrl),
-                        fit: BoxFit.cover,
-                      ))
+                    : (avatarUrl.startsWith('assets/')
+                        ? Image.asset(
+                            avatarUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => _buildInitials(),
+                          )
+                        : Image.file(
+                            File(avatarUrl),
+                            fit: BoxFit.cover,
+                          )))
                 : _buildInitials(),
           ),
         ),

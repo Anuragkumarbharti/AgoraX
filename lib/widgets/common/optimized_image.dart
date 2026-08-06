@@ -31,19 +31,30 @@ class OptimizedImage extends StatelessWidget {
       return _buildErrorWidget();
     }
 
-    final optimizedUrl = AssetCacheManager.getOptimizedUrl(imageUrl, quality);
-
-    Widget imageWidget = CachedNetworkImage(
-      imageUrl: optimizedUrl,
-      cacheManager: CreaniaAssetCacheManager.instance,
-      fit: fit,
-      width: width,
-      height: height,
-      filterQuality: FilterQuality.medium,
-      memCacheWidth: quality == ImageQuality.thumbnail ? 150 : (quality == ImageQuality.medium ? 600 : null),
-      placeholder: (context, url) => placeholder ?? _buildShimmerPlaceholder(),
-      errorWidget: (context, url, error) => errorWidget ?? _buildErrorWidget(),
-    );
+    Widget imageWidget;
+    if (imageUrl.startsWith('assets/')) {
+      imageWidget = Image.asset(
+        imageUrl,
+        fit: fit,
+        width: width,
+        height: height,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (context, error, stackTrace) => errorWidget ?? _buildErrorWidget(),
+      );
+    } else {
+      final optimizedUrl = AssetCacheManager.getOptimizedUrl(imageUrl, quality);
+      imageWidget = CachedNetworkImage(
+        imageUrl: optimizedUrl,
+        cacheManager: CreaniaAssetCacheManager.instance,
+        fit: fit,
+        width: width,
+        height: height,
+        filterQuality: FilterQuality.medium,
+        memCacheWidth: quality == ImageQuality.thumbnail ? 150 : (quality == ImageQuality.medium ? 600 : null),
+        placeholder: (context, url) => placeholder ?? _buildShimmerPlaceholder(),
+        errorWidget: (context, url, error) => errorWidget ?? _buildErrorWidget(),
+      );
+    }
 
     if (borderRadius != null) {
       imageWidget = ClipRRect(

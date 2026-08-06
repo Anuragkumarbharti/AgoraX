@@ -40,8 +40,7 @@ class RoomCallHeader extends StatelessWidget {
     final RoomController controller = RoomController.to;
 
     return Obx(() {
-      final liveRoom =
-          controller.rooms.firstWhereOrNull((r) => r.id == roomId);
+      final liveRoom = controller.rooms.firstWhereOrNull((r) => r.id == roomId);
       final liveName = liveRoom?.name ?? roomName;
       final roomLevel = liveRoom?.level ?? 1;
       final liveId = liveRoom?.id ?? roomId;
@@ -54,7 +53,8 @@ class RoomCallHeader extends StatelessWidget {
       final topInset = MediaQuery.of(context).padding.top;
 
       final bg = controller.activeRoomBackground.value;
-      final tokens = AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
+      final tokens =
+          AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
 
       return Container(
         padding: EdgeInsets.fromLTRB(16, topInset + 6, 12, 10),
@@ -268,7 +268,6 @@ class RoomCallHeader extends StatelessWidget {
                   ],
                 ),
               ),
-
               Row(
                 children: [
                   Builder(
@@ -291,7 +290,8 @@ class RoomCallHeader extends StatelessWidget {
                             color: Colors.white.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                                color: Colors.white.withOpacity(0.1), width: 0.5),
+                                color: Colors.white.withOpacity(0.1),
+                                width: 0.5),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -317,14 +317,12 @@ class RoomCallHeader extends StatelessWidget {
                     icon: const Icon(Icons.settings_outlined,
                         color: Colors.white70, size: 22),
                     onPressed: () {
-                      final callerRole =
-                          controller.getUserRole(room, userId);
-                      final callerWeight =
-                          controller.getRoleWeight(callerRole);
+                      final callerRole = controller.getUserRole(room, userId);
+                      final callerWeight = controller.getRoleWeight(callerRole);
 
                       if (callerWeight >= 7) {
-                        Get.dialog(RoomSettingsDialog(
-                            roomId: roomId, room: room));
+                        Get.dialog(
+                            RoomSettingsDialog(roomId: roomId, room: room));
                       } else {
                         Get.snackbar(
                           'Permission Denied',
