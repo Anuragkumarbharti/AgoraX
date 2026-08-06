@@ -70,6 +70,55 @@ class RoomProgressionController extends GetxController {
     return goldTasks.fold(0, (sum, t) => sum + t.currentValue).clamp(0, 1000);
   }
 
+  double calculateActiveMemberSurgeMultiplier(int activeMemberCount) {
+    if (activeMemberCount < 5) return 1.0;
+    if (activeMemberCount < 8) return 1.5;
+    if (activeMemberCount < 10) return 2.0;
+    if (activeMemberCount < 15) return 2.5;
+    if (activeMemberCount < 20) return 3.5;
+    return 4.0;
+  }
+
+  Future<Map<String, dynamic>> addRoomVp(String roomId, int vpAmount, String source) async {
+    try {
+      final client = Supabase.instance.client;
+      final resp = await client.rpc('add_room_vp', params: {
+        'p_room_id': roomId,
+        'p_vp': vpAmount,
+        'p_source': source,
+      });
+
+      if (resp != null && resp['success'] == true) {
+        final newTotalVp = resp['new_total_vp'] as int? ?? 0;
+        final newLevel = resp['new_level'] as int? ?? 1;
+
+        roomLevelProgresses[roomId] = RoomLevelProgress(
+          roomId: roomId,
+          currentLevel: newLevel,
+          currentXp: newTotalVp,
+          consecutiveDaysCompleted: roomLevelProgresses[roomId]?.consecutiveDaysCompleted ?? 0,
+        );
+      }
+      return Map<String, dynamic>.from(resp as Map);
+    } catch (e) {
+      debugPrint('Error adding room VP: $e');
+      return {'success': false, 'reason': e.toString()};
+    }
+  }
+
+  Future<Map<String, dynamic>> claimTreasureBox(String boxTier) async {
+    try {
+      final client = Supabase.instance.client;
+      final resp = await client.rpc('claim_treasure_box_reward', params: {
+        'p_box_tier': boxTier,
+      });
+      return Map<String, dynamic>.from(resp as Map);
+    } catch (e) {
+      debugPrint('Error claiming treasure box: $e');
+      return {'success': false, 'reason': e.toString()};
+    }
+  }
+
   void startProgressionTimer(
     String roomId, {
     required String? activeRoomId,
@@ -94,8 +143,10 @@ class RoomProgressionController extends GetxController {
         final progCtrl = Get.put(ProgressionController());
         if (isSitting) {
           await progCtrl.triggerXpEvent('room_hosted_minute');
+          await addRoomVp(roomId, 8, 'active_mic_time');
         } else {
           await progCtrl.triggerXpEvent('room_joined_minute');
+          await addRoomVp(roomId, 5, 'user_stay_time');
         }
       } catch (e) {
         debugPrint('RoomProgressionController progression timer error: $e');
@@ -121,8 +172,8 @@ class RoomProgressionController extends GetxController {
       final results = await Future.wait<dynamic>([
         client.from('room_level_progress').select().eq('room_id', roomId).maybeSingle(),
         client.from('room_statistics').select().eq('room_id', roomId).maybeSingle(),
-        client.from('room_daily_tasks').select(),
-        client.from('room_daily_task_progress').select().eq('room_id', roomId),
+        client.from('room_daily_task_catalog').select(),
+        client.from('user_daily_task_progress').select(),
         client.from('room_seats').select().eq('room_id', roomId).order('seat_index', ascending: true),
         client.from('room_seat_gifts').select().eq('room_id', roomId),
       ]);
@@ -137,25 +188,31 @@ class RoomProgressionController extends GetxController {
         roomStats[roomId] = RoomStatistics.fromJson(statsResp as Map<String, dynamic>);
       }
 
-      final tasksResp = results[2] as List;
-      final progressListResp = results[3] as List;
+      final catalogResp = results[2] as List;
+      final userProgressResp = results[3] as List;
 
-      final progressMap = {
-        for (var p in progressListResp) p['task_key'] as String: p
+      final userProgMap = {
+        for (var p in userProgressResp) p['task_key'] as String: p
       };
 
-      final List<RoomDailyTask> mergedTasks = (tasksResp).map((t) {
+      final List<RoomDailyTask> mergedTasks = (catalogResp).map((t) {
         final key = t['task_key'] as String;
-        final prog = progressMap[key];
+        final prog = userProgMap[key];
         return RoomDailyTask(
           taskKey: key,
+          title: t['title'] ?? '',
           description: t['description'] ?? '',
-          targetValue: t['target_value'] ?? 0,
+          category: t['category'] ?? 'normal',
+          targetValue: t['target_value'] ?? 1,
           currentValue: prog != null ? (prog['current_value'] ?? 0) : 0,
-          taskPoints: t['task_points'] ?? 0,
-          xpReward: t['xp_reward'] ?? 0,
+          minActiveMembers: t['min_active_members'] ?? 1,
+          taskPoints: t['vp_reward'] ?? 50,
+          xpReward: t['vp_reward'] ?? 50,
+          coinReward: t['coin_reward'] ?? 0,
           silverReward: t['silver_reward'] ?? 0,
-          goldReward: t['gold_reward'] ?? 0,
+          goldReward: 0,
+          treasureBoxTier: t['treasure_box_tier'] ?? 'normal',
+          iconName: t['icon_name'] ?? 'task',
           isCompleted: prog != null ? (prog['is_completed'] ?? false) : false,
         );
       }).toList();
@@ -218,3 +275,4 @@ class RoomProgressionController extends GetxController {
     }
   }
 }
+

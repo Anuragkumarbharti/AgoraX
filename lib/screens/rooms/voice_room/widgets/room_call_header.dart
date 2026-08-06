@@ -11,6 +11,7 @@ import '../dialogs/online_members_dialog.dart';
 import '../dialogs/seat_applications_dialog.dart';
 import '../dialogs/room_settings_dialog.dart';
 import '../dialogs/room_star_gift_stats_dialog.dart';
+import '../dialogs/room_tasks_and_rewards_dialog.dart';
 
 class RoomCallHeader extends StatelessWidget {
   final String roomId;
@@ -84,7 +85,12 @@ class RoomCallHeader extends StatelessWidget {
                           roomName: liveName,
                           coverUrl: coverUrl,
                           onTap: () {
-                            onShowRoomOptionsMenuSheet(context);
+                            Get.dialog(
+                              RoomTasksAndRewardsDialog(
+                                roomId: liveId,
+                                roomName: liveName,
+                              ),
+                            );
                           },
                           onPlusTap: () {
                             Get.snackbar('Action', 'Inviting users to the arena.');
