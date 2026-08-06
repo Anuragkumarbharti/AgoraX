@@ -325,53 +325,6 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
                 ),
               ),
             ),
-
-          Obx(() {
-            final u = UserProfileCacheManager.rxCache[widget.userId];
-            final vip = widget.vipLevel ?? u?.vipLevel ?? UserProfileCacheManager.getCachedUser(widget.userId)?.vipLevel ?? 0;
-            if (vip > 0) {
-              return Positioned(
-                left: -seatSize * 0.05,
-                bottom: -seatSize * 0.05,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD946EF), Color(0xFF8B5CF6)],
-                    ),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.white24, width: 0.5),
-                  ),
-                  child: Text(
-                    'V$vip',
-                    style: const TextStyle(color: Colors.white, fontSize: 6.5, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-
-          Obx(() {
-            final u = UserProfileCacheManager.rxCache[widget.userId];
-            final lv = widget.level ?? u?.level ?? UserProfileCacheManager.getCachedUser(widget.userId)?.level ?? 1;
-            return Positioned(
-              right: -seatSize * 0.05,
-              bottom: -seatSize * 0.05,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
-                decoration: BoxDecoration(
-                  color: Colors.amber,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.white24, width: 0.5),
-                ),
-                child: Text(
-                  'L$lv',
-                  style: const TextStyle(color: Colors.black, fontSize: 6.5, fontWeight: FontWeight.bold),
-                ),
-              ),
-            );
-          }),
         ],
       ],
     );
