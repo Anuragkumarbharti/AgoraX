@@ -1048,9 +1048,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
               ),
 
               // 3. Floating Bottom Controls Dock
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
+              Positioned(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
                 left: 0,
                 right: 0,

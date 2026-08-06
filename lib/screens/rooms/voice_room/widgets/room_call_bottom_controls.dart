@@ -60,8 +60,8 @@ class RoomCallBottomControls extends StatelessWidget {
                   // Adaptive Liquid Glass Expanding Chat Input Bar
                   Expanded(
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 280),
-                      curve: Curves.easeInOutCubic,
+                      duration: const Duration(milliseconds: 120),
+                      curve: Curves.easeOutCubic,
                       height: 42,
                       clipBehavior: Clip.antiAlias,
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -135,7 +135,7 @@ class RoomCallBottomControls extends StatelessWidget {
                           ),
                           // Smooth Fade/Scale Send Icon when expanded or text is present
                           AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
+                            duration: const Duration(milliseconds: 100),
                             transitionBuilder: (child, anim) => ScaleTransition(
                               scale: anim,
                               child:
@@ -181,9 +181,9 @@ class RoomCallBottomControls extends StatelessWidget {
 
                   // Action Buttons Row (Seat Action, Mic, Menu, Gift) smoothly fading out when expanded
                   AnimatedCrossFade(
-                    duration: const Duration(milliseconds: 280),
-                    firstCurve: Curves.easeInOutCubic,
-                    secondCurve: Curves.easeInOutCubic,
+                    duration: const Duration(milliseconds: 120),
+                    firstCurve: Curves.easeOutCubic,
+                    secondCurve: Curves.easeOutCubic,
                     crossFadeState: isExpanded
                         ? CrossFadeState.showSecond
                         : CrossFadeState.showFirst,
