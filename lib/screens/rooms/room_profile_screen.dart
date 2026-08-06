@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme.dart';
 import '../../models/room/room_model.dart';
+import '../../models/progression/room_progression_models.dart';
 import '../../services/room/room_controller.dart';
 import '../../widgets/room/room_upgrade_dialog.dart';
 
@@ -26,7 +27,9 @@ class RoomProfileScreen extends StatelessWidget {
         }
         final VoiceRoom room = controller.rooms[roomIndex];
 
-        final int xpNeeded = controller.getXpForNextLevel(room.level);
+        final int roomLvl = room.level > 0 ? room.level : 1;
+        final nextCfg = RoomLevelMatrixConfig.getForLevel(roomLvl + 1);
+        final int xpNeeded = nextCfg.requiredVp > 0 ? nextCfg.requiredVp : 35500;
         final double xpProgress = (room.xp / xpNeeded).clamp(0.0, 1.0);
 
         return CustomScrollView(
@@ -273,6 +276,19 @@ class RoomProfileScreen extends StatelessWidget {
   }
 
   Widget _buildLevelProgressCard(BuildContext context, VoiceRoom room, double xpProgress, int xpNeeded) {
+    String formatVp(int val) {
+      if (val >= 1000000) return '${(val / 1000000).toStringAsFixed(1)}M';
+      if (val >= 1000) {
+        final double inK = val / 1000.0;
+        return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
+      }
+      return '$val';
+    }
+
+    final String currentStr = formatVp(room.xp);
+    final String targetStr = formatVp(xpNeeded);
+    final int percent = (xpProgress * 100).toInt();
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -295,21 +311,21 @@ class RoomProfileScreen extends StatelessWidget {
                   const Icon(Icons.military_tech, color: Colors.amber, size: 24),
                   const SizedBox(width: 6),
                   Text(
-                    'Arena Level ${room.level}',
+                    'LV.${room.level} / Arena VP',
                     style: const TextStyle(
                       color: Colors.amber,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 15,
                     ),
                   ),
                 ],
               ),
               Text(
-                '${room.xp} / ${xpNeeded} XP',
+                '$currentStr / $targetStr VP ($percent%)',
                 style: const TextStyle(
-                  color: AppTheme.textSecondary,
+                  color: Colors.amber,
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -329,12 +345,12 @@ class RoomProfileScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Badges Unlocked: ${room.badges}',
+                'Today\'s AP: +${room.todayRoomXp}',
                 style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
               ),
-              const Text(
-                'Gain XP by stay time & gifts',
-                style: TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+              Text(
+                room.level < 7 ? 'Next Reward at LV.${room.level + 1}' : 'Max Level Achieved',
+                style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ],
           ),
