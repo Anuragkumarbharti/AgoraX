@@ -69,16 +69,16 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
 
   @override
   Widget build(BuildContext context) {
-    final int defaultTarget = widget.freeTarget > 0 ? widget.freeTarget : 700;
-    final double freeRatio =
-        (widget.freeXp / defaultTarget)
-            .clamp(0.0, 1.0);
-    final double extraRatio =
-        (widget.extraXp / (widget.extraTarget > 0 ? widget.extraTarget : 1000))
-            .clamp(0.0, 1.0);
+    final int freeTargetLimit = widget.freeTarget > 0 ? widget.freeTarget : 700;
+    final int extraTargetLimit = widget.extraTarget > 0 ? widget.extraTarget : 1000;
 
-    final int totalEarned = widget.freeXp;
-    final int totalTarget = defaultTarget;
+    final double freeRatio =
+        (widget.freeXp / freeTargetLimit).clamp(0.0, 1.0);
+    final double extraRatio =
+        (widget.extraXp / extraTargetLimit).clamp(0.0, 1.0);
+
+    final int totalEarned = widget.freeXp + widget.extraXp;
+    final int totalTarget = freeTargetLimit + extraTargetLimit;
 
     final String earnedStr = _formatNumber(totalEarned);
     final String targetStr = _formatNumber(totalTarget);
