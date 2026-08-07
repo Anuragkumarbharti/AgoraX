@@ -144,6 +144,9 @@ class CustomizationController extends GetxController {
       } catch (_) {}
     }
 
+    // Guard: skip all Supabase calls if user is not logged in
+    if (currentUserId.isEmpty) return;
+
     try {
       final rpcRes = await fetchFullInventoryAndEntitlementsViaRpc();
       if (rpcRes == null) {

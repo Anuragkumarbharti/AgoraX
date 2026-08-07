@@ -107,6 +107,11 @@ class GiftSendService extends GetxController {
         }
       }
 
+      // Dismiss Gift Dialog BottomSheet immediately so room screen is completely clear before launch
+      if (Get.isBottomSheetOpen == true || Get.isDialogOpen == true) {
+        Get.back();
+      }
+
       // ── Step 2, 3 & 4: Backend API & Coin Deduction ──
       if (isVault && vaultItem != null) {
         return true;

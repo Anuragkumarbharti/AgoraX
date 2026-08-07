@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,6 +8,7 @@ import '../../models/room/room_model.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../store/store_controller.dart';
 import '../gifting/gift_animation_controller.dart';
+import '../gifting/gift_event_service.dart';
 import 'room_seat_controller.dart';
 import 'room_activity_controller.dart';
 import 'room_controller.dart';
@@ -37,6 +39,7 @@ class RoomGiftController extends GetxController {
     required String roomId,
     required String giftId,
     required String giftName,
+    String giftIcon = '🎁',
     required int giftCost,
     required String currency,
     required List<String> targetUserIds,
@@ -56,197 +59,123 @@ class RoomGiftController extends GetxController {
 
       final totalQuantity = count * comboCount;
       final totalCost = giftCost * totalQuantity * targetUserIds.length;
-      debugPrint('[GiftPipeline] Balance Checked: Required $totalCost coins. Current Balance: ${walletBalance.value}');
 
-      final response =
-          await Supabase.instance.client.rpc('send_star_gift', params: {
-        'p_room_id': roomId,
-        'p_receiver_ids': targetUserIds,
-        'p_gift_id': giftId,
-        'p_quantity': count,
-        'p_combo_count': comboCount,
-        'p_seat_indices': seatIndices,
-      });
-
-      if (response != null && response['success'] == true) {
-        final remaining = (response['remaining_balance'] as num).toInt();
-        walletBalance.value = remaining;
+      // ── 1. BALANCE CHECK & INSTANT OPTIMISTIC DEDUCTION (<1ms) ──
+      if (walletBalance.value < totalCost) {
+        debugPrint('[GiftPipeline] Insufficient balance: Required $totalCost coins. Balance: ${walletBalance.value}');
         try {
-          if (Get.isRegistered<StoreController>()) {
-            final StoreController storeCtrl = Get.find<StoreController>();
-            if (currency == 'gold') {
-              storeCtrl.coinsBalance.value = remaining;
-            } else {
-              storeCtrl.silverCoinsBalance.value = remaining;
+          InsufficientBalanceSheet.show(
+            currency: currency,
+            requiredCoins: totalCost,
+            availableCoins: walletBalance.value,
+            giftName: giftName,
+            giftIcon: giftIcon,
+          );
+        } catch (_) {
+          Get.snackbar('Insufficient Balance', 'Required $totalCost $currency coins.');
+        }
+        return false;
+      }
+
+      final int previousBalance = walletBalance.value;
+      walletBalance.value = previousBalance - totalCost; // Optimistic deduction (<1ms)
+
+      // Update StoreController balance reactively
+      try {
+        if (Get.isRegistered<StoreController>()) {
+          final storeCtrl = Get.find<StoreController>();
+          if (currency == 'gold') {
+            storeCtrl.coinsBalance.value = walletBalance.value;
+          } else {
+            storeCtrl.silverCoinsBalance.value = walletBalance.value;
+          }
+        }
+      } catch (_) {}
+
+      // ── 2. INSTANT LOCAL EVENT, ANIMATION & CHAT DISPATCH (<10ms) ──
+      final user = UserProfileCacheManager.currentUser;
+      final String senderName = user?.fullName ?? user?.username ?? 'Member';
+      final String? senderAvatar = user?.avatar;
+
+      final Map<String, dynamic> eventPayload = {
+        'id': 'evt_${DateTime.now().microsecondsSinceEpoch}',
+        'giftId': giftId,
+        'giftName': giftName,
+        'giftIcon': giftIcon.isNotEmpty ? giftIcon : '🎁',
+        'senderId': UserProfileCacheManager.currentUserId,
+        'senderName': senderName,
+        'senderAvatar': senderAvatar,
+        'receiverIds': targetUserIds,
+        'receiverNames': targetUserNames,
+        'receiverSeats': seatIndices,
+        'roomId': roomId,
+        'giftType': currency,
+        'giftValue': giftCost,
+        'price': giftCost,
+        'quantity': totalQuantity,
+        'count': totalQuantity,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'messageText': '🎁 $senderName sent $giftName × $totalQuantity to ${targetUserNames.join(", ")}.',
+      };
+
+      // Trigger local zero-latency animation playback, chat message, seat stars update & WebSocket broadcast
+      unawaited(GiftEventService.to.broadcastGiftEvent(roomId, eventPayload));
+
+      // ── 3. ASYNC BACKGROUND SERVER RPC SYNC & AP TASK REFRESH ──
+      unawaited(Future(() async {
+        try {
+          final response = await Supabase.instance.client.rpc('send_star_gift', params: {
+            'p_room_id': roomId,
+            'p_receiver_ids': targetUserIds,
+            'p_gift_id': giftId,
+            'p_quantity': count,
+            'p_combo_count': comboCount,
+            'p_seat_indices': seatIndices,
+          });
+
+          if (response != null && response['success'] == true) {
+            final remaining = (response['remaining_balance'] as num).toInt();
+            walletBalance.value = remaining;
+            try {
+              if (Get.isRegistered<StoreController>()) {
+                final storeCtrl = Get.find<StoreController>();
+                if (currency == 'gold') {
+                  storeCtrl.coinsBalance.value = remaining;
+                } else {
+                  storeCtrl.silverCoinsBalance.value = remaining;
+                }
+              }
+            } catch (_) {}
+
+            // Refresh Room AP Dual Progress bar & Progression
+            if (Get.isRegistered<RoomDualProgressController>()) {
+              await RoomDualProgressController.to.fetchDualProgress(roomId);
             }
-          }
-        } catch (_) {}
+            if (Get.isRegistered<RoomProgressionController>()) {
+              final progCtrl = Get.find<RoomProgressionController>();
+              await progCtrl.fetchRoomProgression(roomId, onUpdateSeats: (_) {}, onUpdateSeatGifts: (_) {});
+            }
 
-        debugPrint('[Gift] API Success: Remaining balance = $remaining');
-        debugPrint('[Gift] DB Insert Success: Recorded in gift_transactions, gift_history, and room_activity_events');
-        debugPrint('[Gift] Room Stats Updated: Total room stars and total gifts count increased');
-        debugPrint('[Gift] Task Updated: ${response['vp_result']}');
-
-        // Trigger 1-time First Gift Bonus (+5 Normal AP bonus, max 20 users/day) & refresh dual progress
-        try {
-          final senderId = UserProfileCacheManager.currentUserId;
-          if (Get.isRegistered<RoomDualProgressController>()) {
-            await RoomDualProgressController.to.processFirstGiftBonus(roomId, senderId);
-            await RoomDualProgressController.to.fetchDualProgress(roomId);
-          }
-          if (Get.isRegistered<RoomProgressionController>()) {
-            final RoomProgressionController progCtrl = Get.find<RoomProgressionController>();
-            await progCtrl.fetchRoomProgression(
-              roomId,
-              onUpdateSeats: (seats) {},
-              onUpdateSeatGifts: (gifts) {},
-            );
+            // Lucky reward notification check
+            final luckyResult = response['lucky_result'];
+            if (luckyResult != null && luckyResult is Map && luckyResult['is_lucky_gift'] == true) {
+              if (Get.isRegistered<RoomChatController>()) {
+                RoomChatController.to.addLuckyGiftMessage(roomId, Map<String, dynamic>.from(luckyResult));
+              }
+            }
+          } else {
+            // Server rejection -> Rollback local balance
+            walletBalance.value = previousBalance;
+            Get.snackbar('Gifting Failed', 'Server rejected transaction.');
           }
         } catch (e) {
-          debugPrint('Error triggering dual progress gift update: $e');
+          debugPrint('[GiftPipeline] Background RPC error: $e');
         }
+      }));
 
-        // Extract standardized realtime event payload from backend confirmation
-        final rawPayload = response['event_payload'];
-        final Map<String, dynamic> eventPayload = rawPayload != null && rawPayload is Map
-            ? Map<String, dynamic>.from(rawPayload)
-            : <String, dynamic>{
-                'giftId': giftId,
-                'senderId': UserProfileCacheManager.currentUserId,
-                'senderName': 'Creania Student',
-                'senderAvatar': null,
-                'senderSeat': seatIndices.isNotEmpty ? seatIndices[0] : -1,
-                'receiverIds': targetUserIds,
-                'receiverNames': targetUserNames,
-                'receiverSeats': seatIndices,
-                'roomId': roomId,
-                'giftType': currency,
-                'giftName': giftName,
-                'giftIcon': '🎁',
-                'giftValue': giftCost,
-                'quantity': totalQuantity,
-                'timestamp': DateTime.now().millisecondsSinceEpoch,
-                'messageText': '${UserProfileCacheManager.currentUserId} $giftName * $totalQuantity ${targetUserNames.join(", ")}',
-              };
-
-        // Broadcast Realtime GiftSent Event to everyone in the room
-        if (Get.isRegistered<RoomRealtimeController>()) {
-          await RoomRealtimeController.to.broadcastGiftSentEvent(roomId, eventPayload);
-          debugPrint('[Gift] Broadcast Sent: event: gift_sent_event for ${eventPayload['giftName']} -> ${eventPayload['receiverNames']}');
-        }
-
-        final luckyResult = response['lucky_result'] ??
-            (response['event_payload'] != null && response['event_payload'] is Map
-                ? response['event_payload']['lucky_result']
-                : null);
-
-        if (luckyResult != null && luckyResult is Map && luckyResult['is_lucky_gift'] == true) {
-          final Map<String, dynamic> luckyMap = Map<String, dynamic>.from(luckyResult);
-          final num multiplierNum = luckyMap['multiplier'] ?? 0;
-          final double multiplier = multiplierNum.toDouble();
-          final int cashbackGold = (luckyMap['cashback_gold'] ?? luckyMap['coins_back'] ?? 0) as int;
-          final String currName = (luckyMap['currency'] ?? 'gold') == 'silver' ? 'Silver' : 'Gold';
-          final String tier = (luckyMap['tier'] ?? 'no_reward').toString();
-
-          // Server-first room chat message dispatch
-          try {
-            if (Get.isRegistered<RoomChatController>()) {
-              RoomChatController.to.addLuckyGiftMessage(roomId, luckyMap);
-            }
-          } catch (e) {
-            debugPrint('Error adding lucky gift message to room chat: $e');
-          }
-
-          // Personal UI Feedback Toast for Sender
-          if (cashbackGold > 0) {
-            Get.snackbar(
-              multiplier >= 5.0 ? '✨✨ JACKPOT WIN! ✨✨' : '🎰 Lucky Coin Back!',
-              'You received $cashbackGold $currName Coins Back (${multiplier}× Multiplier)!',
-              snackPosition: SnackPosition.TOP,
-              backgroundColor: multiplier >= 5.0 ? const Color(0xFFD97706) : const Color(0xFF8B5CF6),
-              colorText: Colors.white,
-              duration: const Duration(seconds: 5),
-              icon: const Icon(Icons.stars, color: Colors.amber, size: 28),
-            );
-          } else {
-            debugPrint('[Gift] Lucky Gift sent: 0x multiplier coin back.');
-          }
-        } else {
-          final magicResult = response['magic_result'];
-          if (magicResult != null &&
-              magicResult['payout_type'] != null &&
-              magicResult['payout_type'] != 'nothing') {
-            final String type = magicResult['payout_type'];
-            final int coinsBack = magicResult['coins_back'] ?? 0;
-            final int silverAmount = magicResult['silver_reward'] ?? 0;
-            final String vaultName = magicResult['vault_item_name'] ?? '';
-
-            String outcomeText = '';
-            if (type == 'coin_back') {
-              outcomeText = '🔮 Lucky Draw! You got $coinsBack Gold Coins Back!';
-            } else if (type == 'silver_reward') {
-              outcomeText = '🔮 Lucky Draw! You won $silverAmount Silver Coins!';
-            } else if (type == 'vault_reward') {
-              outcomeText = '🔮 Lucky Draw! You won a $vaultName!';
-            }
-
-            Get.snackbar(
-              'Magic Gift Reward! 🔮',
-              outcomeText,
-              snackPosition: SnackPosition.TOP,
-              backgroundColor: const Color(0xFF8B5CF6),
-              colorText: Colors.white,
-              duration: const Duration(seconds: 4),
-            );
-          }
-        }
-        return true;
-      } else if (response != null && response['message'] != null) {
-        final errMsg = response['message'].toString();
-        debugPrint('[GiftPipeline] FAILURE: $errMsg');
-        Get.snackbar(
-          'Gifting Failed',
-          errMsg,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFEF4444),
-          colorText: Colors.white,
-          duration: const Duration(seconds: 4),
-        );
-        return false;
-      }
-      debugPrint('[GiftPipeline] FAILURE: Unknown backend error response');
-      return false;
+      return true;
     } catch (e, stack) {
       debugPrint('[GiftPipeline] FAILURE: $e\n$stack');
-      final errStr = e.toString();
-      if (errStr.toLowerCase().contains('insufficient')) {
-        InsufficientBalanceSheet.show(
-          currency: currency,
-          requiredCoins: giftCost * count * comboCount * targetUserIds.length,
-          availableCoins: walletBalance.value,
-          giftName: giftName,
-        );
-        return false;
-      }
-
-      String userFriendlyMessage = errStr
-          .replaceAll('Exception: ', '')
-          .replaceAll('PostgrestException(message: ', '')
-          .replaceAll(', details: null, hint: null, code: null)', '');
-
-      if (errStr.contains('42601') || errStr.contains('returning "record"')) {
-        userFriendlyMessage =
-            'Database migration required: Please apply migration 202608070011_complete_gift_pipeline_fix.sql on your Supabase Postgres database.';
-      }
-
-      Get.snackbar(
-        'Gifting Error',
-        userFriendlyMessage,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFEF4444),
-        colorText: Colors.white,
-        duration: const Duration(seconds: 5),
-      );
       return false;
     }
   }

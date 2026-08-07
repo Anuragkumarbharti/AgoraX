@@ -27,6 +27,10 @@ import 'room_upload_controller.dart';
 import 'room_discovery_controller.dart';
 import '../voice/room_voice_manager.dart';
 import 'room_pip_controller.dart';
+import 'room_dual_progress_controller.dart';
+import '../gifting/gift_animation_controller.dart';
+import '../gifting/gift_event_service.dart';
+import '../gifting/gift_overlay_manager.dart';
 
 export 'room_chat_controller.dart';
 export '../../widgets/gifting/gift_animation_overlay.dart';
@@ -146,6 +150,11 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     uploadCtrl = Get.isRegistered<RoomUploadController>() ? Get.find<RoomUploadController>() : Get.put(RoomUploadController());
     discoveryCtrl = Get.isRegistered<RoomDiscoveryController>() ? Get.find<RoomDiscoveryController>() : Get.put(RoomDiscoveryController());
     pipCtrl = Get.isRegistered<RoomPipController>() ? Get.find<RoomPipController>() : Get.put(RoomPipController());
+
+    if (!Get.isRegistered<GiftAnimationController>()) Get.put(GiftAnimationController());
+    if (!Get.isRegistered<GiftEventService>()) Get.put(GiftEventService());
+    if (!Get.isRegistered<GiftOverlayManager>()) Get.put(GiftOverlayManager());
+    if (!Get.isRegistered<RoomDualProgressController>()) Get.put(RoomDualProgressController());
   }
 
   @override

@@ -79,6 +79,7 @@ class RoomRealtimeController extends GetxController {
       } else {
         // Fallback channel if main subscription is initializing
         final fallbackChannel = Supabase.instance.client.channel('room_activity_events:$roomId');
+        await fallbackChannel.subscribe();
         await fallbackChannel.sendBroadcastMessage(
           event: 'gift_sent_event',
           payload: eventPayload,

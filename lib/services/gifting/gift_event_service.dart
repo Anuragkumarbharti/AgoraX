@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../room/room_realtime_controller.dart';
 import '../room/room_seat_controller.dart';
 import '../room/room_chat_controller.dart';
+import '../room/room_dual_progress_controller.dart';
 import './gift_animation_controller.dart';
 import '../../models/gift/gift_animation_metadata.dart';
 import '../user/user_profile_cache_manager.dart';
@@ -93,7 +94,37 @@ class GiftEventService extends GetxController {
       GiftAnimationController.to.dispatchBroadcastGiftEvent(normalized);
     }
 
-    // 2. Dispatch Lucky Gift Chat Announcement if luckyResult exists (Server-First)
+    // 2. Dispatch standard gift chat announcement to room chat feed
+    try {
+      if (Get.isRegistered<RoomChatController>()) {
+        final senderId = (normalized['senderId'] ?? '').toString();
+        final senderName = (normalized['senderName'] ?? 'Member').toString();
+        final giftName = (normalized['giftName'] ?? 'Gift').toString();
+        final quantity = normalized['quantity'] ?? 1;
+        final List<dynamic> rNamesRaw = normalized['receiverNames'] ?? ['User'];
+        final String receiverNamesText = rNamesRaw.join(', ');
+
+        final String chatText = '🎁 $senderName sent $giftName × $quantity to $receiverNamesText.';
+
+        final chatMsg = RoomChatMessage(
+          id: 'gift_${normalized['id']}',
+          senderId: senderId,
+          senderName: senderName,
+          text: chatText,
+          senderAvatar: normalized['senderAvatar']?.toString(),
+          timestamp: DateTime.now(),
+          isSystem: true,
+          messageType: 'gift',
+          eventType: 'gift_sent',
+        );
+
+        RoomChatController.to.addChatMessage(roomId, chatMsg);
+      }
+    } catch (e) {
+      debugPrint('[GiftEventService] Error adding gift message to room chat: $e');
+    }
+
+    // 3. Dispatch Lucky Gift Chat Announcement if luckyResult exists (Server-First)
     try {
       final luckyResult = normalized['luckyResult'];
       if (luckyResult != null && luckyResult is Map && luckyResult['is_lucky_gift'] == true) {
@@ -127,6 +158,15 @@ class GiftEventService extends GetxController {
       }
     } catch (e) {
       debugPrint('[GiftEventService] Seat star update error: $e');
+    }
+
+    // 5. Trigger Room Task Dual Progress sync across clients
+    try {
+      if (Get.isRegistered<RoomDualProgressController>()) {
+        RoomDualProgressController.to.fetchDualProgress(roomId);
+      }
+    } catch (e) {
+      debugPrint('[GiftEventService] Room Dual Progress refresh error: $e');
     }
   }
 }

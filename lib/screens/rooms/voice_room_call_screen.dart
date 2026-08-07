@@ -23,6 +23,7 @@ import '../../widgets/memberships/novel_entry_animation.dart';
 import '../../services/room/room_entry_permission_engine.dart';
 import '../../services/gifting/gift_animation_controller.dart';
 import '../../services/gifting/gift_overlay_manager.dart';
+import '../../services/room/room_dual_progress_controller.dart';
 
 // Extracted Sub-Modules
 import 'voice_room/models/floating_reaction.dart';
@@ -454,6 +455,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
       await _controller.enterRoom(widget.roomId);
       await _controller.fetchRoomProgression(widget.roomId);
+      if (Get.isRegistered<RoomDualProgressController>()) {
+        RoomDualProgressController.to.subscribeToRealtimeDualProgress(widget.roomId);
+      }
 
       if (mounted) {
         setState(() {
@@ -986,6 +990,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   @override
   void dispose() {
+    if (Get.isRegistered<RoomDualProgressController>()) {
+      RoomDualProgressController.to.unsubscribeRealtimeDualProgress(widget.roomId);
+    }
     _glowController.dispose();
     _chatInputController.dispose();
     _chatInputFocusNode.dispose();

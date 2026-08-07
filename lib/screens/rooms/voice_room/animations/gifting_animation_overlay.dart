@@ -41,8 +41,7 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
     }
     _animWorker =
         ever(widget.activeAnimations, (List<Map<String, dynamic>> anims) {
-      if (anims.isNotEmpty) {
-        final newAnim = anims.last;
+      for (final newAnim in anims) {
         if (!_currentAnims.any((p) => p['id'] == newAnim['id'])) {
           setState(() {
             _currentAnims.add(newAnim);
@@ -51,17 +50,21 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
       }
     });
 
-    if (Get.isRegistered<GiftAnimationController>()) {
-      _globalGiftWorker = ever(GiftAnimationController.to.activeEvents,
-          (List<GiftAnimationEventPayload> events) {
-        if (events.isNotEmpty) {
-          final evt = events.last;
-          if (!_currentAnims.any((p) => p['id'] == evt.id)) {
-            _addEventFromPayload(evt);
-          }
-        }
-      });
+    final giftAnimCtrl = GiftAnimationController.to; // Ensures controller is put & registered
+    for (final evt in giftAnimCtrl.activeEvents) {
+      if (!_currentAnims.any((p) => p['id'] == evt.id)) {
+        _addEventFromPayload(evt);
+      }
     }
+
+    _globalGiftWorker = ever(giftAnimCtrl.activeEvents,
+        (List<GiftAnimationEventPayload> events) {
+      for (final evt in events) {
+        if (!_currentAnims.any((p) => p['id'] == evt.id)) {
+          _addEventFromPayload(evt);
+        }
+      }
+    });
   }
 
   void _addEventFromPayload(GiftAnimationEventPayload evt) {

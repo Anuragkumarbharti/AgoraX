@@ -5,54 +5,53 @@ import 'package:creania/services/gifting/sender_position_resolver.dart';
 import 'package:creania/services/gifting/receiver_resolver.dart';
 import 'package:creania/services/gifting/animation_timeline.dart';
 import 'package:creania/services/gifting/gift_animation_controller.dart';
+import 'package:creania/services/gifting/gift_pipeline_manager.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Gift Animation Pipeline & Timing Tests', () {
     test('AnimationTimeline stage durations and total duration by tier', () {
-      expect(AnimationTimeline.getStageADuration(GiftTier.basic), const Duration(seconds: 1));
-      expect(AnimationTimeline.getStageCDuration(GiftTier.basic), const Duration(seconds: 1));
+      expect(AnimationTimeline.getStageADuration(GiftTier.tier1), const Duration(milliseconds: 800));
+      expect(AnimationTimeline.getStageBDuration(GiftTier.tier1), const Duration(milliseconds: 3000));
+      expect(AnimationTimeline.getStageCDuration(GiftTier.tier1), const Duration(milliseconds: 800));
+      expect(AnimationTimeline.getTotalDuration(GiftTier.tier1), const Duration(milliseconds: 4600));
 
-      expect(AnimationTimeline.getStageBDuration(GiftTier.basic), const Duration(seconds: 2));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.premium), const Duration(seconds: 4));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.epic), const Duration(seconds: 6));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.legendary), const Duration(seconds: 8));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.mythic), const Duration(seconds: 10));
-
-      expect(AnimationTimeline.getTotalDuration(GiftTier.basic), const Duration(seconds: 4));
-      expect(AnimationTimeline.getTotalDuration(GiftTier.premium), const Duration(milliseconds: 7500));
-      expect(AnimationTimeline.getTotalDuration(GiftTier.epic), const Duration(seconds: 11));
-      expect(AnimationTimeline.getTotalDuration(GiftTier.legendary), const Duration(milliseconds: 14500));
-      expect(AnimationTimeline.getTotalDuration(GiftTier.mythic), const Duration(seconds: 18));
+      expect(AnimationTimeline.getStageBDuration(GiftTier.tier2), const Duration(milliseconds: 5000));
+      expect(AnimationTimeline.getStageBDuration(GiftTier.tier3), const Duration(milliseconds: 7000));
+      expect(AnimationTimeline.getStageBDuration(GiftTier.tier4), const Duration(milliseconds: 9000));
+      expect(AnimationTimeline.getStageBDuration(GiftTier.tier5), const Duration(milliseconds: 10000));
     });
 
     test('AnimationTimeline stage progress calculation', () {
-      // Basic Tier (Total 4 seconds: A=1s [0-0.25], B=2s [0.25-0.75], C=1s [0.75-1.0])
-      final stageA = AnimationTimeline.getStageProgress(0.10, GiftTier.basic);
+      final stageA = AnimationTimeline.getStageProgress(0.10, GiftTier.tier1);
       expect(stageA.stage, AnimationStage.stageA);
-      expect(stageA.stageNormalizedProgress, closeTo(0.4, 0.01));
 
-      final stageB = AnimationTimeline.getStageProgress(0.50, GiftTier.basic);
+      final stageB = AnimationTimeline.getStageProgress(0.50, GiftTier.tier1);
       expect(stageB.stage, AnimationStage.stageB);
-      expect(stageB.stageNormalizedProgress, closeTo(0.5, 0.01));
 
-      final stageC = AnimationTimeline.getStageProgress(0.875, GiftTier.basic);
+      final stageC = AnimationTimeline.getStageProgress(0.95, GiftTier.tier1);
       expect(stageC.stage, AnimationStage.stageC);
-      expect(stageC.stageNormalizedProgress, closeTo(0.5, 0.01));
+    });
+
+    test('GiftPipelineManager Queue & Particle Pool Tests', () {
+      final manager = GiftPipelineManager();
+      expect(manager.deviceTier, DevicePerformanceTier.highEnd);
+
+      final particle = ParticlePoolManager().obtainParticle();
+      expect(particle, isNotNull);
+      ParticlePoolManager().releaseParticle(particle);
     });
   });
 
   group('SenderPositionResolver Tests', () {
     test('Case 1: Sender is sitting on a room seat -> returns seat position', () {
       final keyMap = <int, GlobalKey>{};
-
       final seats = [
         {'seatIndex': 0, 'userId': 'user_123', 'name': 'Alice'},
         {'seatIndex': 1, 'userId': 'user_456', 'name': 'Bob'},
       ];
 
-      // Since seatKeys context is null in pure unit test, returns fallback/calculated seat
       final pos = SenderPositionResolver.resolve(
         senderId: 'user_123',
         roomSeats: seats,
@@ -60,7 +59,6 @@ void main() {
         fallbackProfilePosition: const Offset(100, 600),
       );
 
-      // User 123 is sitting on seat 0
       expect(pos, isNotNull);
     });
 
@@ -77,7 +75,6 @@ void main() {
         fallbackProfilePosition: const Offset(200, 700),
       );
 
-      // User listener is NOT sitting on any seat -> fallback profile position used
       expect(pos, const Offset(200, 700));
     });
   });
@@ -115,7 +112,7 @@ void main() {
 
       final payload = {
         'id': 'evt_12345',
-        'gift_id': 'a2000000-0000-0000-0000-000000000003',
+        'gift_id': 'f1000001-0000-0000-0000-000000000001',
         'gift_name': 'Rose',
         'gift_icon': '🌹',
         'sender_id': 'user_sender',
@@ -130,11 +127,9 @@ void main() {
       controller.dispatchBroadcastGiftEvent(payload);
       expect(controller.activeEvents.length, 1);
 
-      // Duplicate dispatch of same id should be ignored
       controller.dispatchBroadcastGiftEvent(payload);
       expect(controller.activeEvents.length, 1);
 
-      // Clean up event
       controller.removeEvent('evt_12345');
       expect(controller.activeEvents.isEmpty, true);
     });

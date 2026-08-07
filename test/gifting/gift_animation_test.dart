@@ -1,70 +1,62 @@
-// test/gift_animation_test.dart
+// test/gifting/gift_animation_test.dart
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:creania/models/gift/gift_animation_metadata.dart';
-import 'package:flutter/material.dart';
 
 void main() {
-  group('Gift Animation Registry & Metadata Specification Tests', () {
-    test('Every gift has a unique showcase animation type', () {
-      final rose = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000003');
-      final heart = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000004');
-      final coffee = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000005');
-      final chocolate = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000006');
-      final cake = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000007');
-      final balloon = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000008');
-      final diamond = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000010');
-      final crown = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000011');
-      final butterfly = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000012');
-      final sportsCar = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000013');
-      final privateJet = GiftMetadataRegistry.getMetadata('a2000000-0000-0000-0000-000000000014');
-
-      expect(rose.showcaseType, ShowcaseAnimationType.roseBloom);
-      expect(heart.showcaseType, ShowcaseAnimationType.heartPulse);
-      expect(coffee.showcaseType, ShowcaseAnimationType.coffeeSteam);
-      expect(chocolate.showcaseType, ShowcaseAnimationType.chocolateUnwrap);
-      expect(cake.showcaseType, ShowcaseAnimationType.cakeSparkle);
-      expect(balloon.showcaseType, ShowcaseAnimationType.balloonFloat);
-      expect(diamond.showcaseType, ShowcaseAnimationType.diamondPrism);
-      expect(crown.showcaseType, ShowcaseAnimationType.crownShine);
-      expect(butterfly.showcaseType, ShowcaseAnimationType.butterflyWings);
-      expect(sportsCar.showcaseType, ShowcaseAnimationType.carEngine);
-      expect(privateJet.showcaseType, ShowcaseAnimationType.jetIgnition);
-
-      // Verify no two distinct gifts share the exact same showcase type
-      expect(rose.showcaseType, isNot(equals(heart.showcaseType)));
-      expect(sportsCar.showcaseType, isNot(equals(privateJet.showcaseType)));
-      expect(coffee.showcaseType, isNot(equals(rose.showcaseType)));
+  group('Gift Animation Registry & 35-Gift Specification Tests', () {
+    test('Verify total count of gifts in registry is 35', () {
+      expect(GiftMetadataRegistry.registry.length, 35);
     });
 
-    test('Dynamic fallback resolves unique showcase and seat landing types by name', () {
-      final dragon = GiftMetadataRegistry.getMetadata('Dragon');
-      final galaxy = GiftMetadataRegistry.getMetadata('Galaxy');
-      final castle = GiftMetadataRegistry.getMetadata('Castle');
-      final phoenix = GiftMetadataRegistry.getMetadata('Phoenix');
+    test('Verify distribution: 29 Gold Gifts and 6 Silver Gifts', () {
+      final goldGifts = GiftMetadataRegistry.registry.values.where((g) => g.currency == 'gold').toList();
+      final silverGifts = GiftMetadataRegistry.registry.values.where((g) => g.currency == 'silver').toList();
 
-      expect(dragon.showcaseType, ShowcaseAnimationType.dragonFire);
-      expect(dragon.seatEffect, SeatEffectType.fireAura);
-
-      expect(galaxy.showcaseType, ShowcaseAnimationType.galaxyRotate);
-      expect(galaxy.seatEffect, SeatEffectType.starRing);
-
-      expect(castle.showcaseType, ShowcaseAnimationType.castleBuild);
-      expect(castle.seatEffect, SeatEffectType.goldenThroneGlow);
-
-      expect(phoenix.showcaseType, ShowcaseAnimationType.phoenixFlames);
-      expect(phoenix.seatEffect, SeatEffectType.phoenixFlames);
-
-      // Verify that Dragon does NOT default to Rose
-      expect(dragon.showcaseType, isNot(equals(ShowcaseAnimationType.roseBloom)));
+      expect(goldGifts.length, 29);
+      expect(silverGifts.length, 6);
     });
 
-    test('Every gift has seat landing effect assigned', () {
-      final sportsCar = GiftMetadataRegistry.getMetadata('Sports Car');
-      final rose = GiftMetadataRegistry.getMetadata('Rose');
+    test('Verify 6 designated Lucky Gold Gifts', () {
+      final luckyGifts = GiftMetadataRegistry.registry.values.where((g) => g.isLucky).toList();
+      expect(luckyGifts.length, 6);
 
-      expect(sportsCar.seatEffect, SeatEffectType.wheelSkid);
-      expect(rose.seatEffect, SeatEffectType.flowerBloom);
+      final luckyNames = luckyGifts.map((g) => g.giftName).toSet();
+      expect(luckyNames.contains('Sakura'), true);
+      expect(luckyNames.contains('Gift Box'), true);
+      expect(luckyNames.contains('Diamond Ring'), true);
+      expect(luckyNames.contains('Champion Trophy'), true);
+      expect(luckyNames.contains('Super Car'), true);
+      expect(luckyNames.contains('Golden Dragon'), true);
+    });
+
+    test('Verify updated 9 Gold prices for Gift Box and Teddy', () {
+      final giftBox = GiftMetadataRegistry.getMetadata('f1000001-0000-0000-0000-000000000011');
+      final teddy = GiftMetadataRegistry.getMetadata('f1000001-0000-0000-0000-000000000012');
+
+      expect(giftBox.price, 9);
+      expect(teddy.price, 9);
+    });
+
+    test('Every gift has a valid showcase animation type and duration', () {
+      for (final gift in GiftMetadataRegistry.registry.values) {
+        expect(gift.duration.inMilliseconds, greaterThanOrEqualTo(2000));
+        expect(gift.duration.inMilliseconds, lessThanOrEqualTo(10000));
+        expect(gift.giftIcon, isNotEmpty);
+        expect(gift.giftName, isNotEmpty);
+      }
+    });
+
+    test('Dynamic lookup by ID and Name fallback', () {
+      final dragon = GiftMetadataRegistry.getMetadata('f1000004-0000-0000-0000-000000000001');
+      expect(dragon.giftName, 'Golden Dragon');
+      expect(dragon.price, 1999);
+      expect(dragon.tier, GiftTier.tier4);
+
+      final cosmos = GiftMetadataRegistry.getMetadata('Infinity Cosmos');
+      expect(cosmos.giftName, 'Infinity Cosmos');
+      expect(cosmos.price, 29999);
+      expect(cosmos.tier, GiftTier.tier5);
     });
   });
 }

@@ -67,10 +67,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
   @override
   Widget build(BuildContext context) {
     final String rId = widget.roomId ?? '';
-    final bool isCtrlRegistered =
-        rId.isNotEmpty && Get.isRegistered<RoomDualProgressController>();
-
-    if (!isCtrlRegistered) {
+    if (rId.isEmpty) {
       return _buildContent(null);
     }
 

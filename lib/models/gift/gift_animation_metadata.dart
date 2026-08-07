@@ -1,4 +1,4 @@
-// lib/models/gift_animation_metadata.dart
+// lib/models/gift/gift_animation_metadata.dart
 
 import 'package:flutter/material.dart';
 
@@ -8,11 +8,11 @@ enum GiftAnimationMode {
 }
 
 enum GiftTier {
-  basic,     // Tier 1: 2s, 20% screen, seat animation only
-  premium,   // Tier 2: 3s, 35% screen, seat transformation & mini explosion
-  epic,      // Tier 3: 4-5s, 60% screen, cinematic landing & aura
-  legendary, // Tier 4: 6s, 80% screen, entire seat transform & camera movement
-  mythic,    // Tier 5: 8-10s, 100% screen, full room takeover & cinematic background
+  tier1, // Tier 1: 2-4s (Rose, Heart, Coffee, Sakura, Lucky Star, etc.)
+  tier2, // Tier 2: 4-6s (Bouquet, Birthday Cake, Diamond Ring, Crown, Golden Mic, Trophy, Crystal Diamond)
+  tier3, // Tier 3: 6-8.5s (Fireworks, Super Car, Rocket, Private Jet, Treasure Chest)
+  tier4, // Tier 4: 8-10s (Golden Dragon, Phoenix, Galaxy Portal, Crystal Castle)
+  tier5, // Tier 5: 10s Premium Cinematic Showcase (Celestial Emperor, Planet Creation, World Tree, Infinity Cosmos)
 }
 
 enum FlightPathType {
@@ -27,26 +27,41 @@ enum FlightPathType {
 }
 
 enum ShowcaseAnimationType {
-  roseBloom,
-  heartPulse,
-  coffeeSteam,
-  chocolateUnwrap,
-  balloonFloat,
-  butterflyWings,
-  cakeSparkle,
-  diamondPrism,
-  ringSparkle,
-  crownShine,
-  carEngine,
-  jetIgnition,
-  yachtSplash,
-  dragonFire,
-  galaxyRotate,
-  castleBuild,
-  phoenixFlames,
-  likePop,
-  flowerBloom,
-  giftBoxExplode,
+  popGlow,          // 🌹 Rose
+  floatingHearts,   // ❤️ Heart
+  steamFade,        // ☕ Coffee
+  petalsBurst,      // 🌸 Sakura
+  starTrail,        // ⭐ Lucky Star
+  sweetSparkles,    // 🍫 Chocolate
+  floatUp,          // 🎈 Balloon
+  candleShine,      // 🍰 Cake
+  butterflyTrail,   // 🦋 Butterfly
+  heartTrail,       // 💌 Love Letter
+  openShine,        // 🎁 Gift Box
+  bounceHug,        // 🧸 Teddy
+  greenGlow,        // 🍀 Lucky Clover
+  moonlightEffect,  // 🌙 Moon
+  sunRays,          // ☀️ Sunshine
+  flowersBloom,     // 💐 Bouquet
+  candleCelebration,// 🎂 Birthday Cake
+  ringSpinShine,    // 💍 Diamond Ring
+  goldenAura,       // 👑 Crown
+  musicWaves,       // 🎤 Golden Mic
+  trophyRise,       // 🏆 Champion Trophy
+  crystalExplosion, // 💎 Crystal Diamond
+  fireworksShow,    // 🎆 Fireworks
+  driveAcrossScreen,// 🏎️ Super Car
+  rocketLaunch,     // 🚀 Rocket
+  flyOverScreen,    // ✈️ Private Jet
+  goldBurst,        // 💰 Treasure Chest
+  dragonFlies,      // 🐉 Golden Dragon
+  phoenixFlames,    // 🔥 Phoenix
+  galaxyPortal,     // 🌌 Galaxy Portal
+  crystalCastle,    // 🏰 Crystal Castle
+  celestialEmperor, // 👑 Celestial Emperor
+  planetCreation,   // 🌍 Planet Creation
+  worldTree,        // 🌳 World Tree
+  infinityCosmos,   // 🌠 Infinity Cosmos
   genericGlow,
 }
 
@@ -58,9 +73,7 @@ enum SeatEffectType {
   fire,
   ice,
   lightning,
-  magicCircle,
   flowerBloom,
-  heartRain,
   heartExplosion,
   steamPuff,
   sweetSparkle,
@@ -69,32 +82,20 @@ enum SeatEffectType {
   candleFlare,
   prismBurst,
   ringSparkle,
-  goldenAura,
   royalAura,
-  royalThrone,
   goldenThroneGlow,
-  dragonWings,
   fireAura,
-  galaxyRing,
   starRing,
   wheelSkid,
   windBurst,
-  rainbow,
-  snow,
-  cloud,
-  stars,
   waterSplash,
   crystal,
   musicNotes,
-  butterflies,
-  leaves,
   sparkles,
-  energyWaves,
-  smoke,
-  flames,
-  thumbsUpBurst,
   boxExplosion,
   phoenixFlames,
+  spacePortal,
+  cosmicAurora,
 }
 
 enum ChatEffectType {
@@ -129,14 +130,15 @@ class GiftAnimationMetadata {
   final String giftId;
   final String giftName;
   final String giftIcon;
-  final String currency; // 'Gold' or 'Silver'
+  final String currency; // 'gold' or 'silver'
   final int price;
   final GiftTier tier;
+  final bool isLucky;
   final FlightPathType flightPath;
   final SeatEffectType seatEffect;
   final ShowcaseAnimationType showcaseType;
   final ChatEffectType chatEffect;
-  final double screenCoverage; // e.g. 0.20, 0.35, 0.60, 0.80, 1.00
+  final double screenCoverage; // e.g. 0.20, 0.40, 0.65, 0.85, 1.00
   final Duration duration;
   final bool autoClose;
   final String roomAnimation;
@@ -152,6 +154,7 @@ class GiftAnimationMetadata {
     required this.currency,
     required this.price,
     required this.tier,
+    this.isLucky = false,
     required this.flightPath,
     required this.seatEffect,
     required this.showcaseType,
@@ -167,494 +170,229 @@ class GiftAnimationMetadata {
   });
 
   Map<String, dynamic> toJson() => {
+        'gift_id': giftId,
         'gift_name': giftName,
         'currency': currency,
         'price': price,
         'tier': tier.index + 1,
+        'is_lucky': isLucky,
         'flight_path': flightPath.name,
-        'room_animation': roomAnimation,
-        'chat_animation': chatAnimation,
         'showcase_type': showcaseType.name,
         'seat_effect': seatEffect.name,
         'chat_effect': chatEffect.name,
         'screen_coverage': '${(screenCoverage * 100).toInt()}%',
-        'duration': '${duration.inSeconds}s',
+        'duration': '${duration.inMilliseconds}ms',
         'auto_close': autoClose,
-        if (stackingConfig != null) 'stacking': stackingConfig!.toJson(),
       };
 }
 
-/// Fully data-driven registry matching production Creaniaa gift catalog (24 Unique Items + Dynamic Fallbacks)
+/// Centralized Data Registry containing the exact 35 Gifts
 class GiftMetadataRegistry {
-  static ShowcaseAnimationType getShowcaseTypeForName(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('rose')) return ShowcaseAnimationType.roseBloom;
-    if (lower.contains('flower')) return ShowcaseAnimationType.flowerBloom;
-    if (lower.contains('heart')) return ShowcaseAnimationType.heartPulse;
-    if (lower.contains('coffee')) return ShowcaseAnimationType.coffeeSteam;
-    if (lower.contains('choco')) return ShowcaseAnimationType.chocolateUnwrap;
-    if (lower.contains('balloon')) return ShowcaseAnimationType.balloonFloat;
-    if (lower.contains('butter')) return ShowcaseAnimationType.butterflyWings;
-    if (lower.contains('cake')) return ShowcaseAnimationType.cakeSparkle;
-    if (lower.contains('diamond')) return ShowcaseAnimationType.diamondPrism;
-    if (lower.contains('ring')) return ShowcaseAnimationType.ringSparkle;
-    if (lower.contains('crown')) return ShowcaseAnimationType.crownShine;
-    if (lower.contains('car')) return ShowcaseAnimationType.carEngine;
-    if (lower.contains('jet')) return ShowcaseAnimationType.jetIgnition;
-    if (lower.contains('yacht')) return ShowcaseAnimationType.yachtSplash;
-    if (lower.contains('dragon')) return ShowcaseAnimationType.dragonFire;
-    if (lower.contains('galaxy')) return ShowcaseAnimationType.galaxyRotate;
-    if (lower.contains('castle')) return ShowcaseAnimationType.castleBuild;
-    if (lower.contains('phoenix')) return ShowcaseAnimationType.phoenixFlames;
-    if (lower.contains('like')) return ShowcaseAnimationType.likePop;
-    if (lower.contains('box')) return ShowcaseAnimationType.giftBoxExplode;
-    return ShowcaseAnimationType.genericGlow;
-  }
-
-  static SeatEffectType getSeatEffectForName(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('rose') || lower.contains('flower')) return SeatEffectType.flowerBloom;
-    if (lower.contains('heart')) return SeatEffectType.heartExplosion;
-    if (lower.contains('coffee')) return SeatEffectType.steamPuff;
-    if (lower.contains('choco')) return SeatEffectType.sweetSparkle;
-    if (lower.contains('balloon')) return SeatEffectType.popConfetti;
-    if (lower.contains('butter')) return SeatEffectType.swarmFlutter;
-    if (lower.contains('cake')) return SeatEffectType.candleFlare;
-    if (lower.contains('diamond')) return SeatEffectType.prismBurst;
-    if (lower.contains('ring')) return SeatEffectType.ringSparkle;
-    if (lower.contains('crown')) return SeatEffectType.royalAura;
-    if (lower.contains('car')) return SeatEffectType.wheelSkid;
-    if (lower.contains('jet')) return SeatEffectType.windBurst;
-    if (lower.contains('yacht')) return SeatEffectType.waterSplash;
-    if (lower.contains('dragon')) return SeatEffectType.fireAura;
-    if (lower.contains('galaxy')) return SeatEffectType.starRing;
-    if (lower.contains('castle')) return SeatEffectType.goldenThroneGlow;
-    if (lower.contains('phoenix')) return SeatEffectType.phoenixFlames;
-    if (lower.contains('like')) return SeatEffectType.thumbsUpBurst;
-    if (lower.contains('box')) return SeatEffectType.boxExplosion;
-    return SeatEffectType.glow;
-  }
-
   static final Map<String, GiftAnimationMetadata> _registry = {
-    // 1. Like (2 Gold)
-    'a2000000-0000-0000-0000-000000000001': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000001',
-      giftName: 'Like',
-      giftIcon: '👍',
-      currency: 'Gold',
-      price: 2,
-      tier: GiftTier.basic,
-      flightPath: FlightPathType.bounce,
-      showcaseType: ShowcaseAnimationType.likePop,
-      seatEffect: SeatEffectType.thumbsUpBurst,
-      chatEffect: ChatEffectType.bubblePop,
-      screenCoverage: 0.20,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'like_room.json',
-      chatAnimation: 'like_chat.lottie',
-      themeColor: Colors.blueAccent,
+    // 🥈 TIER 1 (15 GIFTS: 3 Silver, 12 Gold)
+    // Silver (3)
+    'f1000001-0000-0000-0000-000000000001': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000001', giftName: 'Rose', giftIcon: '🌹', currency: 'silver', price: 100,
+      tier: GiftTier.tier1, flightPath: FlightPathType.bounce, seatEffect: SeatEffectType.flowerBloom, showcaseType: ShowcaseAnimationType.popGlow,
+      chatEffect: ChatEffectType.hearts, screenCoverage: 0.20, duration: Duration(milliseconds: 2000), roomAnimation: 'rose.json', chatAnimation: 'rose_chat.lottie', themeColor: Colors.pink,
+    ),
+    'f1000001-0000-0000-0000-000000000002': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000002', giftName: 'Heart', giftIcon: '❤️', currency: 'silver', price: 300,
+      tier: GiftTier.tier1, flightPath: FlightPathType.straight, seatEffect: SeatEffectType.heartExplosion, showcaseType: ShowcaseAnimationType.floatingHearts,
+      chatEffect: ChatEffectType.hearts, screenCoverage: 0.20, duration: Duration(milliseconds: 2500), roomAnimation: 'heart.json', chatAnimation: 'heart_chat.lottie', themeColor: Colors.redAccent,
+    ),
+    'f1000001-0000-0000-0000-000000000003': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000003', giftName: 'Coffee', giftIcon: '☕', currency: 'silver', price: 800,
+      tier: GiftTier.tier1, flightPath: FlightPathType.bounce, seatEffect: SeatEffectType.steamPuff, showcaseType: ShowcaseAnimationType.steamFade,
+      chatEffect: ChatEffectType.smallGlow, screenCoverage: 0.20, duration: Duration(milliseconds: 3000), roomAnimation: 'coffee.json', chatAnimation: 'coffee_chat.lottie', themeColor: Colors.brown,
     ),
 
-    // 2. Flower (5 Gold)
-    'a2000000-0000-0000-0000-000000000002': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000002',
-      giftName: 'Flower',
-      giftIcon: '🌼',
-      currency: 'Gold',
-      price: 5,
-      tier: GiftTier.basic,
-      flightPath: FlightPathType.curve,
-      showcaseType: ShowcaseAnimationType.flowerBloom,
-      seatEffect: SeatEffectType.flowerBloom,
-      chatEffect: ChatEffectType.sparkles,
-      screenCoverage: 0.20,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'flower_room.json',
-      chatAnimation: 'flower_chat.lottie',
-      themeColor: Colors.orangeAccent,
+    // Gold (12)
+    'f1000001-0000-0000-0000-000000000004': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000004', giftName: 'Sakura', giftIcon: '🌸', currency: 'gold', price: 2, isLucky: true,
+      tier: GiftTier.tier1, flightPath: FlightPathType.curve, seatEffect: SeatEffectType.flowerBloom, showcaseType: ShowcaseAnimationType.petalsBurst,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.25, duration: Duration(milliseconds: 2000), roomAnimation: 'sakura.json', chatAnimation: 'sakura_chat.lottie', themeColor: Colors.pinkAccent,
+    ),
+    'f1000001-0000-0000-0000-000000000005': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000005', giftName: 'Lucky Star', giftIcon: '⭐', currency: 'gold', price: 2,
+      tier: GiftTier.tier1, flightPath: FlightPathType.straight, seatEffect: SeatEffectType.starRing, showcaseType: ShowcaseAnimationType.starTrail,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.25, duration: Duration(milliseconds: 2200), roomAnimation: 'star.json', chatAnimation: 'star_chat.lottie', themeColor: Colors.amberAccent,
+    ),
+    'f1000001-0000-0000-0000-000000000006': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000006', giftName: 'Chocolate', giftIcon: '🍫', currency: 'gold', price: 4,
+      tier: GiftTier.tier1, flightPath: FlightPathType.curve, seatEffect: SeatEffectType.sweetSparkle, showcaseType: ShowcaseAnimationType.sweetSparkles,
+      chatEffect: ChatEffectType.confetti, screenCoverage: 0.25, duration: Duration(milliseconds: 2500), roomAnimation: 'chocolate.json', chatAnimation: 'chocolate_chat.lottie', themeColor: Colors.amber,
+    ),
+    'f1000001-0000-0000-0000-000000000007': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000007', giftName: 'Balloon', giftIcon: '🎈', currency: 'gold', price: 4,
+      tier: GiftTier.tier1, flightPath: FlightPathType.wave, seatEffect: SeatEffectType.popConfetti, showcaseType: ShowcaseAnimationType.floatUp,
+      chatEffect: ChatEffectType.bubblePop, screenCoverage: 0.25, duration: Duration(milliseconds: 2500), roomAnimation: 'balloon.json', chatAnimation: 'balloon_chat.lottie', themeColor: Colors.purpleAccent,
+    ),
+    'f1000001-0000-0000-0000-000000000008': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000008', giftName: 'Cake', giftIcon: '🍰', currency: 'gold', price: 5,
+      tier: GiftTier.tier1, flightPath: FlightPathType.bounce, seatEffect: SeatEffectType.candleFlare, showcaseType: ShowcaseAnimationType.candleShine,
+      chatEffect: ChatEffectType.miniFireworks, screenCoverage: 0.25, duration: Duration(milliseconds: 3000), roomAnimation: 'cake.json', chatAnimation: 'cake_chat.lottie', themeColor: Colors.pink,
+    ),
+    'f1000001-0000-0000-0000-000000000009': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000009', giftName: 'Butterfly', giftIcon: '🦋', currency: 'gold', price: 5,
+      tier: GiftTier.tier1, flightPath: FlightPathType.orbit, seatEffect: SeatEffectType.swarmFlutter, showcaseType: ShowcaseAnimationType.butterflyTrail,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.25, duration: Duration(milliseconds: 3000), roomAnimation: 'butterfly.json', chatAnimation: 'butterfly_chat.lottie', themeColor: Colors.deepPurpleAccent,
+    ),
+    'f1000001-0000-0000-0000-000000000010': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000010', giftName: 'Love Letter', giftIcon: '💌', currency: 'gold', price: 8,
+      tier: GiftTier.tier1, flightPath: FlightPathType.curve, seatEffect: SeatEffectType.heartExplosion, showcaseType: ShowcaseAnimationType.heartTrail,
+      chatEffect: ChatEffectType.hearts, screenCoverage: 0.30, duration: Duration(milliseconds: 3200), roomAnimation: 'love_letter.json', chatAnimation: 'love_letter_chat.lottie', themeColor: Colors.redAccent,
+    ),
+    'f1000001-0000-0000-0000-000000000011': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000011', giftName: 'Gift Box', giftIcon: '🎁', currency: 'gold', price: 9, isLucky: true,
+      tier: GiftTier.tier1, flightPath: FlightPathType.bounce, seatEffect: SeatEffectType.boxExplosion, showcaseType: ShowcaseAnimationType.openShine,
+      chatEffect: ChatEffectType.confetti, screenCoverage: 0.30, duration: Duration(milliseconds: 3500), roomAnimation: 'gift_box.json', chatAnimation: 'gift_box_chat.lottie', themeColor: Colors.red,
+    ),
+    'f1000001-0000-0000-0000-000000000012': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000012', giftName: 'Teddy', giftIcon: '🧸', currency: 'gold', price: 9,
+      tier: GiftTier.tier1, flightPath: FlightPathType.bounce, seatEffect: SeatEffectType.pulse, showcaseType: ShowcaseAnimationType.bounceHug,
+      chatEffect: ChatEffectType.hearts, screenCoverage: 0.30, duration: Duration(milliseconds: 3500), roomAnimation: 'teddy.json', chatAnimation: 'teddy_chat.lottie', themeColor: Colors.orange,
+    ),
+    'f1000001-0000-0000-0000-000000000013': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000013', giftName: 'Lucky Clover', giftIcon: '🍀', currency: 'gold', price: 15,
+      tier: GiftTier.tier1, flightPath: FlightPathType.curve, seatEffect: SeatEffectType.glow, showcaseType: ShowcaseAnimationType.greenGlow,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.30, duration: Duration(milliseconds: 3800), roomAnimation: 'clover.json', chatAnimation: 'clover_chat.lottie', themeColor: Colors.greenAccent,
+    ),
+    'f1000001-0000-0000-0000-000000000014': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000014', giftName: 'Moon', giftIcon: '🌙', currency: 'gold', price: 19,
+      tier: GiftTier.tier1, flightPath: FlightPathType.orbit, seatEffect: SeatEffectType.starRing, showcaseType: ShowcaseAnimationType.moonlightEffect,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.35, duration: Duration(milliseconds: 4000), roomAnimation: 'moon.json', chatAnimation: 'moon_chat.lottie', themeColor: Colors.indigoAccent,
+    ),
+    'f1000001-0000-0000-0000-000000000015': const GiftAnimationMetadata(
+      giftId: 'f1000001-0000-0000-0000-000000000015', giftName: 'Sunshine', giftIcon: '☀️', currency: 'gold', price: 19,
+      tier: GiftTier.tier1, flightPath: FlightPathType.straight, seatEffect: SeatEffectType.glow, showcaseType: ShowcaseAnimationType.sunRays,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.35, duration: Duration(milliseconds: 4000), roomAnimation: 'sunshine.json', chatAnimation: 'sunshine_chat.lottie', themeColor: Colors.amber,
     ),
 
-    // 3. Rose (10 Gold)
-    'a2000000-0000-0000-0000-000000000003': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000003',
-      giftName: 'Rose',
-      giftIcon: '🌹',
-      currency: 'Gold',
-      price: 10,
-      tier: GiftTier.basic,
-      flightPath: FlightPathType.curve,
-      showcaseType: ShowcaseAnimationType.roseBloom,
-      seatEffect: SeatEffectType.flowerBloom,
-      chatEffect: ChatEffectType.hearts,
-      screenCoverage: 0.20,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'rose_room.json',
-      chatAnimation: 'rose_chat.lottie',
-      stackingConfig: GiftStackingConfig(
-        stackedEffectName: 'Rose Garden Bloom',
-        minComboThreshold: 10,
-        stackedDuration: Duration(milliseconds: 6000),
-      ),
-      themeColor: Colors.pinkAccent,
+    // 🥇 TIER 2 (7 GIFTS: 2 Silver, 5 Gold)
+    // Silver (2)
+    'f1000002-0000-0000-0000-000000000001': const GiftAnimationMetadata(
+      giftId: 'f1000002-0000-0000-0000-000000000001', giftName: 'Bouquet', giftIcon: '💐', currency: 'silver', price: 2000,
+      tier: GiftTier.tier2, flightPath: FlightPathType.curve, seatEffect: SeatEffectType.flowerBloom, showcaseType: ShowcaseAnimationType.flowersBloom,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.40, duration: Duration(milliseconds: 4000), roomAnimation: 'bouquet.json', chatAnimation: 'bouquet_chat.lottie', themeColor: Colors.purple,
+    ),
+    'f1000002-0000-0000-0000-000000000002': const GiftAnimationMetadata(
+      giftId: 'f1000002-0000-0000-0000-000000000002', giftName: 'Birthday Cake', giftIcon: '🎂', currency: 'silver', price: 5000,
+      tier: GiftTier.tier2, flightPath: FlightPathType.bounce, seatEffect: SeatEffectType.candleFlare, showcaseType: ShowcaseAnimationType.candleCelebration,
+      chatEffect: ChatEffectType.miniFireworks, screenCoverage: 0.45, duration: Duration(milliseconds: 5000), roomAnimation: 'birthday_cake.json', chatAnimation: 'bday_chat.lottie', themeColor: Colors.pinkAccent,
+    ),
+    // Gold (5)
+    'f1000002-0000-0000-0000-000000000003': const GiftAnimationMetadata(
+      giftId: 'f1000002-0000-0000-0000-000000000003', giftName: 'Diamond Ring', giftIcon: '💍', currency: 'gold', price: 29, isLucky: true,
+      tier: GiftTier.tier2, flightPath: FlightPathType.spiral, seatEffect: SeatEffectType.ringSparkle, showcaseType: ShowcaseAnimationType.ringSpinShine,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.45, duration: Duration(milliseconds: 4000), roomAnimation: 'ring.json', chatAnimation: 'ring_chat.lottie', themeColor: Colors.cyanAccent,
+    ),
+    'f1000002-0000-0000-0000-000000000004': const GiftAnimationMetadata(
+      giftId: 'f1000002-0000-0000-0000-000000000004', giftName: 'Crown', giftIcon: '👑', currency: 'gold', price: 49,
+      tier: GiftTier.tier2, flightPath: FlightPathType.curve, seatEffect: SeatEffectType.royalAura, showcaseType: ShowcaseAnimationType.goldenAura,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.50, duration: Duration(milliseconds: 4500), roomAnimation: 'crown.json', chatAnimation: 'crown_chat.lottie', themeColor: Colors.amber,
+    ),
+    'f1000002-0000-0000-0000-000000000005': const GiftAnimationMetadata(
+      giftId: 'f1000002-0000-0000-0000-000000000005', giftName: 'Golden Mic', giftIcon: '🎤', currency: 'gold', price: 79,
+      tier: GiftTier.tier2, flightPath: FlightPathType.wave, seatEffect: SeatEffectType.musicNotes, showcaseType: ShowcaseAnimationType.musicWaves,
+      chatEffect: ChatEffectType.miniFireworks, screenCoverage: 0.50, duration: Duration(milliseconds: 5000), roomAnimation: 'mic.json', chatAnimation: 'mic_chat.lottie', themeColor: Colors.amber,
+    ),
+    'f1000002-0000-0000-0000-000000000006': const GiftAnimationMetadata(
+      giftId: 'f1000002-0000-0000-0000-000000000006', giftName: 'Champion Trophy', giftIcon: '🏆', currency: 'gold', price: 119, isLucky: true,
+      tier: GiftTier.tier2, flightPath: FlightPathType.straight, seatEffect: SeatEffectType.royalAura, showcaseType: ShowcaseAnimationType.trophyRise,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.55, duration: Duration(milliseconds: 5500), roomAnimation: 'trophy.json', chatAnimation: 'trophy_chat.lottie', themeColor: Colors.amber,
+    ),
+    'f1000002-0000-0000-0000-000000000007': const GiftAnimationMetadata(
+      giftId: 'f1000002-0000-0000-0000-000000000007', giftName: 'Crystal Diamond', giftIcon: '💎', currency: 'gold', price: 149,
+      tier: GiftTier.tier2, flightPath: FlightPathType.spiral, seatEffect: SeatEffectType.crystal, showcaseType: ShowcaseAnimationType.crystalExplosion,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.60, duration: Duration(milliseconds: 6000), roomAnimation: 'diamond.json', chatAnimation: 'diamond_chat.lottie', themeColor: Colors.cyan,
     ),
 
-    // 4. Heart (15 Gold)
-    'a2000000-0000-0000-0000-000000000004': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000004',
-      giftName: 'Heart',
-      giftIcon: '❤️',
-      currency: 'Gold',
-      price: 15,
-      tier: GiftTier.basic,
-      flightPath: FlightPathType.straight,
-      showcaseType: ShowcaseAnimationType.heartPulse,
-      seatEffect: SeatEffectType.heartExplosion,
-      chatEffect: ChatEffectType.hearts,
-      screenCoverage: 0.20,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'heart_room.json',
-      chatAnimation: 'heart_chat.lottie',
-      stackingConfig: GiftStackingConfig(
-        stackedEffectName: 'Heart Rain Shower',
-        minComboThreshold: 50,
-        stackedDuration: Duration(milliseconds: 7000),
-      ),
-      themeColor: Colors.redAccent,
+    // 👑 TIER 3 (5 GIFTS: 1 Silver, 4 Gold)
+    // Silver (1)
+    'f1000003-0000-0000-0000-000000000001': const GiftAnimationMetadata(
+      giftId: 'f1000003-0000-0000-0000-000000000001', giftName: 'Fireworks', giftIcon: '🎆', currency: 'silver', price: 10000,
+      tier: GiftTier.tier3, flightPath: FlightPathType.straight, seatEffect: SeatEffectType.sparkles, showcaseType: ShowcaseAnimationType.fireworksShow,
+      chatEffect: ChatEffectType.miniFireworks, screenCoverage: 0.65, duration: Duration(milliseconds: 6000), roomAnimation: 'fireworks.json', chatAnimation: 'fireworks_chat.lottie', themeColor: Colors.deepPurpleAccent,
+    ),
+    // Gold (4)
+    'f1000003-0000-0000-0000-000000000002': const GiftAnimationMetadata(
+      giftId: 'f1000003-0000-0000-0000-000000000002', giftName: 'Super Car', giftIcon: '🏎️', currency: 'gold', price: 299, isLucky: true,
+      tier: GiftTier.tier3, flightPath: FlightPathType.zigzag, seatEffect: SeatEffectType.wheelSkid, showcaseType: ShowcaseAnimationType.driveAcrossScreen,
+      chatEffect: ChatEffectType.miniFireworks, screenCoverage: 0.70, duration: Duration(milliseconds: 6000), roomAnimation: 'super_car.json', chatAnimation: 'car_chat.lottie', themeColor: Colors.deepOrange,
+    ),
+    'f1000003-0000-0000-0000-000000000003': const GiftAnimationMetadata(
+      giftId: 'f1000003-0000-0000-0000-000000000003', giftName: 'Rocket', giftIcon: '🚀', currency: 'gold', price: 499,
+      tier: GiftTier.tier3, flightPath: FlightPathType.straight, seatEffect: SeatEffectType.fire, showcaseType: ShowcaseAnimationType.rocketLaunch,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.75, duration: Duration(milliseconds: 7000), roomAnimation: 'rocket.json', chatAnimation: 'rocket_chat.lottie', themeColor: Colors.redAccent,
+    ),
+    'f1000003-0000-0000-0000-000000000004': const GiftAnimationMetadata(
+      giftId: 'f1000003-0000-0000-0000-000000000004', giftName: 'Private Jet', giftIcon: '✈️', currency: 'gold', price: 799,
+      tier: GiftTier.tier3, flightPath: FlightPathType.infinity, seatEffect: SeatEffectType.windBurst, showcaseType: ShowcaseAnimationType.flyOverScreen,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.75, duration: Duration(milliseconds: 8000), roomAnimation: 'jet.json', chatAnimation: 'jet_chat.lottie', themeColor: Colors.cyanAccent,
+    ),
+    'f1000003-0000-0000-0000-000000000005': const GiftAnimationMetadata(
+      giftId: 'f1000003-0000-0000-0000-000000000005', giftName: 'Treasure Chest', giftIcon: '💰', currency: 'gold', price: 999,
+      tier: GiftTier.tier3, flightPath: FlightPathType.bounce, seatEffect: SeatEffectType.goldenThroneGlow, showcaseType: ShowcaseAnimationType.goldBurst,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.80, duration: Duration(milliseconds: 8500), roomAnimation: 'treasure.json', chatAnimation: 'treasure_chat.lottie', themeColor: Colors.amber,
     ),
 
-    // 5. Coffee (20 Gold)
-    'a2000000-0000-0000-0000-000000000005': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000005',
-      giftName: 'Coffee',
-      giftIcon: '☕',
-      currency: 'Gold',
-      price: 20,
-      tier: GiftTier.basic,
-      flightPath: FlightPathType.bounce,
-      showcaseType: ShowcaseAnimationType.coffeeSteam,
-      seatEffect: SeatEffectType.steamPuff,
-      chatEffect: ChatEffectType.smallGlow,
-      screenCoverage: 0.20,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'coffee_room.json',
-      chatAnimation: 'coffee_chat.lottie',
-      themeColor: Colors.brown,
+    // 💎 TIER 4 (4 GIFTS: 0 Silver, 4 Gold)
+    'f1000004-0000-0000-0000-000000000001': const GiftAnimationMetadata(
+      giftId: 'f1000004-0000-0000-0000-000000000001', giftName: 'Golden Dragon', giftIcon: '🐉', currency: 'gold', price: 1999, isLucky: true,
+      tier: GiftTier.tier4, flightPath: FlightPathType.orbit, seatEffect: SeatEffectType.fireAura, showcaseType: ShowcaseAnimationType.dragonFlies,
+      chatEffect: ChatEffectType.miniFireworks, screenCoverage: 0.90, duration: Duration(milliseconds: 8000), roomAnimation: 'dragon.json', chatAnimation: 'dragon_chat.lottie', themeColor: Colors.red,
+    ),
+    'f1000004-0000-0000-0000-000000000002': const GiftAnimationMetadata(
+      giftId: 'f1000004-0000-0000-0000-000000000002', giftName: 'Phoenix', giftIcon: '🔥', currency: 'gold', price: 2999,
+      tier: GiftTier.tier4, flightPath: FlightPathType.infinity, seatEffect: SeatEffectType.phoenixFlames, showcaseType: ShowcaseAnimationType.phoenixFlames,
+      chatEffect: ChatEffectType.miniFireworks, screenCoverage: 0.90, duration: Duration(milliseconds: 8500), roomAnimation: 'phoenix.json', chatAnimation: 'phoenix_chat.lottie', themeColor: Colors.orange,
+    ),
+    'f1000004-0000-0000-0000-000000000003': const GiftAnimationMetadata(
+      giftId: 'f1000004-0000-0000-0000-000000000003', giftName: 'Galaxy Portal', giftIcon: '🌌', currency: 'gold', price: 4499,
+      tier: GiftTier.tier4, flightPath: FlightPathType.spiral, seatEffect: SeatEffectType.spacePortal, showcaseType: ShowcaseAnimationType.galaxyPortal,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.95, duration: Duration(milliseconds: 9000), roomAnimation: 'galaxy.json', chatAnimation: 'galaxy_chat.lottie', themeColor: Colors.indigoAccent,
+    ),
+    'f1000004-0000-0000-0000-000000000004': const GiftAnimationMetadata(
+      giftId: 'f1000004-0000-0000-0000-000000000004', giftName: 'Crystal Castle', giftIcon: '🏰', currency: 'gold', price: 6999,
+      tier: GiftTier.tier4, flightPath: FlightPathType.curve, seatEffect: SeatEffectType.goldenThroneGlow, showcaseType: ShowcaseAnimationType.crystalCastle,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 0.95, duration: Duration(milliseconds: 10000), roomAnimation: 'castle.json', chatAnimation: 'castle_chat.lottie', themeColor: Colors.yellowAccent,
     ),
 
-    // 6. Chocolate (25 Gold)
-    'a2000000-0000-0000-0000-000000000006': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000006',
-      giftName: 'Chocolate',
-      giftIcon: '🍫',
-      currency: 'Gold',
-      price: 25,
-      tier: GiftTier.premium,
-      flightPath: FlightPathType.curve,
-      showcaseType: ShowcaseAnimationType.chocolateUnwrap,
-      seatEffect: SeatEffectType.sweetSparkle,
-      chatEffect: ChatEffectType.confetti,
-      screenCoverage: 0.35,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'chocolate_room.json',
-      chatAnimation: 'chocolate_chat.lottie',
-      themeColor: Colors.amber,
+    // ⚡ TIER 5 (4 GIFTS: 0 Silver, 4 Gold - Premium Showcase)
+    'f1000005-0000-0000-0000-000000000001': const GiftAnimationMetadata(
+      giftId: 'f1000005-0000-0000-0000-000000000001', giftName: 'Celestial Emperor', giftIcon: '👑', currency: 'gold', price: 7999,
+      tier: GiftTier.tier5, flightPath: FlightPathType.straight, seatEffect: SeatEffectType.goldenThroneGlow, showcaseType: ShowcaseAnimationType.celestialEmperor,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 1.00, duration: Duration(milliseconds: 10000), roomAnimation: 'emperor.json', chatAnimation: 'emperor_chat.lottie', themeColor: Colors.amber,
     ),
-
-    // 7. Cake (30 Gold)
-    'a2000000-0000-0000-0000-000000000007': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000007',
-      giftName: 'Cake',
-      giftIcon: '🎂',
-      currency: 'Gold',
-      price: 30,
-      tier: GiftTier.premium,
-      flightPath: FlightPathType.curve,
-      showcaseType: ShowcaseAnimationType.cakeSparkle,
-      seatEffect: SeatEffectType.candleFlare,
-      chatEffect: ChatEffectType.miniFireworks,
-      screenCoverage: 0.35,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'cake_room.json',
-      chatAnimation: 'cake_chat.lottie',
-      themeColor: Colors.pink,
+    'f1000005-0000-0000-0000-000000000002': const GiftAnimationMetadata(
+      giftId: 'f1000005-0000-0000-0000-000000000002', giftName: 'Planet Creation', giftIcon: '🌍', currency: 'gold', price: 19999,
+      tier: GiftTier.tier5, flightPath: FlightPathType.orbit, seatEffect: SeatEffectType.spacePortal, showcaseType: ShowcaseAnimationType.planetCreation,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 1.00, duration: Duration(milliseconds: 10000), roomAnimation: 'planets.json', chatAnimation: 'planets_chat.lottie', themeColor: Colors.lightBlueAccent,
     ),
-
-    // 8. Balloon (35 Gold)
-    'a2000000-0000-0000-0000-000000000008': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000008',
-      giftName: 'Balloon',
-      giftIcon: '🎈',
-      currency: 'Gold',
-      price: 35,
-      tier: GiftTier.premium,
-      flightPath: FlightPathType.wave,
-      showcaseType: ShowcaseAnimationType.balloonFloat,
-      seatEffect: SeatEffectType.popConfetti,
-      chatEffect: ChatEffectType.bubblePop,
-      screenCoverage: 0.35,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'balloon_room.json',
-      chatAnimation: 'balloon_chat.lottie',
-      stackingConfig: GiftStackingConfig(
-        stackedEffectName: 'Sky Balloons Parade',
-        minComboThreshold: 20,
-        stackedDuration: Duration(milliseconds: 6000),
-      ),
-      themeColor: Colors.purpleAccent,
+    'f1000005-0000-0000-0000-000000000003': const GiftAnimationMetadata(
+      giftId: 'f1000005-0000-0000-0000-000000000003', giftName: 'World Tree', giftIcon: '🌳', currency: 'gold', price: 19999,
+      tier: GiftTier.tier5, flightPath: FlightPathType.curve, seatEffect: SeatEffectType.flowerBloom, showcaseType: ShowcaseAnimationType.worldTree,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 1.00, duration: Duration(milliseconds: 10000), roomAnimation: 'tree.json', chatAnimation: 'tree_chat.lottie', themeColor: Colors.greenAccent,
     ),
-
-    // 9. Gift Box (40 Gold)
-    'a2000000-0000-0000-0000-000000000009': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000009',
-      giftName: 'Gift Box',
-      giftIcon: '🎁',
-      currency: 'Gold',
-      price: 40,
-      tier: GiftTier.premium,
-      flightPath: FlightPathType.curve,
-      showcaseType: ShowcaseAnimationType.giftBoxExplode,
-      seatEffect: SeatEffectType.boxExplosion,
-      chatEffect: ChatEffectType.confetti,
-      screenCoverage: 0.35,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'gift_box_room.json',
-      chatAnimation: 'gift_box_chat.lottie',
-      themeColor: Colors.red,
-    ),
-
-    // 10. Diamond (50 Gold)
-    'a2000000-0000-0000-0000-000000000010': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000010',
-      giftName: 'Diamond',
-      giftIcon: '💎',
-      currency: 'Gold',
-      price: 50,
-      tier: GiftTier.premium,
-      flightPath: FlightPathType.spiral,
-      showcaseType: ShowcaseAnimationType.diamondPrism,
-      seatEffect: SeatEffectType.prismBurst,
-      chatEffect: ChatEffectType.sparkles,
-      screenCoverage: 0.35,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'diamond_room.json',
-      chatAnimation: 'diamond_chat.lottie',
-      themeColor: Colors.cyan,
-    ),
-
-    // 11. Crown (99 Gold)
-    'a2000000-0000-0000-0000-000000000011': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000011',
-      giftName: 'Crown',
-      giftIcon: '👑',
-      currency: 'Gold',
-      price: 99,
-      tier: GiftTier.premium,
-      flightPath: FlightPathType.curve,
-      showcaseType: ShowcaseAnimationType.crownShine,
-      seatEffect: SeatEffectType.royalAura,
-      chatEffect: ChatEffectType.sparkles,
-      screenCoverage: 0.35,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'crown_room.json',
-      chatAnimation: 'crown_chat.lottie',
-      themeColor: Colors.amber,
-    ),
-
-    // 12. Butterfly (99 Gold)
-    'a2000000-0000-0000-0000-000000000012': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000012',
-      giftName: 'Butterfly',
-      giftIcon: '🦋',
-      currency: 'Gold',
-      price: 99,
-      tier: GiftTier.premium,
-      flightPath: FlightPathType.orbit,
-      showcaseType: ShowcaseAnimationType.butterflyWings,
-      seatEffect: SeatEffectType.swarmFlutter,
-      chatEffect: ChatEffectType.sparkles,
-      screenCoverage: 0.35,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'butterfly_room.json',
-      chatAnimation: 'butterfly_chat.lottie',
-      stackingConfig: GiftStackingConfig(
-        stackedEffectName: 'Butterfly Orbit Swarm',
-        minComboThreshold: 5,
-        stackedDuration: Duration(milliseconds: 6000),
-      ),
-      themeColor: Colors.deepPurpleAccent,
-    ),
-
-    // 13. Sports Car (499 Gold)
-    'a2000000-0000-0000-0000-000000000013': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000013',
-      giftName: 'Sports Car',
-      giftIcon: '🏎️',
-      currency: 'Gold',
-      price: 499,
-      tier: GiftTier.epic,
-      flightPath: FlightPathType.zigzag,
-      showcaseType: ShowcaseAnimationType.carEngine,
-      seatEffect: SeatEffectType.wheelSkid,
-      chatEffect: ChatEffectType.miniFireworks,
-      screenCoverage: 0.60,
-      duration: Duration(milliseconds: 5500),
-      autoClose: true,
-      roomAnimation: 'sports_car_room.json',
-      chatAnimation: 'sports_car_chat.lottie',
-      themeColor: Colors.deepOrange,
-    ),
-
-    // 14. Private Jet (499 Gold)
-    'a2000000-0000-0000-0000-000000000014': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000014',
-      giftName: 'Private Jet',
-      giftIcon: '✈️',
-      currency: 'Gold',
-      price: 499,
-      tier: GiftTier.epic,
-      flightPath: FlightPathType.infinity,
-      showcaseType: ShowcaseAnimationType.jetIgnition,
-      seatEffect: SeatEffectType.windBurst,
-      chatEffect: ChatEffectType.sparkles,
-      screenCoverage: 0.60,
-      duration: Duration(milliseconds: 6000),
-      autoClose: true,
-      roomAnimation: 'private_jet_room.json',
-      chatAnimation: 'private_jet_chat.lottie',
-      themeColor: Colors.cyanAccent,
-    ),
-
-    // ── SILVER GIFTS ──
-    'a2000000-0000-0000-0000-000000000021': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000021',
-      giftName: 'Like',
-      giftIcon: '👍',
-      currency: 'Silver',
-      price: 200,
-      tier: GiftTier.basic,
-      flightPath: FlightPathType.bounce,
-      showcaseType: ShowcaseAnimationType.likePop,
-      seatEffect: SeatEffectType.thumbsUpBurst,
-      chatEffect: ChatEffectType.bubblePop,
-      screenCoverage: 0.20,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'like_silver.json',
-      chatAnimation: 'like_silver.lottie',
-      themeColor: Colors.blueAccent,
-    ),
-    'a2000000-0000-0000-0000-000000000030': const GiftAnimationMetadata(
-      giftId: 'a2000000-0000-0000-0000-000000000030',
-      giftName: 'Diamond',
-      giftIcon: '💎',
-      currency: 'Silver',
-      price: 5000,
-      tier: GiftTier.premium,
-      flightPath: FlightPathType.spiral,
-      showcaseType: ShowcaseAnimationType.diamondPrism,
-      seatEffect: SeatEffectType.prismBurst,
-      chatEffect: ChatEffectType.sparkles,
-      screenCoverage: 0.35,
-      duration: Duration(milliseconds: 5000),
-      autoClose: true,
-      roomAnimation: 'diamond_silver.json',
-      chatAnimation: 'diamond_silver.lottie',
-      themeColor: Colors.cyan,
+    'f1000005-0000-0000-0000-000000000004': const GiftAnimationMetadata(
+      giftId: 'f1000005-0000-0000-0000-000000000004', giftName: 'Infinity Cosmos', giftIcon: '🌠', currency: 'gold', price: 29999,
+      tier: GiftTier.tier5, flightPath: FlightPathType.infinity, seatEffect: SeatEffectType.cosmicAurora, showcaseType: ShowcaseAnimationType.infinityCosmos,
+      chatEffect: ChatEffectType.sparkles, screenCoverage: 1.00, duration: Duration(milliseconds: 10000), roomAnimation: 'cosmos.json', chatAnimation: 'cosmos_chat.lottie', themeColor: Colors.purpleAccent,
     ),
   };
+
+  static Map<String, GiftAnimationMetadata> get registry => _registry;
 
   static GiftAnimationMetadata getMetadata(String giftIdOrName) {
     if (_registry.containsKey(giftIdOrName)) {
       return _registry[giftIdOrName]!;
     }
-    // Search by name match
-    final nameMatch = _registry.values.firstWhere(
+
+    final match = _registry.values.firstWhere(
       (m) => m.giftName.toLowerCase() == giftIdOrName.toLowerCase(),
-      orElse: () {
-        final derivedShowcase = getShowcaseTypeForName(giftIdOrName);
-        final derivedSeatEffect = getSeatEffectForName(giftIdOrName);
-        return GiftAnimationMetadata(
-          giftId: giftIdOrName,
-          giftName: giftIdOrName,
-          giftIcon: _getIconForName(giftIdOrName),
-          currency: 'Gold',
-          price: 10,
-          tier: GiftTier.basic,
-          flightPath: FlightPathType.curve,
-          showcaseType: derivedShowcase,
-          seatEffect: derivedSeatEffect,
-          chatEffect: ChatEffectType.sparkles,
-          screenCoverage: 0.20,
-          duration: const Duration(milliseconds: 5000),
-          autoClose: true,
-          roomAnimation: 'generic_room.json',
-          chatAnimation: 'generic_chat.lottie',
-          themeColor: _getThemeColorForName(giftIdOrName),
-        );
-      },
+      orElse: () => _registry.values.first,
     );
-    return nameMatch;
-  }
-
-  static Color _getThemeColorForName(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('rose')) return Colors.pinkAccent;
-    if (lower.contains('flower')) return Colors.orangeAccent;
-    if (lower.contains('heart')) return Colors.redAccent;
-    if (lower.contains('coffee')) return Colors.brown;
-    if (lower.contains('choco')) return Colors.amber;
-    if (lower.contains('cake')) return Colors.pink;
-    if (lower.contains('balloon')) return Colors.purpleAccent;
-    if (lower.contains('box')) return Colors.red;
-    if (lower.contains('diamond')) return Colors.cyan;
-    if (lower.contains('ring')) return Colors.amberAccent;
-    if (lower.contains('crown')) return Colors.amber;
-    if (lower.contains('butter')) return Colors.deepPurpleAccent;
-    if (lower.contains('car')) return Colors.deepOrange;
-    if (lower.contains('jet')) return Colors.cyanAccent;
-    if (lower.contains('yacht')) return Colors.lightBlueAccent;
-    if (lower.contains('dragon')) return Colors.red;
-    if (lower.contains('galaxy')) return Colors.indigoAccent;
-    if (lower.contains('castle')) return Colors.yellowAccent;
-    if (lower.contains('phoenix')) return Colors.orange;
-    if (lower.contains('like')) return Colors.blueAccent;
-    return const Color(0xFF8B5CF6);
-  }
-
-  static String _getIconForName(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('rose')) return '🌹';
-    if (lower.contains('flower')) return '🌼';
-    if (lower.contains('heart')) return '❤️';
-    if (lower.contains('coffee')) return '☕';
-    if (lower.contains('choco')) return '🍫';
-    if (lower.contains('cake')) return '🎂';
-    if (lower.contains('balloon')) return '🎈';
-    if (lower.contains('box') || lower.contains('chest') || lower.contains('mystery') || lower.contains('surprise')) return '🎁';
-    if (lower.contains('diamond')) return '💎';
-    if (lower.contains('ring')) return '💍';
-    if (lower.contains('crown')) return '👑';
-    if (lower.contains('butter')) return '🦋';
-    if (lower.contains('car')) return '🏎️';
-    if (lower.contains('jet')) return '✈️';
-    if (lower.contains('yacht')) return '🛥️';
-    if (lower.contains('dragon')) return '🐉';
-    if (lower.contains('galaxy')) return '🌌';
-    if (lower.contains('castle')) return '🏰';
-    if (lower.contains('phoenix')) return '🔥';
-    if (lower.contains('like')) return '👍';
-    return '✨';
+    return match;
   }
 }

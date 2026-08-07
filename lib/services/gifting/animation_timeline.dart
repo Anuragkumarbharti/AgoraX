@@ -9,69 +9,67 @@ class StageProgress {
   StageProgress(this.stage, this.stageNormalizedProgress);
 }
 
-/// Enforces the 3 independent stages strictly in sequence:
-/// Stage A: Launch Animation (1 to 3 sec depending on tier/distance)
-/// Stage B: Main Gift Showcase (2 to 10 sec depending on tier)
-/// Stage C: Receiver Delivery (1 to 6 sec depending on single vs multi-seat targets)
-/// Stage B MUST finish completely before Stage C starts.
+/// Enforces 3 independent stages strictly in sequence:
+/// Stage A: Launch Animation (1 to 2.5 sec depending on tier)
+/// Stage B: Main Center Showcase (2 to 10 sec depending on tier)
+/// Stage C: Receiver Delivery (1 to 4 sec depending on single vs multi-seat targets)
 class AnimationTimeline {
-  /// Returns Stage A (Launch) duration: 1 to 3 seconds based on Gift Tier
+  /// Returns Stage A (Launch Travel) duration based on Gift Tier
   static Duration getStageADuration(GiftTier tier) {
     switch (tier) {
-      case GiftTier.basic:
-        return const Duration(milliseconds: 1000); // 1.0 sec
-      case GiftTier.premium:
-        return const Duration(milliseconds: 1500); // 1.5 sec
-      case GiftTier.epic:
-        return const Duration(milliseconds: 2000); // 2.0 sec
-      case GiftTier.legendary:
-        return const Duration(milliseconds: 2500); // 2.5 sec
-      case GiftTier.mythic:
-        return const Duration(milliseconds: 3000); // 3.0 sec
+      case GiftTier.tier1:
+        return const Duration(milliseconds: 800); // 0.8s
+      case GiftTier.tier2:
+        return const Duration(milliseconds: 1000); // 1.0s
+      case GiftTier.tier3:
+        return const Duration(milliseconds: 1200); // 1.2s
+      case GiftTier.tier4:
+        return const Duration(milliseconds: 1500); // 1.5s
+      case GiftTier.tier5:
+        return const Duration(milliseconds: 2000); // 2.0s
     }
   }
 
-  /// Returns Stage B (Center Showcase) duration: 2 to 10 seconds based on Gift Tier
+  /// Returns Stage B (Center Showcase) duration based on Gift Tier
   static Duration getStageBDuration(GiftTier tier) {
     switch (tier) {
-      case GiftTier.basic:
-        return const Duration(seconds: 2); // 2.0 sec
-      case GiftTier.premium:
-        return const Duration(seconds: 4); // 4.0 sec
-      case GiftTier.epic:
-        return const Duration(seconds: 6); // 6.0 sec
-      case GiftTier.legendary:
-        return const Duration(seconds: 8); // 8.0 sec
-      case GiftTier.mythic:
-        return const Duration(seconds: 10); // 10.0 sec
+      case GiftTier.tier1:
+        return const Duration(milliseconds: 3000); // Tier 1: 3.0s showcase (2-4s range)
+      case GiftTier.tier2:
+        return const Duration(milliseconds: 5000); // Tier 2: 5.0s showcase (4-6s range)
+      case GiftTier.tier3:
+        return const Duration(milliseconds: 7000); // Tier 3: 7.0s showcase (6-8s range)
+      case GiftTier.tier4:
+        return const Duration(milliseconds: 9000); // Tier 4: 9.0s showcase (8-10s range)
+      case GiftTier.tier5:
+        return const Duration(milliseconds: 10000); // Tier 5: 10.0s full showcase
     }
   }
 
-  /// Returns Stage C (Receiver Delivery) duration: 1 to 6 seconds based on Gift Tier and recipient count
+  /// Returns Stage C (Receiver Delivery Travel) duration based on Gift Tier
   static Duration getStageCDuration(GiftTier tier, {int targetCount = 1}) {
-    int baseSeconds = 1;
+    int baseMs = 800;
     switch (tier) {
-      case GiftTier.basic:
-        baseSeconds = 1;
+      case GiftTier.tier1:
+        baseMs = 800; // 0.8s
         break;
-      case GiftTier.premium:
-        baseSeconds = 2;
+      case GiftTier.tier2:
+        baseMs = 1000; // 1.0s
         break;
-      case GiftTier.epic:
-        baseSeconds = 3;
+      case GiftTier.tier3:
+        baseMs = 1200; // 1.2s
         break;
-      case GiftTier.legendary:
-        baseSeconds = 4;
+      case GiftTier.tier4:
+        baseMs = 1500; // 1.5s
         break;
-      case GiftTier.mythic:
-        baseSeconds = 5;
+      case GiftTier.tier5:
+        baseMs = 2000; // 2.0s
         break;
     }
-
     if (targetCount > 1) {
-      baseSeconds = (baseSeconds + 1).clamp(2, 6);
+      baseMs = (baseMs + 300).clamp(1000, 2500);
     }
-    return Duration(seconds: baseSeconds.clamp(1, 6));
+    return Duration(milliseconds: baseMs);
   }
 
   /// Calculates total timeline duration (Stage A + Stage B + Stage C)
