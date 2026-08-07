@@ -144,6 +144,7 @@ class GiftAnimationMetadata {
   final String roomAnimation;
   final String chatAnimation;
   final String? soundEffect;
+  final String? gifAssetPath;
   final GiftStackingConfig? stackingConfig;
   final Color themeColor;
 
@@ -165,9 +166,16 @@ class GiftAnimationMetadata {
     required this.roomAnimation,
     required this.chatAnimation,
     this.soundEffect,
+    this.gifAssetPath,
     this.stackingConfig,
     this.themeColor = Colors.amber,
   });
+
+  String get resolvedGifAssetPath {
+    if (gifAssetPath != null && gifAssetPath!.isNotEmpty) return gifAssetPath!;
+    final formattedName = giftName.toUpperCase().replaceAll(' ', '_');
+    return 'assets/GIFTS_SHOWCCASE/$formattedName.gif';
+  }
 
   Map<String, dynamic> toJson() => {
         'gift_id': giftId,

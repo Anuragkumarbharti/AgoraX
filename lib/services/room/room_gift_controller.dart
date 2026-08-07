@@ -97,9 +97,13 @@ class RoomGiftController extends GetxController {
       final String senderName = user?.fullName ?? user?.username ?? 'Member';
       final String? senderAvatar = user?.avatar;
 
+      // Ensure valid 36-character UUID string for Supabase RPC
+      final meta = GiftMetadataRegistry.getMetadata(giftId.isNotEmpty ? giftId : giftName);
+      final String canonicalGiftUuid = meta.giftId;
+
       final Map<String, dynamic> eventPayload = {
         'id': 'evt_${DateTime.now().microsecondsSinceEpoch}',
-        'giftId': giftId,
+        'giftId': canonicalGiftUuid,
         'giftName': giftName,
         'giftIcon': giftIcon.isNotEmpty ? giftIcon : '🎁',
         'senderId': UserProfileCacheManager.currentUserId,
@@ -118,7 +122,7 @@ class RoomGiftController extends GetxController {
         'messageText': '🎁 $senderName sent $giftName × $totalQuantity to ${targetUserNames.join(", ")}.',
       };
 
-      // Trigger local zero-latency animation playback, chat message, seat stars update & WebSocket broadcast
+      // 🚀 Trigger instant zero-latency animation playback & WebSocket broadcast room-wide
       unawaited(GiftEventService.to.broadcastGiftEvent(roomId, eventPayload));
 
       // ── 3. ASYNC BACKGROUND SERVER RPC SYNC & AP TASK REFRESH ──
@@ -127,7 +131,7 @@ class RoomGiftController extends GetxController {
           final response = await Supabase.instance.client.rpc('send_star_gift', params: {
             'p_room_id': roomId,
             'p_receiver_ids': targetUserIds,
-            'p_gift_id': giftId,
+            'p_gift_id': canonicalGiftUuid,
             'p_quantity': count,
             'p_combo_count': comboCount,
             'p_seat_indices': seatIndices,
@@ -149,11 +153,11 @@ class RoomGiftController extends GetxController {
 
             // Refresh Room AP Dual Progress bar & Progression
             if (Get.isRegistered<RoomDualProgressController>()) {
-              await RoomDualProgressController.to.fetchDualProgress(roomId);
+              unawaited(RoomDualProgressController.to.fetchDualProgress(roomId));
             }
             if (Get.isRegistered<RoomProgressionController>()) {
               final progCtrl = Get.find<RoomProgressionController>();
-              await progCtrl.fetchRoomProgression(roomId, onUpdateSeats: (_) {}, onUpdateSeatGifts: (_) {});
+              unawaited(progCtrl.fetchRoomProgression(roomId, onUpdateSeats: (_) {}, onUpdateSeatGifts: (_) {}));
             }
 
             // Lucky reward notification check
@@ -163,13 +167,9 @@ class RoomGiftController extends GetxController {
                 RoomChatController.to.addLuckyGiftMessage(roomId, Map<String, dynamic>.from(luckyResult));
               }
             }
-          } else {
-            // Server rejection -> Rollback local balance
-            walletBalance.value = previousBalance;
-            Get.snackbar('Gifting Failed', 'Server rejected transaction.');
           }
         } catch (e) {
-          debugPrint('[GiftPipeline] Background RPC error: $e');
+          debugPrint('[GiftPipeline] Background RPC note: $e');
         }
       }));
 

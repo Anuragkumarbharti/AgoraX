@@ -41,7 +41,9 @@ class SendGiftDialog extends StatefulWidget {
   final int occupiedSeatsCount;
   final String? targetUserId;
   final String? targetUserName;
-  final Function(String giftName, String giftIcon, int giftCost, String currency)? onGiftSent;
+  final Function(
+          String giftName, String giftIcon, int giftCost, String currency)?
+      onGiftSent;
 
   const SendGiftDialog({
     Key? key,
@@ -78,49 +80,311 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   // Master 35-Gift Catalog (1-to-1 match with Postgres gift_catalog table & GiftMetadataRegistry)
   final List<GiftItem> _allGifts = [
     // 🥈 TIER 1 (15 Gifts: 3 Silver, 12 Gold)
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000001', name: 'Rose', icon: '🌹', cost: 100, currency: 'silver', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000002', name: 'Heart', icon: '❤️', cost: 300, currency: 'silver', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000003', name: 'Coffee', icon: '☕', cost: 800, currency: 'silver', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000004', name: 'Sakura', icon: '🌸', cost: 2, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1', badge: 'LUCKY', isLucky: true),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000005', name: 'Lucky Star', icon: '⭐', cost: 2, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000006', name: 'Chocolate', icon: '🍫', cost: 4, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000007', name: 'Balloon', icon: '🎈', cost: 4, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000008', name: 'Cake', icon: '🍰', cost: 5, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000009', name: 'Butterfly', icon: '🦋', cost: 5, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000010', name: 'Love Letter', icon: '💌', cost: 8, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000011', name: 'Gift Box', icon: '🎁', cost: 9, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1', badge: 'LUCKY', isLucky: true),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000012', name: 'Teddy', icon: '🧸', cost: 9, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000013', name: 'Lucky Clover', icon: '🍀', cost: 15, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000014', name: 'Moon', icon: '🌙', cost: 19, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
-    GiftItem(id: 'f1000001-0000-0000-0000-000000000015', name: 'Sunshine', icon: '☀️', cost: 19, currency: 'gold', tier: GiftTier.tier1, category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000001',
+        name: 'Rose',
+        icon: '🌹',
+        cost: 100,
+        currency: 'silver',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000002',
+        name: 'Heart',
+        icon: '❤️',
+        cost: 300,
+        currency: 'silver',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000003',
+        name: 'Coffee',
+        icon: '☕',
+        cost: 800,
+        currency: 'silver',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000004',
+        name: 'Sakura',
+        icon: '🌸',
+        cost: 2,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1',
+        badge: 'LUCKY',
+        isLucky: true),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000005',
+        name: 'Lucky Star',
+        icon: '⭐',
+        cost: 2,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000006',
+        name: 'Chocolate',
+        icon: '🍫',
+        cost: 4,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000007',
+        name: 'Balloon',
+        icon: '🎈',
+        cost: 4,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000008',
+        name: 'Cake',
+        icon: '🍰',
+        cost: 5,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000009',
+        name: 'Butterfly',
+        icon: '🦋',
+        cost: 5,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000010',
+        name: 'Love Letter',
+        icon: '💌',
+        cost: 8,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000011',
+        name: 'Gift Box',
+        icon: '🎁',
+        cost: 9,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1',
+        badge: 'LUCKY',
+        isLucky: true),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000012',
+        name: 'Teddy',
+        icon: '🧸',
+        cost: 9,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000013',
+        name: 'Lucky Clover',
+        icon: '🍀',
+        cost: 15,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000014',
+        name: 'Moon',
+        icon: '🌙',
+        cost: 19,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000015',
+        name: 'Sunshine',
+        icon: '☀️',
+        cost: 19,
+        currency: 'gold',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
 
     // 🥇 TIER 2 (7 Gifts: 2 Silver, 5 Gold)
-    GiftItem(id: 'f1000002-0000-0000-0000-000000000001', name: 'Bouquet', icon: '💐', cost: 2000, currency: 'silver', tier: GiftTier.tier2, category: '🥇 Tier 2'),
-    GiftItem(id: 'f1000002-0000-0000-0000-000000000002', name: 'Birthday Cake', icon: '🎂', cost: 5000, currency: 'silver', tier: GiftTier.tier2, category: '🥇 Tier 2'),
-    GiftItem(id: 'f1000002-0000-0000-0000-000000000003', name: 'Diamond Ring', icon: '💍', cost: 29, currency: 'gold', tier: GiftTier.tier2, category: '🥇 Tier 2', badge: 'LUCKY', isLucky: true),
-    GiftItem(id: 'f1000002-0000-0000-0000-000000000004', name: 'Crown', icon: '👑', cost: 49, currency: 'gold', tier: GiftTier.tier2, category: '🥇 Tier 2', badge: 'VIP'),
-    GiftItem(id: 'f1000002-0000-0000-0000-000000000005', name: 'Golden Mic', icon: '🎤', cost: 79, currency: 'gold', tier: GiftTier.tier2, category: '🥇 Tier 2'),
-    GiftItem(id: 'f1000002-0000-0000-0000-000000000006', name: 'Champion Trophy', icon: '🏆', cost: 119, currency: 'gold', tier: GiftTier.tier2, category: '🥇 Tier 2', badge: 'LUCKY', isLucky: true),
-    GiftItem(id: 'f1000002-0000-0000-0000-000000000007', name: 'Crystal Diamond', icon: '💎', cost: 149, currency: 'gold', tier: GiftTier.tier2, category: '🥇 Tier 2'),
+    GiftItem(
+        id: 'f1000002-0000-0000-0000-000000000001',
+        name: 'Bouquet',
+        icon: '💐',
+        cost: 2000,
+        currency: 'silver',
+        tier: GiftTier.tier2,
+        category: '🥇 Tier 2'),
+    GiftItem(
+        id: 'f1000002-0000-0000-0000-000000000002',
+        name: 'Birthday Cake',
+        icon: '🎂',
+        cost: 5000,
+        currency: 'silver',
+        tier: GiftTier.tier2,
+        category: '🥇 Tier 2'),
+    GiftItem(
+        id: 'f1000002-0000-0000-0000-000000000003',
+        name: 'Diamond Ring',
+        icon: '💍',
+        cost: 29,
+        currency: 'gold',
+        tier: GiftTier.tier2,
+        category: '🥇 Tier 2',
+        badge: 'LUCKY',
+        isLucky: true),
+    GiftItem(
+        id: 'f1000002-0000-0000-0000-000000000004',
+        name: 'Crown',
+        icon: '👑',
+        cost: 49,
+        currency: 'gold',
+        tier: GiftTier.tier2,
+        category: '🥇 Tier 2',
+        badge: 'VIP'),
+    GiftItem(
+        id: 'f1000002-0000-0000-0000-000000000005',
+        name: 'Golden Mic',
+        icon: '🎤',
+        cost: 79,
+        currency: 'gold',
+        tier: GiftTier.tier2,
+        category: '🥇 Tier 2'),
+    GiftItem(
+        id: 'f1000002-0000-0000-0000-000000000006',
+        name: 'Champion Trophy',
+        icon: '🏆',
+        cost: 119,
+        currency: 'gold',
+        tier: GiftTier.tier2,
+        category: '🥇 Tier 2',
+        badge: 'LUCKY',
+        isLucky: true),
+    GiftItem(
+        id: 'f1000002-0000-0000-0000-000000000007',
+        name: 'Crystal Diamond',
+        icon: '💎',
+        cost: 149,
+        currency: 'gold',
+        tier: GiftTier.tier2,
+        category: '🥇 Tier 2'),
 
     // 👑 TIER 3 (5 Gifts: 1 Silver, 4 Gold)
-    GiftItem(id: 'f1000003-0000-0000-0000-000000000001', name: 'Fireworks', icon: '🎆', cost: 10000, currency: 'silver', tier: GiftTier.tier3, category: '👑 Tier 3'),
-    GiftItem(id: 'f1000003-0000-0000-0000-000000000002', name: 'Super Car', icon: '🏎️', cost: 299, currency: 'gold', tier: GiftTier.tier3, category: '👑 Tier 3', badge: 'LUCKY', isLucky: true),
-    GiftItem(id: 'f1000003-0000-0000-0000-000000000003', name: 'Rocket', icon: '🚀', cost: 499, currency: 'gold', tier: GiftTier.tier3, category: '👑 Tier 3'),
-    GiftItem(id: 'f1000003-0000-0000-0000-000000000004', name: 'Private Jet', icon: '✈️', cost: 799, currency: 'gold', tier: GiftTier.tier3, category: '👑 Tier 3'),
-    GiftItem(id: 'f1000003-0000-0000-0000-000000000005', name: 'Treasure Chest', icon: '💰', cost: 999, currency: 'gold', tier: GiftTier.tier3, category: '👑 Tier 3'),
+    GiftItem(
+        id: 'f1000003-0000-0000-0000-000000000001',
+        name: 'Fireworks',
+        icon: '🎆',
+        cost: 10000,
+        currency: 'silver',
+        tier: GiftTier.tier3,
+        category: '👑 Tier 3'),
+    GiftItem(
+        id: 'f1000003-0000-0000-0000-000000000002',
+        name: 'Super Car',
+        icon: '🏎️',
+        cost: 299,
+        currency: 'gold',
+        tier: GiftTier.tier3,
+        category: '👑 Tier 3',
+        badge: 'LUCKY',
+        isLucky: true),
+    GiftItem(
+        id: 'f1000003-0000-0000-0000-000000000003',
+        name: 'Rocket',
+        icon: '🚀',
+        cost: 499,
+        currency: 'gold',
+        tier: GiftTier.tier3,
+        category: '👑 Tier 3'),
+    GiftItem(
+        id: 'f1000003-0000-0000-0000-000000000004',
+        name: 'Private Jet',
+        icon: '✈️',
+        cost: 799,
+        currency: 'gold',
+        tier: GiftTier.tier3,
+        category: '👑 Tier 3'),
+    GiftItem(
+        id: 'f1000003-0000-0000-0000-000000000005',
+        name: 'Treasure Chest',
+        icon: '💰',
+        cost: 999,
+        currency: 'gold',
+        tier: GiftTier.tier3,
+        category: '👑 Tier 3'),
 
     // 💎 TIER 4 (4 Gifts: 0 Silver, 4 Gold)
-    GiftItem(id: 'f1000004-0000-0000-0000-000000000001', name: 'Golden Dragon', icon: '🐉', cost: 1999, currency: 'gold', tier: GiftTier.tier4, category: '💎 Tier 4', badge: 'LUCKY', isLucky: true),
-    GiftItem(id: 'f1000004-0000-0000-0000-000000000002', name: 'Phoenix', icon: '🔥', cost: 2999, currency: 'gold', tier: GiftTier.tier4, category: '💎 Tier 4'),
-    GiftItem(id: 'f1000004-0000-0000-0000-000000000003', name: 'Galaxy Portal', icon: '🌌', cost: 4499, currency: 'gold', tier: GiftTier.tier4, category: '💎 Tier 4'),
-    GiftItem(id: 'f1000004-0000-0000-0000-000000000004', name: 'Crystal Castle', icon: '🏰', cost: 6999, currency: 'gold', tier: GiftTier.tier4, category: '💎 Tier 4'),
+    GiftItem(
+        id: 'f1000004-0000-0000-0000-000000000001',
+        name: 'Golden Dragon',
+        icon: '🐉',
+        cost: 1999,
+        currency: 'gold',
+        tier: GiftTier.tier4,
+        category: '💎 Tier 4',
+        badge: 'LUCKY',
+        isLucky: true),
+    GiftItem(
+        id: 'f1000004-0000-0000-0000-000000000002',
+        name: 'Phoenix',
+        icon: '🔥',
+        cost: 2999,
+        currency: 'gold',
+        tier: GiftTier.tier4,
+        category: '💎 Tier 4'),
+    GiftItem(
+        id: 'f1000004-0000-0000-0000-000000000003',
+        name: 'Galaxy Portal',
+        icon: '🌌',
+        cost: 4499,
+        currency: 'gold',
+        tier: GiftTier.tier4,
+        category: '💎 Tier 4'),
+    GiftItem(
+        id: 'f1000004-0000-0000-0000-000000000004',
+        name: 'Crystal Castle',
+        icon: '🏰',
+        cost: 6999,
+        currency: 'gold',
+        tier: GiftTier.tier4,
+        category: '💎 Tier 4'),
 
     // ⚡ TIER 5 (4 Gifts: 0 Silver, 4 Gold - Premium Showcase)
-    GiftItem(id: 'f1000005-0000-0000-0000-000000000001', name: 'Celestial Emperor', icon: '👑', cost: 7999, currency: 'gold', tier: GiftTier.tier5, category: '⚡ Tier 5', badge: 'LEGEND'),
-    GiftItem(id: 'f1000005-0000-0000-0000-000000000002', name: 'Planet Creation', icon: '🌍', cost: 19999, currency: 'gold', tier: GiftTier.tier5, category: '⚡ Tier 5', badge: 'MYTHIC'),
-    GiftItem(id: 'f1000005-0000-0000-0000-000000000003', name: 'World Tree', icon: '🌳', cost: 19999, currency: 'gold', tier: GiftTier.tier5, category: '⚡ Tier 5', badge: 'MYTHIC'),
-    GiftItem(id: 'f1000005-0000-0000-0000-000000000004', name: 'Infinity Cosmos', icon: '🌠', cost: 29999, currency: 'gold', tier: GiftTier.tier5, category: '⚡ Tier 5', badge: 'COSMIC'),
+    GiftItem(
+        id: 'f1000005-0000-0000-0000-000000000001',
+        name: 'Celestial Emperor',
+        icon: '👑',
+        cost: 7999,
+        currency: 'gold',
+        tier: GiftTier.tier5,
+        category: '⚡ Tier 5',
+        badge: 'LEGEND'),
+    GiftItem(
+        id: 'f1000005-0000-0000-0000-000000000002',
+        name: 'Planet Creation',
+        icon: '🌍',
+        cost: 19999,
+        currency: 'gold',
+        tier: GiftTier.tier5,
+        category: '⚡ Tier 5',
+        badge: 'MYTHIC'),
+    GiftItem(
+        id: 'f1000005-0000-0000-0000-000000000003',
+        name: 'World Tree',
+        icon: '🌳',
+        cost: 19999,
+        currency: 'gold',
+        tier: GiftTier.tier5,
+        category: '⚡ Tier 5',
+        badge: 'MYTHIC'),
+    GiftItem(
+        id: 'f1000005-0000-0000-0000-000000000004',
+        name: 'Infinity Cosmos',
+        icon: '🌠',
+        cost: 29999,
+        currency: 'gold',
+        tier: GiftTier.tier5,
+        category: '⚡ Tier 5',
+        badge: 'COSMIC'),
   ];
 
   GiftItem? _selectedGift;
@@ -159,7 +423,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     if (widget.targetUserId != null) {
       _selectedRecipients.add(widget.targetUserId!);
       _selectedRecipientNames.add(widget.targetUserName ?? 'User');
-      final seat = seats.firstWhereOrNull((s) => s['userId'] == widget.targetUserId);
+      final seat =
+          seats.firstWhereOrNull((s) => s['userId'] == widget.targetUserId);
       if (seat != null) {
         _selectedSeatIndices.add(seat['seatIndex'] as int);
       }
@@ -172,6 +437,17 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         _selectedRecipients.add(uId);
         _selectedRecipientNames.add(uName);
         _selectedSeatIndices.add(seatIdx);
+      } else {
+        // Rule B: If nobody is on any mic seat, select Room Owner / Host by default!
+        final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+        final ownerId = (room?.hostId != null && room!.hostId.isNotEmpty)
+            ? room.hostId
+            : 'room_owner';
+        final ownerName = room?.ownerName ?? 'Room Owner';
+
+        _selectedRecipients.add(ownerId);
+        _selectedRecipientNames.add(ownerName);
+        _selectedSeatIndices.add(0);
       }
     }
   }
@@ -186,9 +462,11 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         if (_selectedCategory == '🎰 Lucky Gifts') {
           return g.isLucky;
         }
-        final cleanCat = _selectedCategory.replaceAll(RegExp(r'[^\w\s]'), '').trim();
+        final cleanCat =
+            _selectedCategory.replaceAll(RegExp(r'[^\w\s]'), '').trim();
         final cleanGCat = g.category.replaceAll(RegExp(r'[^\w\s]'), '').trim();
-        if (!cleanGCat.toLowerCase().contains(cleanCat.toLowerCase())) return false;
+        if (!cleanGCat.toLowerCase().contains(cleanCat.toLowerCase()))
+          return false;
       }
       return true;
     }).toList();
@@ -235,7 +513,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       );
 
       if (success) {
-        if (mounted && (Get.isBottomSheetOpen == true || Get.isDialogOpen == true)) {
+        if (mounted &&
+            (Get.isBottomSheetOpen == true || Get.isDialogOpen == true)) {
           Get.back();
         }
         if (widget.onGiftSent != null && _selectedGift != null) {
@@ -259,11 +538,16 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   @override
   Widget build(BuildContext context) {
     final activeReceiversCount = _giftAll
-        ? (_controller.roomSeatsInfo[widget.roomId] ?? []).where((s) => s['userId'] != null).length
+        ? (_controller.roomSeatsInfo[widget.roomId] ?? [])
+            .where((s) => s['userId'] != null)
+            .length
         : _selectedRecipients.length;
 
-    final double singleCost = _selectedGift != null ? _selectedGift!.cost.toDouble() : 0.0;
-    final totalCost = singleCost * _selectedComboMultiplier * (activeReceiversCount > 0 ? activeReceiversCount : 1);
+    final double singleCost =
+        _selectedGift != null ? _selectedGift!.cost.toDouble() : 0.0;
+    final totalCost = singleCost *
+        _selectedComboMultiplier *
+        (activeReceiversCount > 0 ? activeReceiversCount : 1);
     final hasValidRecipient = _giftAll || _selectedRecipients.isNotEmpty;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -307,18 +591,15 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-
               _buildCurrencyTabsRow(),
               _buildAvatarOnlyRecipientSelector(),
-
               if (_selectedCurrencyTab != 3) _buildCategoryChipsRow(),
-
               const SizedBox(height: 4),
-
               Expanded(
-                child: _selectedCurrencyTab == 3 ? _buildVaultView() : _buildHorizontalGiftCarousel(),
+                child: _selectedCurrencyTab == 3
+                    ? _buildVaultView()
+                    : _buildHorizontalGiftCarousel(),
               ),
-
               _buildBottomControlBar(hasValidRecipient, totalCost),
             ],
           ),
@@ -340,11 +621,18 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 children: [
                   _currencyTabPill(0, 'All Gifts', '⭐', null),
                   const SizedBox(width: 6),
-                  Obx(() => _currencyTabPill(1, 'Gold', '🟡', formatCompactNumber(_storeCtrl.coinsBalance.value))),
+                  Obx(() => _currencyTabPill(1, 'Gold', '🟡',
+                      formatCompactNumber(_storeCtrl.coinsBalance.value))),
                   const SizedBox(width: 6),
-                  Obx(() => _currencyTabPill(2, 'Silver', '⚪', formatCompactNumber(_storeCtrl.silverCoinsBalance.value))),
+                  Obx(() => _currencyTabPill(
+                      2,
+                      'Silver',
+                      '⚪',
+                      formatCompactNumber(
+                          _storeCtrl.silverCoinsBalance.value))),
                   const SizedBox(width: 6),
-                  Obx(() => _currencyTabPill(3, 'Vault', '🎁', '${_giftableVaultItems.length}')),
+                  Obx(() => _currencyTabPill(
+                      3, 'Vault', '🎁', '${_giftableVaultItems.length}')),
                 ],
               ),
             ),
@@ -364,7 +652,10 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         children: [
           Text(
             'To:',
-            style: GoogleFonts.poppins(color: Colors.white38, fontSize: 10.5, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(
+                color: Colors.white38,
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -375,14 +666,16 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 children: [
                   if (occupiedSeats.isEmpty)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: const Color(0xFF141624),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Text(
                         'No occupied seats',
-                        style: GoogleFonts.inter(color: Colors.white38, fontSize: 10),
+                        style: GoogleFonts.inter(
+                            color: Colors.white38, fontSize: 10),
                       ),
                     )
                   else
@@ -391,7 +684,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                       final uName = seat['name'] as String? ?? 'User';
                       final avatar = seat['avatar'] as String?;
                       final seatIdx = seat['seatIndex'] as int;
-                      final isSelected = _giftAll || _selectedRecipients.contains(uId);
+                      final isSelected =
+                          _giftAll || _selectedRecipients.contains(uId);
 
                       return GestureDetector(
                         onTap: () {
@@ -419,16 +713,26 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: isSelected
-                                ? const LinearGradient(colors: [Color(0xFFFF416C), Color(0xFFFF4B2B), Color(0xFF8B5CF6)])
-                                : const LinearGradient(colors: [Color(0xFF25283D), Color(0xFF1A1C29)]),
+                                ? const LinearGradient(colors: [
+                                    Color(0xFFFF416C),
+                                    Color(0xFFFF4B2B),
+                                    Color(0xFF8B5CF6)
+                                  ])
+                                : const LinearGradient(colors: [
+                                    Color(0xFF25283D),
+                                    Color(0xFF1A1C29)
+                                  ]),
                           ),
                           child: Stack(
                             children: [
                               CircleAvatar(
                                 radius: 15,
-                                backgroundImage: avatar != null && avatar.isNotEmpty
-                                    ? NetworkImage(avatar)
-                                    : const AssetImage('assets/images/placeholder.png') as ImageProvider,
+                                backgroundImage:
+                                    avatar != null && avatar.isNotEmpty
+                                        ? NetworkImage(avatar)
+                                        : const AssetImage(
+                                                'assets/images/placeholder.png')
+                                            as ImageProvider,
                               ),
                               if (isSelected)
                                 Positioned(
@@ -440,7 +744,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                                       color: Color(0xFF10B981),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.check, size: 7, color: Colors.white),
+                                    child: const Icon(Icons.check,
+                                        size: 7, color: Colors.white),
                                   ),
                                 ),
                             ],
@@ -448,7 +753,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         ),
                       );
                     }).toList(),
-
                   if (occupiedSeats.length > 1)
                     GestureDetector(
                       onTap: () {
@@ -463,9 +767,13 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         height: 32,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _giftAll ? const Color(0xFFFF9F43) : const Color(0xFF141624),
+                          color: _giftAll
+                              ? const Color(0xFFFF9F43)
+                              : const Color(0xFF141624),
                           border: Border.all(
-                            color: _giftAll ? Colors.amber : const Color(0xFF25283D),
+                            color: _giftAll
+                                ? Colors.amber
+                                : const Color(0xFF25283D),
                             width: 1.5,
                           ),
                         ),
@@ -486,7 +794,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     );
   }
 
-  Widget _currencyTabPill(int index, String label, String iconEmoji, String? balanceStr) {
+  Widget _currencyTabPill(
+      int index, String label, String iconEmoji, String? balanceStr) {
     final isSelected = _selectedCurrencyTab == index;
     return GestureDetector(
       onTap: () {
@@ -505,7 +814,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           color: isSelected ? const Color(0xFF7C3AED) : const Color(0xFF141624),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFFA78BFA) : const Color(0xFF25283D),
+            color:
+                isSelected ? const Color(0xFFA78BFA) : const Color(0xFF25283D),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -564,10 +874,14 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               margin: const EdgeInsets.only(right: 6),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF141624),
+                color: isSelected
+                    ? const Color(0xFF8B5CF6)
+                    : const Color(0xFF141624),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFA78BFA) : const Color(0xFF25283D),
+                  color: isSelected
+                      ? const Color(0xFFA78BFA)
+                      : const Color(0xFF25283D),
                 ),
               ),
               child: Center(
@@ -638,7 +952,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             },
           ),
         ),
-
         if (pageCount > 1)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -648,7 +961,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 width: _currentCarouselPage == idx ? 12 : 4,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: _currentCarouselPage == idx ? const Color(0xFF8B5CF6) : Colors.white24,
+                  color: _currentCarouselPage == idx
+                      ? const Color(0xFF8B5CF6)
+                      : Colors.white24,
                   borderRadius: BorderRadius.circular(2),
                 ),
               );
@@ -678,9 +993,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
-                ? (isGold
-                    ? const Color(0xFFFFD700)
-                    : const Color(0xFFA78BFA))
+                ? (isGold ? const Color(0xFFFFD700) : const Color(0xFFA78BFA))
                 : const Color(0xFF23263B),
             width: isSelected ? 1.5 : 1.0,
           ),
@@ -722,13 +1035,16 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    isGold ? _buildGoldCoinIcon(size: 10) : _buildSilverCoinIcon(size: 10),
+                    isGold
+                        ? _buildGoldCoinIcon(size: 10)
+                        : _buildSilverCoinIcon(size: 10),
                     const SizedBox(width: 2),
                     Text(
                       formatCompactNumber(gift.cost),
                       style: GoogleFonts.inter(
                         fontSize: 9,
-                        color: isGold ? const Color(0xFFFFD700) : Colors.white70,
+                        color:
+                            isGold ? const Color(0xFFFFD700) : Colors.white70,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -741,7 +1057,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 top: 2,
                 right: 2,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                   decoration: BoxDecoration(
                     gradient: _getBadgeGradient(gift.badge!),
                     borderRadius: BorderRadius.circular(5),
@@ -766,19 +1083,26 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   LinearGradient _getBadgeGradient(String badge) {
     switch (badge) {
       case 'LUCKY':
-        return const LinearGradient(colors: [Color(0xFF11998E), Color(0xFF38EF7D)]);
+        return const LinearGradient(
+            colors: [Color(0xFF11998E), Color(0xFF38EF7D)]);
       case 'HOT':
-        return const LinearGradient(colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)]);
+        return const LinearGradient(
+            colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)]);
       case 'VIP':
-        return const LinearGradient(colors: [Color(0xFFF7971E), Color(0xFFFFD200)]);
+        return const LinearGradient(
+            colors: [Color(0xFFF7971E), Color(0xFFFFD200)]);
       case 'LEGEND':
-        return const LinearGradient(colors: [Color(0xFFF12711), Color(0xFFF5AF19)]);
+        return const LinearGradient(
+            colors: [Color(0xFFF12711), Color(0xFFF5AF19)]);
       case 'MYTHIC':
-        return const LinearGradient(colors: [Color(0xFF8A2387), Color(0xFFE94057)]);
+        return const LinearGradient(
+            colors: [Color(0xFF8A2387), Color(0xFFE94057)]);
       case 'COSMIC':
-        return const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF00F2FE)]);
+        return const LinearGradient(
+            colors: [Color(0xFF7C3AED), Color(0xFF00F2FE)]);
       default:
-        return const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)]);
+        return const LinearGradient(
+            colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)]);
     }
   }
 
@@ -815,10 +1139,14 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             },
             child: Container(
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF8B5CF6).withOpacity(0.25) : const Color(0xFF131522),
+                color: isSelected
+                    ? const Color(0xFF8B5CF6).withOpacity(0.25)
+                    : const Color(0xFF131522),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF23263B),
+                  color: isSelected
+                      ? const Color(0xFF8B5CF6)
+                      : const Color(0xFF23263B),
                 ),
               ),
               child: Column(
@@ -831,13 +1159,19 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   const SizedBox(height: 4),
                   Text(
                     item.displayName,
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     'Qty: ${item.quantity}',
-                    style: GoogleFonts.inter(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.inter(
+                        color: Colors.amber,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -873,10 +1207,14 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                       const SizedBox(width: 3),
                       Text(
                         formatCompactNumber(_storeCtrl.coinsBalance.value),
-                        style: GoogleFonts.inter(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 2),
-                      const Icon(Icons.add_circle, color: Colors.amber, size: 10),
+                      const Icon(Icons.add_circle,
+                          color: Colors.amber, size: 10),
                     ],
                   )),
               const SizedBox(height: 2),
@@ -885,16 +1223,18 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                       _buildSilverCoinIcon(size: 11),
                       const SizedBox(width: 3),
                       Text(
-                        formatCompactNumber(_storeCtrl.silverCoinsBalance.value),
-                        style: GoogleFonts.inter(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.bold),
+                        formatCompactNumber(
+                            _storeCtrl.silverCoinsBalance.value),
+                        style: GoogleFonts.inter(
+                            color: Colors.white70,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   )),
             ],
           ),
-
           const SizedBox(width: 8),
-
           GestureDetector(
             onTap: () {},
             child: Container(
@@ -911,15 +1251,16 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   const SizedBox(width: 3),
                   Text(
                     'VIP',
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900),
+                    style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900),
                   ),
                 ],
               ),
             ),
           ),
-
           const SizedBox(width: 6),
-
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -944,9 +1285,12 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF7C3AED) : Colors.transparent,
+                          color: isSelected
+                              ? const Color(0xFF7C3AED)
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -964,22 +1308,25 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               ),
             ),
           ),
-
           const SizedBox(width: 8),
-
           ElevatedButton(
             onPressed: (hasValidRecipient && !_isSending) ? _sendGift : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
               padding: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
             ),
             child: Ink(
               decoration: BoxDecoration(
                 gradient: (hasValidRecipient && !_isSending)
                     ? const LinearGradient(
-                        colors: [Color(0xFFFF416C), Color(0xFFFF4B2B), Color(0xFF8B5CF6)],
+                        colors: [
+                          Color(0xFFFF416C),
+                          Color(0xFFFF4B2B),
+                          Color(0xFF8B5CF6)
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
@@ -989,7 +1336,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 alignment: Alignment.center,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1000,7 +1348,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         height: 12,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -1020,7 +1369,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                             ? 'SEND (${formatCompactNumber(totalCost.toInt())})'
                             : 'SELECT SEAT',
                         style: GoogleFonts.poppins(
-                          color: hasValidRecipient ? Colors.white : Colors.white38,
+                          color:
+                              hasValidRecipient ? Colors.white : Colors.white38,
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
                         ),
@@ -1041,7 +1391,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       shaderCallback: (bounds) => const LinearGradient(
         colors: [Color(0xFFFFE259), Color(0xFFFFA751)],
       ).createShader(bounds),
-      child: Icon(Icons.monetization_on_rounded, color: Colors.white, size: size),
+      child:
+          Icon(Icons.monetization_on_rounded, color: Colors.white, size: size),
     );
   }
 
@@ -1050,7 +1401,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       shaderCallback: (bounds) => const LinearGradient(
         colors: [Color(0xFFFFFFFF), Color(0xFFB0B3B8)],
       ).createShader(bounds),
-      child: Icon(Icons.monetization_on_rounded, color: Colors.white, size: size),
+      child:
+          Icon(Icons.monetization_on_rounded, color: Colors.white, size: size),
     );
   }
 }

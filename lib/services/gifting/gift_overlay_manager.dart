@@ -36,7 +36,8 @@ class GiftOverlayManager extends GetxController {
     required GiftRequestEvent event,
     VoidCallback? onCompleted,
   }) {
-    if (_isRoomOverlayRegistered && Get.isRegistered<GiftAnimationController>()) {
+    if (_isRoomOverlayRegistered &&
+        Get.isRegistered<GiftAnimationController>()) {
       final payload = {
         'id': DateTime.now().microsecondsSinceEpoch.toString(),
         'giftId': event.giftId,
