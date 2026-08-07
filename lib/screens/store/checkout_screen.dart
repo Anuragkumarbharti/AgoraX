@@ -12,6 +12,7 @@ import '../../services/store/store_controller.dart';
 import '../../services/memberships/vip_controller.dart';
 import '../../services/memberships/novel_controller.dart';
 import '../../services/store/razorpay_backend_service.dart';
+import '../../widgets/gifting/insufficient_balance_sheet.dart';
 import './payment_status_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -901,12 +902,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           if (_selectedPurchaseMethod == 'Gold') {
             int goldPrice = (finalAmount * 0.50).round();
             if (_storeCtrl.coinsBalance.value < goldPrice) {
-              Get.snackbar(
-                'Insufficient Balance ⚠️',
-                'You do not have enough Gold Coins. Please recharge or pay with Real Money.',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: Color(0xFFEF4444),
-                colorText: Colors.white,
+              InsufficientBalanceSheet.show(
+                currency: 'gold',
+                requiredCoins: goldPrice,
+                availableCoins: _storeCtrl.coinsBalance.value,
+                giftName: name,
               );
               return;
             }

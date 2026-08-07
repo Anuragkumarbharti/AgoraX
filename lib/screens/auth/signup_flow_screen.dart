@@ -86,10 +86,30 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
   // Step 6 Controllers
   final List<String> _allInterests = [
-    'Knowledge', 'Technology', 'Programming', 'AI', 'Cybersecurity',
-    'Business', 'Education', 'Gaming', 'Music', 'Movies', 'Sports',
-    'Anime', 'Photography', 'Travel', 'Fashion', 'Science', 'Finance',
-    'Startups', 'Books', 'Comedy', 'Art', 'Voice Rooms', 'Communities', 'Events'
+    'Knowledge',
+    'Technology',
+    'Programming',
+    'AI',
+    'Cybersecurity',
+    'Business',
+    'Education',
+    'Gaming',
+    'Music',
+    'Movies',
+    'Sports',
+    'Anime',
+    'Photography',
+    'Travel',
+    'Fashion',
+    'Science',
+    'Finance',
+    'Startups',
+    'Books',
+    'Comedy',
+    'Art',
+    'Voice Rooms',
+    'Communities',
+    'Events'
   ];
   final Set<String> _selectedInterests = {};
 
@@ -113,15 +133,14 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       }
     }
 
-    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+    _authSubscription =
+        Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       final AuthChangeEvent event = data.event;
       final Session? session = data.session;
       if (event == AuthChangeEvent.signedIn && session != null) {
         try {
-          await Supabase.instance.client
-              .from('profiles')
-              .update({'signup_status': 'otp_verified'})
-              .eq('id', session.user.id);
+          await Supabase.instance.client.from('profiles').update(
+              {'signup_status': 'otp_verified'}).eq('id', session.user.id);
         } catch (_) {}
 
         setState(() {
@@ -149,7 +168,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     final hasUppercase = pass.contains(RegExp(r'[A-Z]'));
     final hasLowercase = pass.contains(RegExp(r'[a-z]'));
     final hasDigits = pass.contains(RegExp(r'[0-9]'));
-    final hasSpecialCharacters = pass.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+    final hasSpecialCharacters =
+        pass.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
     return hasUppercase && hasLowercase && hasDigits && hasSpecialCharacters;
   }
 
@@ -164,25 +184,25 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
   String _mapAuthError(dynamic e) {
     final errString = e.toString().toLowerCase();
     final cleanMsg = e.toString().replaceAll('AuthException: ', '');
-    
+
     if (errString.contains('authretryablefetchexception') ||
         errString.contains('500') ||
         errString.contains('504') ||
         errString.contains('timeout')) {
       return 'Unable to create account. Please try again in a moment.\nDetails: $cleanMsg';
     }
-    
-    if (errString.contains('smtp') || 
-        errString.contains('email provider') || 
+
+    if (errString.contains('smtp') ||
+        errString.contains('email provider') ||
         errString.contains('failed to send email') ||
         errString.contains('confirmation email')) {
       return 'Unable to send verification email. Please try again later.\nDetails: $cleanMsg';
     }
 
-    if (errString.contains('database') || 
-        errString.contains('postgres') || 
-        errString.contains('uuid') || 
-        errString.contains('profiles') || 
+    if (errString.contains('database') ||
+        errString.contains('postgres') ||
+        errString.contains('uuid') ||
+        errString.contains('profiles') ||
         errString.contains('22p02')) {
       return 'Profile setup failed.\nDetails: $cleanMsg';
     }
@@ -190,43 +210,57 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     return 'Unable to create account.\nDetails: $cleanMsg';
   }
 
-  Future<AuthResponse> _signUpWithRetry({required String email, required String password}) async {
+  Future<AuthResponse> _signUpWithRetry(
+      {required String email, required String password}) async {
     try {
-      return await Supabase.instance.client.auth.signUp(
-        email: email,
-        password: password,
-        emailRedirectTo: 'io.supabase.flutter://login-callback/',
-      ).timeout(const Duration(seconds: 10));
+      return await Supabase.instance.client.auth
+          .signUp(
+            email: email,
+            password: password,
+            emailRedirectTo: 'io.supabase.flutter://login-callback/',
+          )
+          .timeout(const Duration(seconds: 10));
     } catch (e) {
       final errStr = e.toString().toLowerCase();
-      if (errStr.contains('timeout') || errStr.contains('authretryablefetchexception') || errStr.contains('504')) {
+      if (errStr.contains('timeout') ||
+          errStr.contains('authretryablefetchexception') ||
+          errStr.contains('504')) {
         await Future.delayed(const Duration(seconds: 1));
-        return await Supabase.instance.client.auth.signUp(
-          email: email,
-          password: password,
-          emailRedirectTo: 'io.supabase.flutter://login-callback/',
-        ).timeout(const Duration(seconds: 15));
+        return await Supabase.instance.client.auth
+            .signUp(
+              email: email,
+              password: password,
+              emailRedirectTo: 'io.supabase.flutter://login-callback/',
+            )
+            .timeout(const Duration(seconds: 15));
       }
       rethrow;
     }
   }
 
-  Future<void> _resendWithRetry({required String email, required OtpType type}) async {
+  Future<void> _resendWithRetry(
+      {required String email, required OtpType type}) async {
     try {
-      await Supabase.instance.client.auth.resend(
-        type: type,
-        email: email,
-        emailRedirectTo: 'io.supabase.flutter://login-callback/',
-      ).timeout(const Duration(seconds: 10));
+      await Supabase.instance.client.auth
+          .resend(
+            type: type,
+            email: email,
+            emailRedirectTo: 'io.supabase.flutter://login-callback/',
+          )
+          .timeout(const Duration(seconds: 10));
     } catch (e) {
       final errStr = e.toString().toLowerCase();
-      if (errStr.contains('timeout') || errStr.contains('authretryablefetchexception') || errStr.contains('504')) {
+      if (errStr.contains('timeout') ||
+          errStr.contains('authretryablefetchexception') ||
+          errStr.contains('504')) {
         await Future.delayed(const Duration(seconds: 1));
-        await Supabase.instance.client.auth.resend(
-          type: type,
-          email: email,
-          emailRedirectTo: 'io.supabase.flutter://login-callback/',
-        ).timeout(const Duration(seconds: 15));
+        await Supabase.instance.client.auth
+            .resend(
+              type: type,
+              email: email,
+              emailRedirectTo: 'io.supabase.flutter://login-callback/',
+            )
+            .timeout(const Duration(seconds: 15));
         return;
       }
       rethrow;
@@ -244,7 +278,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
       if (res != null) {
         setState(() {
-          if (res['username'] != null && !res['username'].toString().startsWith('user_')) {
+          if (res['username'] != null &&
+              !res['username'].toString().startsWith('user_')) {
             _usernameCtrl.text = res['username'].toString();
           }
           if (res['dob'] != null) {
@@ -252,10 +287,25 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           }
           _calculatedAge = res['age'] ?? 0;
           if (res['gender'] != null) {
-            _selectedGender = res['gender'].toString();
+            const _validGenders = [
+              'Male',
+              'Female',
+              'Non-Binary',
+              'Prefer not to say'
+            ];
+            final g = res['gender'].toString();
+            _selectedGender = _validGenders.contains(g) ? g : null;
           }
           if (res['country'] != null) {
-            _selectedCountry = res['country'].toString();
+            const _validCountries = [
+              'India',
+              'United States',
+              'United Kingdom',
+              'Canada',
+              'Australia'
+            ];
+            final c = res['country'].toString();
+            _selectedCountry = _validCountries.contains(c) ? c : 'India';
           }
           if (res['bio'] != null) {
             _bioCtrl.text = res['bio'].toString();
@@ -416,7 +466,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           .maybeSingle();
 
       if (existing != null) {
-        final signupStatus = existing['signup_status'] as String? ?? 'completed';
+        final signupStatus =
+            existing['signup_status'] as String? ?? 'completed';
         if (signupStatus == 'completed') {
           setState(() => _isLoading = false);
           Get.snackbar(
@@ -504,20 +555,21 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     setState(() => _isLoading = true);
     try {
       final rawVal = _emailPhoneCtrl.text.trim();
-      
-      final response = await Supabase.instance.client.auth.verifyOTP(
-        type: OtpType.signup,
-        token: otpCode,
-        email: rawVal,
-      ).timeout(const Duration(seconds: 10));
+
+      final response = await Supabase.instance.client.auth
+          .verifyOTP(
+            type: OtpType.signup,
+            token: otpCode,
+            email: rawVal,
+          )
+          .timeout(const Duration(seconds: 10));
 
       final user = response.user;
       if (user != null && _isValidUuid(user.id)) {
         try {
           await Supabase.instance.client
               .from('profiles')
-              .update({'signup_status': 'otp_verified'})
-              .eq('id', user.id);
+              .update({'signup_status': 'otp_verified'}).eq('id', user.id);
         } catch (_) {}
 
         setState(() {
@@ -526,7 +578,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           _currentStep = 1; // Move to Step 2
         });
       } else {
-        throw Exception("Authentication session creation failed or invalid user ID.");
+        throw Exception(
+            "Authentication session creation failed or invalid user ID.");
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -626,7 +679,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         // Age calculation
         final today = DateTime.now();
         int age = today.year - picked.year;
-        if (today.month < picked.month || (today.month == picked.month && today.day < picked.day)) {
+        if (today.month < picked.month ||
+            (today.month == picked.month && today.day < picked.day)) {
           age--;
         }
         _calculatedAge = age;
@@ -639,7 +693,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source, imageQuality: 70);
     if (pickedFile != null) {
-      final editedFile = await CustomImageEditor.editImage(context, File(pickedFile.path));
+      final editedFile =
+          await CustomImageEditor.editImage(context, File(pickedFile.path));
       if (editedFile != null) {
         setState(() {
           _avatarFile = editedFile;
@@ -702,7 +757,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       if (_avatarFile != null) {
         try {
           await UniversalImageOptimizer.deleteOldAvatars(userIdToUse);
-          final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.png';
+          final fileName =
+              'avatar_${DateTime.now().millisecondsSinceEpoch}.png';
           final path = '$userIdToUse/$fileName';
           final optRes = await UniversalImageOptimizer.optimizeAndUpload(
             file: _avatarFile,
@@ -712,20 +768,25 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           uploadedUrl = optRes.publicUrl;
         } catch (storageError) {
           debugPrint('Storage Upload Warning: $storageError');
-          uploadedUrl = SmartDefaultAvatarService.getRandomDefaultAvatar(_selectedGender);
+          uploadedUrl =
+              SmartDefaultAvatarService.getRandomDefaultAvatar(_selectedGender);
         }
       }
 
-      final avatarToSave = uploadedUrl ?? SmartDefaultAvatarService.getRandomDefaultAvatar(_selectedGender);
+      final avatarToSave = uploadedUrl ??
+          SmartDefaultAvatarService.getRandomDefaultAvatar(_selectedGender);
 
       // 2. Update Database Record
-      await Supabase.instance.client.from('profiles').upsert({
-        'id': userIdToUse,
+      // The handle_new_user trigger creates the profile row when signUp fires.
+      // We must wait for that trigger to commit before we can update/upsert.
+      // Retry up to 5 times with 800ms delay to handle async trigger lag.
+      final profileUpdate = {
         'username': _usernameCtrl.text.trim().toLowerCase(),
         'avatar_url': avatarToSave,
         'profile_photo': avatarToSave,
-        'avatar': avatarToSave,
-        'bio': _bioCtrl.text.trim().isNotEmpty ? _bioCtrl.text.trim() : 'Learning every day 🚀',
+        'bio': _bioCtrl.text.trim().isNotEmpty
+            ? _bioCtrl.text.trim()
+            : 'Learning every day 🚀',
         'dob': _dob?.toIso8601String(),
         'age': _calculatedAge,
         'gender': _selectedGender,
@@ -739,7 +800,52 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         'last_verification_date': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
         'signup_status': 'completed',
-      });
+      };
+
+      bool profileSaved = false;
+      for (int attempt = 0; attempt < 5; attempt++) {
+        try {
+          // Check if trigger already created the profile row
+          final existingProfile = await Supabase.instance.client
+              .from('profiles')
+              .select('id')
+              .eq('id', userIdToUse)
+              .maybeSingle();
+
+          if (existingProfile != null) {
+            // Row exists from trigger — safe to update
+            await Supabase.instance.client
+                .from('profiles')
+                .update(profileUpdate)
+                .eq('id', userIdToUse);
+          } else {
+            // Row not yet created — wait for trigger
+            if (attempt < 4) {
+              await Future.delayed(const Duration(milliseconds: 800));
+              continue;
+            }
+            // Last attempt: try upsert directly
+            await Supabase.instance.client
+                .from('profiles')
+                .upsert({'id': userIdToUse, ...profileUpdate});
+          }
+          profileSaved = true;
+          break;
+        } catch (retryErr) {
+          final errStr = retryErr.toString().toLowerCase();
+          if (errStr.contains('23503') || errStr.contains('profiles_id_fkey')) {
+            // FK violation — trigger hasn't committed yet, wait and retry
+            await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+            continue;
+          }
+          rethrow;
+        }
+      }
+
+      if (!profileSaved) {
+        throw Exception(
+            'Profile could not be saved after 5 attempts. Please try again.');
+      }
 
       // 3. Grant Reward Coins (100 coins)
       try {
@@ -797,7 +903,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
     try {
       final Map<String, dynamic> updates = {};
-      
+
       if (_dob != null) {
         updates['dob'] = _dob!.toIso8601String();
         updates['age'] = _calculatedAge;
@@ -895,7 +1001,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                     children: [
                       if (_currentStep < 7)
                         IconButton(
-                          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white70, size: 20),
+                          icon: Icon(Icons.arrow_back_ios_new_rounded,
+                              color: Colors.white70, size: 20),
                           onPressed: () {
                             if (_currentStep > 0) {
                               _prevStep();
@@ -914,7 +1021,9 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (_currentStep > 0 && _currentStep < 7 && (_currentStep == 3 || _currentStep == 4))
+                      if (_currentStep > 0 &&
+                          _currentStep < 7 &&
+                          (_currentStep == 3 || _currentStep == 4))
                         TextButton(
                           onPressed: _nextStep,
                           child: Text(
@@ -950,7 +1059,10 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                           height: 4,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [context.primaryColor, AppTheme.secondaryColor],
+                              colors: [
+                                context.primaryColor,
+                                AppTheme.secondaryColor
+                              ],
                             ),
                             borderRadius: BorderRadius.circular(2),
                           ),
@@ -1005,28 +1117,30 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Sign Up', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
+          Text('Sign Up',
+              style: GoogleFonts.outfit(
+                  fontSize: 26, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text('Choose how you want to sign up on Creaniaa.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+          Text('Choose how you want to sign up on Creaniaa.',
+              style: GoogleFonts.poppins(
+                  color: context.textSecondary, fontSize: 14)),
           const SizedBox(height: 32),
-
           _socialButton(
             label: 'Continue with Google',
             icon: _googleIcon(),
             onTap: () => _handleSocialSignUp('Google'),
           ),
           const SizedBox(height: 12),
-
           _socialButton(
             label: 'Continue with Facebook',
             icon: _facebookIcon(),
             onTap: () => _handleSocialSignUp('Facebook'),
           ),
           const SizedBox(height: 12),
-
           _socialButton(
             label: 'Continue with Email',
-            icon: Icon(Icons.email_outlined, color: context.primaryColor, size: 22),
+            icon: Icon(Icons.email_outlined,
+                color: context.primaryColor, size: 22),
             onTap: () {
               setState(() {
                 _showEmailForm = true;
@@ -1043,7 +1157,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         Row(
           children: [
             IconButton(
-              icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.textPrimary, size: 20),
+              icon: Icon(Icons.arrow_back_ios_new_rounded,
+                  color: context.textPrimary, size: 20),
               onPressed: () {
                 setState(() {
                   _showEmailForm = false;
@@ -1051,14 +1166,21 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               },
             ),
             const SizedBox(width: 8),
-            Text('Verify Account', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
+            Text('Verify Account',
+                style: GoogleFonts.outfit(
+                    fontSize: 26, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 8),
-        Text('Enter your email to receive a verification OTP code.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        Text('Enter your email to receive a verification OTP code.',
+            style: GoogleFonts.poppins(
+                color: context.textSecondary, fontSize: 14)),
         const SizedBox(height: 32),
-
-        Text('Email Address', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        Text('Email Address',
+            style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: context.textSecondary)),
         const SizedBox(height: 8),
         TextField(
           controller: _emailPhoneCtrl,
@@ -1071,7 +1193,11 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           enabled: !_otpSent,
         ),
         const SizedBox(height: 20),
-        Text('Password', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        Text('Password',
+            style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: context.textSecondary)),
         const SizedBox(height: 8),
         TextField(
           controller: _passwordCtrl,
@@ -1079,10 +1205,16 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: '••••••••',
-            prefixIcon: Icon(Icons.lock_outline_rounded, color: context.caption),
+            prefixIcon:
+                Icon(Icons.lock_outline_rounded, color: context.caption),
             suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: context.caption),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  color: context.caption),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
           enabled: !_otpSent,
@@ -1090,8 +1222,11 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         ),
         _buildPasswordStrengthTip(),
         const SizedBox(height: 20),
-
-        Text('Confirm Password', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        Text('Confirm Password',
+            style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: context.textSecondary)),
         const SizedBox(height: 8),
         TextField(
           controller: _confirmPasswordCtrl,
@@ -1099,21 +1234,30 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: '••••••••',
-            prefixIcon: Icon(Icons.lock_outline_rounded, color: context.caption),
+            prefixIcon:
+                Icon(Icons.lock_outline_rounded, color: context.caption),
             suffixIcon: IconButton(
-              icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: context.caption),
-              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              icon: Icon(
+                  _obscureConfirmPassword
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  color: context.caption),
+              onPressed: () => setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword),
             ),
           ),
           enabled: !_otpSent,
         ),
         const SizedBox(height: 24),
-
         if (_otpSent) ...[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('OTP Code', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+              Text('OTP Code',
+                  style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: context.textSecondary)),
               TextButton(
                 onPressed: () {
                   setState(() {
@@ -1123,7 +1267,10 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 },
                 child: Text(
                   'Change Email',
-                  style: GoogleFonts.poppins(color: context.primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
+                  style: GoogleFonts.poppins(
+                      color: context.primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
                 ),
               ),
             ],
@@ -1133,7 +1280,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
             controller: _otpCtrl,
             keyboardType: TextInputType.number,
             maxLength: 6,
-            style: const TextStyle(color: Colors.white, letterSpacing: 8, fontSize: 18),
+            style: const TextStyle(
+                color: Colors.white, letterSpacing: 8, fontSize: 18),
             textAlign: TextAlign.center,
             decoration: const InputDecoration(
               hintText: '••••••',
@@ -1154,27 +1302,45 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Choose Username', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
+        Text('Choose Username',
+            style:
+                GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
-        Text('Create a unique handle for your Creaniaa profile.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        Text('Create a unique handle for your Creaniaa profile.',
+            style: GoogleFonts.poppins(
+                color: context.textSecondary, fontSize: 14)),
         SizedBox(height: 32),
-
-        Text('Username', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        Text('Username',
+            style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: context.textSecondary)),
         SizedBox(height: 8),
         TextField(
           controller: _usernameCtrl,
           style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             prefixText: '@ ',
-            prefixStyle: TextStyle(color: context.accentOrange, fontWeight: FontWeight.bold, fontSize: 16),
-            suffixIcon: _isLoading 
+            prefixStyle: TextStyle(
+                color: context.accentOrange,
+                fontWeight: FontWeight.bold,
+                fontSize: 16),
+            suffixIcon: _isLoading
                 ? Padding(
                     padding: EdgeInsets.all(12),
-                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                    child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2)),
                   )
-                : _usernameChecked 
-                    ? Icon(_usernameAvailable ? Icons.check_circle_rounded : Icons.cancel_rounded, 
-                           color: _usernameAvailable ? context.successColor : context.errorColor)
+                : _usernameChecked
+                    ? Icon(
+                        _usernameAvailable
+                            ? Icons.check_circle_rounded
+                            : Icons.cancel_rounded,
+                        color: _usernameAvailable
+                            ? context.successColor
+                            : context.errorColor)
                     : null,
           ),
           onChanged: (val) {
@@ -1187,25 +1353,28 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         ),
         if (_usernameError != null) ...[
           SizedBox(height: 8),
-          Text(_usernameError!, style: TextStyle(color: context.errorColor, fontSize: 12)),
+          Text(_usernameError!,
+              style: TextStyle(color: context.errorColor, fontSize: 12)),
         ],
         if (_usernameChecked && !_usernameAvailable) ...[
           SizedBox(height: 16),
-          Text('Username is taken. Try suggestions:', style: GoogleFonts.poppins(fontSize: 12, color: context.caption)),
+          Text('Username is taken. Try suggestions:',
+              style: GoogleFonts.poppins(fontSize: 12, color: context.caption)),
           SizedBox(height: 8),
           Wrap(
             spacing: 8,
-            children: _usernameSuggestions.map((sug) => ActionChip(
-              label: Text('@$sug'),
-              backgroundColor: context.secondaryBackgroundColor,
-              onPressed: () {
-                _usernameCtrl.text = sug;
-                _checkUsername(sug);
-              },
-            )).toList(),
+            children: _usernameSuggestions
+                .map((sug) => ActionChip(
+                      label: Text('@$sug'),
+                      backgroundColor: context.secondaryBackgroundColor,
+                      onPressed: () {
+                        _usernameCtrl.text = sug;
+                        _checkUsername(sug);
+                      },
+                    ))
+                .toList(),
           ),
         ],
-
         const SizedBox(height: 24),
         _buildTermsRow(),
         const SizedBox(height: 24),
@@ -1231,7 +1400,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           }
           final validCharacters = RegExp(r'^[a-zA-Z0-9_]+$');
           if (!validCharacters.hasMatch(username)) {
-            Get.snackbar('Error', 'Only letters, numbers, and underscores allowed');
+            Get.snackbar(
+                'Error', 'Only letters, numbers, and underscores allowed');
             return;
           }
 
@@ -1244,8 +1414,9 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 .maybeSingle();
 
             final currentAuthUser = Supabase.instance.client.auth.currentUser;
-            final rawUserId = _userId.isEmpty ? (currentAuthUser?.id ?? '') : _userId;
-            
+            final rawUserId =
+                _userId.isEmpty ? (currentAuthUser?.id ?? '') : _userId;
+
             if (!_isValidUuid(rawUserId)) {
               throw Exception("Invalid user ID. Please log in again.");
             }
@@ -1280,15 +1451,12 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               Get.snackbar('Error', 'Please choose an available username');
             } else {
               try {
-                await Supabase.instance.client
-                    .from('profiles')
-                    .update({
-                      'username': username,
-                      'signup_status': 'profile_created',
-                    })
-                    .eq('id', userIdToUse);
+                await Supabase.instance.client.from('profiles').update({
+                  'username': username,
+                  'signup_status': 'profile_created',
+                }).eq('id', userIdToUse);
               } catch (_) {}
-              
+
               setState(() {
                 _usernameAvailable = true;
                 _usernameChecked = true;
@@ -1316,14 +1484,20 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Basic Information', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
+        Text('Basic Information',
+            style:
+                GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
-        Text('Tell us a bit about yourself. Only display name is visible to others.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        Text(
+            'Tell us a bit about yourself. Only display name is visible to others.',
+            style: GoogleFonts.poppins(
+                color: context.textSecondary, fontSize: 14)),
         SizedBox(height: 32),
-
-
-
-        Text('Date of Birth *', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        Text('Date of Birth *',
+            style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: context.textSecondary)),
         SizedBox(height: 8),
         GestureDetector(
           onTap: () => _selectDate(context),
@@ -1338,8 +1512,13 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _dob == null ? 'Select Birthday' : DateFormat('dd MMM yyyy').format(_dob!),
-                  style: TextStyle(color: _dob == null ? context.caption : Colors.white),
+                  _dob == null
+                      ? 'Select Date of Birth (Required)'
+                      : DateFormat('dd MMM yyyy').format(_dob!),
+                  style: TextStyle(
+                      color: _dob == null
+                          ? context.errorColor.withOpacity(0.7)
+                          : Colors.white),
                 ),
                 Icon(Icons.calendar_month_rounded, color: context.caption),
               ],
@@ -1348,18 +1527,25 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         ),
         if (_dob != null) ...[
           SizedBox(height: 8),
-          Text('Calculated Age: $_calculatedAge years old', 
-               style: TextStyle(color: _calculatedAge >= 13 ? context.successColor : context.errorColor, fontSize: 12)),
+          Text('Calculated Age: $_calculatedAge years old',
+              style: TextStyle(
+                  color: _calculatedAge >= 13
+                      ? context.successColor
+                      : context.errorColor,
+                  fontSize: 12)),
         ],
         SizedBox(height: 20),
-
         Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Country', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  Text('Country',
+                      style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: context.textSecondary)),
                   SizedBox(height: 8),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12),
@@ -1370,14 +1556,30 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: _selectedCountry,
+                        value: [
+                          'India',
+                          'United States',
+                          'United Kingdom',
+                          'Canada',
+                          'Australia'
+                        ].contains(_selectedCountry)
+                            ? _selectedCountry
+                            : null,
                         dropdownColor: context.secondaryBackgroundColor,
                         style: TextStyle(color: context.textPrimary),
                         isExpanded: true,
-                        items: ['India', 'United States', 'United Kingdom', 'Canada', 'Australia']
-                            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                        items: [
+                          'India',
+                          'United States',
+                          'United Kingdom',
+                          'Canada',
+                          'Australia'
+                        ]
+                            .map((c) =>
+                                DropdownMenuItem(value: c, child: Text(c)))
                             .toList(),
-                        onChanged: (val) => setState(() => _selectedCountry = val),
+                        onChanged: (val) =>
+                            setState(() => _selectedCountry = val),
                       ),
                     ),
                   ),
@@ -1389,7 +1591,11 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Gender (Optional)', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+                  Text('Gender *',
+                      style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: context.textSecondary)),
                   SizedBox(height: 8),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12),
@@ -1400,15 +1606,30 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: _selectedGender,
-                        hint: Text('Select', style: TextStyle(color: context.caption)),
+                        value: [
+                          'Male',
+                          'Female',
+                          'Non-Binary',
+                          'Prefer not to say'
+                        ].contains(_selectedGender)
+                            ? _selectedGender
+                            : null,
+                        hint: Text('Select',
+                            style: TextStyle(color: context.caption)),
                         dropdownColor: context.secondaryBackgroundColor,
                         style: TextStyle(color: context.textPrimary),
                         isExpanded: true,
-                        items: ['Male', 'Female', 'Non-Binary', 'Prefer not to say']
-                            .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                        items: [
+                          'Male',
+                          'Female',
+                          'Non-Binary',
+                          'Prefer not to say'
+                        ]
+                            .map((g) =>
+                                DropdownMenuItem(value: g, child: Text(g)))
                             .toList(),
-                        onChanged: (val) => setState(() => _selectedGender = val),
+                        onChanged: (val) =>
+                            setState(() => _selectedGender = val),
                       ),
                     ),
                   ),
@@ -1417,15 +1638,30 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
             ),
           ],
         ),
-
         SizedBox(height: 40),
         _buildActionButton('Continue', () {
           if (_dob == null) {
-            Get.snackbar('Error', 'Date of Birth is required');
+            Get.snackbar(
+              'Date of Birth Required ❌',
+              'Please select your date of birth to continue.',
+              snackPosition: SnackPosition.BOTTOM,
+            );
             return;
           }
           if (_calculatedAge < 13) {
-            Get.snackbar('Error', 'You must be at least 13 years old to use Creaniaa');
+            Get.snackbar(
+              'Age Restricted ❌',
+              'You must be at least 13 years old to use Creaniaa.',
+              snackPosition: SnackPosition.BOTTOM,
+            );
+            return;
+          }
+          if (_selectedGender == null) {
+            Get.snackbar(
+              'Gender Required ❌',
+              'Please select your gender to continue.',
+              snackPosition: SnackPosition.BOTTOM,
+            );
             return;
           }
           _nextStep();
@@ -1441,15 +1677,18 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       children: [
         Align(
           alignment: Alignment.centerLeft,
-          child: Text('Profile Photo', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
+          child: Text('Profile Photo',
+              style: GoogleFonts.outfit(
+                  fontSize: 26, fontWeight: FontWeight.bold)),
         ),
         SizedBox(height: 8),
         Align(
           alignment: Alignment.centerLeft,
-          child: Text('Add a profile picture so friends can recognize you.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+          child: Text('Add a profile picture so friends can recognize you.',
+              style: GoogleFonts.poppins(
+                  color: context.textSecondary, fontSize: 14)),
         ),
         SizedBox(height: 48),
-
         Center(
           child: Stack(
             children: [
@@ -1460,12 +1699,14 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                   shape: BoxShape.circle,
                   border: Border.all(color: context.primaryColor, width: 3),
                   color: context.secondaryBackgroundColor,
-                  image: _avatarFile != null 
-                      ? DecorationImage(image: FileImage(_avatarFile!), fit: BoxFit.cover)
+                  image: _avatarFile != null
+                      ? DecorationImage(
+                          image: FileImage(_avatarFile!), fit: BoxFit.cover)
                       : null,
                 ),
-                child: _avatarFile == null 
-                    ? Icon(Icons.person_rounded, size: 70, color: context.caption)
+                child: _avatarFile == null
+                    ? Icon(Icons.person_rounded,
+                        size: 70, color: context.caption)
                     : null,
               ),
               Positioned(
@@ -1478,21 +1719,26 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                         padding: EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: context.secondaryBackgroundColor,
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(20)),
                         ),
                         child: Wrap(
                           children: [
                             ListTile(
-                              leading: Icon(Icons.camera_alt_rounded, color: Colors.white),
-                              title: Text('Camera', style: TextStyle(color: context.textPrimary)),
+                              leading: Icon(Icons.camera_alt_rounded,
+                                  color: Colors.white),
+                              title: Text('Camera',
+                                  style: TextStyle(color: context.textPrimary)),
                               onTap: () {
                                 Get.back();
                                 _pickImage(ImageSource.camera);
                               },
                             ),
                             ListTile(
-                              leading: Icon(Icons.photo_library_rounded, color: Colors.white),
-                              title: Text('Gallery', style: TextStyle(color: context.textPrimary)),
+                              leading: Icon(Icons.photo_library_rounded,
+                                  color: Colors.white),
+                              title: Text('Gallery',
+                                  style: TextStyle(color: context.textPrimary)),
                               onTap: () {
                                 Get.back();
                                 _pickImage(ImageSource.gallery);
@@ -1509,7 +1755,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                       color: context.primaryColor,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 18),
+                    child: Icon(Icons.camera_alt_rounded,
+                        color: Colors.white, size: 18),
                   ),
                 ),
               ),
@@ -1517,7 +1764,6 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           ),
         ),
         SizedBox(height: 54),
-
         _buildActionButton('Continue', _nextStep),
       ],
     );
@@ -1528,12 +1774,19 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('About You', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
+        Text('About You',
+            style:
+                GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
-        Text('Write a short bio to introduce yourself (max 150 chars).', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        Text('Write a short bio to introduce yourself (max 150 chars).',
+            style: GoogleFonts.poppins(
+                color: context.textSecondary, fontSize: 14)),
         SizedBox(height: 32),
-
-        Text('Bio', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.textSecondary)),
+        Text('Bio',
+            style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: context.textSecondary)),
         SizedBox(height: 8),
         TextField(
           controller: _bioCtrl,
@@ -1545,21 +1798,22 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           ),
         ),
         SizedBox(height: 16),
-
-        Text('Suggestions:', style: GoogleFonts.poppins(fontSize: 12, color: context.caption)),
+        Text('Suggestions:',
+            style: GoogleFonts.poppins(fontSize: 12, color: context.caption)),
         SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _bioExamples.map((ex) => ActionChip(
-            label: Text(ex),
-            backgroundColor: context.secondaryBackgroundColor,
-            onPressed: () {
-              _bioCtrl.text = ex;
-            },
-          )).toList(),
+          children: _bioExamples
+              .map((ex) => ActionChip(
+                    label: Text(ex),
+                    backgroundColor: context.secondaryBackgroundColor,
+                    onPressed: () {
+                      _bioCtrl.text = ex;
+                    },
+                  ))
+              .toList(),
         ),
-
         SizedBox(height: 40),
         _buildActionButton('Continue', _nextStep),
       ],
@@ -1571,11 +1825,14 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Choose Interests', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
+        Text('Choose Interests',
+            style:
+                GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
-        Text('Select at least 5 interests to customize your recommendations.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        Text('Select at least 5 interests to customize your recommendations.',
+            style: GoogleFonts.poppins(
+                color: context.textSecondary, fontSize: 14)),
         SizedBox(height: 24),
-
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -1600,14 +1857,19 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
               backgroundColor: context.secondaryBackgroundColor,
-              side: BorderSide(color: isSelected ? context.primaryColor : context.borderColor),
+              side: BorderSide(
+                  color:
+                      isSelected ? context.primaryColor : context.borderColor),
             );
           }).toList(),
         ),
         SizedBox(height: 16),
-        Text('Selected: ${_selectedInterests.length} of 5 minimum', 
-             style: TextStyle(color: _selectedInterests.length >= 5 ? context.successColor : context.errorColor, fontSize: 12)),
-
+        Text('Selected: ${_selectedInterests.length} of 5 minimum',
+            style: TextStyle(
+                color: _selectedInterests.length >= 5
+                    ? context.successColor
+                    : context.errorColor,
+                fontSize: 12)),
         SizedBox(height: 42),
         _buildActionButton('Continue', () {
           if (_selectedInterests.length < 5) {
@@ -1625,17 +1887,26 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Device Permissions', style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
+        Text('Device Permissions',
+            style:
+                GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
-        Text('Grant permissions for a complete Creaniaa experience.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 14)),
+        Text('Grant permissions for a complete Creaniaa experience.',
+            style: GoogleFonts.poppins(
+                color: context.textSecondary, fontSize: 14)),
         SizedBox(height: 32),
-
-        _permissionItemTile('Microphone', 'Speak in voice rooms and audio circles.', Icons.mic_rounded),
-        _permissionItemTile('Camera', 'Take profile picture and stream video.', Icons.camera_alt_rounded),
-        _permissionItemTile('Notifications', 'Get notified about direct chats and event start times.', Icons.notifications_rounded),
-        _permissionItemTile('Contacts (Optional)', 'Find your friends already on Creaniaa.', Icons.contacts_rounded),
-        _permissionItemTile('Storage (Optional)', 'Select files and graphics.', Icons.photo_library_rounded),
-
+        _permissionItemTile('Microphone',
+            'Speak in voice rooms and audio circles.', Icons.mic_rounded),
+        _permissionItemTile('Camera', 'Take profile picture and stream video.',
+            Icons.camera_alt_rounded),
+        _permissionItemTile(
+            'Notifications',
+            'Get notified about direct chats and event start times.',
+            Icons.notifications_rounded),
+        _permissionItemTile('Contacts (Optional)',
+            'Find your friends already on Creaniaa.', Icons.contacts_rounded),
+        _permissionItemTile('Storage (Optional)', 'Select files and graphics.',
+            Icons.photo_library_rounded),
         SizedBox(height: 48),
         _buildActionButton('Enable Permissions', _requestPermissions),
       ],
@@ -1667,9 +1938,15 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(title,
+                      style: GoogleFonts.poppins(
+                          color: context.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
                   SizedBox(height: 4),
-                  Text(desc, style: GoogleFonts.poppins(color: context.caption, fontSize: 11)),
+                  Text(desc,
+                      style: GoogleFonts.poppins(
+                          color: context.caption, fontSize: 11)),
                 ],
               ),
             ),
@@ -1695,9 +1972,16 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           ),
           SizedBox(height: 32),
 
-          Text('Congratulations! 🎉', style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text('Congratulations! 🎉',
+              style: GoogleFonts.outfit(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white)),
           SizedBox(height: 12),
-          Text('Welcome to Creaniaa! Your profile is ready.', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 15), textAlign: TextAlign.center),
+          Text('Welcome to Creaniaa! Your profile is ready.',
+              style: GoogleFonts.poppins(
+                  color: context.textSecondary, fontSize: 15),
+              textAlign: TextAlign.center),
           SizedBox(height: 40),
 
           // Rewards Card
@@ -1712,15 +1996,22 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Early Explorer Rewards Unlocked:', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: context.accentOrange)),
+                Text('Early Explorer Rewards Unlocked:',
+                    style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: context.accentOrange)),
                 SizedBox(height: 16),
-                _rewardRow('🎖️', 'Early Explorer Badge', 'Exclusive profile recognition'),
+                _rewardRow('🎖️', 'Early Explorer Badge',
+                    'Exclusive profile recognition'),
                 SizedBox(height: 12),
-                _rewardRow('🪙', '100 Gold Coins', 'Credited directly to your wallet'),
+                _rewardRow(
+                    '🪙', '100 Gold Coins', 'Credited directly to your wallet'),
                 SizedBox(height: 12),
                 _rewardRow('✨', '7-Day Avatar Frame', 'Equipped automatically'),
                 SizedBox(height: 12),
-                _rewardRow('📈', 'Boosted Visibility', 'Higher ranking in recommendations'),
+                _rewardRow('📈', 'Boosted Visibility',
+                    'Higher ranking in recommendations'),
               ],
             ),
           ),
@@ -1740,8 +2031,14 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
-            Text(desc, style: GoogleFonts.poppins(color: context.caption, fontSize: 10)),
+            Text(title,
+                style: GoogleFonts.poppins(
+                    color: context.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12)),
+            Text(desc,
+                style:
+                    GoogleFonts.poppins(color: context.caption, fontSize: 10)),
           ],
         ),
       ],
@@ -1755,12 +2052,21 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : onTap,
         style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           backgroundColor: context.primaryColor,
         ),
-        child: _isLoading 
-            ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : Text(label, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+        child: _isLoading
+            ? SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 2))
+            : Text(label,
+                style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
       ),
     );
   }
@@ -1768,8 +2074,9 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
   void _handleSocialSignUp(String provider) async {
     setState(() => _isLoading = true);
     try {
-      final targetProvider =
-          provider.toLowerCase() == 'facebook' ? OAuthProvider.facebook : OAuthProvider.google;
+      final targetProvider = provider.toLowerCase() == 'facebook'
+          ? OAuthProvider.facebook
+          : OAuthProvider.google;
 
       final success = await Supabase.instance.client.auth.signInWithOAuth(
         targetProvider,
@@ -1809,7 +2116,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: context.borderColor),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           backgroundColor: context.secondaryBackgroundColor,
           padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
@@ -1880,14 +2188,16 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(6),
               ),
-              side: BorderSide(color: context.borderColor.withOpacity(0.5), width: 1.5),
+              side: BorderSide(
+                  color: context.borderColor.withOpacity(0.5), width: 1.5),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12, height: 1.5),
+                style: GoogleFonts.poppins(
+                    color: context.textSecondary, fontSize: 12, height: 1.5),
                 children: [
                   const TextSpan(text: 'I agree to the '),
                   WidgetSpan(
@@ -1930,22 +2240,26 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
   Widget _buildPasswordStrengthTip() {
     final password = _passwordCtrl.text;
-    
+
     // Evaluate requirements
     final hasLength = password.length >= 8;
     final hasLowercase = password.contains(RegExp(r'[a-z]'));
     final hasUppercase = password.contains(RegExp(r'[A-Z]'));
     final hasDigit = password.contains(RegExp(r'[0-9]'));
     final hasSymbol = password.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'));
-    
+
     Widget requirementRow(String text, bool isMet) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(
           children: [
             Icon(
-              isMet ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-              color: isMet ? context.successColor : context.textSecondary.withOpacity(0.4),
+              isMet
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: isMet
+                  ? context.successColor
+                  : context.textSecondary.withOpacity(0.4),
               size: 14,
             ),
             const SizedBox(width: 8),
@@ -1954,7 +2268,9 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
                 text,
                 style: GoogleFonts.poppins(
                   fontSize: 11,
-                  color: isMet ? context.textPrimary : context.textSecondary.withOpacity(0.7),
+                  color: isMet
+                      ? context.textPrimary
+                      : context.textSecondary.withOpacity(0.7),
                   fontWeight: isMet ? FontWeight.w500 : FontWeight.normal,
                 ),
               ),
@@ -1970,14 +2286,16 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.02),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.borderColor.withOpacity(0.3), width: 1),
+        border:
+            Border.all(color: context.borderColor.withOpacity(0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.shield_outlined, color: context.accentOrange, size: 16),
+              Icon(Icons.shield_outlined,
+                  color: context.accentOrange, size: 16),
               const SizedBox(width: 8),
               Text(
                 'Password Security Requirements:',
@@ -1991,7 +2309,8 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
           ),
           const SizedBox(height: 10),
           requirementRow('At least 8 characters long', hasLength),
-          requirementRow('Contains uppercase & lowercase letters', hasUppercase && hasLowercase),
+          requirementRow('Contains uppercase & lowercase letters',
+              hasUppercase && hasLowercase),
           requirementRow('Contains at least one digit (0-9)', hasDigit),
           requirementRow('Contains at least one symbol (!@#\$%...)', hasSymbol),
         ],

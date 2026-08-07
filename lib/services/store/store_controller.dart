@@ -11,6 +11,7 @@ import '../../core/theme.dart';
 import '../memberships/vip_controller.dart';
 import '../memberships/novel_controller.dart';
 import '../user/customization_controller.dart';
+import '../../widgets/gifting/insufficient_balance_sheet.dart';
 
 class CoinPack {
   final String id;
@@ -530,12 +531,11 @@ class StoreController extends GetxController with WidgetsBindingObserver {
     // Proportional conversion: ₹100 = 50 Gold Coins.
     int goldPrice = (finalAmount * 0.50).round();
     if (coinsBalance.value < goldPrice) {
-      Get.snackbar(
-        'Purchase Failed ⚠️',
-        'Insufficient Gold Coins balance.',
-        backgroundColor: const Color(0xFFEF4444),
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
+      InsufficientBalanceSheet.show(
+        currency: 'gold',
+        requiredCoins: goldPrice,
+        availableCoins: coinsBalance.value,
+        giftName: name,
       );
       return {'success': false, 'error': 'Insufficient Gold Coins balance.'};
     }

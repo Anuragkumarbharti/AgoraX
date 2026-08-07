@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:creania/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
@@ -22,7 +24,9 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   final _usernameController = TextEditingController();
   final _descController = TextEditingController();
   final _identityTagController = TextEditingController();
-  final _imageController = TextEditingController();
+  File? _selectedImage;
+  String? _uploadedImageUrl;
+  bool _isUploadingImage = false;
 
   bool _isCheckingUsername = false;
   bool? _isUsernameUnique;
@@ -166,13 +170,59 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
     }
   }
 
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+
+    setState(() {
+      _selectedImage = File(picked.path);
+      _isUploadingImage = true;
+      _uploadedImageUrl = null;
+    });
+
+    try {
+      final userId = CommunityController.currentUserId;
+      final ext = picked.path.split('.').last.toLowerCase();
+      final fileName = 'community_logos/${userId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+
+      final bytes = await _selectedImage!.readAsBytes();
+      await Supabase.instance.client.storage
+          .from('avatars')
+          .uploadBinary(fileName, bytes,
+              fileOptions: FileOptions(contentType: 'image/$ext', upsert: true));
+
+      final publicUrl = Supabase.instance.client.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+      setState(() {
+        _uploadedImageUrl = publicUrl;
+        _isUploadingImage = false;
+      });
+    } catch (e) {
+      setState(() => _isUploadingImage = false);
+      Get.snackbar(
+        'Upload Failed',
+        'Image upload failed. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _usernameController.dispose();
     _descController.dispose();
     _identityTagController.dispose();
-    _imageController.dispose();
     _usernameDebounce?.cancel();
     _identityTagDebounce?.cancel();
     super.dispose();
@@ -328,8 +378,8 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
       preferredInterests: const [],
       tags: const [],
       visibility: 'public',
-      logo: _imageController.text.trim().isNotEmpty ? _imageController.text.trim() : displayName.substring(0, 1).toUpperCase(),
-      banner: _imageController.text.trim().isNotEmpty ? _imageController.text.trim() : 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809',
+      logo: _uploadedImageUrl ?? displayName.substring(0, 1).toUpperCase(),
+      banner: _uploadedImageUrl ?? 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809',
       creationMethod: _creationType,
       identityTag: identityTag,
     );
@@ -556,22 +606,101 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
             const SizedBox(height: 20),
 
             Text(
-              'Family Image/Logo URL',
+              'Family Image / Logo',
               style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _imageController,
-              style: TextStyle(color: context.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'https://example.com/logo.png (Optional)',
-                hintStyle: TextStyle(color: context.caption),
-                filled: true,
-                fillColor: context.secondaryBackgroundColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: _isUploadingImage ? null : _pickImage,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: double.infinity,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: context.secondaryBackgroundColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _uploadedImageUrl != null
+                        ? Colors.greenAccent.withOpacity(0.6)
+                        : context.borderColor.withOpacity(0.4),
+                    width: 1.5,
+                  ),
                 ),
+                child: _isUploadingImage
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(strokeWidth: 2),
+                            SizedBox(height: 10),
+                            Text('Uploading...', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      )
+                    : _selectedImage != null
+                        ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Image.file(
+                                  _selectedImage!,
+                                  width: double.infinity,
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              // Overlay with change button
+                              Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.65),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.edit_rounded, color: Colors.white, size: 13),
+                                      SizedBox(width: 4),
+                                      Text('Change', style: TextStyle(color: Colors.white, fontSize: 11)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (_uploadedImageUrl != null)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.green,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.check_rounded, color: Colors.white, size: 14),
+                                  ),
+                                ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_photo_alternate_rounded,
+                                  size: 36, color: context.primaryColor.withOpacity(0.7)),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tap to upload logo from gallery',
+                                style: TextStyle(color: context.caption, fontSize: 13),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Optional • JPG, PNG supported',
+                                style: TextStyle(color: context.caption.withOpacity(0.6), fontSize: 11),
+                              ),
+                            ],
+                          ),
               ),
             ),
             const SizedBox(height: 20),

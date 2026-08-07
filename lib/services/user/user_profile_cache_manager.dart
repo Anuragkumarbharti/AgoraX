@@ -20,6 +20,7 @@ import '../../screens/auth/login_screen.dart';
 import '../../core/api_error_handler.dart';
 import './smart_default_avatar_service.dart';
 import 'package:flutter/material.dart';
+import '../auth/auth_memory_service.dart';
 
 class UserProfileCacheManager {
   static final Map<String, User> _cache = {};
@@ -363,32 +364,49 @@ class UserProfileCacheManager {
 
   static Future<bool> validateCurrentUserSession() async {
     final client = Supabase.instance.client;
-    final session = client.auth.currentSession;
+
+    // ── Wait briefly for Supabase to restore persisted session on cold start ──
+    Session? session = client.auth.currentSession;
     if (session == null) {
+      // Give the SDK up to 1 second to restore its persisted session
+      for (int i = 0; i < 5; i++) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        session = client.auth.currentSession;
+        if (session != null) break;
+      }
+    }
+
+    if (session == null) {
+      // No session even after wait — check if Remember Me can restore it
+      debugPrint('[CacheManager] No session found after cold-start wait');
       return false;
     }
 
     try {
-      // Deactivate expired memberships on the backend
-      try {
-        await client.rpc('check_and_clean_expired_memberships');
-      } catch (e) {
-        debugPrint('[CacheManager] Error running expiry cleanup: $e');
-      }
+      // Deactivate expired memberships on the backend (fire & forget)
+      client.rpc('check_and_clean_expired_memberships').catchError((_) {});
 
       final currentUser = client.auth.currentUser;
       if (currentUser == null) {
-        await forceLogout(
-            message: "Your session is invalid. Please sign in again.");
-        return false;
+        // This should not happen if session != null, treat as network issue
+        debugPrint('[CacheManager] currentUser null despite valid session — keeping logged in');
+        return true;
       }
 
       // Check if matching row exists in profiles
-      Map<String, dynamic>? data = await client
-          .from('profiles')
-          .select('status, is_banned, ban_reason')
-          .eq('id', currentUser.id)
-          .maybeSingle();
+      Map<String, dynamic>? data;
+      try {
+        data = await client
+            .from('profiles')
+            .select('status, is_banned, ban_reason')
+            .eq('id', currentUser.id)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 4));
+      } catch (netErr) {
+        // Network error — keep user logged in, don't logout
+        debugPrint('[CacheManager] Profile fetch network error (keeping logged in): $netErr');
+        return true;
+      }
 
       if (data == null) {
         // Attempt to auto-recreate the profiles row if missing
@@ -407,7 +425,6 @@ class UserProfileCacheManager {
             'verified': false,
             'signup_status': 'otp_verified',
           });
-          // Verify it was created successfully
           final refetched = await client
               .from('profiles')
               .select('status, is_banned, ban_reason')
@@ -416,18 +433,14 @@ class UserProfileCacheManager {
           if (refetched != null) {
             data = refetched;
           } else {
-            await forceLogout(
-                message:
-                    "Your account is unavailable. Please sign in again or contact support.");
-            return false;
+            // Could not recreate — treat as network/DB issue, keep logged in
+            debugPrint('[CacheManager] Profile row missing and recreation failed — keeping logged in');
+            return true;
           }
         } catch (e) {
-          debugPrint(
-              '[CacheManager] Auto-recreation of profiles row failed during session validation: $e');
-          await forceLogout(
-              message:
-                  "Your account is unavailable. Please sign in again or contact support.");
-          return false;
+          // Recreation failed due to network — keep logged in
+          debugPrint('[CacheManager] Profile recreation error (keeping logged in): $e');
+          return true;
         }
       }
 
@@ -446,31 +459,36 @@ class UserProfileCacheManager {
       }
 
       // Check bans ledger for active bans
-      final banLedger = await client
-          .from('bans')
-          .select('reason')
-          .eq('user_id', currentUser.id)
-          .maybeSingle();
+      try {
+        final banLedger = await client
+            .from('bans')
+            .select('reason')
+            .eq('user_id', currentUser.id)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 3));
 
-      if (banLedger != null) {
-        final reason = banLedger['reason'] as String?;
-        await forceLogout(
-          message: reason != null && reason.isNotEmpty
-              ? "Your account has been suspended. Reason: $reason"
-              : "Your account has been suspended.",
-        );
-        return false;
+        if (banLedger != null) {
+          final reason = banLedger['reason'] as String?;
+          await forceLogout(
+            message: reason != null && reason.isNotEmpty
+                ? "Your account has been suspended. Reason: $reason"
+                : "Your account has been suspended.",
+          );
+          return false;
+        }
+      } catch (_) {
+        // Ban check network error — keep logged in
       }
 
-      // Ensure active session registration
-      await registerSession(currentUser.id);
+      // Ensure active session registration (non-blocking)
+      registerSession(currentUser.id).catchError((_) => false);
 
       // Validate session ID on backend via RPC
       try {
         final bool isSessionActive = await client.rpc('validate_active_session', params: {
           'p_user_id': currentUser.id,
           'p_session_id': currentSessionId,
-        });
+        }).timeout(const Duration(seconds: 3));
 
         if (!isSessionActive) {
           await forceLogout(
@@ -478,34 +496,39 @@ class UserProfileCacheManager {
           return false;
         }
       } catch (e) {
-        debugPrint('[CacheManager] Active session RPC validation warning: $e');
+        debugPrint('[CacheManager] Active session RPC validation warning (keeping logged in): $e');
+        // Network error during session check — keep user logged in
       }
 
       return true;
     } catch (e) {
       debugPrint('[CacheManager] Session validation error: $e');
       final errStr = e.toString().toLowerCase();
-      if (errStr.contains('jwt') ||
-          errStr.contains('session') ||
-          errStr.contains('unauthorized') ||
-          errStr.contains('invalid token') ||
-          errStr.contains('expired')) {
-        // Attempt session refresh
+
+      // Only logout on confirmed authentication failures
+      final isAuthError = errStr.contains('jwt expired') ||
+          errStr.contains('invalid jwt') ||
+          errStr.contains('token is expired') ||
+          errStr.contains('401');
+
+      if (isAuthError) {
+        // Try to refresh the session first
         try {
           final res = await client.auth.refreshSession();
-          if (res.session == null) {
-            await forceLogout(
-                message: "Your session has expired. Please sign in again.");
-            return false;
+          if (res.session != null) {
+            debugPrint('[CacheManager] Session refreshed successfully');
+            return true;
           }
-          return true;
+          await forceLogout(message: "Your session has expired. Please sign in again.");
+          return false;
         } catch (_) {
-          await forceLogout(
-              message: "Your session has expired. Please sign in again.");
+          await forceLogout(message: "Your session has expired. Please sign in again.");
           return false;
         }
       }
-      return true; // Keep active for temporary network issues
+
+      // For all other errors (network, timeout, etc.) — keep user logged in
+      return true;
     }
   }
 
@@ -532,6 +555,11 @@ class UserProfileCacheManager {
     } catch (_) {}
 
     clear();
+
+    // ── Normal logout: clear session token, keep email + Last Login ──
+    try {
+      await AuthMemoryService.clearSession();
+    } catch (_) {}
 
     try {
       final isar = IsarStorageService.to;

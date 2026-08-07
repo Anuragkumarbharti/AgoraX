@@ -104,7 +104,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _twitterCtrl.text = _user.twitter ?? '';
     _dob = _user.dob;
     _age = _user.age;
-    _selectedGender = _user.gender;
+    const _validGenders = ['Male', 'Female', 'Non-Binary', 'Prefer not to say'];
+    final rawGender = _user.gender;
+    _selectedGender = (rawGender != null && _validGenders.contains(rawGender)) ? rawGender : null;
     _selectedInterests.clear();
     _selectedInterests.addAll(_user.interests);
   }

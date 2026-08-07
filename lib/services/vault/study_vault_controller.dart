@@ -10,6 +10,7 @@ import '../store/store_controller.dart';
 import '../memberships/novel_controller.dart';
 import '../user/user_progress_sync_service.dart';
 import '../user/user_profile_cache_manager.dart';
+import '../../widgets/gifting/insufficient_balance_sheet.dart';
 
 class StudyVaultController extends GetxController {
   static StudyVaultController get to => Get.find<StudyVaultController>();
@@ -443,12 +444,11 @@ class StudyVaultController extends GetxController {
     int goldCoinsPrice = (breakdown['buyerPays']! * 0.50).round();
 
     if (storeCtrl.coinsBalance.value < goldCoinsPrice) {
-      Get.snackbar(
-        'Insufficient Balance 🪙',
-        'You need $goldCoinsPrice Gold Coins. Please recharge.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent.withOpacity(0.9),
-        colorText: Colors.white,
+      InsufficientBalanceSheet.show(
+        currency: 'gold',
+        requiredCoins: goldCoinsPrice,
+        availableCoins: storeCtrl.coinsBalance.value,
+        giftName: book.title,
       );
       return false;
     }

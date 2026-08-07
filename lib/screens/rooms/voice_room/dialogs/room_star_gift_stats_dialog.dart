@@ -48,10 +48,8 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
 
       if (mounted && response != null && response is Map<String, dynamic>) {
         setState(() {
-          _totalStars = (response['total_stars'] as num?)?.toDouble() ?? _totalStars;
-          _todayStars = (response['today_stars'] as num?)?.toDouble() ??
-              (response['session_stars'] as num?)?.toDouble() ??
-              0;
+          _totalStars = ((response['total_gems'] ?? response['total_stars']) as num?)?.toDouble() ?? _totalStars;
+          _todayStars = ((response['today_gems'] ?? response['today_stars'] ?? response['session_stars']) as num?)?.toDouble() ?? 0;
 
           final todaySent = response['today_top_contributors'] as List<dynamic>?;
           final todayRecv = response['today_top_receivers'] as List<dynamic>?;
@@ -148,7 +146,7 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Room Star Gifts 🌟',
+                            'Room Gift Gems 💎',
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -187,24 +185,24 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
             ),
             const Divider(color: Colors.white10, height: 1),
 
-            // Top Stat Cards (Total & Today's Stars Summary)
+            // Top Stat Cards (Total & Today's Gems Summary)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
               child: Row(
                 children: [
                   Expanded(
                     child: _buildSummaryCard(
-                      label: "Today's Stars",
+                      label: "Today's Gems 💎",
                       stars: _todayStars,
-                      iconColor: const Color(0xFF38BDF8),
+                      iconColor: const Color(0xFF00F2FE),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _buildSummaryCard(
-                      label: "Total Stars",
+                      label: "Total Gems 💎",
                       stars: _totalStars,
-                      iconColor: const Color(0xFFFFB800),
+                      iconColor: const Color(0xFF00F2FE),
                     ),
                   ),
                 ],
@@ -328,8 +326,8 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                     final item = activeList[index];
                     final String name = item['username'] ?? 'User';
                     final String avatar = item['avatar'] ?? '';
-                    final double stars =
-                        (item['stars_value'] as num?)?.toDouble() ?? 0.0;
+                    final double gems =
+                        ((item['gems_value'] ?? item['stars_value']) as num?)?.toDouble() ?? 0.0;
                     final rank = index + 1;
 
                     return Container(
@@ -376,24 +374,20 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                             ),
                           ),
 
-                          // Total Stars
+                          // Total Gems
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                _formatStars(stars),
+                                '${_formatStars(gems)} Gems',
                                 style: GoogleFonts.poppins(
-                                  color: const Color(0xFFFFB800),
-                                  fontSize: 13,
+                                  color: const Color(0xFF00F2FE),
+                                  fontSize: 12.5,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(width: 3),
-                              const Icon(
-                                Icons.star_rounded,
-                                color: Color(0xFFFFB800),
-                                size: 14,
-                              ),
+                              const Text('💎', style: TextStyle(fontSize: 12)),
                             ],
                           ),
                         ],

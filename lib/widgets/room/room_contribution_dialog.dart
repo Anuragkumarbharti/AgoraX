@@ -59,9 +59,9 @@ class _RoomContributionDialogState extends State<RoomContributionDialog> with Si
 
   @override
   Widget build(BuildContext context) {
-    final double totalStars = (_stats?['total_stars'] as num?)?.toDouble() ?? 0.0;
+    final double totalStars = ((_stats?['total_gems'] ?? _stats?['total_stars']) as num?)?.toDouble() ?? 0.0;
     final int totalGifts = (_stats?['total_gifts'] as num?)?.toInt() ?? 0;
-    final double sessionStars = (_stats?['session_stars'] as num?)?.toDouble() ?? 0.0;
+    final double sessionStars = ((_stats?['today_gems'] ?? _stats?['session_stars']) as num?)?.toDouble() ?? 0.0;
     final int sessionGifts = (_stats?['session_gifts'] as num?)?.toInt() ?? 0;
 
     final contributors = _stats?['top_contributors'] as List<dynamic>? ?? [];
@@ -116,9 +116,9 @@ class _RoomContributionDialogState extends State<RoomContributionDialog> with Si
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    Expanded(child: _buildStatTile('Total Room', '${_formatStars(totalStars)} ★', '$totalGifts Gifts')),
+                    Expanded(child: _buildStatTile('Total Room Gems', '${_formatStars(totalStars)} 💎', '$totalGifts Gifts')),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildStatTile('This Session', '${_formatStars(sessionStars)} ★', '$sessionGifts Gifts')),
+                    Expanded(child: _buildStatTile('This Session Gems', '${_formatStars(sessionStars)} 💎', '$sessionGifts Gifts')),
                   ],
                 ),
               ),
@@ -194,7 +194,7 @@ class _RoomContributionDialogState extends State<RoomContributionDialog> with Si
         final u = users[index];
         final String name = u['username'] ?? 'User';
         final String avatar = u['avatar'] ?? '';
-        final double stars = (u['stars_value'] as num?)?.toDouble() ?? 0.0;
+        final double gems = ((u['gems_value'] ?? u['stars_value']) as num?)?.toDouble() ?? 0.0;
         final rank = index + 1;
 
         return Container(
@@ -248,10 +248,10 @@ class _RoomContributionDialogState extends State<RoomContributionDialog> with Si
                 ),
               ),
 
-              // Total Stars
+              // Total Gems
               Text(
-                '${_formatStars(stars)} ★',
-                style: GoogleFonts.poppins(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                '${_formatStars(gems)} 💎',
+                style: GoogleFonts.poppins(color: const Color(0xFF00F2FE), fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ],
           ),

@@ -11,6 +11,7 @@ import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/storage/theme_controller.dart';
 import '../../services/community/community_controller.dart';
 import './notification_settings_screen.dart';
+import '../../services/auth/auth_memory_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -240,6 +241,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   SizedBox(height: 12),
+                  // ── Logout & Forget Device ────────────────────────────────
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: _showForgetDeviceConfirm,
+                      icon: Icon(Icons.phonelink_erase_rounded, color: context.errorColor, size: 18),
+                      label: Text(
+                        'Logout & Forget Device',
+                        style: GoogleFonts.poppins(
+                          color: context.errorColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: context.errorColor.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -419,7 +442,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showLogoutConfirm() {
     Get.defaultDialog(
       title: 'Sign Out?',
-      middleText: 'Are you sure you want to log out of your Creaniaa account?',
+      middleText: 'You will be signed out. Your email and last login info will be remembered on this device.',
       backgroundColor: context.secondaryBackgroundColor,
       titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
       middleTextStyle: GoogleFonts.poppins(color: context.textSecondary),
@@ -430,7 +453,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
         child: Text('Logout'),
       ),
+      cancel: OutlinedButton(
+        onPressed: () => Get.back(),
+        child: Text('Cancel'),
+      ),
+    );
+  }
 
+  void _showForgetDeviceConfirm() {
+    Get.defaultDialog(
+      title: 'Forget This Device?',
+      middleText: 'This will sign you out AND delete all saved login info from this device — your email, last login, and Remember Me settings.\n\nYou will need to log in from scratch.',
+      backgroundColor: context.secondaryBackgroundColor,
+      titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.errorColor),
+      middleTextStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
+      confirm: ElevatedButton(
+        onPressed: () async {
+          // Full device memory wipe first
+          await AuthMemoryService.forgetDevice();
+          // Then logout
+          await UserProfileCacheManager.forceLogout(message: "Device forgotten. Please log in again.");
+        },
+        style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
+        child: Text('Forget Device'),
+      ),
       cancel: OutlinedButton(
         onPressed: () => Get.back(),
         child: Text('Cancel'),
@@ -450,12 +496,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           try {
             final canonicalId = UserProfileCacheManager.currentUserId;
             if (canonicalId.isNotEmpty && canonicalId != 'me') {
-              // Delete profile row (foreign key will cascade delete other entries)
               await Supabase.instance.client.from('profiles').delete().eq('id', canonicalId);
               UserProfileCacheManager.clear();
               await Supabase.instance.client.auth.signOut();
             }
           } catch (_) {}
+          // Wipe all device memory on account deletion
+          await AuthMemoryService.onAccountDeleted();
           Get.offAll(() => const LoginScreen());
         },
         style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),

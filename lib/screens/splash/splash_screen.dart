@@ -11,6 +11,7 @@ import '../auth/index.dart';
 import '../home/main_screen.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/user/user_progress_sync_service.dart';
+import '../../services/auth/auth_memory_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -104,21 +105,34 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigateToNextScreen() async {
     try {
+      // ── 1. Load auth memory (Remember Me, Last Login) from secure storage ──
+      await AuthMemoryService.load();
+
       final prefs = await SharedPreferences.getInstance().timeout(
         const Duration(milliseconds: 1000),
         onTimeout: () => throw TimeoutException('SharedPreferences timeout'),
       );
       final firstLaunchDone = prefs.getBool('firstLaunchDone') ?? false;
-      
-      bool isLoggedIn = false;
-      try {
-        isLoggedIn = Supabase.instance.client.auth.currentSession != null;
-      } catch (_) {}
 
       if (!firstLaunchDone) {
         await Future.delayed(const Duration(milliseconds: 1600));
         _performNavigation(const OnboardingScreen());
         return;
+      }
+
+      // ── 2. Check active Supabase session ───────────────────────────────
+      bool isLoggedIn = false;
+      try {
+        isLoggedIn = Supabase.instance.client.auth.currentSession != null &&
+            !(Supabase.instance.client.auth.currentSession!.isExpired);
+      } catch (_) {}
+
+      // ── 3. Try restore session via Remember Me token ───────────────────
+      if (!isLoggedIn && AuthMemoryService.rememberMe) {
+        try {
+          isLoggedIn = await AuthMemoryService.tryRestoreSession()
+              .timeout(const Duration(seconds: 3), onTimeout: () => false);
+        } catch (_) {}
       }
 
       if (isLoggedIn) {
@@ -163,6 +177,7 @@ class _SplashScreenState extends State<SplashScreen>
           _performNavigation(const MainScreen());
           return;
         } else {
+          // Session validation failed — go to login, keep remembered data visible
           await Future.delayed(const Duration(milliseconds: 1600));
           _performNavigation(const LoginScreen());
           return;

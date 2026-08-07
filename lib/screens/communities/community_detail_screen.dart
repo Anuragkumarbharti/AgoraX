@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -1456,84 +1459,550 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     final nameController = TextEditingController(text: comm.name);
     final descController = TextEditingController(text: comm.description);
     final rulesController = TextEditingController(text: comm.rules);
-    final imageController = TextEditingController(text: comm.image);
     String selectedJoinMode = comm.joinMode;
+    File? selectedCoverImage;
+    String? uploadedCoverUrl = comm.image?.isNotEmpty == true ? comm.image : null;
+    bool isUploadingCover = false;
 
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: const Color(0xFF1B1D2A),
-        title: Text('Edit Family Info', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Family Name', labelStyle: TextStyle(color: Colors.white70)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Description', labelStyle: TextStyle(color: Colors.white70)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: rulesController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Rules', labelStyle: TextStyle(color: Colors.white70)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: imageController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Cover Image URL', labelStyle: TextStyle(color: Colors.white70)),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedJoinMode,
-                dropdownColor: const Color(0xFF1B1D2A),
-                decoration: const InputDecoration(labelText: 'Join Mode', labelStyle: TextStyle(color: Colors.white70)),
-                items: const [
-                  DropdownMenuItem(value: 'auto_join', child: Text('Auto Join', style: TextStyle(color: Colors.white))),
-                  DropdownMenuItem(value: 'approval_required', child: Text('Apply to Join', style: TextStyle(color: Colors.white))),
-                ],
-                onChanged: (val) {
-                  if (val != null) selectedJoinMode = val;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Get.back();
-              final success = await _controller.updateCommunitySettings(comm.id, {
-                'name': nameController.text,
-                'banner': imageController.text,
-                'image': imageController.text,
-                'description': descController.text,
-                'rules': rulesController.text,
-                'join_mode': selectedJoinMode,
-                'min_id_level': comm.minIdLevel,
-                'language': comm.language,
-                'country': comm.country,
-                'category': comm.category,
-                'visibility': comm.visibility,
+    // Collect member profiles for owner/co-owner/admin display
+    final allUserIds = <String>{
+      comm.owner,
+      ...comm.coOwnerIds,
+      ...comm.admins,
+    }.toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          // ─── helpers ───────────────────────────────────────────
+          Future<void> pickCover() async {
+            final picker = ImagePicker();
+            final picked = await picker.pickImage(
+              source: ImageSource.gallery,
+              maxWidth: 1200,
+              maxHeight: 600,
+              imageQuality: 88,
+            );
+            if (picked == null) return;
+            setSheetState(() {
+              selectedCoverImage = File(picked.path);
+              isUploadingCover = true;
+              uploadedCoverUrl = null;
+            });
+            try {
+              final ext = picked.path.split('.').last.toLowerCase();
+              final fileName =
+                  'community_covers/${comm.id}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+              final bytes = await selectedCoverImage!.readAsBytes();
+              await Supabase.instance.client.storage
+                  .from('avatars')
+                  .uploadBinary(fileName, bytes,
+                      fileOptions:
+                          FileOptions(contentType: 'image/$ext', upsert: true));
+              final url = Supabase.instance.client.storage
+                  .from('avatars')
+                  .getPublicUrl(fileName);
+              setSheetState(() {
+                uploadedCoverUrl = url;
+                isUploadingCover = false;
               });
-              if (success) {
-                Get.snackbar('Success', 'Settings updated successfully.', backgroundColor: Colors.green, colorText: Colors.white);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
+            } catch (_) {
+              setSheetState(() => isUploadingCover = false);
+              Get.snackbar('Upload Failed', 'Could not upload cover image.',
+                  backgroundColor: Colors.redAccent, colorText: Colors.white);
+            }
+          }
+
+          Widget _roleChip(String label, Color color) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: color.withOpacity(0.5)),
+                ),
+                child: Text(label,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold)),
+              );
+
+          Widget _memberCard(String userId, String role, Color roleColor) {
+            final cached = UserProfileCacheManager.getCachedUser(userId);
+            final username = cached?.username ?? userId.substring(0, 8);
+            final avatar = cached?.avatar ?? '';
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252737),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: roleColor.withOpacity(0.25), width: 1),
+              ),
+              child: Row(
+                children: [
+                  // Avatar
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: roleColor.withOpacity(0.2),
+                    backgroundImage:
+                        avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                    child: avatar.isEmpty
+                        ? Text(username[0].toUpperCase(),
+                            style: TextStyle(
+                                color: roleColor,
+                                fontWeight: FontWeight.bold))
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('@$username',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13)),
+                        const SizedBox(height: 2),
+                        Text(userId.length > 12
+                            ? userId.substring(0, 12) + '...'
+                            : userId,
+                            style: const TextStyle(
+                                color: Colors.white38, fontSize: 10)),
+                      ],
+                    ),
+                  ),
+                  _roleChip(role, roleColor),
+                ],
+              ),
+            );
+          }
+
+          InputDecoration _fieldDecor(String label, IconData icon) =>
+              InputDecoration(
+                labelText: label,
+                labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+                prefixIcon: Icon(icon, color: Colors.white38, size: 18),
+                filled: true,
+                fillColor: const Color(0xFF252737),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF7C5CFC), width: 1.5),
+                ),
+              );
+
+          // ─── Sheet body ────────────────────────────────────────
+          return DraggableScrollableSheet(
+            initialChildSize: 0.92,
+            minChildSize: 0.6,
+            maxChildSize: 0.97,
+            expand: false,
+            builder: (_, scrollCtrl) => Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF1B1D2A),
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  // drag handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 10),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(4)),
+                  ),
+                  // header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 8, 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit_rounded,
+                            color: Color(0xFF7C5CFC), size: 22),
+                        const SizedBox(width: 10),
+                        Text('Edit Community',
+                            style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        IconButton(
+                            icon: const Icon(Icons.close_rounded,
+                                color: Colors.white54),
+                            onPressed: () => Navigator.pop(ctx)),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: Colors.white12, height: 1),
+                  // scrollable content
+                  Expanded(
+                    child: ListView(
+                      controller: scrollCtrl,
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+                      children: [
+
+                        // ── Cover Image ──────────────────────────
+                        Text('Cover Image',
+                            style: GoogleFonts.outfit(
+                                color: Colors.white70,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: isUploadingCover ? null : pickCover,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 150,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: uploadedCoverUrl != null
+                                    ? Colors.greenAccent.withOpacity(0.5)
+                                    : Colors.white12,
+                                width: 1.5,
+                              ),
+                              color: const Color(0xFF252737),
+                            ),
+                            child: isUploadingCover
+                                ? const Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        CircularProgressIndicator(
+                                            color: Color(0xFF7C5CFC),
+                                            strokeWidth: 2),
+                                        SizedBox(height: 10),
+                                        Text('Uploading...',
+                                            style: TextStyle(
+                                                color: Colors.white54,
+                                                fontSize: 13)),
+                                      ],
+                                    ),
+                                  )
+                                : selectedCoverImage != null
+                                    ? Stack(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                            child: Image.file(
+                                              selectedCoverImage!,
+                                              width: double.infinity,
+                                              height: 150,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                          // green tick
+                                          if (uploadedCoverUrl != null)
+                                            Positioned(
+                                              top: 8,
+                                              right: 8,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.green,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                    Icons.check_rounded,
+                                                    color: Colors.white,
+                                                    size: 14),
+                                              ),
+                                            ),
+                                          // change chip
+                                          Positioned(
+                                            bottom: 8,
+                                            right: 8,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 5),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black54,
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.edit_rounded,
+                                                      color: Colors.white,
+                                                      size: 12),
+                                                  SizedBox(width: 4),
+                                                  Text('Change',
+                                                      style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 11)),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : uploadedCoverUrl != null && uploadedCoverUrl!.startsWith('http')
+                                        ? Stack(
+                                            children: [
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                child: CachedNetworkImage(
+                                                  imageUrl: uploadedCoverUrl!,
+                                                  width: double.infinity,
+                                                  height: 150,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              ),
+                                              Positioned(
+                                                bottom: 8,
+                                                right: 8,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                          horizontal: 10,
+                                                          vertical: 5),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black54,
+                                                    borderRadius:
+                                                        BorderRadius.circular(20),
+                                                  ),
+                                                  child: const Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Icon(Icons.edit_rounded,
+                                                          color: Colors.white,
+                                                          size: 12),
+                                                      SizedBox(width: 4),
+                                                      Text('Change',
+                                                          style: TextStyle(
+                                                              color: Colors.white,
+                                                              fontSize: 11)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              const Icon(
+                                                  Icons
+                                                      .add_photo_alternate_rounded,
+                                                  color: Color(0xFF7C5CFC),
+                                                  size: 36),
+                                              const SizedBox(height: 8),
+                                              const Text(
+                                                  'Tap to upload cover image',
+                                                  style: TextStyle(
+                                                      color: Colors.white54,
+                                                      fontSize: 13)),
+                                              const SizedBox(height: 4),
+                                              Text('Visible to all members',
+                                                  style: TextStyle(
+                                                      color: Colors.white38
+                                                          .withOpacity(0.6),
+                                                      fontSize: 11)),
+                                            ],
+                                          ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // ── Basic Info fields ────────────────────
+                        Text('Basic Info',
+                            style: GoogleFonts.outfit(
+                                color: Colors.white70,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: nameController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _fieldDecor(
+                              'Family Name', Icons.group_rounded),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: descController,
+                          style: const TextStyle(color: Colors.white),
+                          maxLines: 3,
+                          decoration: _fieldDecor(
+                              'Description', Icons.info_outline_rounded),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: rulesController,
+                          style: const TextStyle(color: Colors.white),
+                          maxLines: 2,
+                          decoration: _fieldDecor(
+                              'Community Rules', Icons.gavel_rounded),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Join Mode dropdown
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF252737),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedJoinMode,
+                              dropdownColor: const Color(0xFF252737),
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                                  color: Colors.white54),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'auto_join',
+                                  child: Row(children: [
+                                    Icon(Icons.flash_on_rounded,
+                                        color: Colors.amber, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Auto Join',
+                                        style:
+                                            TextStyle(color: Colors.white)),
+                                  ]),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'approval_required',
+                                  child: Row(children: [
+                                    Icon(Icons.verified_user_rounded,
+                                        color: Colors.blue, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Apply to Join',
+                                        style:
+                                            TextStyle(color: Colors.white)),
+                                  ]),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null)
+                                  setSheetState(
+                                      () => selectedJoinMode = val);
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        // ── Members Section ──────────────────────
+                        Row(
+                          children: [
+                            const Icon(Icons.people_alt_rounded,
+                                color: Color(0xFF7C5CFC), size: 18),
+                            const SizedBox(width: 8),
+                            Text('Community Members',
+                                style: GoogleFonts.outfit(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Owner
+                        _memberCard(comm.owner, 'Owner',
+                            const Color(0xFFFFD700)),
+
+                        // Co-owners
+                        ...comm.coOwnerIds.map((id) =>
+                            _memberCard(id, 'Co-Owner',
+                                const Color(0xFF7C5CFC))),
+
+                        // Admins
+                        ...comm.admins
+                            .where((id) => id != comm.owner && !comm.coOwnerIds.contains(id))
+                            .map((id) => _memberCard(
+                                id, 'Admin', const Color(0xFF00BCD4))),
+
+                        if (comm.coOwnerIds.isEmpty && comm.admins.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.04),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                  'No co-owners or admins assigned yet.',
+                                  style: TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 12)),
+                            ),
+                          ),
+
+                        const SizedBox(height: 32),
+
+                        // ── Save button ──────────────────────────
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.save_rounded,
+                                size: 18),
+                            label: Text('Save Changes',
+                                style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF7C5CFC),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: () async {
+                              Navigator.pop(ctx);
+                              final finalImage =
+                                  uploadedCoverUrl ?? comm.image ?? '';
+                              final success = await _controller
+                                  .updateCommunitySettings(comm.id, {
+                                'name': nameController.text,
+                                'banner': finalImage,
+                                'image': finalImage,
+                                'description': descController.text,
+                                'rules': rulesController.text,
+                                'join_mode': selectedJoinMode,
+                                'min_id_level': comm.minIdLevel,
+                                'language': comm.language,
+                                'country': comm.country,
+                                'category': comm.category,
+                                'visibility': comm.visibility,
+                              });
+                              if (success) {
+                                Get.snackbar('Saved! ✅',
+                                    'Community updated successfully.',
+                                    backgroundColor: Colors.green,
+                                    colorText: Colors.white);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

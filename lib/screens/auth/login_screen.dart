@@ -13,6 +13,7 @@ import '../home/main_screen.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/user/user_progress_sync_service.dart';
 import '../../core/api_error_handler.dart';
+import '../../services/auth/auth_memory_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -33,7 +34,8 @@ class _LoginScreenState extends State<LoginScreen>
   bool _otpSent = false;
   bool _isPasswordVisible = false;
   bool _usePasswordLogin = true;
-  bool _showEmailForm = false; // Toggle between selector and email form
+  bool _showEmailForm = false;
+  bool _rememberMe = true;
   StreamSubscription<AuthState>? _authSubscription;
 
   late AnimationController _bgAnimCtrl;
@@ -53,15 +55,43 @@ class _LoginScreenState extends State<LoginScreen>
       duration: const Duration(milliseconds: 800),
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
-    _fadeCtrl.forward();
+
+    // Load auth memory synchronously before first frame
+    _loadAuthMemory();
 
     _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final AuthChangeEvent event = data.event;
       final Session? session = data.session;
       if (event == AuthChangeEvent.signedIn && session != null) {
+        // Save OAuth login memory on social sign-in callback
+        if (_pendingSocialMethod != null) {
+          final email = session.user.email;
+          AuthMemoryService.saveSuccessfulLogin(
+            method: _pendingSocialMethod!,
+            rememberMe: _rememberMe,
+            email: email,
+            refreshToken: session.refreshToken,
+          );
+          _pendingSocialMethod = null;
+        }
         _checkProfileAndNavigate(session.user.id);
       }
     });
+  }
+
+  Future<void> _loadAuthMemory() async {
+    await AuthMemoryService.load();
+    if (!mounted) return;
+    setState(() {
+      _rememberMe = AuthMemoryService.rememberMe;
+      // Smart auto-fill: pre-fill email if last login was email-based
+      if (AuthMemoryService.lastEmail != null &&
+          (AuthMemoryService.lastMethod == LoginMethod.email ||
+           AuthMemoryService.lastMethod == null)) {
+        _emailCtrl.text = AuthMemoryService.lastEmail!;
+      }
+    });
+    _fadeCtrl.forward();
   }
 
   @override
@@ -174,6 +204,13 @@ class _LoginScreenState extends State<LoginScreen>
 
       final user = response.user;
       if (user != null) {
+        // Save successful login to device secure storage
+        await AuthMemoryService.saveSuccessfulLogin(
+          method: LoginMethod.email,
+          rememberMe: _rememberMe,
+          email: email,
+          refreshToken: response.session?.refreshToken,
+        );
         _checkProfileAndNavigate(user.id);
       } else {
         throw Exception("Login failed. Please check credentials.");
@@ -302,6 +339,13 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() => _isLoading = false);
 
       if (response.user != null) {
+        // Save successful OTP login to device secure storage
+        await AuthMemoryService.saveSuccessfulLogin(
+          method: LoginMethod.email,
+          rememberMe: _rememberMe,
+          email: email,
+          refreshToken: response.session?.refreshToken,
+        );
         _checkProfileAndNavigate(response.user!.id);
       }
     } catch (e) {
@@ -322,6 +366,7 @@ class _LoginScreenState extends State<LoginScreen>
     try {
       final targetProvider =
           provider.toLowerCase() == 'facebook' ? OAuthProvider.facebook : OAuthProvider.google;
+      final method = provider.toLowerCase() == 'google' ? LoginMethod.google : LoginMethod.facebook;
 
       final success = await Supabase.instance.client.auth.signInWithOAuth(
         targetProvider,
@@ -336,6 +381,11 @@ class _LoginScreenState extends State<LoginScreen>
           backgroundColor: context.errorColor.withOpacity(0.9),
           colorText: Colors.white,
         );
+      } else {
+        // Session will be captured by the authStateChange listener.
+        // We store the login method for the next time the listener fires.
+        // The actual save happens when the signedIn event is received.
+        _pendingSocialMethod = method;
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -348,6 +398,8 @@ class _LoginScreenState extends State<LoginScreen>
       );
     }
   }
+
+  LoginMethod? _pendingSocialMethod;
 
   @override
   Widget build(BuildContext context) {
@@ -417,6 +469,7 @@ class _LoginScreenState extends State<LoginScreen>
   // --- Auth Options Selector ---
   Widget _buildAuthSelector() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Welcome Back',
@@ -435,20 +488,52 @@ class _LoginScreenState extends State<LoginScreen>
             color: context.textSecondary,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        _socialButton(
-          label: 'Continue with Google',
-          icon: _googleIcon(),
-          onTap: () => _handleSocialLogin('Google'),
-        ),
-        SizedBox(height: 12),
+        // ── Last Login Card (hidden if no prior login) ─────────────────
+        if (AuthMemoryService.hasLastLogin) ...[
+          _buildLastLoginCard(),
+          const SizedBox(height: 16),
+        ],
 
-        _socialButton(
-          label: 'Continue with Facebook',
-          icon: _facebookIcon(),
-          onTap: () => _handleSocialLogin('Facebook'),
-        ),
+        // ── Smart Google quick-login if last method was Google ─────────
+        if (AuthMemoryService.lastMethod == LoginMethod.google) ...[
+          _socialButton(
+            label: 'Continue with Google',
+            icon: _googleIcon(),
+            onTap: () => _handleSocialLogin('Google'),
+          ),
+          const SizedBox(height: 10),
+          _socialButton(
+            label: 'Continue with Facebook',
+            icon: _facebookIcon(),
+            onTap: () => _handleSocialLogin('Facebook'),
+          ),
+        ] else if (AuthMemoryService.lastMethod == LoginMethod.facebook) ...[
+          _socialButton(
+            label: 'Continue with Facebook',
+            icon: _facebookIcon(),
+            onTap: () => _handleSocialLogin('Facebook'),
+          ),
+          const SizedBox(height: 10),
+          _socialButton(
+            label: 'Continue with Google',
+            icon: _googleIcon(),
+            onTap: () => _handleSocialLogin('Google'),
+          ),
+        ] else ...[
+          _socialButton(
+            label: 'Continue with Google',
+            icon: _googleIcon(),
+            onTap: () => _handleSocialLogin('Google'),
+          ),
+          SizedBox(height: 12),
+          _socialButton(
+            label: 'Continue with Facebook',
+            icon: _facebookIcon(),
+            onTap: () => _handleSocialLogin('Facebook'),
+          ),
+        ],
         SizedBox(height: 12),
 
         _socialButton(
@@ -480,6 +565,113 @@ class _LoginScreenState extends State<LoginScreen>
           ],
         ),
       ],
+    );
+  }
+
+  // --- Last Login Card ---
+  Widget _buildLastLoginCard() {
+    final method = AuthMemoryService.lastMethod ?? LoginMethod.email;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: context.primaryColor.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: context.primaryColor.withOpacity(0.22),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history_rounded, size: 14, color: context.primaryColor),
+              const SizedBox(width: 6),
+              Text(
+                'Last Login',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: context.primaryColor,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Method row
+          Row(
+            children: [
+              Text(
+                method.emoji,
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                method.displayLabel,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: context.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Account row
+          Row(
+            children: [
+              Icon(Icons.alternate_email_rounded, size: 13, color: context.textSecondary),
+              const SizedBox(width: 6),
+              Text(
+                AuthMemoryService.maskedEmail,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: context.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Time row
+          Row(
+            children: [
+              Icon(Icons.access_time_rounded, size: 13, color: context.textSecondary),
+              const SizedBox(width: 6),
+              Text(
+                AuthMemoryService.formattedLoginTime,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: context.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Status chip
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFF10B981).withOpacity(0.4),
+              ),
+            ),
+            child: Text(
+              '✓  Last login successful',
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF10B981),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -667,6 +859,40 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+              // ── Remember Me checkbox ─────────────────────────────
+              GestureDetector(
+                onTap: () => setState(() => _rememberMe = !_rememberMe),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: _rememberMe ? context.primaryColor : Colors.transparent,
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(
+                          color: _rememberMe ? context.primaryColor : context.textSecondary,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: _rememberMe
+                          ? const Icon(Icons.check, color: Colors.white, size: 13)
+                          : null,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Remember Me',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: context.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
               _buildPrimaryButton(
                 label: 'Login with Password',
@@ -674,6 +900,40 @@ class _LoginScreenState extends State<LoginScreen>
                 onTap: _handlePasswordLogin,
               ),
             ] else ...[
+              // ── Remember Me checkbox (OTP flow) ─────────────────────
+              GestureDetector(
+                onTap: () => setState(() => _rememberMe = !_rememberMe),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: _rememberMe ? context.primaryColor : Colors.transparent,
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(
+                          color: _rememberMe ? context.primaryColor : context.textSecondary,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: _rememberMe
+                          ? const Icon(Icons.check, color: Colors.white, size: 13)
+                          : null,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Remember Me',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: context.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               _buildPrimaryButton(
                 label: 'Send 6-digit OTP',
                 isLoading: _isLoading,

@@ -11,20 +11,20 @@ void main() {
 
   group('Gift Animation Pipeline & Timing Tests', () {
     test('AnimationTimeline stage durations and total duration by tier', () {
-      expect(AnimationTimeline.stageADuration, const Duration(seconds: 1));
-      expect(AnimationTimeline.stageCDuration, const Duration(seconds: 1));
+      expect(AnimationTimeline.getStageADuration(GiftTier.basic), const Duration(seconds: 1));
+      expect(AnimationTimeline.getStageCDuration(GiftTier.basic), const Duration(seconds: 1));
 
       expect(AnimationTimeline.getStageBDuration(GiftTier.basic), const Duration(seconds: 2));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.premium), const Duration(seconds: 3));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.epic), const Duration(seconds: 4));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.legendary), const Duration(seconds: 5));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.mythic), const Duration(seconds: 6));
+      expect(AnimationTimeline.getStageBDuration(GiftTier.premium), const Duration(seconds: 4));
+      expect(AnimationTimeline.getStageBDuration(GiftTier.epic), const Duration(seconds: 6));
+      expect(AnimationTimeline.getStageBDuration(GiftTier.legendary), const Duration(seconds: 8));
+      expect(AnimationTimeline.getStageBDuration(GiftTier.mythic), const Duration(seconds: 10));
 
       expect(AnimationTimeline.getTotalDuration(GiftTier.basic), const Duration(seconds: 4));
-      expect(AnimationTimeline.getTotalDuration(GiftTier.premium), const Duration(seconds: 5));
-      expect(AnimationTimeline.getTotalDuration(GiftTier.epic), const Duration(seconds: 6));
-      expect(AnimationTimeline.getTotalDuration(GiftTier.legendary), const Duration(seconds: 7));
-      expect(AnimationTimeline.getTotalDuration(GiftTier.mythic), const Duration(seconds: 8));
+      expect(AnimationTimeline.getTotalDuration(GiftTier.premium), const Duration(milliseconds: 7500));
+      expect(AnimationTimeline.getTotalDuration(GiftTier.epic), const Duration(seconds: 11));
+      expect(AnimationTimeline.getTotalDuration(GiftTier.legendary), const Duration(milliseconds: 14500));
+      expect(AnimationTimeline.getTotalDuration(GiftTier.mythic), const Duration(seconds: 18));
     });
 
     test('AnimationTimeline stage progress calculation', () {

@@ -19,11 +19,13 @@ class GiftItem {
   final String icon;
   final int cost;
   final Color color;
-  final String currency; // 'gold' or 'silver'
-  final int stars;
-  final String category; // 'All', 'Popular', 'New', 'Romantic', 'Luxury', 'Fun', 'Party', 'Fantasy', 'Vehicles', 'Animals', 'Magic'
-  final String? badge; // 'HOT', 'NEW', 'VIP', 'LUCKY', 'LEGEND', 'EVENT', 'LIMITED'
+  final String currency; // 'gold', 'silver', or 'volt'
+  final int gemValue; // Universal Gem Value
+  final int stars; // Legacy alias
+  final String category; // 'All', 'Popular', 'New', 'Romantic', 'Luxury', 'Fun', 'Party', 'Fantasy', 'Vehicles', 'Animals', 'Magic', '⚡ Volt'
+  final String? badge; // 'HOT', 'NEW', 'VIP', 'LUCKY', 'LEGEND', 'EVENT', 'LIMITED', 'VOLT'
   final bool isLucky;
+  final bool isVolt;
 
   GiftItem({
     required this.id,
@@ -32,11 +34,18 @@ class GiftItem {
     required this.cost,
     required this.color,
     this.currency = 'gold',
+    int? gemValue,
     this.stars = 0,
     this.category = 'All',
     this.badge,
     bool? isLucky,
-  }) : isLucky = isLucky ?? (badge == 'LUCKY' || category.contains('Magic'));
+    bool? isVolt,
+  })  : gemValue = gemValue ??
+            (currency == 'silver'
+                ? (cost / 100).floor().clamp(1, 999999)
+                : cost),
+        isLucky = isLucky ?? (badge == 'LUCKY' || category.contains('Magic')),
+        isVolt = isVolt ?? (currency == 'volt' || badge == 'VOLT' || category.contains('Volt'));
 }
 
 class SendGiftDialog extends StatefulWidget {
@@ -70,6 +79,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   final List<String> _categories = [
     'All',
+    '⚡ Volt',
     '🔥 Popular',
     '🆕 New',
     '❤️ Romantic',
@@ -84,6 +94,11 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   // Master Mixed Catalog (1-to-1 match with Supabase Postgres gift_catalog table)
   final List<GiftItem> _allGifts = [
+    // Volt Items (Gems are primary identity)
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000041', name: 'Volt Star', icon: '⚡', cost: 250, color: Colors.cyanAccent, currency: 'volt', gemValue: 250, category: '⚡ Volt', badge: 'VOLT', isVolt: true),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000042', name: 'Volt Dragon', icon: '🐲', cost: 1000, color: Colors.purpleAccent, currency: 'volt', gemValue: 1000, category: '⚡ Volt', badge: 'LEGEND', isVolt: true),
+    GiftItem(id: 'a2000000-0000-0000-0000-000000000043', name: 'Volt Thunder', icon: '🌩️', cost: 2500, color: Colors.amberAccent, currency: 'volt', gemValue: 2500, category: '⚡ Volt', badge: 'MYTHIC', isVolt: true),
+
     // Page 1 Items (Gold & Silver mixed side-by-side)
     GiftItem(id: 'a2000000-0000-0000-0000-000000000003', name: 'Rose', icon: '🌹', cost: 10, color: Colors.pink, currency: 'gold', stars: 10, category: '❤️ Romantic', badge: 'HOT'),
     GiftItem(id: 'a2000000-0000-0000-0000-000000000024', name: 'Heart', icon: '❤️', cost: 1500, color: Colors.redAccent, currency: 'silver', stars: 15, category: '❤️ Romantic', badge: 'NEW'),
@@ -173,7 +188,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     return _allGifts.where((g) {
       if (_selectedCurrencyTab == 1 && g.currency != 'gold') return false;
       if (_selectedCurrencyTab == 2 && g.currency != 'silver') return false;
-      if (_selectedCurrencyTab == 3) return false;
+      if (_selectedCurrencyTab == 3 && g.currency != 'volt' && !g.isVolt) return false;
+      if (_selectedCurrencyTab == 4) return false;
 
       if (_selectedCategory != 'All') {
         final cleanCat = _selectedCategory.replaceAll(RegExp(r'[^\w\s]'), '').trim();
@@ -217,7 +233,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         roomId: widget.roomId,
         gift: _selectedGift,
         vaultItem: _selectedVaultItem,
-        isVault: _selectedCurrencyTab == 3,
+        isVault: _selectedCurrencyTab == 4,
         giftAll: _giftAll,
         selectedRecipients: _selectedRecipients,
         selectedRecipientNames: _selectedRecipientNames,
@@ -229,7 +245,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         // Backend confirmed success! ONLY NOW close the dialog panel
         if (mounted) Get.back();
         if (widget.onGiftSent != null) {
-          if (_selectedCurrencyTab == 3 && _selectedVaultItem != null) {
+          if (_selectedCurrencyTab == 4 && _selectedVaultItem != null) {
             widget.onGiftSent!(_selectedVaultItem!.displayName, '🎁', 0, 'vault');
           } else if (_selectedGift != null) {
             widget.onGiftSent!(
@@ -313,13 +329,13 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               _buildAvatarOnlyRecipientSelector(),
 
               // ── 3. CATEGORY CHIPS SCROLLER ──
-              if (_selectedCurrencyTab != 3) _buildCategoryChipsRow(),
+              if (_selectedCurrencyTab != 4) _buildCategoryChipsRow(),
 
               const SizedBox(height: 4),
 
               // ── 4. HORIZONTAL GIFT CAROUSEL (PAGEVIEW 2 ROWS x 4 COLUMNS) ──
               Expanded(
-                child: _selectedCurrencyTab == 3 ? _buildVaultView() : _buildHorizontalGiftCarousel(),
+                child: _selectedCurrencyTab == 4 ? _buildVaultView() : _buildHorizontalGiftCarousel(),
               ),
 
               // ── 5. FIXED BOTTOM CONTROL BAR ──
@@ -349,7 +365,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   const SizedBox(width: 6),
                   Obx(() => _currencyTabPill(2, 'Silver', '⚪', formatCompactNumber(_storeCtrl.silverCoinsBalance.value))),
                   const SizedBox(width: 6),
-                  Obx(() => _currencyTabPill(3, 'Vault', '🎁', '${_giftableVaultItems.length}')),
+                  _currencyTabPill(3, 'Volt', '⚡', '💎'),
+                  const SizedBox(width: 6),
+                  Obx(() => _currencyTabPill(4, 'Vault', '🎁', '${_giftableVaultItems.length}')),
                 ],
               ),
             ),
@@ -800,6 +818,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   Widget _buildGiftCardItem(GiftItem gift, bool isSelected) {
     final isGold = gift.currency == 'gold';
+    final isVolt = gift.isVolt || gift.currency == 'volt';
 
     return GestureDetector(
       onTap: () {
@@ -811,19 +830,32 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         duration: const Duration(milliseconds: 180),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isGold ? const Color(0xFFFFD700).withOpacity(0.18) : const Color(0xFF8B5CF6).withOpacity(0.25))
+              ? (isVolt
+                  ? const Color(0xFF00F2FE).withOpacity(0.22)
+                  : isGold
+                      ? const Color(0xFFFFD700).withOpacity(0.18)
+                      : const Color(0xFF8B5CF6).withOpacity(0.25))
               : const Color(0xFF131522),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
-                ? (isGold ? const Color(0xFFFFD700) : const Color(0xFFA78BFA))
+                ? (isVolt
+                    ? const Color(0xFF00F2FE)
+                    : isGold
+                        ? const Color(0xFFFFD700)
+                        : const Color(0xFFA78BFA))
                 : const Color(0xFF23263B),
             width: isSelected ? 1.5 : 1.0,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: (isGold ? Colors.amber : const Color(0xFF8B5CF6)).withOpacity(0.35),
+                    color: (isVolt
+                            ? const Color(0xFF00F2FE)
+                            : isGold
+                                ? Colors.amber
+                                : const Color(0xFF8B5CF6))
+                        .withOpacity(0.35),
                     blurRadius: 8,
                   )
                 ]
@@ -863,19 +895,35 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   ),
                 ),
                 const SizedBox(height: 2),
+                // ── PRICE / GEMS RENDERING RULE ──
+                // Volt Gifts: Display Gem Value because Gems are their primary identity (e.g. 💎 250 Gems)
+                // Normal Gold & Silver Gifts: Display ONLY currency price. Never display 💎 Gems under normal gifts!
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    isGold ? _buildGoldCoinIcon(size: 10) : _buildSilverCoinIcon(size: 10),
-                    const SizedBox(width: 2),
-                    Text(
-                      formatCompactNumber(gift.cost),
-                      style: GoogleFonts.inter(
-                        fontSize: 9,
-                        color: isGold ? const Color(0xFFFFD700) : Colors.white70,
-                        fontWeight: FontWeight.w800,
+                    if (isVolt) ...[
+                      const Text('💎', style: TextStyle(fontSize: 8.5)),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${formatCompactNumber(gift.gemValue)} Gems',
+                        style: GoogleFonts.inter(
+                          fontSize: 8.5,
+                          color: const Color(0xFF00F2FE),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      isGold ? _buildGoldCoinIcon(size: 10) : _buildSilverCoinIcon(size: 10),
+                      const SizedBox(width: 2),
+                      Text(
+                        formatCompactNumber(gift.cost),
+                        style: GoogleFonts.inter(
+                          fontSize: 9,
+                          color: isGold ? const Color(0xFFFFD700) : Colors.white70,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],

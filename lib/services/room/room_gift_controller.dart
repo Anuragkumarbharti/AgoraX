@@ -14,6 +14,7 @@ import 'room_realtime_controller.dart';
 import 'room_dual_progress_controller.dart';
 import 'room_progression_controller.dart';
 import 'room_chat_controller.dart';
+import '../../widgets/gifting/insufficient_balance_sheet.dart';
 
 class RoomGiftController extends GetxController {
   static RoomGiftController get to {
@@ -218,6 +219,16 @@ class RoomGiftController extends GetxController {
     } catch (e, stack) {
       debugPrint('[GiftPipeline] FAILURE: $e\n$stack');
       final errStr = e.toString();
+      if (errStr.toLowerCase().contains('insufficient')) {
+        InsufficientBalanceSheet.show(
+          currency: currency,
+          requiredCoins: giftCost * count * comboCount * targetUserIds.length,
+          availableCoins: walletBalance.value,
+          giftName: giftName,
+        );
+        return false;
+      }
+
       String userFriendlyMessage = errStr
           .replaceAll('Exception: ', '')
           .replaceAll('PostgrestException(message: ', '')

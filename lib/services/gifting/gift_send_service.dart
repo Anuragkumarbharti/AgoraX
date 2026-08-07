@@ -6,6 +6,8 @@ import '../store/store_controller.dart';
 import '../../widgets/gifting/send_gift_dialog.dart';
 import '../../models/vault/vault_models.dart';
 
+import '../../widgets/gifting/insufficient_balance_sheet.dart';
+
 class GiftSendService extends GetxController {
   static GiftSendService get to {
     if (!Get.isRegistered<GiftSendService>()) {
@@ -94,8 +96,13 @@ class GiftSendService extends GetxController {
             : storeCtrl.silverCoinsBalance.value;
 
         if (currentBalance < totalCost) {
-          _showError(
-              'Insufficient ${gift.currency == 'gold' ? 'Gold' : 'Silver'} Coins balance! Required: $totalCost coins.');
+          InsufficientBalanceSheet.show(
+            currency: gift.currency,
+            requiredCoins: totalCost,
+            availableCoins: currentBalance,
+            giftName: gift.name,
+            giftIcon: gift.icon,
+          );
           return false;
         }
       }

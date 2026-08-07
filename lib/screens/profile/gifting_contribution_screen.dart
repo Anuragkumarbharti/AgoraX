@@ -507,17 +507,17 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildBigContributionCard('Lifetime Contribution', '${_formatStars(lifetime)} ★', const Color(0xFFFFD700)),
+          _buildBigContributionCard('Lifetime Contribution', '${_formatStars(lifetime)} Gems 💎', const Color(0xFF00F2FE)),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildContributionSubCard('Today', '${_formatStars(today)} ★', Colors.tealAccent)),
+              Expanded(child: _buildContributionSubCard('Today', '${_formatStars(today)} Gems 💎', Colors.tealAccent)),
               const SizedBox(width: 12),
-              Expanded(child: _buildContributionSubCard('This Month', '${_formatStars(monthly)} ★', Colors.purpleAccent)),
+              Expanded(child: _buildContributionSubCard('This Month', '${_formatStars(monthly)} Gems 💎', Colors.purpleAccent)),
             ],
           ),
           const SizedBox(height: 16),
-          _buildBigContributionCard('This Year\'s Contribution', '${_formatStars(yearly)} ★', Colors.cyanAccent),
+          _buildBigContributionCard('This Year\'s Contribution', '${_formatStars(yearly)} Gems 💎', Colors.cyanAccent),
         ],
       ),
     );
@@ -686,8 +686,8 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
             ),
           ),
           Text(
-            '${_formatStars(stars)} ★',
-            style: GoogleFonts.poppins(color: Colors.amberAccent, fontSize: 13, fontWeight: FontWeight.bold),
+            '${_formatStars(stars)} Gems 💎',
+            style: GoogleFonts.poppins(color: const Color(0xFF00F2FE), fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ],
       ),
