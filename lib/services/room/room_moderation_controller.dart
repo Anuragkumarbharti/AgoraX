@@ -349,12 +349,13 @@ class RoomModerationController extends GetxController {
 
   Future<void> transferHost(String roomId, String newHostId) async {
     try {
-      await Supabase.instance.client.rpc('transfer_room_host', params: {
+      await Supabase.instance.client.rpc('transfer_room_ownership', params: {
         'p_room_id': roomId,
-        'p_new_host_id': newHostId,
+        'p_new_owner_id': newHostId,
       });
     } catch (e) {
-      debugPrint('Error transferring room host: $e');
+      debugPrint('Error transferring room ownership: $e');
+      rethrow;
     }
   }
 

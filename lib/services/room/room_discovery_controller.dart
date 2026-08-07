@@ -200,6 +200,18 @@ class RoomDiscoveryController extends GetxController {
         'p_is_permanent': isPermanent,
       });
       final String roomId = response.toString();
+      if (roomId.startsWith('ALREADY_OWNS_ROOM:')) {
+        final existingId = roomId.replaceAll('ALREADY_OWNS_ROOM:', '');
+        Get.snackbar(
+          'You already own a room 🏠',
+          'Opening your existing active room.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
+          colorText: Colors.white,
+        );
+        await fetchRooms();
+        return existingId;
+      }
       await fetchRooms();
       return roomId;
     } catch (e) {
@@ -245,6 +257,18 @@ class RoomDiscoveryController extends GetxController {
         'p_creation_method': creationMethod,
       });
       final String roomId = response.toString();
+      if (roomId.startsWith('ALREADY_OWNS_ROOM:')) {
+        final existingId = roomId.replaceAll('ALREADY_OWNS_ROOM:', '');
+        Get.snackbar(
+          'You already own a room 🏠',
+          'Opening your existing active room.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
+          colorText: Colors.white,
+        );
+        await fetchRooms();
+        return existingId;
+      }
       await fetchRooms();
       return roomId;
     } catch (e) {

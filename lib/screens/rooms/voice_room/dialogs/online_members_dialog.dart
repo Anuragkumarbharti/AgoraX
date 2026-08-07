@@ -190,10 +190,10 @@ class OnlineMembersDialog extends StatelessWidget {
                         Color roleTextColor;
                         String roleLabel;
 
-                        if (role == 'Creator' || role == 'Owner' || role == 'Founder') {
+                        if (u.userID == room.hostId || role == 'Creator' || role == 'Owner' || role == 'Founder') {
                           roleBgColor = const Color(0xFFFFD700).withOpacity(0.9);
                           roleTextColor = Colors.black87;
-                          roleLabel = '👑 Creator';
+                          roleLabel = '👑 Owner';
                         } else if (role == 'Co-owner' || role == 'Co-Owner' || role == 'Co Owner') {
                           roleBgColor = const Color(0xFF9C27B0);
                           roleTextColor = Colors.white;
