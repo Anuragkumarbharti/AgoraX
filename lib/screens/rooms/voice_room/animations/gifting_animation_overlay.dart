@@ -146,9 +146,13 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
               ),
               onCompleted: () {
                 if (mounted) {
+                  final animId = anim['id'].toString();
                   setState(() {
-                    _currentAnims.removeWhere((a) => a['id'] == anim['id']);
+                    _currentAnims.removeWhere((a) => a['id'].toString() == animId);
                   });
+                  if (Get.isRegistered<GiftAnimationController>()) {
+                    GiftAnimationController.to.removeEvent(animId);
+                  }
                 }
               },
             ),

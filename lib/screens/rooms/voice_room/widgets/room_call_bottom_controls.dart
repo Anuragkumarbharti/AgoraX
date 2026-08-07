@@ -550,7 +550,7 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 7.5,
-                                    fontWeight: FontWeight.extrabold,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -568,8 +568,8 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                           Get.dialog(
                             SendGiftDialog(
                               roomId: widget.roomId,
-                              targetUserId: RoomController.currentUserId,
-                              targetUserName: 'Room Members',
+                              targetUserId: null,
+                              targetUserName: null,
                             ),
                           );
                         },

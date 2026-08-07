@@ -144,13 +144,25 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     _selectedRecipientNames.clear();
     _selectedSeatIndices.clear();
 
+    final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
+
     if (widget.targetUserId != null) {
       _selectedRecipients.add(widget.targetUserId!);
       _selectedRecipientNames.add(widget.targetUserName ?? 'User');
-      final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
       final seat = seats.firstWhereOrNull((s) => s['userId'] == widget.targetUserId);
       if (seat != null) {
         _selectedSeatIndices.add(seat['seatIndex'] as int);
+      }
+    } else {
+      // Auto-select the first occupied seat (including self if user is on a seat)
+      final firstSeat = seats.firstWhereOrNull((s) => s['userId'] != null);
+      if (firstSeat != null) {
+        final uId = firstSeat['userId'] as String;
+        final uName = firstSeat['name'] as String? ?? 'User';
+        final seatIdx = firstSeat['seatIndex'] as int;
+        _selectedRecipients.add(uId);
+        _selectedRecipientNames.add(uName);
+        _selectedSeatIndices.add(seatIdx);
       }
     }
   }

@@ -1148,7 +1148,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 ),
               ),
 
-              // 5. Gifting Animation Overlay Layer
+              // 5. Smart Gifting Animation Overlay Layer (Positioned on top of background & seats)
               Positioned.fill(
                 child: GiftingAnimationOverlay(
                   activeAnimations: _activeGiftingAnimations,
@@ -1158,35 +1158,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       _shakeRoomScreen();
                     }
                   },
-                ),
-              ),
-
-              // 5b. Creania Engine Gift Overlay Layer (Renders 3D/Particle engine animations)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Obx(() {
-                    final events = GiftAnimationController.to.activeEvents;
-                    if (events.isEmpty) return const SizedBox.shrink();
-                    final current = events.last;
-                    final evt = GiftAnimationEvent(
-                      giftId: current.giftId,
-                      giftName: current.giftName,
-                      giftIcon: current.giftIcon,
-                      senderName: current.senderName,
-                      senderAvatar: current.senderAvatar,
-                      receiverName: current.receiverNames.join(', '),
-                      count: current.count,
-                      currency: current.currency,
-                      price: current.price,
-                      mode: GiftAnimationMode.roomSeat,
-                    );
-                    return GiftAnimationOverlayWidget(
-                      event: evt,
-                      onFinished: () {
-                        GiftAnimationController.to.removeEvent(current.id);
-                      },
-                    );
-                  }),
                 ),
               ),
 
