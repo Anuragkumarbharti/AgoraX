@@ -94,20 +94,20 @@ void main() {
       // Base state: Gold=200/1000, Normal=50/700
       RoomDualProgress prog = const RoomDualProgress(
         roomId: 'room_505',
-        goldPoints: 200,
-        goldTarget: 1000,
-        normalPoints: 50,
-        normalTarget: 700,
+        dailyGoldProgress: 200,
+        goldTaskLimit: 1000,
+        dailyFreeProgress: 50,
+        freeTaskLimit: 700,
       );
 
       // Applying Free AP events (Join bonus +20, First gift bonus +5, Active seat time +40)
-      prog = prog.copyWith(normalPoints: prog.normalPoints + 20 + 5 + 40);
+      prog = prog.copyWith(dailyFreeProgress: prog.dailyFreeProgress + 20 + 5 + 40);
 
       // Normal progress increases by 65 AP (50 + 65 = 115)
-      expect(prog.normalPoints, equals(115));
+      expect(prog.dailyFreeProgress, equals(115));
 
       // Gold progress MUST REMAIN EXACTLY 200 (NEVER increased by free events)
-      expect(prog.goldPoints, equals(200));
+      expect(prog.dailyGoldProgress, equals(200));
       expect(prog.goldRatio, equals(0.2));
     });
   });

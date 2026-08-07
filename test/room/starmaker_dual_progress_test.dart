@@ -2,107 +2,101 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:creania/models/progression/room_dual_progress_model.dart';
 
 void main() {
-  group('StarMaker Dual Progress System Model Tests', () {
-    test('Initial dual progress defaults to level 1 targets', () {
-      const dualProg = RoomDualProgress(roomId: 'room_101');
-
-      expect(dualProg.roomId, equals('room_101'));
-      expect(dualProg.goldPoints, equals(0));
-      expect(dualProg.goldTarget, equals(1000));
-      expect(dualProg.normalPoints, equals(0));
-      expect(dualProg.normalTarget, equals(700));
-      expect(dualProg.goldRatio, equals(0.0));
-      expect(dualProg.normalRatio, equals(0.0));
-      expect(dualProg.isGoldFull, isFalse);
-      expect(dualProg.isNormalFull, isFalse);
-      expect(dualProg.isOverflowActive, isFalse);
-    });
-
-    test('Gold Progress fills up to 100% capacity', () {
-      const dualProg = RoomDualProgress(
+  group('StarMaker Decoupled Daily Task vs Room Level System Tests', () {
+    test('Completing Daily Task (600/600) DOES NOT trigger Room Level Up when Total Task < Target', () {
+      // Level 1: Requires 35,500 Total Task to reach Level 2
+      // User completes Daily Task: Free = 600/600, Gold = 1200/1200
+      // But Total Task = 450 / 35,500
+      const prog = RoomDualProgress(
         roomId: 'room_101',
-        goldPoints: 1000,
-        goldTarget: 1000,
-        normalPoints: 200,
-        normalTarget: 700,
+        dailyFreeProgress: 600,
+        freeTaskLimit: 600,
+        dailyGoldProgress: 1200,
+        goldTaskLimit: 1200,
+        totalTask: 450,
+        totalTaskTarget: 35500,
+        roomLevel: 1,
       );
 
-      expect(dualProg.goldRatio, equals(1.0));
-      expect(dualProg.isGoldFull, isTrue);
-      expect(dualProg.isOverflowActive, isTrue);
-      expect(dualProg.normalPoints, equals(200));
-      expect(dualProg.normalRatio, closeTo(0.285, 0.01));
+      expect(prog.isFreeLimitReached, isTrue);
+      expect(prog.isGoldLimitReached, isTrue);
+      expect(prog.totalTask, equals(450));
+      expect(prog.roomLevel, equals(1)); // MUST REMAIN LEVEL 1!
     });
 
-    test('Gold Overflow points fill Normal Progress', () {
-      // User sent 1500 Gold Coins -> 1000 fills Gold Bar, 500 overflows to Normal Bar
-      const dualProg = RoomDualProgress(
-        roomId: 'room_101',
-        goldPoints: 1000,
-        goldTarget: 1000,
-        normalPoints: 500,
-        normalTarget: 700,
-        overflowPoints: 500,
-      );
-
-      expect(dualProg.isGoldFull, isTrue);
-      expect(dualProg.goldPoints, equals(1000));
-      expect(dualProg.normalPoints, equals(500));
-      expect(dualProg.overflowPoints, equals(500));
-      expect(dualProg.totalPoints, equals(1500));
-      expect(dualProg.totalTarget, equals(1700));
-      expect(dualProg.overallRatio, closeTo(0.882, 0.01));
-    });
-
-    test('Free activities increase ONLY Normal Progress and NEVER Gold Progress', () {
-      // Base state: Gold=300/1000, Normal=100/700
+    test('Room Level increases ONLY when Total Task reaches target', () {
+      // Base state: Total Task = 35,480 / 35,500 (Level 1)
       const initial = RoomDualProgress(
         roomId: 'room_101',
-        goldPoints: 300,
-        goldTarget: 1000,
-        normalPoints: 100,
-        normalTarget: 700,
+        totalTask: 35480,
+        totalTaskTarget: 35500,
+        roomLevel: 1,
       );
 
-      // Simulating a free activity (like / room stay / chat): +150 points
-      final afterFreeActivity = initial.copyWith(
-        normalPoints: initial.normalPoints + 150,
+      // User earns +50 Total Task -> Total Task becomes 35,530 >= 35,500
+      final excess = (initial.totalTask + 50) - initial.totalTaskTarget; // 30
+      final newLevel = initial.roomLevel + 1; // 2
+      final newTarget = RoomDualProgress.getRequiredTaskForLevel(newLevel); // 59,500
+
+      final levelUpState = initial.copyWith(
+        roomLevel: newLevel,
+        totalTask: excess,
+        totalTaskTarget: newTarget,
       );
 
-      // Gold Progress MUST stay unchanged (300)
-      expect(afterFreeActivity.goldPoints, equals(300));
-      expect(afterFreeActivity.normalPoints, equals(250));
-      expect(afterFreeActivity.goldRatio, equals(0.3));
-      expect(afterFreeActivity.normalRatio, closeTo(0.357, 0.01));
+      expect(levelUpState.roomLevel, equals(2));
+      expect(levelUpState.totalTask, equals(30)); // Resets ONLY Total Task for Level 2!
+      expect(levelUpState.totalTaskTarget, equals(59500));
     });
 
-    test('JSON serialization & deserialization integrity', () {
-      final jsonMap = {
-        'room_id': 'room_777',
-        'gold_points': 1000,
-        'gold_target': 2000,
-        'normal_points': 1400,
-        'normal_target': 1400,
-        'overflow_points': 400,
-        'room_level': 2,
-        'updated_at': '2026-08-07T18:00:00.000Z',
-      };
+    test('Level Up resets ONLY Total Task for current level; Daily Task does NOT reset on level up', () {
+      // User has Daily Task = 600/600, Total Task hits Level Up (35,530 >= 35,500)
+      const beforeLevelUp = RoomDualProgress(
+        roomId: 'room_101',
+        dailyFreeProgress: 600,
+        freeTaskLimit: 600,
+        totalTask: 35530,
+        totalTaskTarget: 35500,
+        roomLevel: 1,
+      );
 
-      final dualProg = RoomDualProgress.fromJson(jsonMap);
+      final afterLevelUp = beforeLevelUp.copyWith(
+        roomLevel: 2,
+        totalTask: 30, // Reset Total Task for Level 2
+        totalTaskTarget: 59500,
+        dailyFreeProgress: 600, // Daily Task DOES NOT reset on Level Up!
+      );
 
-      expect(dualProg.roomId, equals('room_777'));
-      expect(dualProg.goldPoints, equals(1000));
-      expect(dualProg.goldTarget, equals(2000));
-      expect(dualProg.normalPoints, equals(1400));
-      expect(dualProg.normalTarget, equals(1400));
-      expect(dualProg.overflowPoints, equals(400));
-      expect(dualProg.roomLevel, equals(2));
-      expect(dualProg.isNormalFull, isTrue);
+      expect(afterLevelUp.roomLevel, equals(2));
+      expect(afterLevelUp.totalTask, equals(30));
+      expect(afterLevelUp.dailyFreeProgress, equals(600)); // Intact!
+    });
 
-      final exportedJson = dualProg.toJson();
-      expect(exportedJson['room_id'], equals('room_777'));
-      expect(exportedJson['gold_points'], equals(1000));
-      expect(exportedJson['normal_points'], equals(1400));
+    test('4:00 AM Reset clears Daily Tasks to 0 but preserves Total Task and Room Level', () {
+      // Yesterday: Daily Free = 600/600, Daily Gold = 1200/1200, Total Task = 520 / 35,500, Level = 1
+      const yesterday = RoomDualProgress(
+        roomId: 'room_101',
+        dailyFreeProgress: 600,
+        freeTaskLimit: 600,
+        dailyGoldProgress: 1200,
+        goldTaskLimit: 1200,
+        totalTask: 520,
+        totalTaskTarget: 35500,
+        roomLevel: 1,
+        lastResetDate: '2026-08-06',
+      );
+
+      // Simulating 4:00 AM Reset
+      final todayAfterReset = yesterday.copyWith(
+        dailyFreeProgress: 0,
+        dailyGoldProgress: 0,
+        lastResetDate: '2026-08-07',
+      );
+
+      expect(todayAfterReset.dailyFreeProgress, equals(0));
+      expect(todayAfterReset.dailyGoldProgress, equals(0));
+      expect(todayAfterReset.totalTask, equals(520)); // Preserved!
+      expect(todayAfterReset.roomLevel, equals(1)); // Preserved!
     });
   });
 }

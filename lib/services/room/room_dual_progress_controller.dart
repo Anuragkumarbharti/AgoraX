@@ -70,11 +70,6 @@ class RoomDualProgressController extends GetxController {
         event: PostgresChangeEvent.all,
         schema: 'public',
         table: 'room_dual_progress',
-        filter: PostgresChangeFilter(
-          type: PostgresChangeFilterType.eq,
-          column: 'room_id',
-          value: roomId,
-        ),
         callback: (payload) {
           final newRecord = payload.newRecord;
           if (newRecord != null && newRecord.isNotEmpty) {
@@ -83,7 +78,7 @@ class RoomDualProgressController extends GetxController {
             if (updatedModel.isOverflowActive) {
               isOverflowingMap[roomId] = true;
             }
-            debugPrint('[DualProgress Realtime] Room $roomId updated: Gold=${updatedModel.goldPoints}/${updatedModel.goldTarget}, Normal=${updatedModel.normalPoints}/${updatedModel.normalTarget}');
+            debugPrint('[DualProgress Realtime] Room $roomId updated: Free=${updatedModel.dailyFreeProgress}/${updatedModel.freeTaskLimit}, Gold=${updatedModel.dailyGoldProgress}/${updatedModel.goldTaskLimit}, TotalTask=${updatedModel.totalTask}/${updatedModel.totalTaskTarget}, Level=${updatedModel.roomLevel}');
           }
         },
       );
@@ -103,7 +98,7 @@ class RoomDualProgressController extends GetxController {
     }
   }
 
-  /// Process Gold Gift contribution (Fills Gold Progress -> Overflows into Normal Progress)
+  /// Process Gold Gift contribution
   Future<Map<String, dynamic>> processGoldContribution({
     required String roomId,
     required int goldPoints,
@@ -120,39 +115,49 @@ class RoomDualProgressController extends GetxController {
       });
 
       if (resp != null && resp['success'] == true) {
-        final goldAdded = resp['gold_added'] as int? ?? 0;
-        final overflowAdded = resp['gold_overflow_added'] as int? ?? 0;
-        final normalAdded = resp['normal_added'] as int? ?? 0;
-        final newGoldPoints = resp['gold_points'] as int? ?? 0;
-        final newGoldTarget = resp['gold_target'] as int? ?? 1000;
-        final newNormalPoints = resp['normal_points'] as int? ?? 0;
-        final newNormalTarget = resp['normal_target'] as int? ?? 700;
+        final addedFree = resp['added_free'] as int? ?? 0;
+        final addedGold = resp['added_gold'] as int? ?? 0;
+        final dailyFree = resp['daily_free_progress'] as int? ?? 0;
+        final dailyGold = resp['daily_gold_progress'] as int? ?? 0;
+        final freeLimit = resp['free_task_limit'] as int? ?? RoomDualProgress.FREE_TASK_LIMIT;
+        final goldLimit = resp['gold_task_limit'] as int? ?? RoomDualProgress.GOLD_TASK_LIMIT;
+        final totTask = resp['total_task'] as int? ?? 0;
+        final totTarget = resp['total_task_target'] as int? ?? 35500;
+        final lifetimeTask = resp['total_lifetime_task'] as int? ?? 0;
         final newLevel = resp['room_level'] as int? ?? 1;
+        final didLevelUp = resp['did_level_up'] as bool? ?? false;
 
         final updatedModel = RoomDualProgress(
           roomId: roomId,
-          goldPoints: newGoldPoints,
-          goldTarget: newGoldTarget,
-          normalPoints: newNormalPoints,
-          normalTarget: newNormalTarget,
-          overflowPoints: (dualProgresses[roomId]?.overflowPoints ?? 0) + overflowAdded,
+          dailyFreeProgress: dailyFree,
+          freeTaskLimit: freeLimit,
+          dailyGoldProgress: dailyGold,
+          goldTaskLimit: goldLimit,
+          totalTask: totTask,
+          totalTaskTarget: totTarget,
+          totalLifetimeTask: lifetimeTask,
+          goldPoints: dailyGold,
+          goldTarget: goldLimit,
+          normalPoints: dailyFree,
+          normalTarget: freeLimit,
           roomLevel: newLevel,
           updatedAt: DateTime.now(),
         );
 
         dualProgresses[roomId] = updatedModel;
 
-        if (overflowAdded > 0) {
-          isOverflowingMap[roomId] = true;
-          // Reset overflow pulse animation after 3 seconds
-          Future.delayed(const Duration(seconds: 4), () {
-            if (dualProgresses[roomId]?.isGoldFull != true) {
-              isOverflowingMap[roomId] = false;
-            }
-          });
+        if (didLevelUp) {
+          Get.snackbar(
+            '🎉 ROOM LEVEL UP!',
+            'Room unlocked Level $newLevel! Total Task progress reset for Level $newLevel.',
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: const Color(0xFF8B5CF6),
+            colorText: Colors.white,
+            duration: const Duration(seconds: 4),
+          );
         }
 
-        debugPrint('[DualProgress] Gold Contribution: +$goldAdded Gold, +$overflowAdded Overflow -> +$normalAdded Normal. Level=$newLevel');
+        debugPrint('[DualProgress] Gold Gift Contribution: +$addedFree Free, +$addedGold Gold. TotalTask=$totTask/$totTarget, Level=$newLevel (didLevelUp=$didLevelUp)');
       }
       return Map<String, dynamic>.from(resp as Map);
     } catch (e) {
@@ -161,12 +166,11 @@ class RoomDualProgressController extends GetxController {
     }
   }
 
-  /// Process Free Activity contribution (Silver Gift, Like, Chat, Room Stay, Mic Time)
-  /// Anti-abuse rule: Free activities CAN NEVER increase Gold Progress!
+  /// Process Free Activity contribution (Silver Gift, Free Gift, Like, Chat, Room Stay, Mic Time)
   Future<Map<String, dynamic>> processFreeActivityContribution({
     required String roomId,
     required int points,
-    required String activityType, // 'silver_gift', 'like', 'chat', 'mic_time', 'stay_time'
+    required String activityType,
     String? userId,
   }) async {
     final currentUserId = userId ?? UserProfileCacheManager.currentUserId;
@@ -180,26 +184,48 @@ class RoomDualProgressController extends GetxController {
       });
 
       if (resp != null && resp['success'] == true) {
-        final normalAdded = resp['normal_added'] as int? ?? 0;
-        final newGoldPoints = resp['gold_points'] as int? ?? 0;
-        final newGoldTarget = resp['gold_target'] as int? ?? 1000;
-        final newNormalPoints = resp['normal_points'] as int? ?? 0;
-        final newNormalTarget = resp['normal_target'] as int? ?? 700;
+        final addedFree = resp['added_free'] as int? ?? 0;
+        final dailyFree = resp['daily_free_progress'] as int? ?? 0;
+        final dailyGold = resp['daily_gold_progress'] as int? ?? 0;
+        final freeLimit = resp['free_task_limit'] as int? ?? RoomDualProgress.FREE_TASK_LIMIT;
+        final goldLimit = resp['gold_task_limit'] as int? ?? RoomDualProgress.GOLD_TASK_LIMIT;
+        final totTask = resp['total_task'] as int? ?? 0;
+        final totTarget = resp['total_task_target'] as int? ?? 35500;
+        final lifetimeTask = resp['total_lifetime_task'] as int? ?? 0;
         final newLevel = resp['room_level'] as int? ?? 1;
+        final didLevelUp = resp['did_level_up'] as bool? ?? false;
 
         final updatedModel = RoomDualProgress(
           roomId: roomId,
-          goldPoints: newGoldPoints,
-          goldTarget: newGoldTarget,
-          normalPoints: newNormalPoints,
-          normalTarget: newNormalTarget,
-          overflowPoints: dualProgresses[roomId]?.overflowPoints ?? 0,
+          dailyFreeProgress: dailyFree,
+          freeTaskLimit: freeLimit,
+          dailyGoldProgress: dailyGold,
+          goldTaskLimit: goldLimit,
+          totalTask: totTask,
+          totalTaskTarget: totTarget,
+          totalLifetimeTask: lifetimeTask,
+          goldPoints: dailyGold,
+          goldTarget: goldLimit,
+          normalPoints: dailyFree,
+          normalTarget: freeLimit,
           roomLevel: newLevel,
           updatedAt: DateTime.now(),
         );
 
         dualProgresses[roomId] = updatedModel;
-        debugPrint('[DualProgress] Free Activity ($activityType): +$normalAdded Normal points. Gold points unchanged ($newGoldPoints). Level=$newLevel');
+
+        if (didLevelUp) {
+          Get.snackbar(
+            '🎉 ROOM LEVEL UP!',
+            'Room unlocked Level $newLevel! Total Task progress reset for Level $newLevel.',
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: const Color(0xFF8B5CF6),
+            colorText: Colors.white,
+            duration: const Duration(seconds: 4),
+          );
+        }
+
+        debugPrint('[DualProgress] Free Activity ($activityType): +$addedFree Free AP. TotalTask=$totTask/$totTarget, Level=$newLevel (didLevelUp=$didLevelUp)');
       }
       return Map<String, dynamic>.from(resp as Map);
     } catch (e) {

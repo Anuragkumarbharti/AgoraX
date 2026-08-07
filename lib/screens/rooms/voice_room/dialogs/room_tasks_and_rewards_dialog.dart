@@ -196,49 +196,85 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
             ),
             const SizedBox(height: 10),
 
-            // Realtime VP Progress Bar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Room VP Progress',
-                  style: GoogleFonts.outfit(
-                    color: Colors.white70,
-                    fontSize: 11,
-                  ),
-                ),
-                Builder(
-                  builder: (context) {
-                    String fmt(int val) {
-                      if (val >= 1000000) return '${(val / 1000000).toStringAsFixed(1)}M';
-                      if (val >= 1000) {
-                        final double inK = val / 1000.0;
-                        return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
-                      }
-                      return '$val';
-                    }
-                    return Text(
-                      '${fmt(currentVp)} / ${fmt(targetVp)} VP ($percent%)',
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFFFFB800),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+            // Dual Progress Display (Daily Task vs Total Level Task)
+            Builder(
+              builder: (context) {
+                final dualProg = RoomDualProgressController.to.getDualProgress(widget.roomId);
+                final int totalTask = dualProg.totalTask;
+                final int totalTarget = dualProg.totalTaskTarget > 0 ? dualProg.totalTaskTarget : targetVp;
+                final double totalTaskRatio = (totalTask / totalTarget).clamp(0.0, 1.0);
+                final int totalPercent = (totalTaskRatio * 100).toInt();
+
+                String fmt(int val) {
+                  if (val >= 1000000) return '${(val / 1000000).toStringAsFixed(1)}M';
+                  if (val >= 1000) {
+                    final double inK = val / 1000.0;
+                    return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
+                  }
+                  return '$val';
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Total Level Task (Permanent Room Level Progress)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '🏆 Total Level Task (Level $currentLevel)',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${fmt(totalTask)} / ${fmt(totalTarget)} ($totalPercent%)',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFFFFB800),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: totalTaskRatio,
+                        minHeight: 8,
+                        backgroundColor: Colors.white10,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: fillRatio,
-                minHeight: 8,
-                backgroundColor: Colors.white10,
-                valueColor:
-                    const AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
-              ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Daily Resetting Task Progress (Resets at 4:00 AM)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '📅 Today\'s Daily Task (Resets 04:00 AM)',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white70,
+                            fontSize: 10,
+                          ),
+                        ),
+                        Text(
+                          'Free: ${dualProg.dailyFreeProgress}/600  •  Gold: ${dualProg.dailyGoldProgress}/1200',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF38BDF8),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
             ),
 
             const SizedBox(height: 10),
