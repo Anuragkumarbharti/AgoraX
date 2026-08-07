@@ -1002,6 +1002,21 @@ class ChatSocketService extends GetxService with WidgetsBindingObserver {
       _socket.disconnect();
     }
     _log('Connecting socket for user $userId (event=$event)');
+
+    // Single Active Session Registration on DB
+    try {
+      if (_sessionId != null && _sessionId!.isNotEmpty) {
+        Supabase.instance.client.rpc('register_user_session_rpc', params: {
+          'p_session_id': _sessionId,
+          'p_device_id': _deviceId ?? 'unknown',
+        }).then((res) {
+          _log('Registered session $res');
+        }).catchError((e) {
+          _log('Session register error: $e');
+        });
+      }
+    } catch (_) {}
+
     _socket.connect();
   }
 

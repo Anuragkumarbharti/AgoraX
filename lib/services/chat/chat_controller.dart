@@ -11,6 +11,8 @@ import '../storage/isar_storage_service.dart';
 import './chat_socket_service.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../../utils/secure_dto_sanitizer.dart';
+import '../network/network_connectivity_service.dart';
+import '../network/network_guard.dart';
 
 class ChatController extends GetxController {
   static String get currentUserId => UserProfileCacheManager.currentUserId;
@@ -566,6 +568,12 @@ class ChatController extends GetxController {
     String? contactName,
     String? contactPhone,
   }) async {
+    if (!NetworkGuard.checkInternet(
+      actionName: 'chat',
+      customOfflineMessage: 'Waiting for internet connection...',
+    )) {
+      return;
+    }
     final String cleanContent = content.trim().isEmpty ? (fileName ?? 'Media Attachment') : content.trim();
 
     final int idxSearch = conversations.indexWhere((c) => c.id == conversationId);

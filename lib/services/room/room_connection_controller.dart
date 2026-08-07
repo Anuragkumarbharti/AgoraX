@@ -21,6 +21,9 @@ import 'room_gift_controller.dart';
 import 'room_background_controller.dart';
 import 'room_moderation_controller.dart';
 
+import '../network/network_connectivity_service.dart';
+import '../network/network_guard.dart';
+
 class RoomConnectionController extends GetxController {
   static RoomConnectionController get to => Get.find<RoomConnectionController>();
 
@@ -34,6 +37,11 @@ class RoomConnectionController extends GetxController {
   int _consecutiveHeartbeatFailures = 0;
 
   Map<String, dynamic> validate12StepRoomEntry(String roomId, String userId) {
+    if (!NetworkConnectivityService.to.isOnline.value) {
+      NetworkConnectivityService.to.logAnalyticsEvent('failed_room_join_offline', {'room_id': roomId});
+      return {'canJoin': false, 'reason': "No internet connection. You can't join the room."};
+    }
+
     final rooms = Get.isRegistered<RoomDiscoveryController>()
         ? RoomDiscoveryController.to.rooms
         : <VoiceRoom>[];
@@ -77,7 +85,7 @@ class RoomConnectionController extends GetxController {
     _activeHeartbeatTimer?.cancel();
     _consecutiveHeartbeatFailures = 0;
     _activeHeartbeatTimer =
-        Timer.periodic(const Duration(seconds: 2), (timer) async {
+        Timer.periodic(const Duration(seconds: 20), (timer) async {
       if (activeRoomId != roomId) {
         timer.cancel();
         return;
@@ -86,15 +94,15 @@ class RoomConnectionController extends GetxController {
       if (!success) {
         _consecutiveHeartbeatFailures++;
         debugPrint(
-            '[RoomConnectionController] Heartbeat failed ($_consecutiveHeartbeatFailures/4 - ${_consecutiveHeartbeatFailures * 2}s)');
-        if (_consecutiveHeartbeatFailures >= 4) {
+            '[RoomConnectionController] 20s Heartbeat failed ($_consecutiveHeartbeatFailures/3 - ${_consecutiveHeartbeatFailures * 20}s grace period)');
+        if (_consecutiveHeartbeatFailures >= 3) {
           debugPrint(
-              '[RoomConnectionController] 8s network timeout reached. Leaving room & redirecting to Arena page.');
+              '[RoomConnectionController] 60s grace period timeout reached. Leaving room & redirecting to Arena.');
           timer.cancel();
           triggerInRoomDisconnectOverlay(
-            title: 'Network Issue Detected 📡',
+            title: 'Network Disconnected 📡',
             reason:
-                'Network disconnect: Redirected to Arena main page (8s timeout)',
+                'Disconnected due to no internet (60s grace period expired)',
           );
         }
       } else {
@@ -106,12 +114,18 @@ class RoomConnectionController extends GetxController {
 
   Future<bool> heartbeatRoomMember(String roomId, bool isSpeaking) async {
     try {
-      await Supabase.instance.client
+      final sessionId = UserProfileCacheManager.currentSessionId;
+      final response = await Supabase.instance.client
           .rpc('heartbeat_room_member', params: {
         'p_room_id': roomId,
+        'p_session_id': sessionId.isNotEmpty ? sessionId : null,
         'p_is_speaking': isSpeaking,
       });
-      return true;
+
+      if (response != null && response is Map && response['success'] == true) {
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('[RoomConnectionController] Heartbeat RPC error: $e');
       return false;
@@ -284,6 +298,11 @@ class RoomConnectionController extends GetxController {
 
   Future<void> enterRoom(String roomId, {String? password}) async {
     try {
+      if (!NetworkGuard.checkInternet(actionName: 'room_entry')) {
+        NetworkConnectivityService.to.logAnalyticsEvent('failed_room_join_offline', {'room_id': roomId});
+        return;
+      }
+
       final currentUserId = UserProfileCacheManager.currentUserId;
       if (activeRoomId != null && activeRoomId != roomId) {
         debugPrint('[RoomConnectionController] Auto-leaving previous active room $activeRoomId before entering $roomId');
@@ -317,9 +336,11 @@ class RoomConnectionController extends GetxController {
         RoomGiftController.to.activeGiftAnimation.value = null;
       }
 
+      final sessionId = UserProfileCacheManager.currentSessionId;
       final response = await Supabase.instance.client.rpc('join_room', params: {
         'p_room_id': roomId,
         'p_password': password,
+        'p_session_id': sessionId.isNotEmpty ? sessionId : null,
       });
 
       debugPrint('Join room response: $response');

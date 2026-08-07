@@ -7,6 +7,8 @@ import '../../models/community/community_model.dart';
 import '../../models/community/community_event_model.dart';
 import '../store/store_controller.dart';
 import '../user/user_profile_cache_manager.dart';
+import '../network/network_connectivity_service.dart';
+import '../network/network_guard.dart';
 
 class CommunityController extends GetxController {
   static String get currentUserId => UserProfileCacheManager.currentUserId;
@@ -309,6 +311,9 @@ class CommunityController extends GetxController {
     String? preferredLanguage,
     String? optionalMessage,
   }) async {
+    if (!NetworkGuard.checkInternet(actionName: 'community')) {
+      return 'No internet connection.';
+    }
     try {
       final response = await Supabase.instance.client.rpc('join_community_rpc', params: {
         'p_community_id': communityId,
@@ -333,6 +338,9 @@ class CommunityController extends GetxController {
   }
 
   Future<String?> leaveCommunity(String communityId) async {
+    if (!NetworkGuard.checkInternet(actionName: 'community')) {
+      return 'No internet connection.';
+    }
     try {
       final response = await Supabase.instance.client.rpc('leave_community_rpc', params: {
         'p_community_id': communityId,

@@ -18,6 +18,9 @@ import 'room_progression_controller.dart';
 import 'room_chat_controller.dart';
 import '../../widgets/gifting/insufficient_balance_sheet.dart';
 
+import '../network/network_connectivity_service.dart';
+import '../network/network_guard.dart';
+
 class RoomGiftController extends GetxController {
   static RoomGiftController get to {
     if (!Get.isRegistered<RoomGiftController>()) {
@@ -50,6 +53,13 @@ class RoomGiftController extends GetxController {
     int count = 1,
     int comboCount = 1,
   }) async {
+    if (!NetworkGuard.checkInternet(
+      actionName: 'send_gift',
+      customOfflineMessage: 'No internet. Gift not sent.',
+    )) {
+      NetworkConnectivityService.to.logAnalyticsEvent('failed_gift_offline', {'room_id': roomId});
+      return false;
+    }
     try {
       if (roomId.isEmpty) {
         debugPrint('[GiftPipeline] FAILURE: Invalid room identifier.');

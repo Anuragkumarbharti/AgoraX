@@ -8,6 +8,9 @@ import '../../models/vault/vault_models.dart';
 
 import '../../widgets/gifting/insufficient_balance_sheet.dart';
 
+import '../network/network_connectivity_service.dart';
+import '../network/network_guard.dart';
+
 class GiftSendService extends GetxController {
   static GiftSendService get to {
     if (!Get.isRegistered<GiftSendService>()) {
@@ -37,6 +40,15 @@ class GiftSendService extends GetxController {
     required List<int> selectedSeatIndices,
     required int comboMultiplier,
   }) async {
+    // ── Offline Protection ──
+    if (!NetworkGuard.checkInternet(
+      actionName: 'send_gift',
+      customOfflineMessage: "No internet. Gift not sent.",
+    )) {
+      NetworkConnectivityService.to.logAnalyticsEvent('failed_gift_offline', {'room_id': roomId});
+      return false;
+    }
+
     if (_isSending.value) {
       debugPrint('[GiftSendService] Duplicate send tap blocked.');
       return false;

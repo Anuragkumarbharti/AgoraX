@@ -12,6 +12,8 @@ import '../memberships/vip_controller.dart';
 import '../memberships/novel_controller.dart';
 import '../user/customization_controller.dart';
 import '../../widgets/gifting/insufficient_balance_sheet.dart';
+import '../network/network_connectivity_service.dart';
+import '../network/network_guard.dart';
 
 class CoinPack {
   final String id;
@@ -331,6 +333,12 @@ class StoreController extends GetxController with WidgetsBindingObserver {
     required String category,
     required int coinPrice,
   }) async {
+    if (!NetworkGuard.checkInternet(
+      actionName: 'purchase',
+      customOfflineMessage: 'Recharge & Store actions unavailable offline.',
+    )) {
+      return false;
+    }
     try {
       final String txId = 'tx_store_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(999999)}';
       final String sessionId = UserProfileCacheManager.currentSessionId;
@@ -394,6 +402,12 @@ class StoreController extends GetxController with WidgetsBindingObserver {
   
   // Only Diamonds can be withdrawn. Minimum 1000 Diamonds.
   bool requestDiamondWithdrawal(int diamondAmount, String paymentMethod, String accountInfo) {
+    if (!NetworkGuard.checkInternet(
+      actionName: 'withdraw',
+      customOfflineMessage: 'Recharge & Withdrawal actions unavailable offline.',
+    )) {
+      return false;
+    }
     if (diamondAmount < 1000) {
       Get.snackbar('Withdrawal Error ⚠️', 'Minimum withdrawal is 1000 Diamonds.', backgroundColor: const Color(0xFFEF4444), colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
       return false;

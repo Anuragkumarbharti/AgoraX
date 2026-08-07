@@ -58,6 +58,14 @@ class RoomSeatController extends GetxController {
     return true;
   }
 
+  bool isUserReconnectingOnSeat(String roomId, int seatIndex) {
+    final seats = roomSeatsInfo[roomId];
+    if (seats == null) return false;
+    final idx = seats.indexWhere((s) => s['seatIndex'] == seatIndex);
+    if (idx == -1) return false;
+    return seats[idx]['isReconnecting'] == true || seats[idx]['is_reconnecting'] == true;
+  }
+
   Future<void> joinRoomSeat(
     String roomId,
     int seatIndex, {
