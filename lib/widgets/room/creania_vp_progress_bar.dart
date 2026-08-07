@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../services/room/room_dual_progress_controller.dart';
+import '../../models/progression/room_dual_progress_model.dart';
 
 class CreaniaVpProgressBar extends StatefulWidget {
   final int roomLevel;
@@ -28,7 +31,7 @@ class CreaniaVpProgressBar extends StatefulWidget {
     this.roomId,
     this.roomName,
     this.coverUrl,
-    this.label = "Today' AP",
+    this.label = "Today's AP",
     this.width = 110.0,
     this.onTap,
     this.onPlusTap,
@@ -63,15 +66,39 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
 
   @override
   Widget build(BuildContext context) {
-    final int freeTargetLimit = widget.freeTarget > 0 ? widget.freeTarget : 700;
-    final int extraTargetLimit = widget.extraTarget > 0 ? widget.extraTarget : 1000;
+    final String rId = widget.roomId ?? '';
+    final bool isCtrlRegistered =
+        rId.isNotEmpty && Get.isRegistered<RoomDualProgressController>();
 
-    final double freeRatio =
-        (widget.freeXp / freeTargetLimit).clamp(0.0, 1.0);
-    final double extraRatio =
-        (widget.extraXp / extraTargetLimit).clamp(0.0, 1.0);
+    if (!isCtrlRegistered) {
+      return _buildContent(null);
+    }
 
-    final int totalEarned = widget.freeXp + widget.extraXp;
+    return Obx(() {
+      final dualCtrl = RoomDualProgressController.to;
+      final int _ = dualCtrl.dualProgresses.length;
+      final RoomDualProgress? dualModel = dualCtrl.dualProgresses[rId];
+      return _buildContent(dualModel);
+    });
+  }
+
+  Widget _buildContent(RoomDualProgress? dualModel) {
+    final int freeVal =
+        dualModel != null ? dualModel.normalPoints : widget.freeXp;
+    final int freeTargetLimit = dualModel != null
+        ? dualModel.normalTarget
+        : (widget.freeTarget > 0 ? widget.freeTarget : 700);
+
+    final int extraVal =
+        dualModel != null ? dualModel.goldPoints : widget.extraXp;
+    final int extraTargetLimit = dualModel != null
+        ? dualModel.goldTarget
+        : (widget.extraTarget > 0 ? widget.extraTarget : 1000);
+
+    final double freeRatio = (freeVal / freeTargetLimit).clamp(0.0, 1.0);
+    final double extraRatio = (extraVal / extraTargetLimit).clamp(0.0, 1.0);
+
+    final int totalEarned = freeVal + extraVal;
     final int totalTarget = freeTargetLimit + extraTargetLimit;
 
     final String earnedStr = _formatNumber(totalEarned);
@@ -85,16 +112,13 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 1. Purple 3D Hexagon Room Level Badge (Far Left)
-            _buildHexagonLevelBadge(widget.roomLevel),
+            _buildHexagonLevelBadge(
+                dualModel != null ? dualModel.roomLevel : widget.roomLevel),
             const SizedBox(width: 8),
-
-            // 2. Center Column: Header (Title & Numbers), Liquid Progress Bar, Subtitle Row
             Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Header Row: "Today' AP" on left, "1700/1700" on right
                 SizedBox(
                   width: widget.width,
                   child: Row(
@@ -154,8 +178,6 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                   ),
                 ),
                 const SizedBox(height: 3),
-
-                // Animated Liquid Fluid Glass Progress Bar (Slim height: 7.0px, Low opacity)
                 AnimatedBuilder(
                   animation: _animController,
                   builder: (context, child) {
@@ -166,7 +188,7 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                         size: Size(widget.width, 7.0),
                         painter: _LiquidProgressBarPainter(
                           freeRatio: freeRatio,
-                          extraRatio: widget.isGoldMember ? extraRatio : 0.0,
+                          extraRatio: extraRatio,
                           isGoldMember: widget.isGoldMember,
                           animValue: _animController.value,
                         ),
@@ -174,51 +196,55 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
                     );
                   },
                 ),
-
-                // Subtitle Row: ID: 88533076 • roomName
-                if (widget.roomId != null && widget.roomId!.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'ID: ${widget.roomId}',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white.withValues(alpha: 0.65),
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      if (widget.roomName != null &&
-                          widget.roomName!.isNotEmpty) ...[
-                        Text(
-                          '  •  ',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white.withValues(alpha: 0.35),
-                            fontSize: 8.5,
-                          ),
-                        ),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 62),
-                          child: Text(
-                            widget.roomName!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
-                              color: Colors.white.withValues(alpha: 0.65),
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
+                _buildSubtitleRow(),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSubtitleRow() {
+    if (widget.roomId == null || widget.roomId!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 3.0),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'ID: ${widget.roomId}',
+            style: GoogleFonts.poppins(
+              color: Colors.white.withValues(alpha: 0.65),
+              fontSize: 8.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          if (widget.roomName != null && widget.roomName!.isNotEmpty) ...[
+            Text(
+              '  •  ',
+              style: GoogleFonts.poppins(
+                color: Colors.white.withValues(alpha: 0.35),
+                fontSize: 8.5,
+              ),
+            ),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 62),
+              child: Text(
+                widget.roomName!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  color: Colors.white.withValues(alpha: 0.65),
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -300,18 +326,15 @@ class _LiquidProgressBarPainter extends CustomPainter {
     canvas.save();
     canvas.clipPath(capsulePath);
 
-    // Calculate total liquid fill width
-    final double totalFillWidth = (isGoldMember && freeRatio >= 1.0)
-        ? dividerX + (width - dividerX) * extraRatio
-        : dividerX * freeRatio;
+    // 1. Calculate liquid fill widths for Free AP (left 50%) and Gold XP (right 50%)
+    final double freeFillWidth = (dividerX * freeRatio).clamp(0.0, dividerX);
+    final double extraFillWidth = ((width - dividerX) * extraRatio).clamp(0.0, width - dividerX);
 
-    if (totalFillWidth > 0) {
-      // 2. UNIFIED CONTINUOUS LIQUID FLUID WAVE PATH
-      final Path wavePath = Path();
-      wavePath.moveTo(0, height);
-
-      const int steps = 48;
-      final double stepWidth = totalFillWidth / steps;
+    // Render Free AP Liquid (Cyan/Blue on Left 50%)
+    if (freeFillWidth > 0) {
+      final Path freeWavePath = Path()..moveTo(0, height);
+      const int steps = 24;
+      final double stepWidth = freeFillWidth / steps;
       final double waveBaseY = height * 0.32;
       final double amplitude = height * 0.20;
 
@@ -320,104 +343,68 @@ class _LiquidProgressBarPainter extends CustomPainter {
         return (waveBaseY + math.sin(waveAngle) * amplitude).clamp(0.0, height);
       }
 
-      wavePath.lineTo(0, getWaveY(0));
+      freeWavePath.lineTo(0, getWaveY(0));
       for (int i = 0; i <= steps; i++) {
         final double x = i * stepWidth;
-        wavePath.lineTo(x, getWaveY(x));
+        freeWavePath.lineTo(x, getWaveY(x));
       }
-      wavePath.lineTo(totalFillWidth, height);
-      wavePath.close();
+      freeWavePath.lineTo(freeFillWidth, height);
+      freeWavePath.close();
 
-      // 3. UNIFIED DYNAMIC LIQUID GRADIENT SHADER (Smooth Cyan-to-Gold Transition)
-      final Rect fillRect = Rect.fromLTWH(0, 0, totalFillWidth, height);
-      final Shader liquidShader;
-
-      if (totalFillWidth <= dividerX) {
-        // Cyan-only liquid fill
-        liquidShader = const LinearGradient(
+      final Rect freeRect = Rect.fromLTWH(0, 0, freeFillWidth, height);
+      final Paint freePaint = Paint()
+        ..shader = const LinearGradient(
           colors: [
             Color(0xFF0052D4),
             Color(0xFF0072FF),
             Color(0xFF00C6FF),
-            Color(0xFF6FB1FC),
+            Color(0xFF38BDF8),
           ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
-        ).createShader(fillRect);
-      } else {
-        // Continuous Cyan-to-Gold Liquid Transition
-        final double splitStop = (dividerX / totalFillWidth).clamp(0.1, 0.9);
-        final double cyanFade = (splitStop - 0.06).clamp(0.0, splitStop);
-        final double goldStart = (splitStop + 0.06).clamp(splitStop, 1.0);
+        ).createShader(freeRect);
 
-        liquidShader = LinearGradient(
-          colors: const [
-            Color(0xFF0052D4),
-            Color(0xFF00C6FF),
-            Color(0xFF38BDF8),
+      canvas.drawPath(freeWavePath, freePaint);
+    }
+
+    // Render Gold XP Liquid (Gold/Amber on Right 50%)
+    if (extraFillWidth > 0) {
+      final Path goldWavePath = Path()..moveTo(dividerX, height);
+      const int steps = 24;
+      final double stepWidth = extraFillWidth / steps;
+      final double waveBaseY = height * 0.32;
+      final double amplitude = height * 0.20;
+
+      double getWaveY(double x) {
+        final double waveAngle = (x / width) * 3 * math.pi + phase;
+        return (waveBaseY + math.sin(waveAngle) * amplitude).clamp(0.0, height);
+      }
+
+      goldWavePath.lineTo(dividerX, getWaveY(dividerX));
+      for (int i = 0; i <= steps; i++) {
+        final double x = dividerX + (i * stepWidth);
+        goldWavePath.lineTo(x, getWaveY(x));
+      }
+      goldWavePath.lineTo(dividerX + extraFillWidth, height);
+      goldWavePath.close();
+
+      final Rect goldRect = Rect.fromLTWH(dividerX, 0, extraFillWidth, height);
+      final Paint goldPaint = Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFFD97706),
             Color(0xFFF59E0B),
             Color(0xFFFFB800),
             Color(0xFFFFF176),
           ],
-          stops: [
-            0.0,
-            cyanFade,
-            splitStop,
-            splitStop,
-            goldStart,
-            1.0,
-          ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
-        ).createShader(fillRect);
-      }
+        ).createShader(goldRect);
 
-      final Paint liquidPaint = Paint()..shader = liquidShader;
-      canvas.drawPath(wavePath, liquidPaint);
-
-      // 4. UNIFIED TOP WAVE CREST HIGHLIGHT LINE
-      final Path crestPath = Path();
-      for (int i = 0; i <= steps; i++) {
-        final double x = i * stepWidth;
-        final double y = getWaveY(x);
-        if (i == 0) {
-          crestPath.moveTo(x, y);
-        } else {
-          crestPath.lineTo(x, y);
-        }
-      }
-
-      final Paint crestPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFFE0F7FA).withValues(alpha: 0.95),
-            const Color(0xFFFFFDE7).withValues(alpha: 0.95),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ).createShader(fillRect);
-      canvas.drawPath(crestPath, crestPaint);
-
-      // 5. UNIFIED FLOATING MICRO BUBBLES
-      final Paint bubblePaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.65)
-        ..style = PaintingStyle.fill;
-
-      for (int b = 0; b < 4; b++) {
-        final double bubbleProgress =
-            ((phase / (2 * math.pi)) + (b * 0.25)) % 1.0;
-        final double bx =
-            (totalFillWidth * bubbleProgress).clamp(1.0, totalFillWidth - 1);
-        final double by = getWaveY(bx) + 1.2 + math.sin(phase + b) * 0.8;
-        if (by < height - 0.5) {
-          canvas.drawCircle(Offset(bx, by), 0.7, bubblePaint);
-        }
-      }
+      canvas.drawPath(goldWavePath, goldPaint);
     }
 
-    // 6. Glossy Upper Glass Reflection Highlight (Glass Capsule reflection)
+    // Glossy Upper Glass Reflection Highlight (Glass Capsule reflection)
     final Path glossyPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, width, height * 0.40));
     final Paint glossyPaint = Paint()
@@ -433,7 +420,7 @@ class _LiquidProgressBarPainter extends CustomPainter {
 
     canvas.restore();
 
-    // 7. Glowing Central BLEND POINT Vertical Seam (Subtle indicator without breaking liquid)
+    // Glowing Central BLEND POINT Vertical Seam (Subtle indicator without breaking liquid)
     final Paint glowDivider = Paint()
       ..color = Colors.white.withValues(alpha: 0.50)
       ..strokeWidth = 1.2
@@ -449,7 +436,7 @@ class _LiquidProgressBarPainter extends CustomPainter {
     final Paint blendPointDot = Paint()..color = Colors.white;
     canvas.drawCircle(Offset(dividerX, 0.5), 0.9, blendPointDot);
 
-    // 8. Sleek Outer Metallic Rim Glass Border
+    // Sleek Outer Metallic Rim Glass Border
     final Paint glassRimBorder = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.9

@@ -21,8 +21,8 @@ import '../../services/user/customization_controller.dart';
 import '../../widgets/memberships/vip_entry_animation.dart';
 import '../../widgets/memberships/novel_entry_animation.dart';
 import '../../services/room/room_entry_permission_engine.dart';
-import '../../widgets/gifting/gift_animation_overlay.dart';
 import '../../services/gifting/gift_animation_controller.dart';
+import '../../services/gifting/gift_overlay_manager.dart';
 
 // Extracted Sub-Modules
 import 'voice_room/models/floating_reaction.dart';
@@ -200,6 +200,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     NovelVideoPreloader.preload();
     VipVideoPreloader.preload();
     Get.put(VoiceController());
+    Get.put(GiftOverlayManager());
     _permissionService = PermissionService();
     _controller = RoomController.to;
     _controller.activeRoomId = widget.roomId;

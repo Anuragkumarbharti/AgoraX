@@ -9,6 +9,7 @@ import '../../../../services/room/room_controller.dart';
 import '../../../../services/room/room_progression_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../widgets/room/creania_vp_progress_bar.dart';
+import '../../../../widgets/room/starmaker_dual_progress_bar.dart';
 import '../dialogs/online_members_dialog.dart';
 import '../dialogs/seat_applications_dialog.dart';
 import '../dialogs/room_settings_dialog.dart';
@@ -75,23 +76,13 @@ class RoomCallHeader extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     child: Builder(
                       builder: (context) {
-                        final progCtrl = Get.put(RoomProgressionController());
-                        final freeVp = progCtrl.getRoomFreeVp(liveId);
-                        final freeTarget = progCtrl.maxFreeDailyVp;
-                        final goldVp = progCtrl.getRoomGoldVp(liveId);
-                        final goldTarget = progCtrl.maxGoldDailyVp;
-                        final isWeekend = progCtrl.isWeekend;
+                        final isWeekend = Get.put(RoomProgressionController()).isWeekend;
 
                         return CreaniaVpProgressBar(
-                          roomLevel: roomLevel,
-                          freeXp: freeVp,
-                          freeTarget: freeTarget,
-                          extraXp: goldVp,
-                          extraTarget: goldTarget,
-                          label: isWeekend ? "Weekend AP" : "Today's AP",
                           roomId: '$liveId',
                           roomName: liveName,
-                          coverUrl: coverUrl,
+                          roomLevel: roomLevel,
+                          label: isWeekend ? "Weekend AP" : "Today's AP",
                           onTap: () {
                             Get.dialog(
                               RoomTasksAndRewardsDialog(
@@ -99,10 +90,6 @@ class RoomCallHeader extends StatelessWidget {
                                 roomName: liveName,
                               ),
                             );
-                          },
-                          onPlusTap: () {
-                            Get.snackbar(
-                                'Action', 'Inviting users to the arena.');
                           },
                         );
                       },

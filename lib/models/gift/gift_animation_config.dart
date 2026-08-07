@@ -1,6 +1,48 @@
-// lib/models/gift_animation_config.dart
+// lib/models/gift/gift_animation_config.dart
 
 import 'package:flutter/material.dart';
+import 'gift_animation_metadata.dart';
+
+enum LaunchType { linear, bezierArc, spiralRise, teleportPulse }
+
+enum ShowcaseType {
+  bloomRotate,
+  vehicleDrive,
+  rocketLaunch,
+  buildingRise,
+  dragonFlyaround,
+  universeGalaxy,
+  custom,
+}
+
+enum DeliveryType { smoothCurve, spiralDrop, straightDash, splitScatter }
+
+enum SplitEffectType {
+  magicBurst,
+  crystalExplosion,
+  energyPulse,
+  lightBeam,
+  fireRing,
+  goldenFlash,
+}
+
+enum LandingEffectType {
+  sparkleExplosion,
+  heartBurst,
+  goldenPulse,
+  starRing,
+}
+
+enum CameraEffectType {
+  none,
+  zoomIn,
+  screenShake,
+  ambientDim,
+  flashBurst,
+  spaceDistortion,
+}
+
+enum LayerPriority { normal, high, exclusive }
 
 enum ParticleEffectType {
   emojiBurst,
@@ -13,235 +55,292 @@ enum ParticleEffectType {
   butterflyFlight,
   sportsCarDrive,
   privateJetFly,
+  fireStars,
+  cosmicMeteors,
+  goldenShine,
 }
 
-class GiftAnimationConfig {
-  final String animationKey; // Identifier for developer mapping (e.g. 'gift_sports_car')
-  final String name; // Human-readable animation name
-  final String emoji; // Default emoji representation
-  final Color color; // Ambient theme glow color
-  final ParticleEffectType effectType; // High-FPS native canvas effect fallback
-  final String? customLottiePath; // Optional path (e.g. 'assets/animations/gifts/gift_sports_car.json')
-  final String? customPagPath; // Optional PAG path (e.g. 'assets/animations/gifts/gift_sports_car.pag')
-  final Duration duration; // Duration of overlay animation
+class ParticleEffectConfig {
+  final ParticleEffectType type;
+  final int quantity;
+  final List<Color> colorPalette;
+  final double speed;
+  final bool hasTail;
 
-  const GiftAnimationConfig({
-    required this.animationKey,
-    required this.name,
-    required this.emoji,
-    required this.color,
-    required this.effectType,
-    this.customLottiePath,
-    this.customPagPath,
-    this.duration = const Duration(milliseconds: 3200),
+  const ParticleEffectConfig({
+    required this.type,
+    this.quantity = 32,
+    this.colorPalette = const [Colors.amber, Colors.orangeAccent],
+    this.speed = 1.0,
+    this.hasTail = false,
   });
 }
 
-class GiftAnimationRegistry {
-  static final Map<String, GiftAnimationConfig> _registry = {
-    // Gold Gifts
-    'a2000000-0000-0000-0000-000000000001': const GiftAnimationConfig(
-      animationKey: 'gift_like',
-      name: 'Thumbs Up Pop',
-      emoji: '👍',
-      color: Colors.blueAccent,
-      effectType: ParticleEffectType.emojiBurst,
-      customLottiePath: 'assets/animations/gifts/gift_like.json',
-    ),
-    'a2000000-0000-0000-0000-000000000002': const GiftAnimationConfig(
-      animationKey: 'gift_flower',
-      name: 'Floral Bloom',
-      emoji: '🌼',
-      color: Colors.orange,
-      effectType: ParticleEffectType.rosePetals,
-      customLottiePath: 'assets/animations/gifts/gift_flower.json',
-    ),
-    'a2000000-0000-0000-0000-000000000003': const GiftAnimationConfig(
+class CameraEffectConfig {
+  final CameraEffectType type;
+  final double intensity;
+  final int durationMs;
+
+  const CameraEffectConfig({
+    this.type = CameraEffectType.none,
+    this.intensity = 1.0,
+    this.durationMs = 500,
+  });
+}
+
+class SoundEffectConfig {
+  final String soundKey;
+  final String? assetPath;
+  final double volume;
+
+  const SoundEffectConfig({
+    required this.soundKey,
+    this.assetPath,
+    this.volume = 1.0,
+  });
+}
+
+class GiftConfig {
+  final String giftId;
+  final String animationKey;
+  final String name;
+  final String emoji;
+  final GiftTier tier;
+  final LaunchType launchAnimation;
+  final ShowcaseType showcaseAnimation;
+  final Duration showcaseDuration;
+  final ParticleEffectConfig particleEffect;
+  final CameraEffectConfig cameraEffect;
+  final SoundEffectConfig? soundEffect;
+  final DeliveryType deliveryAnimation;
+  final SplitEffectType splitEffect;
+  final LandingEffectType landingEffect;
+  final bool allowSplit;
+  final int maxCopies;
+  final LayerPriority layerPriority;
+  final Color themeColor;
+  final String? customLottiePath;
+  final String? customAssetPath;
+
+  const GiftConfig({
+    required this.giftId,
+    required this.animationKey,
+    required this.name,
+    required this.emoji,
+    required this.tier,
+    this.launchAnimation = LaunchType.bezierArc,
+    required this.showcaseAnimation,
+    required this.showcaseDuration,
+    this.particleEffect = const ParticleEffectConfig(type: ParticleEffectType.emojiBurst),
+    this.cameraEffect = const CameraEffectConfig(),
+    this.soundEffect,
+    this.deliveryAnimation = DeliveryType.smoothCurve,
+    this.splitEffect = SplitEffectType.magicBurst,
+    this.landingEffect = LandingEffectType.sparkleExplosion,
+    this.allowSplit = true,
+    this.maxCopies = 10,
+    this.layerPriority = LayerPriority.normal,
+    this.themeColor = Colors.amber,
+    this.customLottiePath,
+    this.customAssetPath,
+  });
+}
+
+class GiftConfigRegistry {
+  static final Map<String, GiftConfig> _registry = {
+    // 🌹 Rose (Common - 2 sec Showcase)
+    'gift_rose': const GiftConfig(
+      giftId: 'a2000000-0000-0000-0000-000000000003',
       animationKey: 'gift_rose',
       name: 'Rose Bloom & Petals Cascade',
       emoji: '🌹',
-      color: Colors.pinkAccent,
-      effectType: ParticleEffectType.rosePetals,
+      tier: GiftTier.basic,
+      launchAnimation: LaunchType.bezierArc,
+      showcaseAnimation: ShowcaseType.bloomRotate,
+      showcaseDuration: Duration(seconds: 2),
+      particleEffect: ParticleEffectConfig(
+        type: ParticleEffectType.rosePetals,
+        quantity: 24,
+        colorPalette: [Colors.pinkAccent, Colors.redAccent],
+      ),
+      cameraEffect: CameraEffectConfig(type: CameraEffectType.none),
+      splitEffect: SplitEffectType.magicBurst,
+      landingEffect: LandingEffectType.heartBurst,
+      themeColor: Colors.pinkAccent,
       customLottiePath: 'assets/animations/gifts/gift_rose.json',
     ),
-    'a2000000-0000-0000-0000-000000000004': const GiftAnimationConfig(
-      animationKey: 'gift_heart',
-      name: 'Heart Pulsing Burst',
-      emoji: '❤️',
-      color: Colors.redAccent,
-      effectType: ParticleEffectType.heartBurst,
-      customLottiePath: 'assets/animations/gifts/gift_heart.json',
-    ),
-    'a2000000-0000-0000-0000-000000000005': const GiftAnimationConfig(
-      animationKey: 'gift_coffee',
-      name: 'Warm Steam Coffee',
-      emoji: '☕',
-      color: Colors.brown,
-      effectType: ParticleEffectType.risingSteam,
-      customLottiePath: 'assets/animations/gifts/gift_coffee.json',
-    ),
-    'a2000000-0000-0000-0000-000000000006': const GiftAnimationConfig(
-      animationKey: 'gift_chocolate',
-      name: 'Sweet Chocolate Burst',
-      emoji: '🍫',
-      color: Colors.amber,
-      effectType: ParticleEffectType.emojiBurst,
-      customLottiePath: 'assets/animations/gifts/gift_chocolate.json',
-    ),
-    'a2000000-0000-0000-0000-000000000007': const GiftAnimationConfig(
-      animationKey: 'gift_cake',
-      name: 'Birthday Candles & Confetti',
-      emoji: '🎂',
-      color: Colors.pink,
-      effectType: ParticleEffectType.confettiPop,
-      customLottiePath: 'assets/animations/gifts/gift_cake.json',
-    ),
-    'a2000000-0000-0000-0000-000000000008': const GiftAnimationConfig(
-      animationKey: 'gift_balloon',
-      name: 'Floating Balloons Upward Flight',
-      emoji: '🎈',
-      color: Colors.purpleAccent,
-      effectType: ParticleEffectType.emojiBurst,
-      customLottiePath: 'assets/animations/gifts/gift_balloon.json',
-    ),
-    'a2000000-0000-0000-0000-000000000009': const GiftAnimationConfig(
-      animationKey: 'gift_box',
-      name: 'Gift Box Open Explosion',
-      emoji: '🎁',
-      color: Colors.red,
-      effectType: ParticleEffectType.confettiPop,
-      customLottiePath: 'assets/animations/gifts/gift_box.json',
-    ),
-    'a2000000-0000-0000-0000-000000000010': const GiftAnimationConfig(
-      animationKey: 'gift_diamond',
-      name: 'Crystalline Prism Rays',
-      emoji: '💎',
-      color: Colors.cyan,
-      effectType: ParticleEffectType.diamondPrism,
-      customLottiePath: 'assets/animations/gifts/gift_diamond.json',
-    ),
-    'a2000000-0000-0000-0000-000000000011': const GiftAnimationConfig(
-      animationKey: 'gift_crown',
-      name: 'Golden Royalty Halo',
-      emoji: '👑',
-      color: Colors.amber,
-      effectType: ParticleEffectType.goldenCrown,
-      customLottiePath: 'assets/animations/gifts/gift_crown.json',
-    ),
-    'a2000000-0000-0000-0000-000000000012': const GiftAnimationConfig(
-      animationKey: 'gift_butterfly',
-      name: 'Fluttering Wing Trail',
-      emoji: '🦋',
-      color: Colors.deepPurpleAccent,
-      effectType: ParticleEffectType.butterflyFlight,
-      customLottiePath: 'assets/animations/gifts/gift_butterfly.json',
-    ),
-    'a2000000-0000-0000-0000-000000000013': const GiftAnimationConfig(
+
+    // 🏎️ Car (Rare / Premium - 3 sec Showcase)
+    'gift_sports_car': const GiftConfig(
+      giftId: 'a2000000-0000-0000-0000-000000000013',
       animationKey: 'gift_sports_car',
       name: 'Neon Supercar Speed Drive',
       emoji: '🏎️',
-      color: Colors.deepOrange,
-      effectType: ParticleEffectType.sportsCarDrive,
+      tier: GiftTier.premium,
+      launchAnimation: LaunchType.linear,
+      showcaseAnimation: ShowcaseType.vehicleDrive,
+      showcaseDuration: Duration(seconds: 3),
+      particleEffect: ParticleEffectConfig(
+        type: ParticleEffectType.sportsCarDrive,
+        quantity: 36,
+        colorPalette: [Colors.deepOrange, Colors.yellowAccent],
+      ),
+      cameraEffect: CameraEffectConfig(type: CameraEffectType.zoomIn, intensity: 1.2),
+      soundEffect: SoundEffectConfig(soundKey: 'car_horn', volume: 0.8),
+      splitEffect: SplitEffectType.energyPulse,
+      landingEffect: LandingEffectType.goldenPulse,
+      themeColor: Colors.deepOrange,
       customLottiePath: 'assets/animations/gifts/gift_sports_car.json',
     ),
-    'a2000000-0000-0000-0000-000000000014': const GiftAnimationConfig(
-      animationKey: 'gift_private_jet',
-      name: 'Jet Altitude Vapor Pass',
-      emoji: '✈️',
-      color: Colors.cyanAccent,
-      effectType: ParticleEffectType.privateJetFly,
-      customLottiePath: 'assets/animations/gifts/gift_private_jet.json',
+
+    // 🚀 Rocket (Epic - 4 sec Showcase)
+    'gift_rocket': const GiftConfig(
+      giftId: 'a2000000-0000-0000-0000-000000000015',
+      animationKey: 'gift_rocket',
+      name: 'Cosmic Rocket Launch',
+      emoji: '🚀',
+      tier: GiftTier.epic,
+      launchAnimation: LaunchType.spiralRise,
+      showcaseAnimation: ShowcaseType.rocketLaunch,
+      showcaseDuration: Duration(seconds: 4),
+      particleEffect: ParticleEffectConfig(
+        type: ParticleEffectType.fireStars,
+        quantity: 48,
+        colorPalette: [Colors.orange, Colors.red, Colors.yellow],
+        hasTail: true,
+      ),
+      cameraEffect: CameraEffectConfig(type: CameraEffectType.screenShake, intensity: 1.5),
+      soundEffect: SoundEffectConfig(soundKey: 'rocket_launch', volume: 1.0),
+      splitEffect: SplitEffectType.fireRing,
+      landingEffect: LandingEffectType.starRing,
+      themeColor: Colors.orangeAccent,
     ),
 
-    // Silver Gifts
-    'a2000000-0000-0000-0000-000000000021': const GiftAnimationConfig(
-      animationKey: 'gift_like_silver',
-      name: 'Silver Like Pop',
-      emoji: '👍',
-      color: Colors.blueAccent,
-      effectType: ParticleEffectType.emojiBurst,
+    // 🏰 Castle (Legendary - 5 sec Showcase)
+    'gift_castle': const GiftConfig(
+      giftId: 'a2000000-0000-0000-0000-000000000016',
+      animationKey: 'gift_castle',
+      name: 'Royal Palace Kingdom',
+      emoji: '🏰',
+      tier: GiftTier.legendary,
+      launchAnimation: LaunchType.teleportPulse,
+      showcaseAnimation: ShowcaseType.buildingRise,
+      showcaseDuration: Duration(seconds: 5),
+      particleEffect: ParticleEffectConfig(
+        type: ParticleEffectType.goldenShine,
+        quantity: 60,
+        colorPalette: [Colors.amber, Colors.yellow, Colors.white],
+      ),
+      cameraEffect: CameraEffectConfig(type: CameraEffectType.ambientDim, intensity: 0.6),
+      soundEffect: SoundEffectConfig(soundKey: 'castle_fanfare', volume: 1.0),
+      splitEffect: SplitEffectType.goldenFlash,
+      landingEffect: LandingEffectType.goldenPulse,
+      layerPriority: LayerPriority.exclusive,
+      themeColor: Colors.amber,
     ),
-    'a2000000-0000-0000-0000-000000000022': const GiftAnimationConfig(
-      animationKey: 'gift_flower_silver',
-      name: 'Silver Flower Bloom',
-      emoji: '🌼',
-      color: Colors.orange,
-      effectType: ParticleEffectType.rosePetals,
+
+    // 🐉 Dragon (Mythic - 6 sec Showcase)
+    'gift_dragon': const GiftConfig(
+      giftId: 'a2000000-0000-0000-0000-000000000017',
+      animationKey: 'gift_dragon',
+      name: 'Imperial Fire Dragon',
+      emoji: '🐉',
+      tier: GiftTier.mythic,
+      launchAnimation: LaunchType.spiralRise,
+      showcaseAnimation: ShowcaseType.dragonFlyaround,
+      showcaseDuration: Duration(seconds: 6),
+      particleEffect: ParticleEffectConfig(
+        type: ParticleEffectType.fireStars,
+        quantity: 72,
+        colorPalette: [Colors.red, Colors.deepOrange, Colors.amber],
+        hasTail: true,
+      ),
+      cameraEffect: CameraEffectConfig(type: CameraEffectType.screenShake, intensity: 2.0),
+      soundEffect: SoundEffectConfig(soundKey: 'dragon_roar', volume: 1.0),
+      splitEffect: SplitEffectType.crystalExplosion,
+      landingEffect: LandingEffectType.sparkleExplosion,
+      layerPriority: LayerPriority.exclusive,
+      themeColor: Colors.redAccent,
     ),
-    'a2000000-0000-0000-0000-000000000023': const GiftAnimationConfig(
-      animationKey: 'gift_rose_silver',
-      name: 'Silver Rose Cascade',
-      emoji: '🌹',
-      color: Colors.pink,
-      effectType: ParticleEffectType.rosePetals,
-    ),
-    'a2000000-0000-0000-0000-000000000024': const GiftAnimationConfig(
-      animationKey: 'gift_heart_silver',
-      name: 'Silver Heart Pulsing',
-      emoji: '❤️',
-      color: Colors.redAccent,
-      effectType: ParticleEffectType.heartBurst,
-    ),
-    'a2000000-0000-0000-0000-000000000025': const GiftAnimationConfig(
-      animationKey: 'gift_coffee_silver',
-      name: 'Silver Coffee Steam',
-      emoji: '☕',
-      color: Colors.brown,
-      effectType: ParticleEffectType.risingSteam,
-    ),
-    'a2000000-0000-0000-0000-000000000026': const GiftAnimationConfig(
-      animationKey: 'gift_chocolate_silver',
-      name: 'Silver Chocolate Burst',
-      emoji: '🍫',
-      color: Colors.amber,
-      effectType: ParticleEffectType.emojiBurst,
-    ),
-    'a2000000-0000-0000-0000-000000000027': const GiftAnimationConfig(
-      animationKey: 'gift_cake_silver',
-      name: 'Silver Cake Confetti',
-      emoji: '🎂',
-      color: Colors.pink,
-      effectType: ParticleEffectType.confettiPop,
-    ),
-    'a2000000-0000-0000-0000-000000000028': const GiftAnimationConfig(
-      animationKey: 'gift_balloon_silver',
-      name: 'Silver Balloons Float',
-      emoji: '🎈',
-      color: Colors.purpleAccent,
-      effectType: ParticleEffectType.emojiBurst,
-    ),
-    'a2000000-0000-0000-0000-000000000029': const GiftAnimationConfig(
-      animationKey: 'gift_box_silver',
-      name: 'Silver Gift Box Open',
-      emoji: '🎁',
-      color: Colors.red,
-      effectType: ParticleEffectType.confettiPop,
-    ),
-    'a2000000-0000-0000-0000-000000000030': const GiftAnimationConfig(
-      animationKey: 'gift_diamond_silver',
-      name: 'Silver Diamond Light Beam',
-      emoji: '💎',
-      color: Colors.cyan,
-      effectType: ParticleEffectType.diamondPrism,
+
+    // 🌌 Universe (Mythic / Ultra - 7 sec Showcase)
+    'gift_universe': const GiftConfig(
+      giftId: 'a2000000-0000-0000-0000-000000000018',
+      animationKey: 'gift_universe',
+      name: 'Universal Galaxy Nexus',
+      emoji: '🌌',
+      tier: GiftTier.mythic,
+      launchAnimation: LaunchType.teleportPulse,
+      showcaseAnimation: ShowcaseType.universeGalaxy,
+      showcaseDuration: Duration(seconds: 7),
+      particleEffect: ParticleEffectConfig(
+        type: ParticleEffectType.cosmicMeteors,
+        quantity: 90,
+        colorPalette: [Colors.purpleAccent, Colors.cyanAccent, Colors.white],
+        hasTail: true,
+      ),
+      cameraEffect: CameraEffectConfig(type: CameraEffectType.spaceDistortion, intensity: 2.5),
+      soundEffect: SoundEffectConfig(soundKey: 'cosmic_hum', volume: 1.0),
+      splitEffect: SplitEffectType.lightBeam,
+      landingEffect: LandingEffectType.starRing,
+      layerPriority: LayerPriority.exclusive,
+      themeColor: Colors.deepPurpleAccent,
     ),
   };
 
-  /// Gets the animation configuration for a gift ID or gift name.
-  static GiftAnimationConfig getConfig(String giftIdOrName) {
-    if (_registry.containsKey(giftIdOrName)) {
-      return _registry[giftIdOrName]!;
+  /// Gets the animation configuration for a gift ID or gift key or name.
+  static GiftConfig getConfig(String giftIdOrKey) {
+    if (_registry.containsKey(giftIdOrKey)) {
+      return _registry[giftIdOrKey]!;
     }
-    // Search by name fallback
-    final nameMatch = _registry.values.firstWhere(
-      (c) => c.name.toLowerCase().contains(giftIdOrName.toLowerCase()) || c.animationKey.contains(giftIdOrName.toLowerCase()),
-      orElse: () => GiftAnimationConfig(
-        animationKey: 'gift_generic',
-        name: giftIdOrName,
-        emoji: '🎁',
-        color: const Color(0xFF8B5CF6),
-        effectType: ParticleEffectType.emojiBurst,
-      ),
+
+    final keyMatch = _registry.values.firstWhere(
+      (c) => c.giftId == giftIdOrKey || c.animationKey == giftIdOrKey,
+      orElse: () {
+        final meta = GiftMetadataRegistry.getMetadata(giftIdOrKey);
+        return GiftConfig(
+          giftId: meta.giftId,
+          animationKey: meta.giftName,
+          name: meta.giftName,
+          emoji: meta.giftIcon,
+          tier: meta.tier,
+          showcaseAnimation: _getShowcaseTypeByTier(meta.tier),
+          showcaseDuration: _getShowcaseDurationByTier(meta.tier),
+          themeColor: meta.themeColor,
+        );
+      },
     );
-    return nameMatch;
+
+    return keyMatch;
+  }
+
+  static ShowcaseType _getShowcaseTypeByTier(GiftTier tier) {
+    switch (tier) {
+      case GiftTier.basic:
+        return ShowcaseType.bloomRotate;
+      case GiftTier.premium:
+        return ShowcaseType.vehicleDrive;
+      case GiftTier.epic:
+        return ShowcaseType.rocketLaunch;
+      case GiftTier.legendary:
+        return ShowcaseType.buildingRise;
+      case GiftTier.mythic:
+        return ShowcaseType.dragonFlyaround;
+    }
+  }
+
+  static Duration _getShowcaseDurationByTier(GiftTier tier) {
+    switch (tier) {
+      case GiftTier.basic:
+        return const Duration(seconds: 2);
+      case GiftTier.premium:
+        return const Duration(seconds: 3);
+      case GiftTier.epic:
+        return const Duration(seconds: 4);
+      case GiftTier.legendary:
+        return const Duration(seconds: 5);
+      case GiftTier.mythic:
+        return const Duration(seconds: 6);
+    }
   }
 }

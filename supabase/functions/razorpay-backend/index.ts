@@ -17,8 +17,15 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    const keyId = Deno.env.get("RAZORPAY_KEY_ID") || "rzp_test_TAiZywLMiBlJuG";
-    const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET") || "ehrQ4edUdNzEZqtTE334Lcsf";
+    const keyId = Deno.env.get("RAZORPAY_KEY_ID");
+    const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
+
+    if (!keyId || !keySecret) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Payment gateway not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Supabase Edge Function secrets." }),
+        { status: 503, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
+    }
 
     if (action === "create-order") {
       const { amount, product, duration } = body;

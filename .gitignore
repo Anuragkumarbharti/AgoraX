@@ -95,3 +95,8 @@ node_modules/
 **/node_modules/
 analyze_*.txt
 analyze_out.txt
+
+# Supabase secrets — NEVER commit these
+supabase/seed.sql
+supabase/.env
+supabase/secrets*.sql

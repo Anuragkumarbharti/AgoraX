@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/gift/gift_animation_metadata.dart';
+import '../../models/gift/gift_animation_config.dart';
 import '../../services/gifting/animation_timeline.dart';
 
 class GiftRequestEvent {
@@ -92,7 +93,11 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   void _startAnimation(GiftRequestEvent event) {
     _meta = GiftMetadataRegistry.getMetadata(event.giftId);
 
-    final totalDuration = AnimationTimeline.getTotalDuration(_meta!.tier);
+    final targetCount = (event.targetOffsets != null && event.targetOffsets!.isNotEmpty)
+        ? event.targetOffsets!.length
+        : 1;
+
+    final totalDuration = AnimationTimeline.getTotalDuration(_meta!.tier, targetCount: targetCount);
     _flightController.duration = totalDuration;
 
     _initParticles();
@@ -177,76 +182,112 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           );
         }
 
-        // ── ROOM MODE: MANDATORY 3-STAGE FLOW ──
-        // Stage A (1.0s): Launch Animation from sender seat/profile to Center
-        // Stage B (2-6s depending on tier): Main Center Showcase (Finishes completely before Stage C)
-        // Stage C (1.0s): Receiver Delivery (Single receiver or duplicated to all receiver seats)
-        final stageInfo = AnimationTimeline.getStageProgress(progress, meta.tier);
+        // ── ROOM MODE: MANDATORY 3-STAGE CONFIG-DRIVEN FLOW ──
+        // Stage A (1.0-3.0s): Launch Animation from sender seat/profile to Center
+        // Stage B (2-8s depending on tier): Main Center Showcase (Finishes completely before Stage C)
+        // Stage C (1-6s): Receiver Delivery (Single receiver or duplicated to all receiver seats with Smart Split)
+        final giftConfig = GiftConfigRegistry.getConfig(event.giftId);
+        final targetCount = targets.length;
+        final stageInfo = AnimationTimeline.getStageProgress(progress, giftConfig.tier, targetCount: targetCount);
+
+        // Dynamic Camera Shake Matrix calculation for Epic / Legendary / Mythic gifts
+        Offset cameraShakeOffset = Offset.zero;
+        if (stageInfo.stage == AnimationStage.stageB &&
+            giftConfig.cameraEffect.type == CameraEffectType.screenShake) {
+          final intensity = giftConfig.cameraEffect.intensity;
+          cameraShakeOffset = Offset(
+            sin(stageInfo.stageNormalizedProgress * pi * 24) * 6 * intensity,
+            cos(stageInfo.stageNormalizedProgress * pi * 18) * 4 * intensity,
+          );
+        }
 
         return IgnorePointer(
-          child: Stack(
-            children: [
-              // ── STAGE A: LAUNCH ANIMATION (1.0 sec) ──
-              if (stageInfo.stage == AnimationStage.stageA) ...[
-                _buildStep1BottomRise(
-                  bottomPanelOrigin,
-                  centerStage,
-                  stageInfo.stageNormalizedProgress,
-                  activeIcon,
-                  meta,
-                ),
-              ],
+          child: Transform.translate(
+            offset: cameraShakeOffset,
+            child: Stack(
+              children: [
+                // Exclusive / Ambient Dimming Room Background Overlay for Legendary & Mythic gifts
+                if ((stageInfo.stage == AnimationStage.stageB || stageInfo.stage == AnimationStage.stageC) &&
+                    (giftConfig.layerPriority == LayerPriority.exclusive ||
+                        giftConfig.cameraEffect.type == CameraEffectType.ambientDim))
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.65 * sin(stageInfo.stageNormalizedProgress * pi).clamp(0.0, 1.0)),
+                    ),
+                  ),
 
-              // ── STAGE B: MAIN GIFT SHOWCASE (2.0 to 6.0 sec) ──
-              if (stageInfo.stage == AnimationStage.stageB) ...[
-                _buildLeftSenderBannerCard(
-                  media,
-                  event,
-                  meta,
-                  activeIcon,
-                  stageInfo.stageNormalizedProgress,
-                ),
-                _buildStep2CenterShowcase(
-                  centerStage,
-                  event,
-                  meta,
-                  activeIcon,
-                  stageInfo.stageNormalizedProgress,
-                ),
-              ],
-
-              // ── STAGE C: RECEIVER DELIVERY (1.0 sec) ──
-              if (stageInfo.stage == AnimationStage.stageC) ...[
-                for (final targetPos in targets) ...[
-                  _buildStep3FlightAndLanding(
+                // ── STAGE A: LAUNCH ANIMATION ──
+                if (stageInfo.stage == AnimationStage.stageA) ...[
+                  _buildStep1BottomRise(
+                    bottomPanelOrigin,
                     centerStage,
-                    targetPos,
+                    stageInfo.stageNormalizedProgress,
+                    activeIcon,
+                    meta,
+                    giftConfig,
+                  ),
+                ],
+
+                // ── STAGE B: MAIN GIFT SHOWCASE (TIER-BASED) ──
+                if (stageInfo.stage == AnimationStage.stageB) ...[
+                  _buildLeftSenderBannerCard(
+                    media,
+                    event,
                     meta,
                     activeIcon,
                     stageInfo.stageNormalizedProgress,
-                    _isStackedCombo,
-                    event.count,
+                  ),
+                  _buildStep2CenterShowcase(
+                    centerStage,
+                    event,
+                    meta,
+                    giftConfig,
+                    activeIcon,
+                    stageInfo.stageNormalizedProgress,
                   ),
                 ],
-                if ((meta.tier == GiftTier.epic ||
-                        meta.tier == GiftTier.legendary ||
-                        meta.tier == GiftTier.mythic))
-                  _buildCinematicOverlay(meta, activeIcon, stageInfo.stageNormalizedProgress),
+
+                // ── STAGE C: RECEIVER DELIVERY & SMART SPLIT ──
+                if (stageInfo.stage == AnimationStage.stageC) ...[
+                  if (targets.length > 1)
+                    _buildSmartSplitEffect(
+                      centerStage,
+                      giftConfig,
+                      stageInfo.stageNormalizedProgress,
+                    ),
+                  for (final targetPos in targets) ...[
+                    _buildStep3FlightAndLanding(
+                      centerStage,
+                      targetPos,
+                      meta,
+                      giftConfig,
+                      activeIcon,
+                      stageInfo.stageNormalizedProgress,
+                      _isStackedCombo,
+                      event.count,
+                    ),
+                  ],
+                  if ((meta.tier == GiftTier.epic ||
+                      meta.tier == GiftTier.legendary ||
+                      meta.tier == GiftTier.mythic))
+                    _buildCinematicOverlay(meta, activeIcon, stageInfo.stageNormalizedProgress),
+                ],
               ],
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  /// Step 1: Rise from Bottom Panel to Center Stage (1.0 to 1.5 seconds)
+  /// Step 1: Rise from Bottom Panel to Center Stage
   Widget _buildStep1BottomRise(
     Offset bottom,
     Offset center,
     double stepT,
     String icon,
     GiftAnimationMetadata meta,
+    GiftConfig giftConfig,
   ) {
     final pos = Offset.lerp(bottom, center, Curves.easeOutCubic.transform(stepT))!;
     final scale = (stepT * 0.85).clamp(0.1, 0.85);
@@ -260,7 +301,7 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
             bottom: bottom,
             current: pos,
             progress: stepT,
-            themeColor: meta.themeColor,
+            themeColor: giftConfig.themeColor,
           ),
         ),
         Positioned(
@@ -273,7 +314,7 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: meta.themeColor.withOpacity(0.4 * stepT),
+                    color: giftConfig.themeColor.withOpacity(0.4 * stepT),
                     blurRadius: 20 * stepT,
                   )
                 ],
@@ -286,11 +327,12 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
     );
   }
 
-  /// Step 2: Center Stage Showcase & Unique Gift Particle Animation (2.0 to 5.0 seconds)
+  /// Step 2: Center Stage Showcase & Unique Gift Particle Animation
   Widget _buildStep2CenterShowcase(
     Offset center,
     GiftRequestEvent event,
     GiftAnimationMetadata meta,
+    GiftConfig giftConfig,
     String icon,
     double stepT,
   ) {
@@ -320,8 +362,8 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Render Unique Gift-Specific Showcase Animation
-                    _buildUniqueGiftShowcase(meta, icon, stepT),
+                    // Render Config-Driven Tier Showcase Animation
+                    _buildConfigShowcase(giftConfig, icon, stepT),
 
                     // Center Gift Hero Icon
                     Container(
@@ -397,6 +439,27 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
         ),
       ),
     );
+  }
+
+  /// Renders showcase animation driven by GiftConfig (Rose, Car, Rocket, Castle, Dragon, Universe)
+  Widget _buildConfigShowcase(GiftConfig config, String icon, double stepT) {
+    switch (config.showcaseAnimation) {
+      case ShowcaseType.bloomRotate:
+        return _RoseShowcaseWidget(stepT: stepT, color: config.themeColor);
+      case ShowcaseType.vehicleDrive:
+        return _CarShowcaseWidget(stepT: stepT, color: config.themeColor);
+      case ShowcaseType.rocketLaunch:
+        return _RocketShowcaseWidget(stepT: stepT, color: config.themeColor);
+      case ShowcaseType.buildingRise:
+        return _CastleShowcaseWidget(stepT: stepT, color: config.themeColor);
+      case ShowcaseType.dragonFlyaround:
+        return _DragonShowcaseWidget(stepT: stepT, color: config.themeColor);
+      case ShowcaseType.universeGalaxy:
+        return _GalaxyShowcaseWidget(stepT: stepT, color: config.themeColor);
+      case ShowcaseType.custom:
+      default:
+        return _GenericShowcaseWidget(stepT: stepT, color: config.themeColor, particles: _particles);
+    }
   }
 
   /// Renders dynamic, gift-specific showcase animation per ShowcaseAnimationType
@@ -514,11 +577,72 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
     );
   }
 
-  /// Step 3: Flight from Center to Receiver Seat(s) & Landing Reaction (1.0 to 1.5 seconds)
+  /// Premium Smart Split Effect Emitter (Magic Burst, Crystal Explosion, Energy Pulse, Light Beam, Fire Ring, Golden Flash)
+  Widget _buildSmartSplitEffect(
+    Offset center,
+    GiftConfig giftConfig,
+    double stepT,
+  ) {
+    if (stepT > 0.3) return const SizedBox.shrink();
+    final burstT = (stepT / 0.3).clamp(0.0, 1.0);
+    final scale = 1.0 + burstT * 1.8;
+    final opacity = (1.0 - burstT).clamp(0.0, 1.0);
+
+    Color splitColor;
+    switch (giftConfig.splitEffect) {
+      case SplitEffectType.magicBurst:
+        splitColor = Colors.purpleAccent;
+        break;
+      case SplitEffectType.crystalExplosion:
+        splitColor = Colors.cyanAccent;
+        break;
+      case SplitEffectType.energyPulse:
+        splitColor = Colors.yellowAccent;
+        break;
+      case SplitEffectType.lightBeam:
+        splitColor = Colors.white;
+        break;
+      case SplitEffectType.fireRing:
+        splitColor = Colors.deepOrangeAccent;
+        break;
+      case SplitEffectType.goldenFlash:
+        splitColor = Colors.amber;
+        break;
+    }
+
+    return Positioned(
+      left: center.dx - 100,
+      top: center.dy - 100,
+      child: Opacity(
+        opacity: opacity,
+        child: Transform.scale(
+          scale: scale,
+          child: Container(
+            width: 200,
+            height: 200,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: splitColor, width: 4 * (1.0 - burstT)),
+              boxShadow: [
+                BoxShadow(
+                  color: splitColor.withOpacity(0.8),
+                  blurRadius: 35 * burstT,
+                  spreadRadius: 15 * burstT,
+                )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Step 3: Flight from Center to Receiver Seat(s) & Landing Reaction
   Widget _buildStep3FlightAndLanding(
     Offset center,
     Offset target,
     GiftAnimationMetadata meta,
+    GiftConfig giftConfig,
     String icon,
     double stepT,
     bool isStacked,
@@ -557,7 +681,7 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
       return Positioned(
         left: target.dx - 65,
         top: target.dy - 65,
-        child: _buildSeatLandingStage(meta, icon, landingT, isStacked, count),
+        child: _buildSeatLandingStage(meta, giftConfig, icon, landingT, isStacked, count),
       );
     }
   }
@@ -565,11 +689,15 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   /// Receiver Seat Landing Effect Widget
   Widget _buildSeatLandingStage(
     GiftAnimationMetadata meta,
+    GiftConfig giftConfig,
     String icon,
     double landingT,
     bool isStacked,
     int count,
   ) {
+    final isSelfGift = (widget.event != null && widget.event!.senderName == widget.event!.receiverName);
+    final glowColor = isSelfGift ? Colors.amberAccent : meta.themeColor;
+
     return Container(
       width: 130,
       height: 130,
@@ -578,17 +706,31 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: meta.themeColor.withOpacity(0.6 * sin(landingT * pi)),
-            blurRadius: 35 * landingT,
-            spreadRadius: 8 * landingT,
+            color: glowColor.withOpacity(0.8 * sin(landingT * pi)),
+            blurRadius: isSelfGift ? 50 * landingT : 35 * landingT,
+            spreadRadius: isSelfGift ? 14 * landingT : 8 * landingT,
           )
         ],
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // Self-Gift Golden Halo Aura Ring
+          if (isSelfGift)
+            Transform.scale(
+              scale: 1.0 + sin(landingT * pi) * 0.4,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.amberAccent, width: 3),
+                ),
+              ),
+            ),
+
           // Render Gift-Specific Landing Effect
-          _buildSeatLandingEffect(meta.seatEffect, meta.themeColor, icon, landingT),
+          _buildSeatLandingEffect(meta.seatEffect, glowColor, icon, landingT),
 
           // Receiver Seat Landing Icon
           Transform.scale(
@@ -1663,4 +1805,40 @@ class _FlightTrailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FlightTrailPainter oldDelegate) => true;
+}
+
+class _RocketShowcaseWidget extends StatelessWidget {
+  final double stepT;
+  final Color color;
+  const _RocketShowcaseWidget({Key? key, required this.stepT, required this.color}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(240, 240),
+      painter: _RocketPainter(stepT: stepT, color: color),
+    );
+  }
+}
+
+class _RocketPainter extends CustomPainter {
+  final double stepT;
+  final Color color;
+  _RocketPainter({required this.stepT, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 16; i++) {
+      final angle = (i * (pi / 8)) + (stepT * pi * 2);
+      final dist = stepT * 95;
+      paint.color = Colors.orangeAccent.withOpacity((1 - stepT * 0.9).clamp(0.0, 1.0));
+      canvas.drawCircle(Offset(center.dx + cos(angle) * dist, center.dy + sin(angle) * dist + (stepT * 20)), 6, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RocketPainter oldDelegate) => oldDelegate.stepT != stepT;
 }

@@ -11,6 +11,8 @@ import 'room_seat_controller.dart';
 import 'room_activity_controller.dart';
 import 'room_controller.dart';
 import 'room_realtime_controller.dart';
+import 'room_dual_progress_controller.dart';
+import 'room_progression_controller.dart';
 
 class RoomGiftController extends GetxController {
   static RoomGiftController get to {
@@ -82,6 +84,25 @@ class RoomGiftController extends GetxController {
         debugPrint('[Gift] DB Insert Success: Recorded in gift_transactions, gift_history, and room_activity_events');
         debugPrint('[Gift] Room Stats Updated: Total room stars and total gifts count increased');
         debugPrint('[Gift] Task Updated: ${response['vp_result']}');
+
+        // Trigger 1-time First Gift Bonus (+5 Normal AP bonus, max 20 users/day) & refresh dual progress
+        try {
+          final senderId = UserProfileCacheManager.currentUserId;
+          if (Get.isRegistered<RoomDualProgressController>()) {
+            await RoomDualProgressController.to.processFirstGiftBonus(roomId, senderId);
+            await RoomDualProgressController.to.fetchDualProgress(roomId);
+          }
+          if (Get.isRegistered<RoomProgressionController>()) {
+            final RoomProgressionController progCtrl = Get.find<RoomProgressionController>();
+            await progCtrl.fetchRoomProgression(
+              roomId,
+              onUpdateSeats: (seats) {},
+              onUpdateSeatGifts: (gifts) {},
+            );
+          }
+        } catch (e) {
+          debugPrint('Error triggering dual progress gift update: $e');
+        }
 
         // Extract standardized realtime event payload from backend confirmation
         final rawPayload = response['event_payload'];

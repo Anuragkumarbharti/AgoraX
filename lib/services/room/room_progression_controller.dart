@@ -6,6 +6,7 @@ import '../../models/progression/room_progression_models.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../progression/progression_controller.dart';
 import 'room_seat_controller.dart';
+import 'room_dual_progress_controller.dart';
 
 class RoomProgressionController extends GetxController {
   static RoomProgressionController get to => Get.find<RoomProgressionController>();
@@ -293,6 +294,20 @@ class RoomProgressionController extends GetxController {
 
       try {
         final progCtrl = Get.put(ProgressionController());
+        final isFrozen = isRoomIdleFrozen(roomId);
+
+        int activeSeatedUsersCount = 0;
+        if (seats != null) {
+          activeSeatedUsersCount = seats.where((s) => s['userId'] != null && s['userId'].toString().isNotEmpty).length;
+        }
+
+        if (!isFrozen && activeSeatedUsersCount > 0) {
+          // Rule 3: Active Seat Time Reward: 4 AP/min per active seated user
+          if (Get.isRegistered<RoomDualProgressController>()) {
+            await RoomDualProgressController.to.processActiveSeatTime(roomId, activeSeatedUsersCount);
+          }
+        }
+
         if (isSitting) {
           await progCtrl.triggerXpEvent('room_hosted_minute');
           await addRoomVp(roomId, 8, 'active_mic_time');
@@ -319,6 +334,11 @@ class RoomProgressionController extends GetxController {
     required Function(Map<String, int>) onUpdateSeatGifts,
   }) async {
     try {
+      // Synchronize StarMaker Dual Progress System
+      final dualCtrl = Get.put(RoomDualProgressController());
+      await dualCtrl.fetchDualProgress(roomId);
+      dualCtrl.subscribeToRealtimeDualProgress(roomId);
+
       final client = Supabase.instance.client;
       final todayDateStr = DateTime.now()
           .toUtc()

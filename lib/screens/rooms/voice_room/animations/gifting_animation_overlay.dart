@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../widgets/gifting/creania_gift_animation_engine.dart';
-import '../../../../models/gift/gift_animation_config.dart';
 import '../../../../models/gift/gift_animation_metadata.dart';
 import '../../../../services/gifting/gift_animation_controller.dart';
+import '../../../../services/gifting/gift_overlay_manager.dart';
 import '../../../../services/gifting/sender_position_resolver.dart';
 import '../../../../services/gifting/receiver_resolver.dart';
 import '../../../../services/room/room_controller.dart';
@@ -36,6 +36,9 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
   @override
   void initState() {
     super.initState();
+    if (Get.isRegistered<GiftOverlayManager>()) {
+      GiftOverlayManager.to.registerRoomOverlay();
+    }
     _animWorker =
         ever(widget.activeAnimations, (List<Map<String, dynamic>> anims) {
       if (anims.isNotEmpty) {
@@ -110,6 +113,9 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
   void dispose() {
     _animWorker?.dispose();
     _globalGiftWorker?.dispose();
+    if (Get.isRegistered<GiftOverlayManager>()) {
+      GiftOverlayManager.to.unregisterRoomOverlay();
+    }
     super.dispose();
   }
 

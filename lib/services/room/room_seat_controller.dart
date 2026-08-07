@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../user/user_profile_cache_manager.dart';
 import 'room_permission_controller.dart';
+import 'room_dual_progress_controller.dart';
 
 class RoomSeatController extends GetxController {
   static RoomSeatController get to => Get.find<RoomSeatController>();
@@ -150,6 +151,15 @@ class RoomSeatController extends GetxController {
 
       await onRefreshProgression();
       await onRepairState();
+
+      // Trigger 1-time daily unique user seat occupancy join bonus (+20 Normal AP, max 5 users/day)
+      try {
+        if (Get.isRegistered<RoomDualProgressController>()) {
+          await RoomDualProgressController.to.claimUniqueSeatBonus(roomId, currentUserId);
+        }
+      } catch (e) {
+        debugPrint('Claim unique seat bonus error: $e');
+      }
     } catch (e) {
       debugPrint('Join seat failed, rolling back local optimistic state: $e');
       if (backupSeats != null) {

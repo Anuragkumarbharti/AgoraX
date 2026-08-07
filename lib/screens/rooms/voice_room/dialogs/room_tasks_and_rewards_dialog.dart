@@ -6,6 +6,8 @@ import '../../../../models/progression/room_progression_models.dart';
 import '../../../../services/room/room_progression_controller.dart';
 import '../../../../services/room/room_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
+import '../../../../services/room/room_dual_progress_controller.dart';
+import '../../../../widgets/room/starmaker_dual_progress_bar.dart';
 
 class RoomTasksAndRewardsDialog extends StatefulWidget {
   final String roomId;
