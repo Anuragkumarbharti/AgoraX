@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
 import '../../../../models/chat/chat_model.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../dialogs/mini_profile_dialog.dart';
 
@@ -337,6 +338,11 @@ class RoomCallChatBox extends StatelessWidget {
       );
     }
 
+    final currentUid = RoomController.currentUserId;
+    final currentUser = UserProfileCacheManager.currentUser;
+    final currentUserName = currentUser?.username ?? currentUser?.displayName ?? '';
+    final bool isMentionedForMe = message.isMentionedForUser(currentUid, currentUserName);
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -346,71 +352,134 @@ class RoomCallChatBox extends StatelessWidget {
           children: [
             leftSide,
             Expanded(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOutCubic,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: tokens.chatBoxFillColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: tokens.chatBoxBorderColor,
-                    width: 0.8,
-                  ),
-                  boxShadow: tokens.seatBoxShadows,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!isConsecutive) ...[
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+              child: GestureDetector(
+                onLongPress: () {
+                  Get.bottomSheet(
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141724),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        border: Border.all(color: Colors.white.withOpacity(0.12)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Flexible(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                final occupiedSeats =
-                                    (controller.roomSeatsInfo[roomId] ?? [])
-                                        .where((s) => s['userId'] != null)
-                                        .length;
-                                Get.dialog(
-                                  MiniProfileDialog(
-                                    roomId: roomId,
-                                    callerUserId: RoomController.currentUserId,
-                                    targetUserId: message.senderId,
-                                    targetUserName: message.senderName,
-                                    role: message.senderRole ?? 'Guest',
-                                    seatIndex: -1,
-                                    isHost: (() {
-                                      final room = controller.rooms
-                                          .firstWhereOrNull(
-                                              (r) => r.id == roomId);
-                                      return room?.hostId ==
-                                              RoomController.currentUserId ||
-                                          room?.founderId ==
-                                              RoomController.currentUserId;
-                                    })(),
-                                    occupiedSeatsCount: occupiedSeats,
-                                  ),
-                                );
-                              },
-                              child: AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 280),
-                                curve: Curves.easeInOutCubic,
-                                style: GoogleFonts.poppins(
-                                  color: tokens.primaryTextColor,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                child: Text(message.senderName),
-                              ),
+                          Container(
+                            width: 36,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(height: 12),
+                          ListTile(
+                            leading: const Icon(Icons.alternate_email_rounded,
+                                color: Color(0xFFA78BFA)),
+                            title: Text(
+                              'Mention ${message.senderName}',
+                              style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(
+                              'Add @${message.senderName} to chat field',
+                              style: GoogleFonts.poppins(
+                                  color: Colors.white60, fontSize: 11),
+                            ),
+                            onTap: () {
+                              Get.back();
+                              controller.mentionUserInRoomChat(message.senderName);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeInOutCubic,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isMentionedForMe
+                        ? const Color(0xFF8B5CF6).withOpacity(0.18)
+                        : tokens.chatBoxFillColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isMentionedForMe
+                          ? const Color(0xFF8B5CF6)
+                          : tokens.chatBoxBorderColor,
+                      width: isMentionedForMe ? 1.2 : 0.8,
+                    ),
+                    boxShadow: isMentionedForMe
+                        ? [
+                            BoxShadow(
+                              color: Colors.purpleAccent.withOpacity(0.2),
+                              blurRadius: 10,
+                              spreadRadius: 1,
+                            )
+                          ]
+                        : tokens.seatBoxShadows,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isConsecutive) ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  final occupiedSeats =
+                                      (controller.roomSeatsInfo[roomId] ?? [])
+                                          .where((s) => s['userId'] != null)
+                                          .length;
+                                  Get.dialog(
+                                    MiniProfileDialog(
+                                      roomId: roomId,
+                                      callerUserId: RoomController.currentUserId,
+                                      targetUserId: message.senderId,
+                                      targetUserName: message.senderName,
+                                      role: message.senderRole ?? 'Guest',
+                                      seatIndex: -1,
+                                      isHost: (() {
+                                        final room = controller.rooms
+                                            .firstWhereOrNull(
+                                                (r) => r.id == roomId);
+                                        return room?.hostId ==
+                                                RoomController.currentUserId ||
+                                            room?.founderId ==
+                                                RoomController.currentUserId;
+                                      })(),
+                                      occupiedSeatsCount: occupiedSeats,
+                                    ),
+                                  );
+                                },
+                                child: AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 280),
+                                  curve: Curves.easeInOutCubic,
+                                  style: GoogleFonts.poppins(
+                                    color: tokens.primaryTextColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  child: Text(message.senderName),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            if (isMentionedForMe)
+                              buildBadge(
+                                  '@ Mentioned',
+                                  const Color(0xFF8B5CF6).withOpacity(0.3),
+                                  const Color(0xFFA78BFA)),
                           if (message.senderLevel != null)
                             buildBadge(
                                 'Lv.${message.senderLevel}',
@@ -481,10 +550,11 @@ class RoomCallChatBox extends StatelessWidget {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
+    ),
+  );
   }
 
   List<InlineSpan> _parseMentionsAndText(

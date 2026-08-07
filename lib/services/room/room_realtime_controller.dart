@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/room/room_background_model.dart';
+import '../../widgets/room/role_update_popup_dialog.dart';
 import '../user/user_profile_cache_manager.dart';
 import 'room_chat_controller.dart';
 import 'room_activity_controller.dart';
@@ -21,7 +22,40 @@ class RoomRealtimeController extends GetxController {
   RealtimeChannel? _roomActivityEventsChannel;
 
   RealtimeChannel? get roomMessagesChannel => _roomMessagesChannel;
+  RealtimeChannel? get roomMembersChannel => _roomMembersChannel;
   RealtimeChannel? get roomActivityEventsChannel => _roomActivityEventsChannel;
+
+  Future<void> broadcastRoleUpdate({
+    required String roomId,
+    required String roomName,
+    required String targetUserId,
+    required String targetUserName,
+    required String action,
+    required String newRole,
+    String? oldRole,
+    String? reason,
+  }) async {
+    try {
+      if (_roomMembersChannel != null) {
+        await _roomMembersChannel?.sendBroadcastMessage(
+          event: 'role_event',
+          payload: {
+            'room_id': roomId,
+            'room_name': roomName,
+            'target_user_id': targetUserId,
+            'target_user_name': targetUserName,
+            'action': action,
+            'new_role': newRole,
+            'old_role': oldRole,
+            'reason': reason,
+            'timestamp': DateTime.now().toIso8601String(),
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('[RoomRealtimeController] Error broadcasting role update: $e');
+    }
+  }
 
   void subscribeToRoomsList(Function() onFetchRooms) {
     if (_roomsListChannel != null) return;
@@ -113,6 +147,58 @@ class RoomRealtimeController extends GetxController {
               await onFetchMembers(roomId);
               await onFetchPermissions(roomId);
             },
+          )
+          .onBroadcast(
+            event: 'role_event',
+            callback: (payload) async {
+              final String? tUserId = payload['target_user_id']?.toString();
+              final String tUserName =
+                  payload['target_user_name']?.toString() ?? 'Member';
+              final String action = payload['action']?.toString() ?? 'PROMOTED';
+              final String newRole = payload['new_role']?.toString() ?? 'Admin';
+              final String? oldRole = payload['old_role']?.toString();
+              final String roomName =
+                  payload['room_name']?.toString() ?? 'Voice Room';
+              final String? reason = payload['reason']?.toString();
+
+              if (Get.isRegistered<RoomChatController>()) {
+                final chatCtrl = RoomChatController.to;
+                final notificationText = action == 'PROMOTED'
+                    ? '🛡 $tUserName has been promoted to $newRole.'
+                    : '🛡 $tUserName is no longer an ${oldRole ?? "Admin"}.';
+                chatCtrl.addChatMessage(
+                  roomId,
+                  RoomChatMessage(
+                    senderId: 'system',
+                    senderName: 'System',
+                    text: notificationText,
+                    timestamp: DateTime.now(),
+                    isSystem: true,
+                    messageType: 'activity',
+                    eventType: 'role_update',
+                  ),
+                );
+              }
+
+              if (tUserId == currentUserId) {
+                await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
+                await onFetchPermissions(roomId);
+                await onFetchMembers(roomId);
+
+                if (action == 'PROMOTED') {
+                  RoleUpdatePopupDialog.showRoleAssigned(
+                    roleName: newRole,
+                    roomName: roomName,
+                  );
+                } else {
+                  RoleUpdatePopupDialog.showRoleRemoved(
+                    oldRoleName: oldRole ?? 'Admin',
+                    roomName: roomName,
+                    reason: reason,
+                  );
+                }
+              }
+            },
           );
 
       Timer? reconnectTimer;
@@ -184,6 +270,11 @@ class RoomRealtimeController extends GetxController {
                     ? Map<String, dynamic>.from(map['metadata'])
                     : <String, dynamic>{};
 
+                final mentionedUserIds = (metadata['mentioned_user_ids'] as List?)
+                        ?.map((e) => e.toString())
+                        .toList() ??
+                    [];
+
                 final message = RoomChatMessage(
                   id: msgId,
                   senderId: senderId ?? '',
@@ -200,11 +291,25 @@ class RoomRealtimeController extends GetxController {
                   roleTag: metadata['role_tag']?.toString(),
                   isActiveSpeaker: metadata['is_active_speaker'] == true,
                   avatarFrame: metadata['avatar_frame']?.toString(),
+                  mentionedUserIds: mentionedUserIds,
                 );
 
                 chatCtrl.initializeChatForRoom(roomId);
                 if (!chatCtrl.roomChats[roomId]!.any((m) => m.id == msgId)) {
                   chatCtrl.roomChats[roomId]!.add(message);
+                }
+
+                if (mentionedUserIds.contains(currentUserId)) {
+                  Get.snackbar(
+                    '💬 Mentioned in Room',
+                    '${message.senderName} mentioned you in chat: "$text"',
+                    snackPosition: SnackPosition.TOP,
+                    backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.95),
+                    colorText: Colors.white,
+                    duration: const Duration(seconds: 4),
+                    icon: const Icon(Icons.alternate_email_rounded,
+                        color: Colors.white),
+                  );
                 }
               }
             },
@@ -220,6 +325,11 @@ class RoomRealtimeController extends GetxController {
               final msgId = payload['id'] as String;
               final text = payload['text'] as String? ?? '';
               final timestamp = DateTime.parse(payload['timestamp'] as String);
+
+              final mentionedUserIds = (payload['mentioned_user_ids'] as List?)
+                      ?.map((e) => e.toString())
+                      .toList() ??
+                  [];
 
               final message = RoomChatMessage(
                 id: msgId,
@@ -238,6 +348,7 @@ class RoomRealtimeController extends GetxController {
                 roleTag: payload['role_tag'] as String?,
                 isActiveSpeaker: payload['is_active_speaker'] == true,
                 avatarFrame: payload['avatar_frame'] as String?,
+                mentionedUserIds: mentionedUserIds,
               );
 
               if (chatCtrl.roomChats[roomId] == null) {
@@ -246,6 +357,19 @@ class RoomRealtimeController extends GetxController {
 
               if (!chatCtrl.roomChats[roomId]!.any((m) => m.id == msgId)) {
                 chatCtrl.roomChats[roomId]!.add(message);
+              }
+
+              if (mentionedUserIds.contains(currentUserId)) {
+                Get.snackbar(
+                  '💬 Mentioned in Room',
+                  '${message.senderName} mentioned you in chat: "$text"',
+                  snackPosition: SnackPosition.TOP,
+                  backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.95),
+                  colorText: Colors.white,
+                  duration: const Duration(seconds: 4),
+                  icon: const Icon(Icons.alternate_email_rounded,
+                      color: Colors.white),
+                );
               }
             },
           )

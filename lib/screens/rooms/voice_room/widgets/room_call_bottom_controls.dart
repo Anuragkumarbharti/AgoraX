@@ -4,9 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_member_controller.dart';
+import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/gifting/send_gift_dialog.dart';
 
-class RoomCallBottomControls extends StatelessWidget {
+class RoomCallBottomControls extends StatefulWidget {
   final String roomId;
   final TextEditingController chatInputController;
   final FocusNode chatInputFocusNode;
@@ -29,13 +31,263 @@ class RoomCallBottomControls extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<RoomCallBottomControls> createState() => _RoomCallBottomControlsState();
+}
+
+class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
+  String _mentionQuery = '';
+  bool _isMentionActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.chatInputController.addListener(_onTextChanged);
+    if (Get.isRegistered<RoomController>()) {
+      RoomController.to.roomChatInputController = widget.chatInputController;
+      RoomController.to.roomChatFocusNode = widget.chatInputFocusNode;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.chatInputController.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    final text = widget.chatInputController.text;
+    final selection = widget.chatInputController.selection;
+    if (!selection.isValid || selection.baseOffset < 0) {
+      if (_isMentionActive) setState(() => _isMentionActive = false);
+      return;
+    }
+
+    final cursor = selection.baseOffset;
+    final textBeforeCursor = text.substring(0, cursor);
+    final lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex != -1) {
+      final query = textBeforeCursor.substring(lastAtIndex + 1);
+      if (!query.contains(' ') && !query.contains('\n')) {
+        setState(() {
+          _isMentionActive = true;
+          _mentionQuery = query;
+        });
+        return;
+      }
+    }
+
+    if (_isMentionActive) {
+      setState(() {
+        _isMentionActive = false;
+        _mentionQuery = '';
+      });
+    }
+  }
+
+  void _insertMention(String username) {
+    final text = widget.chatInputController.text;
+    final selection = widget.chatInputController.selection;
+    final cursor = selection.isValid ? selection.baseOffset : text.length;
+    final textBeforeCursor = text.substring(0, cursor);
+    final lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex != -1) {
+      final prefix = text.substring(0, lastAtIndex);
+      final suffix = text.substring(cursor);
+      final newText = '$prefix@$username $suffix';
+      widget.chatInputController.text = newText;
+      widget.chatInputController.selection = TextSelection.collapsed(
+        offset: lastAtIndex + username.length + 2,
+      );
+    }
+
+    setState(() {
+      _isMentionActive = false;
+      _mentionQuery = '';
+    });
+    widget.chatInputFocusNode.requestFocus();
+  }
+
+  Widget _buildMentionAutocompleteOverlay(BuildContext context) {
+    final Map<String, String> candidateMap = {};
+
+    if (Get.isRegistered<RoomMemberController>()) {
+      for (final member in RoomMemberController.to.activeMembers) {
+        final u = UserProfileCacheManager.getCachedUser(member.userId);
+        final name = u?.username ?? u?.displayName ?? 'Student';
+        candidateMap[member.userId] = name;
+      }
+    }
+
+    final seats = RoomController.to.roomSeatsInfo[widget.roomId] ?? [];
+    for (final seat in seats) {
+      final uid = seat['userId']?.toString();
+      final name = seat['userName']?.toString();
+      if (uid != null && name != null && uid.isNotEmpty && name.isNotEmpty) {
+        candidateMap[uid] = name;
+      }
+    }
+
+    final matches = candidateMap.entries.where((e) {
+      final uName = e.value.toLowerCase();
+      return _mentionQuery.isEmpty || uName.contains(_mentionQuery.toLowerCase());
+    }).toList();
+
+    if (matches.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      constraints: const BoxConstraints(maxHeight: 180),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141724).withOpacity(0.96),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF8B5CF6).withOpacity(0.6),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purpleAccent.withOpacity(0.25),
+            blurRadius: 16,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        itemCount: matches.length,
+        separatorBuilder: (_, __) => Divider(
+          color: Colors.white.withOpacity(0.08),
+          height: 1,
+        ),
+        itemBuilder: (context, index) {
+          final entry = matches[index];
+          final uid = entry.key;
+          final name = entry.value;
+          final u = UserProfileCacheManager.getCachedUser(uid);
+          final avatar = u?.avatar;
+
+          return ListTile(
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            leading: CircleAvatar(
+              radius: 13,
+              backgroundImage: avatar != null && avatar.isNotEmpty
+                  ? NetworkImage(avatar)
+                  : const AssetImage('assets/images/placeholder.png')
+                      as ImageProvider,
+            ),
+            title: Text(
+              '@$name',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'Room Member',
+              style: GoogleFonts.poppins(
+                color: Colors.purpleAccent.shade100,
+                fontSize: 9.5,
+              ),
+            ),
+            trailing: Icon(
+              Icons.north_west_rounded,
+              color: Colors.purpleAccent.shade100,
+              size: 13,
+            ),
+            onTap: () => _insertMention(name),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showEmojiPickerSheet(BuildContext context, tokens) {
+    final emojis = [
+      '❤️',
+      '😂',
+      '🔥',
+      '👏',
+      '🎉',
+      '😍',
+      '👍',
+      '🙌',
+      '😮',
+      '💯',
+      '👑',
+      '🚀',
+      '⭐',
+      '⚡'
+    ];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF141724),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                ),
+                itemCount: emojis.length,
+                itemBuilder: (c, idx) {
+                  return GestureDetector(
+                    onTap: () {
+                      widget.chatInputController.text =
+                          '${widget.chatInputController.text}${emojis[idx]}';
+                      Get.back();
+                    },
+                    child: Center(
+                      child: Text(
+                        emojis[idx],
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final RoomController controller = RoomController.to;
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     final effectiveBottomInset =
         isKeyboardOpen ? 4.0 : (bottomInset > 0 ? bottomInset : 8.0);
-    final isExpanded = chatInputFocusNode.hasFocus || isKeyboardOpen;
+    final isExpanded = widget.chatInputFocusNode.hasFocus || isKeyboardOpen;
 
     return Container(
       decoration: BoxDecoration(
@@ -48,6 +300,9 @@ class RoomCallBottomControls extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Mention Autocomplete Overlay
+          if (_isMentionActive) _buildMentionAutocompleteOverlay(context),
+
           Padding(
             padding: EdgeInsets.fromLTRB(14, 6, 14, effectiveBottomInset),
             child: Obx(() {
@@ -70,7 +325,9 @@ class RoomCallBottomControls extends StatelessWidget {
                         borderRadius:
                             BorderRadius.circular(tokens.chatBoxCornerRadius),
                         border: Border.all(
-                          color: tokens.chatBoxBorderColor,
+                          color: _isMentionActive
+                              ? Colors.purpleAccent
+                              : tokens.chatBoxBorderColor,
                           width: 1.2,
                         ),
                         boxShadow: tokens.seatBoxShadows,
@@ -92,8 +349,8 @@ class RoomCallBottomControls extends StatelessWidget {
                           Expanded(
                             child: Center(
                               child: TextField(
-                                controller: chatInputController,
-                                focusNode: chatInputFocusNode,
+                                controller: widget.chatInputController,
+                                focusNode: widget.chatInputFocusNode,
                                 textInputAction: TextInputAction.send,
                                 cursorColor: tokens.chatBoxTextColor,
                                 maxLines: 1,
@@ -107,7 +364,7 @@ class RoomCallBottomControls extends StatelessWidget {
                                   height: 1.2,
                                 ),
                                 decoration: InputDecoration(
-                                  hintText: "Let's talk...",
+                                  hintText: "Let's talk (@ to mention)...",
                                   hintStyle: GoogleFonts.poppins(
                                     color: tokens.chatBoxPlaceholderColor,
                                     fontSize: 12.5,
@@ -126,10 +383,10 @@ class RoomCallBottomControls extends StatelessWidget {
                                 onSubmitted: (text) {
                                   if (text.trim().isNotEmpty) {
                                     controller.sendRoomBroadcastMessage(
-                                        roomId, text.trim());
-                                    chatInputController.clear();
+                                        widget.roomId, text.trim());
+                                    widget.chatInputController.clear();
                                   }
-                                  chatInputFocusNode.requestFocus();
+                                  widget.chatInputFocusNode.requestFocus();
                                 },
                               ),
                             ),
@@ -143,172 +400,94 @@ class RoomCallBottomControls extends StatelessWidget {
                                   FadeTransition(opacity: anim, child: child),
                             ),
                             child: (isExpanded ||
-                                    chatInputController.text.isNotEmpty)
+                                    widget.chatInputController.text.isNotEmpty)
                                 ? GestureDetector(
                                     key: const ValueKey('send_btn'),
                                     onTap: () {
                                       final text =
-                                          chatInputController.text.trim();
+                                          widget.chatInputController.text.trim();
                                       if (text.isNotEmpty) {
                                         controller.sendRoomBroadcastMessage(
-                                            roomId, text);
-                                        chatInputController.clear();
+                                            widget.roomId, text);
+                                        widget.chatInputController.clear();
                                       }
-                                      chatInputFocusNode.requestFocus();
+                                      widget.chatInputFocusNode.requestFocus();
                                     },
                                     child: Container(
-                                      padding: const EdgeInsets.all(7),
+                                      padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: tokens.chatBoxFillColor,
+                                        color: tokens.chatBoxIconColor
+                                            .withOpacity(0.18),
                                         shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: tokens.chatBoxBorderColor,
-                                            width: 1.0),
                                       ),
                                       child: Icon(
                                         Icons.send_rounded,
                                         color: tokens.chatBoxIconColor,
-                                        size: 13,
+                                        size: 16,
                                       ),
                                     ),
                                   )
-                                : const SizedBox.shrink(
-                                    key: ValueKey('empty_btn')),
+                                : const SizedBox.shrink(),
                           ),
                         ],
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
 
-                  // Action Buttons Row (Seat Action, Mic, Menu, Gift) smoothly fading out when expanded
-                  AnimatedCrossFade(
-                    duration: const Duration(milliseconds: 120),
-                    firstCurve: Curves.easeOutCubic,
-                    secondCurve: Curves.easeOutCubic,
-                    crossFadeState: isExpanded
-                        ? CrossFadeState.showSecond
-                        : CrossFadeState.showFirst,
-                    firstChild: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(width: 4),
-                          _buildIconButton(
-                            icon: Icons.arrow_upward_rounded,
-                            tokens: tokens,
-                            onTap: () => Get.snackbar('Seat Action',
-                                'Requesting seat or raising hand.'),
-                          ),
-                          // Self-Mute Mic Quick Toggle Button (right next to Up-Arrow)
-                          Builder(
-                            builder: (context) {
-                              final isMicActive =
-                                  isCurrentUserOnSeat && isMicOn.value;
-
-                              return Padding(
-                                padding: const EdgeInsets.only(left: 8),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    if (isCurrentUserOnSeat) {
-                                      onToggleMic();
-                                    } else {
-                                      Get.snackbar(
-                                        'Stage Mic 🎤',
-                                        'Take a seat to unmute your mic.',
-                                        snackPosition: SnackPosition.BOTTOM,
-                                        backgroundColor:
-                                            Colors.black.withOpacity(0.85),
-                                        colorText: Colors.white,
-                                      );
-                                    }
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 280),
-                                    curve: Curves.easeInOutCubic,
-                                    padding: const EdgeInsets.all(9),
-                                    decoration: BoxDecoration(
-                                      color: isMicActive
-                                          ? tokens.chatBoxFillColor
-                                          : tokens.chatBoxFillColor,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isMicActive
-                                            ? tokens.chatBoxBorderColor
-                                            : tokens.chatBoxBorderColor,
-                                        width: 1.2,
-                                      ),
-                                      boxShadow: tokens.seatBoxShadows,
-                                    ),
-                                    child: Icon(
-                                      isMicActive ? Icons.mic : Icons.mic_off,
-                                      color: isMicActive
-                                          ? tokens.iconColor
-                                          : tokens.micOffIconColor,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          Stack(
-                            children: [
-                              _buildIconButton(
-                                icon: Icons.menu,
-                                tokens: tokens,
-                                onTap: () =>
-                                    onShowRoomOptionsMenuSheet(context),
-                              ),
-                              Positioned(
-                                top: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle),
-                                  constraints: const BoxConstraints(
-                                      minWidth: 12, minHeight: 12),
-                                  child: const Text(
-                                    '90',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 6,
-                                        fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () {
-                              Get.dialog(SendGiftDialog(
-                                  roomId: roomId, occupiedSeatsCount: 3));
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 280),
-                              curve: Curves.easeInOutCubic,
-                              padding: const EdgeInsets.all(9),
-                              decoration: BoxDecoration(
-                                color: tokens.chatBoxFillColor,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: tokens.chatBoxBorderColor,
-                                    width: 1.2),
-                                boxShadow: tokens.seatBoxShadows,
-                              ),
-                              child: Icon(Icons.card_giftcard,
-                                  color: tokens.iconColor, size: 19),
-                            ),
-                          ),
-                        ],
+                  // Mic / Action Buttons
+                  GestureDetector(
+                    onTap: widget.onToggleMic,
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: tokens.chatBoxFillColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: tokens.chatBoxBorderColor,
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Icon(
+                        widget.isMicOn.value
+                            ? Icons.mic_rounded
+                            : Icons.mic_off_rounded,
+                        color: widget.isMicOn.value
+                            ? Colors.greenAccent
+                            : Colors.redAccent,
+                        size: 20,
                       ),
                     ),
-                    secondChild: const SizedBox.shrink(),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Gift Button
+                  GestureDetector(
+                    onTap: () {
+                      Get.dialog(
+                        SendGiftDialog(
+                          roomId: widget.roomId,
+                          targetUserId: RoomController.currentUserId,
+                          targetUserName: 'Room Members',
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF2D55), Color(0xFFAF52DE)],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.card_giftcard_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
                   ),
                 ],
               );
@@ -316,124 +495,6 @@ class RoomCallBottomControls extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildIconButton(
-      {required IconData icon,
-      required AdaptiveSeatThemeTokens tokens,
-      required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeInOutCubic,
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: tokens.chatBoxFillColor,
-          shape: BoxShape.circle,
-          border: Border.all(color: tokens.chatBoxBorderColor, width: 1.0),
-        ),
-        child: Icon(icon, color: tokens.iconColor, size: 18),
-      ),
-    );
-  }
-
-  void _showEmojiPickerSheet(
-      BuildContext context, AdaptiveSeatThemeTokens tokens) {
-    final List<String> popularEmojis = [
-      '❤️', '😂', '🔥', '👏', '🎉', '👑', '👍', '😮',
-      '🙏', '💯', '😍', '🥳', '😎', '✨', '🚀', '💪',
-      '💖', '⭐', '🎈', '🤩', '🙌', '⚡', '😇', '🥳',
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-          decoration: BoxDecoration(
-            color: tokens.chatBoxFillColor.withOpacity(0.95),
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: tokens.chatBoxBorderColor, width: 1.2),
-            boxShadow: tokens.seatBoxShadows,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: tokens.chatBoxPlaceholderColor.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                "Select Emoji",
-                style: GoogleFonts.poppins(
-                  color: tokens.chatBoxTextColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                ),
-                itemCount: popularEmojis.length,
-                itemBuilder: (context, index) {
-                  final emoji = popularEmojis[index];
-                  return GestureDetector(
-                    onTap: () {
-                      final currentText = chatInputController.text;
-                      final selection = chatInputController.selection;
-                      if (selection.isValid && selection.start >= 0) {
-                        final newText = currentText.replaceRange(
-                            selection.start, selection.end, emoji);
-                        chatInputController.text = newText;
-                        chatInputController.selection = TextSelection.collapsed(
-                            offset: selection.start + emoji.length);
-                      } else {
-                        chatInputController.text = currentText + emoji;
-                        chatInputController.selection = TextSelection.collapsed(
-                            offset: chatInputController.text.length);
-                      }
-                      Navigator.pop(ctx);
-                      chatInputFocusNode.requestFocus();
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: tokens.chatBoxFillColor,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: tokens.chatBoxBorderColor.withOpacity(0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        emoji,
-                        style: const TextStyle(fontSize: 22),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

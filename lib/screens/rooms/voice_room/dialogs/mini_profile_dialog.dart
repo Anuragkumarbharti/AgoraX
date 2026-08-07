@@ -1021,6 +1021,40 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
+                              color: const Color(0xFF8B5CF6).withOpacity(0.18),
+                              border: Border.all(
+                                  color: const Color(0xFF8B5CF6).withOpacity(0.35)),
+                            ),
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onPressed: () {
+                                Get.back();
+                                if (Get.isRegistered<RoomController>()) {
+                                  RoomController.to.mentionUserInRoomChat(uName);
+                                }
+                              },
+                              icon: const Icon(Icons.alternate_email_rounded,
+                                  color: Color(0xFFA78BFA), size: 14),
+                              label: Text(
+                                'Mention',
+                                style: GoogleFonts.poppins(
+                                    color: const Color(0xFFA78BFA),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
                               color: const Color(0xFFFBBF24).withOpacity(0.15),
                               border: Border.all(
                                   color:

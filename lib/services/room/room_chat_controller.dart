@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:collection/collection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../user/user_profile_cache_manager.dart';
 import 'room_realtime_controller.dart';
@@ -30,6 +31,7 @@ class RoomChatMessage {
   final String? nobleLabel;
   final String status;
   final String? mentionedUserId;
+  final List<String> mentionedUserIds;
 
   RoomChatMessage({
     String? id,
@@ -55,8 +57,17 @@ class RoomChatMessage {
     this.nobleLabel,
     this.status = 'sent',
     this.mentionedUserId,
+    List<String>? mentionedUserIds,
   })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
-        reactions = reactions ?? {};
+        reactions = reactions ?? {},
+        mentionedUserIds = mentionedUserIds ?? [];
+
+  bool isMentionedForUser(String userId, String userName) {
+    if (mentionedUserIds.contains(userId)) return true;
+    if (mentionedUserId == userId) return true;
+    if (userName.isNotEmpty && text.contains('@$userName')) return true;
+    return false;
+  }
 
   RoomChatMessage copyWith({
     String? id,
@@ -82,6 +93,7 @@ class RoomChatMessage {
     String? nobleLabel,
     String? status,
     String? mentionedUserId,
+    List<String>? mentionedUserIds,
   }) {
     return RoomChatMessage(
       id: id ?? this.id,
@@ -107,6 +119,7 @@ class RoomChatMessage {
       nobleLabel: nobleLabel ?? this.nobleLabel,
       status: status ?? this.status,
       mentionedUserId: mentionedUserId ?? this.mentionedUserId,
+      mentionedUserIds: mentionedUserIds ?? this.mentionedUserIds,
     );
   }
 }
@@ -360,6 +373,25 @@ class RoomChatController extends GetxController {
         }
       } catch (_) {}
 
+      List<String> mentionedUserIds = [];
+      try {
+        final regExp = RegExp(r'@([\w\.-]+)');
+        final matches = regExp.allMatches(text);
+        for (final match in matches) {
+          final nameToken = match.group(1);
+          if (nameToken != null && nameToken.isNotEmpty) {
+            final cachedUser = UserProfileCacheManager.rxCache.values
+                .firstWhereOrNull((u) =>
+                    u.displayName.toLowerCase() == nameToken.toLowerCase() ||
+                    u.username.toLowerCase() == nameToken.toLowerCase());
+            if (cachedUser != null &&
+                !mentionedUserIds.contains(cachedUser.id)) {
+              mentionedUserIds.add(cachedUser.id);
+            }
+          }
+        }
+      } catch (_) {}
+
       final payload = {
         'id': DateTime.now().microsecondsSinceEpoch.toString(),
         'sender_id': currentUserId,
@@ -377,6 +409,7 @@ class RoomChatController extends GetxController {
         'avatar_frame': equippedFrame,
         'noble_label':
             (profile?.vipLevel ?? 0) > 0 ? 'Noble ${profile?.vipLevel}' : null,
+        'mentioned_user_ids': mentionedUserIds,
       };
 
       final localMessage = RoomChatMessage(
@@ -387,11 +420,12 @@ class RoomChatController extends GetxController {
         senderRole: role,
         senderAvatar: profile?.avatar,
         timestamp: DateTime.now(),
-        senderLevel: payload['sender_level'],
-        vipLabel: payload['vip_label'],
-        novelLabel: payload['novel_label'],
+        senderLevel: payload['sender_level']?.toString(),
+        vipLabel: payload['vip_label']?.toString(),
+        novelLabel: payload['novel_label']?.toString(),
         avatarFrame: equippedFrame,
-        nobleLabel: payload['noble_label'],
+        nobleLabel: payload['noble_label']?.toString(),
+        mentionedUserIds: mentionedUserIds,
       );
 
       if (roomChats[roomId] == null) {

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/room/room_governance_model.dart';
+import '../user/user_profile_cache_manager.dart';
+import 'room_realtime_controller.dart';
+import 'room_controller.dart';
 
 class RoomGovernanceController extends GetxController {
   static RoomGovernanceController get to => Get.find<RoomGovernanceController>();
@@ -57,6 +60,26 @@ class RoomGovernanceController extends GetxController {
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
         );
+
+        final targetProfile =
+            await UserProfileCacheManager.fetchUserProfile(targetUserId);
+        final targetName = targetProfile?.username ?? 'Member';
+        final roomName = RoomController.to.rooms
+                .firstWhereOrNull((r) => r.id == roomId)
+                ?.name ??
+            'Voice Room';
+
+        if (Get.isRegistered<RoomRealtimeController>()) {
+          await RoomRealtimeController.to.broadcastRoleUpdate(
+            roomId: roomId,
+            roomName: roomName,
+            targetUserId: targetUserId,
+            targetUserName: targetName,
+            action: 'PROMOTED',
+            newRole: newRole,
+          );
+        }
+
         await fetchGovernanceOverview(roomId);
         return true;
       }
@@ -77,6 +100,7 @@ class RoomGovernanceController extends GetxController {
     required String roomId,
     required String targetUserId,
     bool applyCooldown = false,
+    String? reason,
   }) async {
     try {
       final response = await Supabase.instance.client.rpc(
@@ -96,6 +120,28 @@ class RoomGovernanceController extends GetxController {
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
         );
+
+        final targetProfile =
+            await UserProfileCacheManager.fetchUserProfile(targetUserId);
+        final targetName = targetProfile?.username ?? 'Member';
+        final roomName = RoomController.to.rooms
+                .firstWhereOrNull((r) => r.id == roomId)
+                ?.name ??
+            'Voice Room';
+
+        if (Get.isRegistered<RoomRealtimeController>()) {
+          await RoomRealtimeController.to.broadcastRoleUpdate(
+            roomId: roomId,
+            roomName: roomName,
+            targetUserId: targetUserId,
+            targetUserName: targetName,
+            action: 'DEMOTED',
+            newRole: 'Audience',
+            oldRole: 'Admin',
+            reason: reason,
+          );
+        }
+
         await fetchGovernanceOverview(roomId);
         return true;
       }

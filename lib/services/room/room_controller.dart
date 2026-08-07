@@ -98,6 +98,22 @@ class RoomController extends GetxController with WidgetsBindingObserver {
 
   // Chat & Notifications State Delegators
   RxMap<String, RxList<RoomChatMessage>> get roomChats => chatCtrl.roomChats;
+
+  TextEditingController? roomChatInputController;
+  FocusNode? roomChatFocusNode;
+
+  void mentionUserInRoomChat(String userName) {
+    if (roomChatInputController != null) {
+      final text = roomChatInputController!.text;
+      final newText = text.isEmpty ? '@$userName ' : '$text @$userName ';
+      roomChatInputController!.text = newText;
+      roomChatInputController!.selection =
+          TextSelection.collapsed(offset: newText.length);
+      if (roomChatFocusNode != null) {
+        roomChatFocusNode!.requestFocus();
+      }
+    }
+  }
   RxList<String> get bottomSystemNotifications => chatCtrl.bottomSystemNotifications;
   RxnString get activeSystemNotification => chatCtrl.activeSystemNotification;
 
