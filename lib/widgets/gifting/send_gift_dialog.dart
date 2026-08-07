@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/room/room_controller.dart';
 import '../../services/store/store_controller.dart';
 import '../../services/vault/vault_controller.dart';
+import '../../services/gifting/gift_send_service.dart';
 import '../../models/vault/vault_models.dart';
 import '../../models/gift/gift_animation_metadata.dart';
 import './gift_animation_overlay.dart';
@@ -177,7 +178,11 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     }).toList();
   }
 
+  bool _isSending = false;
+
   void _sendGift() async {
+    if (_isSending) return;
+    debugPrint('[Gift] Button Clicked: Gift "${_selectedGift?.name}" to ${_selectedRecipientNames.join(", ")}');
     if (!_giftAll && _selectedRecipients.isEmpty) {
       Get.snackbar(
         'No Recipient Selected',
@@ -189,81 +194,47 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       return;
     }
 
-    if (_selectedCurrencyTab == 3) {
-      final vaultItem = _selectedVaultItem;
-      if (vaultItem == null) return;
-      Get.back();
-      if (widget.onGiftSent != null) {
-        widget.onGiftSent!(vaultItem.displayName, '🎁', 0, 'vault');
-      }
-      return;
-    }
+    setState(() {
+      _isSending = true;
+    });
 
-    final gift = _selectedGift;
-    if (gift == null) return;
-
-    final receiversList = _giftAll
-        ? (_controller.roomSeatsInfo[widget.roomId] ?? [])
-            .where((s) => s['userId'] != null)
-            .map((s) => s['userId'] as String)
-            .toList()
-        : _selectedRecipients;
-
-    final receiverNamesList = _giftAll
-        ? (_controller.roomSeatsInfo[widget.roomId] ?? [])
-            .where((s) => s['userId'] != null)
-            .map((s) => (s['name'] as String? ?? 'User'))
-            .toList()
-        : _selectedRecipientNames;
-
-    final seatIndicesList = _giftAll
-        ? (_controller.roomSeatsInfo[widget.roomId] ?? [])
-            .where((s) => s['userId'] != null)
-            .map((s) => s['seatIndex'] as int)
-            .toList()
-        : _selectedSeatIndices;
-
-    final totalQuantity = _selectedComboMultiplier;
-
-    // 1. IMMEDIATELY Close Gift Dialog Panel (0ms Delay cut)
-    Get.back();
-
-    // 2. IMMEDIATELY Trigger 60/120 FPS Three-Stage Animation Overlay in Room
-    _controller.triggerGiftAnimation(GiftAnimationEvent(
-      giftId: gift.id,
-      giftName: gift.name,
-      giftIcon: gift.icon,
-      price: gift.cost,
-      currency: gift.currency,
-      mode: GiftAnimationMode.roomSeat,
-      senderName: 'You',
-      startOffset: Offset(MediaQuery.of(context).size.width / 2, MediaQuery.of(context).size.height * 0.95),
-      receiverName: receiverNamesList.isNotEmpty ? receiverNamesList[0] : 'Everyone',
-      targetOffset: const Offset(200, 300),
-      count: totalQuantity,
-    ));
-
-    // 3. Perform backend API sync asynchronously without blocking UI
-    _controller.sendStarGiftToRoom(
-      roomId: widget.roomId,
-      giftId: gift.id,
-      giftName: gift.name,
-      giftCost: gift.cost,
-      currency: gift.currency,
-      targetUserIds: receiversList,
-      targetUserNames: receiverNamesList,
-      seatIndices: seatIndicesList,
-      count: totalQuantity,
-      comboCount: _selectedComboMultiplier,
-    );
-
-    if (widget.onGiftSent != null) {
-      widget.onGiftSent!(
-        gift.name,
-        gift.icon,
-        gift.cost * totalQuantity,
-        gift.currency,
+    try {
+      final success = await GiftSendService.to.sendGift(
+        roomId: widget.roomId,
+        gift: _selectedGift,
+        vaultItem: _selectedVaultItem,
+        isVault: _selectedCurrencyTab == 3,
+        giftAll: _giftAll,
+        selectedRecipients: _selectedRecipients,
+        selectedRecipientNames: _selectedRecipientNames,
+        selectedSeatIndices: _selectedSeatIndices,
+        comboMultiplier: _selectedComboMultiplier,
       );
+
+      if (success) {
+        // Backend confirmed success! ONLY NOW close the dialog panel
+        if (mounted) Get.back();
+        if (widget.onGiftSent != null) {
+          if (_selectedCurrencyTab == 3 && _selectedVaultItem != null) {
+            widget.onGiftSent!(_selectedVaultItem!.displayName, '🎁', 0, 'vault');
+          } else if (_selectedGift != null) {
+            widget.onGiftSent!(
+              _selectedGift!.name,
+              _selectedGift!.icon,
+              _selectedGift!.cost * _selectedComboMultiplier,
+              _selectedGift!.currency,
+            );
+          }
+        }
+      } else {
+        // Keep gift panel open, error already shown, no animation played, no double coins deducted
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
     }
   }
 
@@ -1132,7 +1103,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
           // Right: Premium SEND Button
           ElevatedButton(
-            onPressed: hasValidRecipient ? _sendGift : null,
+            onPressed: (hasValidRecipient && !_isSending) ? _sendGift : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
@@ -1141,7 +1112,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             ),
             child: Ink(
               decoration: BoxDecoration(
-                gradient: hasValidRecipient
+                gradient: (hasValidRecipient && !_isSending)
                     ? const LinearGradient(
                         colors: [Color(0xFFFF416C), Color(0xFFFF4B2B), Color(0xFF8B5CF6)],
                         begin: Alignment.topLeft,
@@ -1151,7 +1122,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         colors: [Color(0xFF3A3D52), Color(0xFF2A2C3D)],
                       ),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: hasValidRecipient
+                boxShadow: (hasValidRecipient && !_isSending)
                     ? [
                         BoxShadow(
                           color: const Color(0xFFFF4B2B).withOpacity(0.4),
@@ -1166,19 +1137,40 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('🎁', style: TextStyle(fontSize: 12)),
-                    const SizedBox(width: 4),
-                    Text(
-                      hasValidRecipient
-                          ? (_selectedCurrencyTab == 3 ? 'SEND' : 'SEND (${formatCompactNumber(totalCost.toInt())})')
-                          : 'SELECT SEAT',
-                      style: GoogleFonts.poppins(
-                        color: hasValidRecipient ? Colors.white : Colors.white38,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
+                    if (_isSending) ...[
+                      const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'SENDING...',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ] else ...[
+                      const Text('🎁', style: TextStyle(fontSize: 12)),
+                      const SizedBox(width: 4),
+                      Text(
+                        hasValidRecipient
+                            ? (_selectedCurrencyTab == 3 ? 'SEND' : 'SEND (${formatCompactNumber(totalCost.toInt())})')
+                            : 'SELECT SEAT',
+                        style: GoogleFonts.poppins(
+                          color: hasValidRecipient ? Colors.white : Colors.white38,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

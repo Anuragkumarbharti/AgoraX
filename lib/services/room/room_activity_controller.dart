@@ -6,12 +6,18 @@ import '../../models/gift/gift_animation_metadata.dart';
 import '../../widgets/gifting/gift_animation_overlay.dart';
 import '../../models/room/room_activity_event.dart';
 import '../user/user_profile_cache_manager.dart';
+import '../gifting/gift_animation_controller.dart';
 import 'room_chat_controller.dart';
 import 'room_gift_controller.dart';
 import 'room_realtime_controller.dart';
 
 class RoomActivityController extends GetxController {
-  static RoomActivityController get to => Get.find<RoomActivityController>();
+  static RoomActivityController get to {
+    if (!Get.isRegistered<RoomActivityController>()) {
+      return Get.put(RoomActivityController());
+    }
+    return Get.find<RoomActivityController>();
+  }
 
   final RxList<Map<String, dynamic>> activePolls = <Map<String, dynamic>>[].obs;
   final RxMap<String, bool> roomActivityQueuesBusy = <String, bool>{}.obs;
@@ -111,24 +117,27 @@ class RoomActivityController extends GetxController {
           );
         }
 
-        if (eventType == 'gift_sent' && Get.isRegistered<RoomGiftController>()) {
-          final giftCtrl = RoomGiftController.to;
-          final int giftCount = metadata['count'] ?? metadata['quantity'] ?? 1;
-          final int comboCount = metadata['combo_count'] ?? metadata['comboCount'] ?? 1;
-          final String giftId = metadata['gift_id'] ?? metadata['giftId'] ?? 'gift_default';
-          final String giftName = metadata['gift_name'] ?? metadata['giftName'] ?? 'Gift';
-          final String targetName = payload['target_username'] ?? metadata['receiver_name'] ?? 'Stage';
+        if (eventType == 'gift_sent') {
+          final Map<String, dynamic> fullPayload = metadata.isNotEmpty ? Map<String, dynamic>.from(metadata) : <String, dynamic>{
+            'giftId': metadata['gift_id'] ?? metadata['giftId'],
+            'giftName': metadata['gift_name'] ?? metadata['giftName'],
+            'giftIcon': metadata['gift_icon'] ?? metadata['giftIcon'],
+            'senderId': payload['user_id'] ?? metadata['sender_id'],
+            'senderName': senderName,
+            'senderAvatar': metadata['sender_avatar'] ?? metadata['senderAvatar'],
+            'receiverIds': metadata['receiver_ids'] ?? (payload['target_user_id'] != null ? [payload['target_user_id']] : []),
+            'receiverNames': metadata['receiver_names'] ?? (payload['target_username'] != null ? [payload['target_username']] : []),
+            'receiverSeats': metadata['seat_indices'] ?? (payload['seat_number'] != null ? [payload['seat_number']] : []),
+            'quantity': metadata['count'] ?? metadata['quantity'] ?? 1,
+            'giftValue': metadata['amount'] ?? metadata['stars_value'] ?? 10,
+            'timestamp': metadata['timestamp'] ?? DateTime.now().millisecondsSinceEpoch,
+          };
 
-          final event = GiftAnimationEvent(
-            giftId: giftId,
-            giftName: giftName,
-            giftIcon: metadata['animation_url'] ?? '',
-            senderName: senderName,
-            receiverName: targetName,
-            count: giftCount,
-            price: metadata['amount'] ?? 0,
-          );
-          giftCtrl.triggerGiftAnimation(event);
+          if (Get.isRegistered<RoomRealtimeController>()) {
+            RoomRealtimeController.to.handleIncomingRealtimeGiftEvent(roomId, fullPayload);
+          } else if (Get.isRegistered<GiftAnimationController>()) {
+            GiftAnimationController.to.dispatchBroadcastGiftEvent(fullPayload);
+          }
         }
 
         await Future.delayed(const Duration(milliseconds: 300));

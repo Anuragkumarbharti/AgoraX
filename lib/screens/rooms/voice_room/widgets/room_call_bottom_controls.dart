@@ -7,6 +7,7 @@ import '../../../../services/room/room_controller.dart';
 import '../../../../services/room/room_member_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/gifting/send_gift_dialog.dart';
+import '../dialogs/seat_applications_dialog.dart';
 
 class RoomCallBottomControls extends StatefulWidget {
   final String roomId;
@@ -304,11 +305,13 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
           if (_isMentionActive) _buildMentionAutocompleteOverlay(context),
 
           Padding(
-            padding: EdgeInsets.fromLTRB(14, 6, 14, effectiveBottomInset),
+            padding: EdgeInsets.fromLTRB(12, 6, 12, effectiveBottomInset),
             child: Obx(() {
               final bg = controller.activeRoomBackground.value;
               final tokens = AdaptiveSeatThemeEngine.resolve(bg,
                   isDarkMode: context.isDark);
+
+              final isMicActive = widget.isCurrentUserOnSeat && widget.isMicOn.value;
 
               return Row(
                 children: [
@@ -319,7 +322,7 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                       curve: Curves.easeOutCubic,
                       height: 42,
                       clipBehavior: Clip.antiAlias,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: tokens.chatBoxFillColor,
                         borderRadius:
@@ -391,13 +394,12 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                               ),
                             ),
                           ),
-                          // Smooth Fade/Scale Send Icon when expanded or text is present
+                          // Send Icon Button
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 100),
                             transitionBuilder: (child, anim) => ScaleTransition(
                               scale: anim,
-                              child:
-                                  FadeTransition(opacity: anim, child: child),
+                              child: FadeTransition(opacity: anim, child: child),
                             ),
                             child: (isExpanded ||
                                     widget.chatInputController.text.isNotEmpty)
@@ -433,61 +435,168 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
 
-                  // Mic / Action Buttons
-                  GestureDetector(
-                    onTap: widget.onToggleMic,
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: tokens.chatBoxFillColor,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: tokens.chatBoxBorderColor,
-                          width: 1.2,
+                  // Full Room Menubar Buttons Row (Up-Arrow, Mic, Menu ≡ with badge, Gift)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 1. Up-Arrow Seat Application / Request Button (Circle)
+                      GestureDetector(
+                        onTap: () {
+                          Get.dialog(SeatApplicationsDialog(roomId: widget.roomId));
+                        },
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: tokens.chatBoxFillColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: tokens.chatBoxBorderColor,
+                              width: 1.2,
+                            ),
+                            boxShadow: tokens.seatBoxShadows,
+                          ),
+                          child: Icon(
+                            Icons.arrow_upward_rounded,
+                            color: tokens.chatBoxIconColor,
+                            size: 19,
+                          ),
                         ),
                       ),
-                      child: Icon(
-                        widget.isMicOn.value
-                            ? Icons.mic_rounded
-                            : Icons.mic_off_rounded,
-                        color: widget.isMicOn.value
-                            ? Colors.greenAccent
-                            : Colors.redAccent,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                      const SizedBox(width: 5),
 
-                  // Gift Button
-                  GestureDetector(
-                    onTap: () {
-                      Get.dialog(
-                        SendGiftDialog(
-                          roomId: widget.roomId,
-                          targetUserId: RoomController.currentUserId,
-                          targetUserName: 'Room Members',
+                      // 2. Stage Mic Button (Circle)
+                      GestureDetector(
+                        onTap: () {
+                          if (widget.isCurrentUserOnSeat) {
+                            widget.onToggleMic();
+                          } else {
+                            Get.snackbar(
+                              'Stage Mic 🎤',
+                              'Take a seat to unmute your mic.',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.black.withOpacity(0.85),
+                              colorText: Colors.white,
+                            );
+                          }
+                        },
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: tokens.chatBoxFillColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: tokens.chatBoxBorderColor,
+                              width: 1.2,
+                            ),
+                            boxShadow: tokens.seatBoxShadows,
+                          ),
+                          child: Icon(
+                            isMicActive ? Icons.mic_rounded : Icons.mic_off_rounded,
+                            color: isMicActive
+                                ? Colors.greenAccent
+                                : Colors.redAccent,
+                            size: 19,
+                          ),
                         ),
-                      );
-                    },
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF2D55), Color(0xFFAF52DE)],
+                      ),
+
+                      if (!isExpanded) ...[
+                        const SizedBox(width: 5),
+
+                        // 3. Room Menubar / Options Sheet Button (≡ Circle with Red Badge)
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            GestureDetector(
+                              onTap: () => widget.onShowRoomOptionsMenuSheet(context),
+                              child: Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: tokens.chatBoxFillColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: tokens.chatBoxBorderColor,
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: tokens.seatBoxShadows,
+                                ),
+                                child: Icon(
+                                  Icons.menu_rounded,
+                                  color: tokens.chatBoxIconColor,
+                                  size: 21,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: -2,
+                              right: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                  color: Colors.redAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 14,
+                                  minHeight: 14,
+                                ),
+                                child: const Text(
+                                  '90',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 7.5,
+                                    fontWeight: FontWeight.extrabold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                      ],
+
+                      const SizedBox(width: 5),
+
+                      // 4. Send Gift Box Button (Circle)
+                      GestureDetector(
+                        onTap: () {
+                          Get.dialog(
+                            SendGiftDialog(
+                              roomId: widget.roomId,
+                              targetUserId: RoomController.currentUserId,
+                              targetUserName: 'Room Members',
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFF2D55), Color(0xFFAF52DE)],
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFF2D55).withOpacity(0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.card_giftcard_rounded,
+                            color: Colors.white,
+                            size: 19,
+                          ),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.card_giftcard_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               );

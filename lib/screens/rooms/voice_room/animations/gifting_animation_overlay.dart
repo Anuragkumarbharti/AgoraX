@@ -5,6 +5,10 @@ import 'package:get/get.dart';
 import '../../../../widgets/gifting/creania_gift_animation_engine.dart';
 import '../../../../models/gift/gift_animation_config.dart';
 import '../../../../models/gift/gift_animation_metadata.dart';
+import '../../../../services/gifting/gift_animation_controller.dart';
+import '../../../../services/gifting/sender_position_resolver.dart';
+import '../../../../services/gifting/receiver_resolver.dart';
+import '../../../../services/room/room_controller.dart';
 
 class GiftingAnimationOverlay extends StatefulWidget {
   final RxList<Map<String, dynamic>> activeAnimations;
@@ -26,6 +30,8 @@ class GiftingAnimationOverlay extends StatefulWidget {
 class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
   final List<Map<String, dynamic>> _currentAnims = [];
   Worker? _animWorker;
+  Worker? _globalGiftWorker;
+  final Map<String, Offset> _lastKnownSeatPositions = {};
 
   @override
   void initState() {
@@ -41,11 +47,69 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
         }
       }
     });
+
+    if (Get.isRegistered<GiftAnimationController>()) {
+      _globalGiftWorker = ever(GiftAnimationController.to.activeEvents,
+          (List<GiftAnimationEventPayload> events) {
+        if (events.isNotEmpty) {
+          final evt = events.last;
+          if (!_currentAnims.any((p) => p['id'] == evt.id)) {
+            _addEventFromPayload(evt);
+          }
+        }
+      });
+    }
+  }
+
+  void _addEventFromPayload(GiftAnimationEventPayload evt) {
+    final roomId = RoomController.to.activeRoomId ?? '';
+    final roomSeats = RoomController.to.roomSeatsInfo[roomId] ?? [];
+
+    final startPos = SenderPositionResolver.resolve(
+      senderId: evt.senderId,
+      roomSeats: roomSeats,
+      seatKeys: widget.seatKeys,
+    );
+
+    final resolvedReceivers = ReceiverResolver.resolve(
+      receiverIds: evt.receiverIds,
+      seatIndices: evt.receiverSeats,
+      receiverNames: evt.receiverNames,
+      roomSeats: roomSeats,
+      seatKeys: widget.seatKeys,
+      lastKnownPositions: _lastKnownSeatPositions,
+    );
+
+    final List<Offset> targets =
+        resolvedReceivers.map((r) => r.roomPosition).toList();
+
+    setState(() {
+      _currentAnims.add({
+        'id': evt.id,
+        'giftId': evt.giftId,
+        'name': evt.giftName,
+        'icon': evt.giftIcon,
+        'price': evt.price,
+        'currency': evt.currency,
+        'senderName': evt.senderName,
+        'senderAvatar': evt.senderAvatar,
+        'start': startPos,
+        'receiverName': resolvedReceivers.isNotEmpty
+            ? resolvedReceivers.first.userName
+            : 'Seat',
+        'receiverAvatar': resolvedReceivers.isNotEmpty
+            ? resolvedReceivers.first.userAvatar
+            : null,
+        'targets': targets,
+        'count': evt.count,
+      });
+    });
   }
 
   @override
   void dispose() {
     _animWorker?.dispose();
+    _globalGiftWorker?.dispose();
     super.dispose();
   }
 

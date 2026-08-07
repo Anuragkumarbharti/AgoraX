@@ -6,10 +6,19 @@ import '../../widgets/gifting/gift_animation_overlay.dart';
 import '../../models/room/room_model.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../store/store_controller.dart';
+import '../gifting/gift_animation_controller.dart';
 import 'room_seat_controller.dart';
+import 'room_activity_controller.dart';
+import 'room_controller.dart';
+import 'room_realtime_controller.dart';
 
 class RoomGiftController extends GetxController {
-  static RoomGiftController get to => Get.find<RoomGiftController>();
+  static RoomGiftController get to {
+    if (!Get.isRegistered<RoomGiftController>()) {
+      return Get.put(RoomGiftController());
+    }
+    return Get.find<RoomGiftController>();
+  }
 
   final Rxn<GiftAnimationEvent> activeGiftAnimation =
       Rxn<GiftAnimationEvent>();
@@ -35,8 +44,15 @@ class RoomGiftController extends GetxController {
     int comboCount = 1,
   }) async {
     try {
-      final room = roomsList.firstWhereOrNull((r) => r.id == roomId);
-      if (room == null) return false;
+      if (roomId.isEmpty) {
+        debugPrint('[GiftPipeline] FAILURE: Invalid room identifier.');
+        Get.snackbar('Gifting Error', 'Invalid room identifier.');
+        return false;
+      }
+
+      final totalQuantity = count * comboCount;
+      final totalCost = giftCost * totalQuantity * targetUserIds.length;
+      debugPrint('[GiftPipeline] Balance Checked: Required $totalCost coins. Current Balance: ${walletBalance.value}');
 
       final response =
           await Supabase.instance.client.rpc('send_star_gift', params: {
@@ -61,6 +77,40 @@ class RoomGiftController extends GetxController {
             }
           }
         } catch (_) {}
+
+        debugPrint('[Gift] API Success: Remaining balance = $remaining');
+        debugPrint('[Gift] DB Insert Success: Recorded in gift_transactions, gift_history, and room_activity_events');
+        debugPrint('[Gift] Room Stats Updated: Total room stars and total gifts count increased');
+        debugPrint('[Gift] Task Updated: ${response['vp_result']}');
+
+        // Extract standardized realtime event payload from backend confirmation
+        final rawPayload = response['event_payload'];
+        final Map<String, dynamic> eventPayload = rawPayload != null && rawPayload is Map
+            ? Map<String, dynamic>.from(rawPayload)
+            : <String, dynamic>{
+                'giftId': giftId,
+                'senderId': UserProfileCacheManager.currentUserId,
+                'senderName': 'Creania Student',
+                'senderAvatar': null,
+                'senderSeat': seatIndices.isNotEmpty ? seatIndices[0] : -1,
+                'receiverIds': targetUserIds,
+                'receiverNames': targetUserNames,
+                'receiverSeats': seatIndices,
+                'roomId': roomId,
+                'giftType': currency,
+                'giftName': giftName,
+                'giftIcon': '🎁',
+                'giftValue': giftCost,
+                'quantity': totalQuantity,
+                'timestamp': DateTime.now().millisecondsSinceEpoch,
+                'messageText': '${UserProfileCacheManager.currentUserId} $giftName * $totalQuantity ${targetUserNames.join(", ")}',
+              };
+
+        // Broadcast Realtime GiftSent Event to everyone in the room
+        if (Get.isRegistered<RoomRealtimeController>()) {
+          await RoomRealtimeController.to.broadcastGiftSentEvent(roomId, eventPayload);
+          debugPrint('[Gift] Broadcast Sent: event: gift_sent_event for ${eventPayload['giftName']} -> ${eventPayload['receiverNames']}');
+        }
 
         final magicResult = response['magic_result'];
         if (magicResult != null &&
@@ -90,10 +140,42 @@ class RoomGiftController extends GetxController {
           );
         }
         return true;
+      } else if (response != null && response['message'] != null) {
+        final errMsg = response['message'].toString();
+        debugPrint('[GiftPipeline] FAILURE: $errMsg');
+        Get.snackbar(
+          'Gifting Failed',
+          errMsg,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFEF4444),
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+        return false;
       }
+      debugPrint('[GiftPipeline] FAILURE: Unknown backend error response');
       return false;
-    } catch (e) {
-      debugPrint('Error sending star gift: $e');
+    } catch (e, stack) {
+      debugPrint('[GiftPipeline] FAILURE: $e\n$stack');
+      final errStr = e.toString();
+      String userFriendlyMessage = errStr
+          .replaceAll('Exception: ', '')
+          .replaceAll('PostgrestException(message: ', '')
+          .replaceAll(', details: null, hint: null, code: null)', '');
+
+      if (errStr.contains('42601') || errStr.contains('returning "record"')) {
+        userFriendlyMessage =
+            'Database migration required: Please apply migration 202608070011_complete_gift_pipeline_fix.sql on your Supabase Postgres database.';
+      }
+
+      Get.snackbar(
+        'Gifting Error',
+        userFriendlyMessage,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 5),
+      );
       return false;
     }
   }

@@ -9,9 +9,19 @@ import '../user/user_profile_cache_manager.dart';
 import 'room_chat_controller.dart';
 import 'room_activity_controller.dart';
 import 'room_background_controller.dart';
+import '../gifting/gift_animation_controller.dart';
+import 'room_seat_controller.dart';
+import 'room_controller.dart';
+import 'room_progression_controller.dart';
+import 'room_gift_controller.dart';
 
 class RoomRealtimeController extends GetxController {
-  static RoomRealtimeController get to => Get.find<RoomRealtimeController>();
+  static RoomRealtimeController get to {
+    if (!Get.isRegistered<RoomRealtimeController>()) {
+      return Get.put(RoomRealtimeController());
+    }
+    return Get.find<RoomRealtimeController>();
+  }
 
   RealtimeChannel? _roomsListChannel;
   RealtimeChannel? _roomMembersChannel;
@@ -54,6 +64,27 @@ class RoomRealtimeController extends GetxController {
       }
     } catch (e) {
       debugPrint('[RoomRealtimeController] Error broadcasting role update: $e');
+    }
+  }
+
+  /// Broadcasts one Realtime GiftSent event to everyone in the room.
+  Future<void> broadcastGiftSentEvent(String roomId, Map<String, dynamic> eventPayload) async {
+    try {
+      if (_roomActivityEventsChannel != null) {
+        await _roomActivityEventsChannel?.sendBroadcastMessage(
+          event: 'gift_sent_event',
+          payload: eventPayload,
+        );
+      } else {
+        // Fallback channel if main subscription is initializing
+        final fallbackChannel = Supabase.instance.client.channel('room_activity_events:$roomId');
+        await fallbackChannel.sendBroadcastMessage(
+          event: 'gift_sent_event',
+          payload: eventPayload,
+        );
+      }
+    } catch (e) {
+      debugPrint('[GiftPipeline] Error broadcasting gift event: $e');
     }
   }
 
@@ -525,10 +556,14 @@ class RoomRealtimeController extends GetxController {
             callback: (payload) {
               if (payload.newRecord != null && Get.isRegistered<RoomActivityController>()) {
                 final record = payload.newRecord!;
-                if (record['user_id'] != currentUserId) {
-                  RoomActivityController.to.processActivityEventPayload(roomId, record);
-                }
+                RoomActivityController.to.processActivityEventPayload(roomId, record);
               }
+            },
+          )
+          .onBroadcast(
+            event: 'gift_sent_event',
+            callback: (payload) {
+              handleIncomingRealtimeGiftEvent(roomId, Map<String, dynamic>.from(payload));
             },
           )
           .onBroadcast(
@@ -583,6 +618,131 @@ class RoomRealtimeController extends GetxController {
     } catch (e) {
       debugPrint('Error subscribing to room realtime: $e');
     }
+  }
+
+  void handleIncomingRealtimeGiftEvent(String roomId, Map<String, dynamic> payload) {
+    final String senderName = payload['senderName'] ?? payload['sender_name'] ?? payload['username'] ?? 'Member';
+    final String giftName = payload['giftName'] ?? payload['gift_name'] ?? 'Gift';
+    final int quantity = int.tryParse((payload['quantity'] ?? payload['count'] ?? 1).toString()) ?? 1;
+    final List receiverNamesRaw = payload['receiverNames'] ?? payload['receiver_names'] ?? (payload['target_username'] != null ? [payload['target_username']] : ['User']);
+    final String receiverNames = receiverNamesRaw.map((e) => e.toString()).join(', ');
+    final int giftValue = int.tryParse((payload['giftValue'] ?? payload['amount'] ?? payload['stars_value'] ?? 10).toString()) ?? 10;
+    final int totalStarsCost = giftValue * quantity;
+
+    // Exact required Notification String format: USERNAME GIFT * GIFT COUNT USER NAME
+    // Example: Anurag Rose * 10 Rahul
+    final String formattedNotificationMsg = '$senderName $giftName * $quantity $receiverNames';
+
+    debugPrint('[Gift] Broadcast Received: $formattedNotificationMsg');
+    debugPrint('[Gift] Animation Started');
+
+    // 1. Dispatch synchronized gift animation to GiftAnimationController
+    if (Get.isRegistered<GiftAnimationController>()) {
+      GiftAnimationController.to.dispatchBroadcastGiftEvent(payload);
+    }
+
+    // 2. Update Seat Total Stars reactively
+    try {
+      if (Get.isRegistered<RoomSeatController>()) {
+        final seatCtrl = RoomSeatController.to;
+        final seats = seatCtrl.roomSeatsInfo[roomId];
+        final List<dynamic> seatIndices = payload['receiverSeats'] ?? payload['seat_indices'] ?? (payload['seat_number'] != null ? [payload['seat_number']] : []);
+        if (seats != null && seatIndices.isNotEmpty) {
+          final updatedSeats = List<Map<String, dynamic>>.from(seats);
+          for (final rawIdx in seatIndices) {
+            final idx = int.tryParse(rawIdx.toString()) ?? -1;
+            if (idx >= 0) {
+              final seatPos = updatedSeats.indexWhere((s) => s['seatIndex'] == idx);
+              if (seatPos != -1) {
+                final currentStars = (updatedSeats[seatPos]['seatTotalStars'] as num?)?.toInt() ?? 0;
+                final currentGifts = (updatedSeats[seatPos]['seatTotalGifts'] as num?)?.toInt() ?? 0;
+                final seatShareGifts = (quantity / seatIndices.length).ceil();
+                final seatShareStars = (giftValue * seatShareGifts).toInt();
+                updatedSeats[seatPos] = {
+                  ...updatedSeats[seatPos],
+                  'seatTotalStars': currentStars + seatShareStars,
+                  'seatTotalGifts': currentGifts + seatShareGifts,
+                };
+              }
+            }
+          }
+          seatCtrl.roomSeatsInfo[roomId] = updatedSeats;
+        }
+      }
+    } catch (e) {
+      debugPrint('[Gift] Error updating seat stats: $e');
+    }
+
+    // 3. Update Room Total Stars in RoomController reactively
+    try {
+      if (Get.isRegistered<RoomController>()) {
+        final roomCtrl = RoomController.to;
+        final roomIdx = roomCtrl.rooms.indexWhere((r) => r.id == roomId);
+        if (roomIdx != -1) {
+          final currentRoom = roomCtrl.rooms[roomIdx];
+          currentRoom.totalRoomStars = (currentRoom.totalRoomStars ?? 0) + totalStarsCost;
+          currentRoom.todayRoomStars = (currentRoom.todayRoomStars ?? 0) + totalStarsCost;
+          currentRoom.totalRoomGifts = (currentRoom.totalRoomGifts ?? 0) + quantity;
+          currentRoom.todayRoomGifts = (currentRoom.todayRoomGifts ?? 0) + quantity;
+          roomCtrl.rooms[roomIdx] = currentRoom;
+          roomCtrl.rooms.refresh();
+        }
+      }
+    } catch (e) {
+      debugPrint('[Gift] Error updating room stats: $e');
+    }
+
+    // 4. Update Room Progression Tasks & VP
+    try {
+      if (Get.isRegistered<RoomController>()) {
+        RoomController.to.fetchRoomProgression(roomId);
+      }
+    } catch (e) {
+      debugPrint('[Gift] Error updating progression tasks: $e');
+    }
+
+    // 5. Add Chat Message & Realtime Notification with exact format: USERNAME GIFT * GIFT COUNT USER NAME
+    if (Get.isRegistered<RoomChatController>()) {
+      RoomChatController.to.addChatMessage(
+        roomId,
+        RoomChatMessage(
+          senderId: payload['senderId'] ?? payload['sender_id'] ?? 'system',
+          senderName: senderName,
+          text: formattedNotificationMsg,
+          timestamp: DateTime.now(),
+          isSystem: true,
+          messageType: 'gift',
+          eventType: 'gift_sent',
+        ),
+      );
+    }
+
+    if (Get.isRegistered<RoomGiftController>()) {
+      final Map<String, dynamic> notificationPayload = {
+        ...payload,
+        'message': formattedNotificationMsg,
+        'seat_indices': payload['receiverSeats'] ?? payload['seat_indices'] ?? (payload['seat_number'] != null ? [payload['seat_number']] : []),
+        'gift_id': payload['giftId'] ?? payload['gift_id'],
+        'gift_name': giftName,
+        'gift_icon': payload['giftIcon'] ?? payload['gift_icon'] ?? '🎁',
+        'amount': quantity,
+        'count': quantity,
+        'senderName': senderName,
+        'sender_name': senderName,
+        'senderAvatar': payload['senderAvatar'] ?? payload['sender_avatar'],
+        'receiverName': receiverNames,
+        'receiver_name': receiverNames,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      RoomGiftController.to.activeGiftNotification.value = notificationPayload;
+      Future.delayed(const Duration(seconds: 4), () {
+        if (RoomGiftController.to.activeGiftNotification.value?['message'] == formattedNotificationMsg) {
+          RoomGiftController.to.activeGiftNotification.value = null;
+        }
+      });
+    }
+
+    debugPrint('[Gift] Animation Finished');
   }
 
   void unsubscribeRoomRealtime() {

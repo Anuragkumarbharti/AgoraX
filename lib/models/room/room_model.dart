@@ -302,10 +302,10 @@ class VoiceRoom {
   final int extraAdminSlots;
   final int extraStarMemberSlots;
   final int todayRoomXp;
-  final int totalRoomGifts;
-  final int todayRoomGifts;
-  final int totalRoomStars;
-  final int todayRoomStars;
+  int totalRoomGifts;
+  int todayRoomGifts;
+  int totalRoomStars;
+  int todayRoomStars;
 
   // New Roles Hierarchy
   final String founderId;

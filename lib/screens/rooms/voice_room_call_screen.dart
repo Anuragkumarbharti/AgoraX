@@ -21,6 +21,8 @@ import '../../services/user/customization_controller.dart';
 import '../../widgets/memberships/vip_entry_animation.dart';
 import '../../widgets/memberships/novel_entry_animation.dart';
 import '../../services/room/room_entry_permission_engine.dart';
+import '../../widgets/gifting/gift_animation_overlay.dart';
+import '../../services/gifting/gift_animation_controller.dart';
 
 // Extracted Sub-Modules
 import 'voice_room/models/floating_reaction.dart';
@@ -1156,6 +1158,35 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       _shakeRoomScreen();
                     }
                   },
+                ),
+              ),
+
+              // 5b. Creania Engine Gift Overlay Layer (Renders 3D/Particle engine animations)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Obx(() {
+                    final events = GiftAnimationController.to.activeEvents;
+                    if (events.isEmpty) return const SizedBox.shrink();
+                    final current = events.last;
+                    final evt = GiftAnimationEvent(
+                      giftId: current.giftId,
+                      giftName: current.giftName,
+                      giftIcon: current.giftIcon,
+                      senderName: current.senderName,
+                      senderAvatar: current.senderAvatar,
+                      receiverName: current.receiverNames.join(', '),
+                      count: current.count,
+                      currency: current.currency,
+                      price: current.price,
+                      mode: GiftAnimationMode.roomSeat,
+                    );
+                    return GiftAnimationOverlayWidget(
+                      event: evt,
+                      onFinished: () {
+                        GiftAnimationController.to.removeEvent(current.id);
+                      },
+                    );
+                  }),
                 ),
               ),
 

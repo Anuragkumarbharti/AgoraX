@@ -126,9 +126,17 @@ class _SplashScreenState extends State<SplashScreen>
             .timeout(const Duration(milliseconds: 1000), onTimeout: () => true);
         if (isValid) {
           // Trigger profile background updates non-blocking
-          UserProfileCacheManager.getOrFetchCanonicalId().timeout(const Duration(seconds: 2)).catchError((_) => null);
-          UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true).timeout(const Duration(seconds: 2)).catchError((_) => null);
-          UserProgressSyncService.syncFromSupabase().timeout(const Duration(seconds: 2)).catchError((_) => null);
+          Future(() async {
+            try {
+              await UserProfileCacheManager.getOrFetchCanonicalId().timeout(const Duration(seconds: 2));
+            } catch (_) {}
+            try {
+              await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true).timeout(const Duration(seconds: 2));
+            } catch (_) {}
+            try {
+              await UserProgressSyncService.syncFromSupabase().timeout(const Duration(seconds: 2));
+            } catch (_) {}
+          });
 
           final profile = UserProfileCacheManager.currentUser;
           if (profile != null && profile.signupStatus != 'completed') {

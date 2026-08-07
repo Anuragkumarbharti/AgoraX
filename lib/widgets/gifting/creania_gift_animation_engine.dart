@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/gift/gift_animation_metadata.dart';
+import '../../services/gifting/animation_timeline.dart';
 
 class GiftRequestEvent {
   final String giftId;
@@ -63,7 +64,7 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   @override
   void initState() {
     super.initState();
-    // 5.0 Seconds total timeline matching exact user timing rules
+    // Default 5.0 Seconds duration, dynamically adjusted per gift tier in _startAnimation
     _flightController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 5000),
@@ -91,14 +92,8 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   void _startAnimation(GiftRequestEvent event) {
     _meta = GiftMetadataRegistry.getMetadata(event.giftId);
 
-    final stackConfig = _meta?.stackingConfig;
-    if (stackConfig != null && event.count >= stackConfig.minComboThreshold) {
-      _isStackedCombo = true;
-      _flightController.duration = stackConfig.stackedDuration;
-    } else {
-      _isStackedCombo = false;
-      _flightController.duration = const Duration(milliseconds: 5000);
-    }
+    final totalDuration = AnimationTimeline.getTotalDuration(_meta!.tier);
+    _flightController.duration = totalDuration;
 
     _initParticles();
     _flightController.reset();
@@ -182,49 +177,62 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           );
         }
 
-        // ── ROOM MODE: MANDATORY 3-STEP FLOW ──
-        // Step 1 (0.00 <= progress < 0.24) [1.2s]: Rise from Bottom Panel to Center Stage
-        // Step 2 (0.24 <= progress < 0.76) [2.6s]: Main Center Showcase & Unique Gift Particle Animation
-        // Step 3 (0.76 <= progress <= 1.00) [1.2s]: Flight from Center to Receiver Seat(s) & Landing Reaction
+        // ── ROOM MODE: MANDATORY 3-STAGE FLOW ──
+        // Stage A (1.0s): Launch Animation from sender seat/profile to Center
+        // Stage B (2-6s depending on tier): Main Center Showcase (Finishes completely before Stage C)
+        // Stage C (1.0s): Receiver Delivery (Single receiver or duplicated to all receiver seats)
+        final stageInfo = AnimationTimeline.getStageProgress(progress, meta.tier);
 
         return IgnorePointer(
           child: Stack(
             children: [
-              // ── STEP 1: RISE FROM BOTTOM TO CENTER (0.00 -> 0.24) ──
-              if (progress < 0.26) ...[
-                _buildStep1BottomRise(bottomPanelOrigin, centerStage, (progress / 0.24).clamp(0.0, 1.0), activeIcon, meta),
+              // ── STAGE A: LAUNCH ANIMATION (1.0 sec) ──
+              if (stageInfo.stage == AnimationStage.stageA) ...[
+                _buildStep1BottomRise(
+                  bottomPanelOrigin,
+                  centerStage,
+                  stageInfo.stageNormalizedProgress,
+                  activeIcon,
+                  meta,
+                ),
               ],
 
-              // ── STEP 2: CENTER STAGE SHOWCASE & UNIQUE GIFT ANIMATION (0.24 -> 0.76) ──
-              if (progress >= 0.24 && progress < 0.78) ...[
-                // Floating Left Sender Banner Card
-                _buildLeftSenderBannerCard(media, event, meta, activeIcon, ((progress - 0.24) / 0.52).clamp(0.0, 1.0)),
-
-                // Center Stage Unique Gift Showcase
-                _buildStep2CenterShowcase(centerStage, event, meta, activeIcon, ((progress - 0.24) / 0.52).clamp(0.0, 1.0)),
+              // ── STAGE B: MAIN GIFT SHOWCASE (2.0 to 6.0 sec) ──
+              if (stageInfo.stage == AnimationStage.stageB) ...[
+                _buildLeftSenderBannerCard(
+                  media,
+                  event,
+                  meta,
+                  activeIcon,
+                  stageInfo.stageNormalizedProgress,
+                ),
+                _buildStep2CenterShowcase(
+                  centerStage,
+                  event,
+                  meta,
+                  activeIcon,
+                  stageInfo.stageNormalizedProgress,
+                ),
               ],
 
-              // ── STEP 3: FLIGHT FROM CENTER TO RECEIVER SEATS & LANDING (0.76 -> 1.00) ──
-              if (progress >= 0.76) ...[
+              // ── STAGE C: RECEIVER DELIVERY (1.0 sec) ──
+              if (stageInfo.stage == AnimationStage.stageC) ...[
                 for (final targetPos in targets) ...[
                   _buildStep3FlightAndLanding(
                     centerStage,
                     targetPos,
                     meta,
                     activeIcon,
-                    ((progress - 0.76) / 0.24).clamp(0.0, 1.0),
+                    stageInfo.stageNormalizedProgress,
                     _isStackedCombo,
                     event.count,
                   ),
                 ],
+                if ((meta.tier == GiftTier.epic ||
+                        meta.tier == GiftTier.legendary ||
+                        meta.tier == GiftTier.mythic))
+                  _buildCinematicOverlay(meta, activeIcon, stageInfo.stageNormalizedProgress),
               ],
-
-              // ── CINEMATIC OVERLAY FOR EPIC+ GIFTS ──
-              if ((meta.tier == GiftTier.epic ||
-                      meta.tier == GiftTier.legendary ||
-                      meta.tier == GiftTier.mythic) &&
-                  progress >= 0.76)
-                _buildCinematicOverlay(meta, activeIcon, progress),
             ],
           ),
         );
