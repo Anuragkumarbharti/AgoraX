@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../room/room_realtime_controller.dart';
 import '../room/room_seat_controller.dart';
+import '../room/room_chat_controller.dart';
 import './gift_animation_controller.dart';
 import '../../models/gift/gift_animation_metadata.dart';
 import '../user/user_profile_cache_manager.dart';
@@ -42,6 +43,8 @@ class GiftEventService extends GetxController {
     final String currency = (raw['giftType'] ?? raw['currency'] ?? meta.currency).toString();
     final int timestamp = int.tryParse((raw['timestamp'] ?? DateTime.now().millisecondsSinceEpoch).toString()) ?? DateTime.now().millisecondsSinceEpoch;
 
+    final dynamic luckyResult = raw['luckyResult'] ?? raw['lucky_result'];
+
     final String formattedMsg = '$senderName $giftName * $quantity ${receiverNames.join(", ")}';
 
     return {
@@ -62,6 +65,7 @@ class GiftEventService extends GetxController {
       'timestamp': timestamp,
       'messageText': formattedMsg,
       'tier': meta.tier.name,
+      'luckyResult': luckyResult,
     };
   }
 
@@ -89,7 +93,19 @@ class GiftEventService extends GetxController {
       GiftAnimationController.to.dispatchBroadcastGiftEvent(normalized);
     }
 
-    // 2. Update reactive seat total stars
+    // 2. Dispatch Lucky Gift Chat Announcement if luckyResult exists (Server-First)
+    try {
+      final luckyResult = normalized['luckyResult'];
+      if (luckyResult != null && luckyResult is Map && luckyResult['is_lucky_gift'] == true) {
+        if (Get.isRegistered<RoomChatController>()) {
+          RoomChatController.to.addLuckyGiftMessage(roomId, Map<String, dynamic>.from(luckyResult));
+        }
+      }
+    } catch (e) {
+      debugPrint('[GiftEventService] Error handling lucky message in chat: $e');
+    }
+
+    // 3. Update reactive seat total stars
     try {
       if (Get.isRegistered<RoomSeatController>()) {
         final seatCtrl = RoomSeatController.to;

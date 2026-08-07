@@ -209,6 +209,60 @@ class RoomChatController extends GetxController {
     messages.add(message);
   }
 
+  final Set<String> _processedLuckyTxIds = {};
+
+  bool addLuckyGiftMessage(String roomId, Map<String, dynamic> luckyResult) {
+    try {
+      if (luckyResult['is_lucky_gift'] != true) return false;
+      final int cashbackGold = ((luckyResult['cashback_gold'] ?? luckyResult['coins_back'] ?? 0) as num).toInt();
+      final String messageText = (luckyResult['message_text'] ?? '').toString();
+
+      // Suppress 0 Coin Back messages completely
+      if (cashbackGold <= 0 || messageText.isEmpty) {
+        debugPrint('[RoomChatController] 0 Coin Back message suppressed.');
+        return false;
+      }
+
+      final String txId = (luckyResult['transaction_id'] ?? luckyResult['tx_id'] ?? '').toString();
+      if (txId.isNotEmpty && _processedLuckyTxIds.contains(txId)) {
+        debugPrint('[RoomChatController] Duplicate lucky gift message blocked for transaction: $txId');
+        return false;
+      }
+
+      if (txId.isNotEmpty) {
+        _processedLuckyTxIds.add(txId);
+      }
+
+      final String senderName = (luckyResult['sender_name'] ?? 'User').toString();
+      final num multNum = luckyResult['multiplier'] ?? 0;
+      final String tier = (luckyResult['tier'] ?? 'no_reward').toString();
+      final String eventType = tier == 'jackpot' ? 'lucky_jackpot' : 'lucky_win';
+
+      // 1. Add Chat Box Message for everyone in the room
+      initializeChatForRoom(roomId);
+      final msg = RoomChatMessage(
+        id: txId.isNotEmpty ? 'lucky-$txId' : null,
+        senderId: 'system_lucky',
+        senderName: 'Lucky Draw 🎰',
+        text: messageText,
+        timestamp: DateTime.now(),
+        isSystem: true,
+        messageType: 'activity',
+        eventType: eventType,
+        roleTag: tier,
+      );
+      addChatMessage(roomId, msg);
+
+      // 2. Trigger Top Floating Notification Pill for everyone in the room
+      activeSystemNotification.value = '🎰 $senderName won $cashbackGold Gold back (${multNum}×)!';
+
+      return true;
+    } catch (e) {
+      debugPrint('[RoomChatController] Error adding lucky gift message: $e');
+      return false;
+    }
+  }
+
   void addSystemActivity(
     String roomId,
     String text, {

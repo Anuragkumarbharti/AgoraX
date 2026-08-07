@@ -66,9 +66,12 @@ class RoomCallChatBox extends StatelessWidget {
 
     if (isSystem || isActivity) {
       Color eventColor = const Color(0xFF2196F3);
-      IconData icon = Icons.notifications;
+      IconData icon = Icons.notifications_rounded;
 
       final type = message.eventType ?? '';
+      bool isJackpot = type == 'lucky_jackpot';
+      bool isLuckyWin = type == 'lucky_win' || isJackpot;
+
       if (type == 'room_join') {
         eventColor = const Color(0xFF34C759);
         icon = Icons.login_rounded;
@@ -81,6 +84,12 @@ class RoomCallChatBox extends StatelessWidget {
       } else if (type == 'gift_sent') {
         eventColor = const Color(0xFFAF52DE);
         icon = Icons.card_giftcard_rounded;
+      } else if (isJackpot) {
+        eventColor = const Color(0xFFF59E0B);
+        icon = Icons.stars_rounded;
+      } else if (isLuckyWin) {
+        eventColor = const Color(0xFF8B5CF6);
+        icon = Icons.casino_rounded;
       } else if (type == 'achievement') {
         eventColor = const Color(0xFFFFCC00);
         icon = Icons.emoji_events_rounded;
@@ -105,14 +114,29 @@ class RoomCallChatBox extends StatelessWidget {
           decoration: BoxDecoration(
             color: tokens.chatBoxFillColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: tokens.chatBoxBorderColor, width: 0.8),
+            border: Border.all(
+              color: isJackpot ? const Color(0xFFF59E0B) : tokens.chatBoxBorderColor,
+              width: isJackpot ? 1.2 : 0.8,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(icon, color: tokens.iconColor, size: 13),
-              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: (isJackpot ? const Color(0xFFF59E0B) : tokens.iconColor)
+                      .withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: isJackpot ? const Color(0xFFF59E0B) : tokens.iconColor,
+                  size: 13,
+                ),
+              ),
+              const SizedBox(width: 8),
               Flexible(
                 child: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 280),
@@ -120,7 +144,7 @@ class RoomCallChatBox extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     color: tokens.primaryTextColor,
                     fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: isJackpot ? FontWeight.w700 : FontWeight.w600,
                   ),
                   child: Text(message.text),
                 ),
@@ -130,7 +154,9 @@ class RoomCallChatBox extends StatelessWidget {
                 duration: const Duration(milliseconds: 280),
                 curve: Curves.easeInOutCubic,
                 style: GoogleFonts.poppins(
-                  color: tokens.secondaryTextColor,
+                  color: isJackpot
+                      ? (context.isDark ? const Color(0xFFF59E0B) : const Color(0xFFB45309))
+                      : tokens.secondaryTextColor,
                   fontSize: 7.5,
                   fontWeight: FontWeight.w500,
                 ),

@@ -13,6 +13,7 @@ import 'room_controller.dart';
 import 'room_realtime_controller.dart';
 import 'room_dual_progress_controller.dart';
 import 'room_progression_controller.dart';
+import 'room_chat_controller.dart';
 
 class RoomGiftController extends GetxController {
   static RoomGiftController get to {
@@ -133,32 +134,70 @@ class RoomGiftController extends GetxController {
           debugPrint('[Gift] Broadcast Sent: event: gift_sent_event for ${eventPayload['giftName']} -> ${eventPayload['receiverNames']}');
         }
 
-        final magicResult = response['magic_result'];
-        if (magicResult != null &&
-            magicResult['payout_type'] != null &&
-            magicResult['payout_type'] != 'nothing') {
-          final String type = magicResult['payout_type'];
-          final int coinsBack = magicResult['coins_back'] ?? 0;
-          final int silverAmount = magicResult['silver_reward'] ?? 0;
-          final String vaultName = magicResult['vault_item_name'] ?? '';
+        final luckyResult = response['lucky_result'] ??
+            (response['event_payload'] != null && response['event_payload'] is Map
+                ? response['event_payload']['lucky_result']
+                : null);
 
-          String outcomeText = '';
-          if (type == 'coin_back') {
-            outcomeText = '🔮 Lucky Draw! You got $coinsBack Gold Coins Back!';
-          } else if (type == 'silver_reward') {
-            outcomeText = '🔮 Lucky Draw! You won $silverAmount Silver Coins!';
-          } else if (type == 'vault_reward') {
-            outcomeText = '🔮 Lucky Draw! You won a $vaultName!';
+        if (luckyResult != null && luckyResult is Map && luckyResult['is_lucky_gift'] == true) {
+          final Map<String, dynamic> luckyMap = Map<String, dynamic>.from(luckyResult);
+          final num multiplierNum = luckyMap['multiplier'] ?? 0;
+          final double multiplier = multiplierNum.toDouble();
+          final int cashbackGold = (luckyMap['cashback_gold'] ?? luckyMap['coins_back'] ?? 0) as int;
+          final String currName = (luckyMap['currency'] ?? 'gold') == 'silver' ? 'Silver' : 'Gold';
+          final String tier = (luckyMap['tier'] ?? 'no_reward').toString();
+
+          // Server-first room chat message dispatch
+          try {
+            if (Get.isRegistered<RoomChatController>()) {
+              RoomChatController.to.addLuckyGiftMessage(roomId, luckyMap);
+            }
+          } catch (e) {
+            debugPrint('Error adding lucky gift message to room chat: $e');
           }
 
-          Get.snackbar(
-            'Magic Gift Reward! 🔮',
-            outcomeText,
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: const Color(0xFF8B5CF6),
-            colorText: Colors.white,
-            duration: const Duration(seconds: 4),
-          );
+          // Personal UI Feedback Toast for Sender
+          if (cashbackGold > 0) {
+            Get.snackbar(
+              multiplier >= 5.0 ? '✨✨ JACKPOT WIN! ✨✨' : '🎰 Lucky Coin Back!',
+              'You received $cashbackGold $currName Coins Back (${multiplier}× Multiplier)!',
+              snackPosition: SnackPosition.TOP,
+              backgroundColor: multiplier >= 5.0 ? const Color(0xFFD97706) : const Color(0xFF8B5CF6),
+              colorText: Colors.white,
+              duration: const Duration(seconds: 5),
+              icon: const Icon(Icons.stars, color: Colors.amber, size: 28),
+            );
+          } else {
+            debugPrint('[Gift] Lucky Gift sent: 0x multiplier coin back.');
+          }
+        } else {
+          final magicResult = response['magic_result'];
+          if (magicResult != null &&
+              magicResult['payout_type'] != null &&
+              magicResult['payout_type'] != 'nothing') {
+            final String type = magicResult['payout_type'];
+            final int coinsBack = magicResult['coins_back'] ?? 0;
+            final int silverAmount = magicResult['silver_reward'] ?? 0;
+            final String vaultName = magicResult['vault_item_name'] ?? '';
+
+            String outcomeText = '';
+            if (type == 'coin_back') {
+              outcomeText = '🔮 Lucky Draw! You got $coinsBack Gold Coins Back!';
+            } else if (type == 'silver_reward') {
+              outcomeText = '🔮 Lucky Draw! You won $silverAmount Silver Coins!';
+            } else if (type == 'vault_reward') {
+              outcomeText = '🔮 Lucky Draw! You won a $vaultName!';
+            }
+
+            Get.snackbar(
+              'Magic Gift Reward! 🔮',
+              outcomeText,
+              snackPosition: SnackPosition.TOP,
+              backgroundColor: const Color(0xFF8B5CF6),
+              colorText: Colors.white,
+              duration: const Duration(seconds: 4),
+            );
+          }
         }
         return true;
       } else if (response != null && response['message'] != null) {

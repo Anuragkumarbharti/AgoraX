@@ -23,6 +23,7 @@ class GiftItem {
   final int stars;
   final String category; // 'All', 'Popular', 'New', 'Romantic', 'Luxury', 'Fun', 'Party', 'Fantasy', 'Vehicles', 'Animals', 'Magic'
   final String? badge; // 'HOT', 'NEW', 'VIP', 'LUCKY', 'LEGEND', 'EVENT', 'LIMITED'
+  final bool isLucky;
 
   GiftItem({
     required this.id,
@@ -34,7 +35,8 @@ class GiftItem {
     this.stars = 0,
     this.category = 'All',
     this.badge,
-  });
+    bool? isLucky,
+  }) : isLucky = isLucky ?? (badge == 'LUCKY' || category.contains('Magic'));
 }
 
 class SendGiftDialog extends StatefulWidget {
