@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../gems/gem_widgets.dart';
 
 class VipAvatarDecorator extends StatefulWidget {
   final int level;
@@ -308,14 +309,7 @@ class _VipAvatarDecoratorState extends State<VipAvatarDecorator>
                   final scale = 1.0 + (0.2 * _pulseController.value);
                   return Transform.scale(
                     scale: scale,
-                    child: const Icon(
-                      Icons.star,
-                      color: Color(0xFFFFD700),
-                      size: 16,
-                      shadows: [
-                        Shadow(color: Color(0xFFFFEA70), blurRadius: 12),
-                      ],
-                    ),
+                    child: const GemIcon(size: 16, animated: true),
                   );
                 },
               ),

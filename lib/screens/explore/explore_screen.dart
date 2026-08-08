@@ -13,6 +13,7 @@ import '../../widgets/community/post_attachments_widget.dart';
 import '../../widgets/profile/custom_avatar_frame.dart';
 import '../../widgets/gifting/wallet_header_pill.dart';
 import '../../services/vault/study_vault_controller.dart';
+import '../../widgets/gems/gem_widgets.dart';
 import '../study_vault/study_vault_home_screen.dart';
 import '../study_vault/book_details_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
@@ -1608,8 +1609,7 @@ class _ExploreScreenState extends State<ExploreScreen>
                     const SizedBox(width: 4),
                   ],
                   if (label == 'Creators') ...[
-                    const Icon(Icons.star_rounded,
-                        color: Color(0xFFFFB800), size: 13),
+                    const GemIcon(size: 13),
                     const SizedBox(width: 3),
                   ],
                   Text(

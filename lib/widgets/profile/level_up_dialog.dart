@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme.dart';
 import '../../services/vault/study_category_controller.dart';
+import '../gems/gem_widgets.dart';
 
 class LevelUpDialog extends StatefulWidget {
   final int oldLevel;
@@ -207,7 +208,7 @@ class _LevelUpDialogState extends State<LevelUpDialog> with SingleTickerProvider
                           padding: EdgeInsets.only(bottom: 6),
                           child: Row(
                             children: [
-                              Icon(Icons.stars_rounded, color: tier.color, size: 16),
+                              GemIcon(size: 16),
                               SizedBox(width: 10),
                               Text(
                                 item,

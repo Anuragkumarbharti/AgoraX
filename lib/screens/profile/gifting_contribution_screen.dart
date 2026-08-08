@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../../utils/number_formatter.dart';
+import '../../widgets/gems/gem_widgets.dart';
 
 class GiftingContributionScreen extends StatefulWidget {
   final String userId;
@@ -507,17 +508,17 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildBigContributionCard('Lifetime Contribution', '${_formatStars(lifetime)} Gems 💎', const Color(0xFF00F2FE)),
+          _buildBigContributionCard('Lifetime Contribution', _formatStars(lifetime), const Color(0xFF00F2FE)),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildContributionSubCard('Today', '${_formatStars(today)} Gems 💎', Colors.tealAccent)),
+              Expanded(child: _buildContributionSubCard('Today', _formatStars(today), Colors.tealAccent)),
               const SizedBox(width: 12),
-              Expanded(child: _buildContributionSubCard('This Month', '${_formatStars(monthly)} Gems 💎', Colors.purpleAccent)),
+              Expanded(child: _buildContributionSubCard('This Month', _formatStars(monthly), Colors.purpleAccent)),
             ],
           ),
           const SizedBox(height: 16),
-          _buildBigContributionCard('This Year\'s Contribution', '${_formatStars(yearly)} Gems 💎', Colors.cyanAccent),
+          _buildBigContributionCard('This Year\'s Contribution', _formatStars(yearly), Colors.cyanAccent),
         ],
       ),
     );
@@ -556,8 +557,14 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: GoogleFonts.inter(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Text(val, style: GoogleFonts.poppins(color: glowColor, fontSize: 28, fontWeight: FontWeight.bold)),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(val, style: GoogleFonts.poppins(color: glowColor, fontSize: 28, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 6),
+              const GemIcon(size: 24),
+            ],
+          ),
         ],
       ),
     );
@@ -576,7 +583,14 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
         children: [
           Text(title, style: GoogleFonts.inter(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text(val, style: GoogleFonts.poppins(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(val, style: GoogleFonts.poppins(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 4),
+              const GemIcon(size: 14),
+            ],
+          ),
         ],
       ),
     );
@@ -685,10 +699,7 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
               ],
             ),
           ),
-          Text(
-            '${_formatStars(stars)} Gems 💎',
-            style: GoogleFonts.poppins(color: const Color(0xFF00F2FE), fontSize: 12, fontWeight: FontWeight.bold),
-          ),
+          GemCounter(amount: stars, iconSize: 13),
         ],
       ),
     );

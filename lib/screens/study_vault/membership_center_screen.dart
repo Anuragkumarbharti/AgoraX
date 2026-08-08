@@ -171,7 +171,7 @@ class _MembershipCenterScreenState extends State<MembershipCenterScreen> with Si
           _buildStatusCard(
             title: hasVip ? 'VIP Level $currentLevel Active' : 'No VIP Active',
             subtitle: hasVip ? timeInfo['displayText'] ?? '' : 'Unlock premium customisations & daily claims',
-            icon: Icons.star_rounded,
+            icon: Icons.workspace_premium_rounded,
             color: Color(0xFFFFD700),
             gradient: LinearGradient(
               colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],

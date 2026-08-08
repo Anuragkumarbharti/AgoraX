@@ -7,6 +7,7 @@ import '../../../../services/room/room_seat_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/index.dart';
+import '../../../../widgets/gems/gem_widgets.dart';
 import '../../../../core/theme.dart';
 
 class RoomCallSeatGrid extends StatelessWidget {
@@ -239,7 +240,7 @@ class RoomCallSeatGrid extends StatelessWidget {
           ),
           SizedBox(height: 1 * scale),
 
-          // ⭐ Total Gift Stars
+          // 💎 Total Gift Gems
           SizedBox(
             width: 72 * scale,
             height: 12 * scale,
@@ -248,17 +249,16 @@ class RoomCallSeatGrid extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.star,
-                          color: tokens.starIconColor,
-                          size: 7.5 * scale,
+                        GemIcon(
+                          size: 8.5 * scale,
+                          showGlow: false,
                         ),
-                        SizedBox(width: 1 * scale),
+                        SizedBox(width: 1.5 * scale),
                         AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 280),
                           curve: Curves.easeInOutCubic,
                           style: TextStyle(
-                            color: tokens.starTextColor,
+                            color: tokens.gemTextColor,
                             fontSize: 7 * scale,
                             fontWeight: FontWeight.bold,
                           ),

@@ -9,7 +9,7 @@ import 'dart:math';
 /// - 1,000,000,000+: B suffix (rounded to 1 decimal place, trailing .0 omitted)
 ///
 /// Applies consistently for Coins, Gold, Silver, Diamonds, Followers, Following,
-/// Friends, Likes, Views, Downloads, XP, Stars, Gifts, Members, etc.
+/// Friends, Likes, Views, Downloads, XP, Gems, Gifts, Members, etc.
 String formatCompactNumber(num value) {
   if (value.isNaN || value.isInfinite) return '0';
 

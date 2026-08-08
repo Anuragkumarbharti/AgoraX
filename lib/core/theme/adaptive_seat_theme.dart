@@ -28,6 +28,8 @@ class AdaptiveSeatThemeTokens {
   final Color seatNumberColor;
   final Color starIconColor;
   final Color starTextColor;
+  Color get gemIconColor => const Color(0xFF00F2FE);
+  Color get gemTextColor => starTextColor;
   final Color micOffBadgeBg;
   final Color micOffIconColor;
 

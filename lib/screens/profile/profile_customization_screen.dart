@@ -989,8 +989,8 @@ class _ProfileCustomizationScreenState extends State<ProfileCustomizationScreen>
                   if (!isVirtual)
                     IconButton(
                       icon: Icon(
-                        isFav ? Icons.star_rounded : Icons.star_outline_rounded,
-                        color: isFav ? Color(0xFFFFD700) : Colors.white30,
+                        isFav ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+                        color: isFav ? const Color(0xFF00F2FE) : Colors.white30,
                         size: 16,
                       ),
                       padding: EdgeInsets.zero,

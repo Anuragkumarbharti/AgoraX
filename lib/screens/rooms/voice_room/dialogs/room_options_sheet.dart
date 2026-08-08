@@ -8,6 +8,7 @@ import '../../../../services/room/room_controller.dart';
 import 'member_list_dialog.dart';
 import 'room_audio_settings_dialog.dart';
 import 'room_settings_dialog.dart';
+import '../../../../widgets/gems/gem_widgets.dart';
 
 /// Helper model for Room Option items
 class RoomOptionItem {
@@ -694,11 +695,7 @@ class RoomOptionsSheet extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.stars_rounded,
-                      color: Colors.amber,
-                      size: 32,
-                    ),
+                    const GemIcon(size: 32),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -896,7 +893,7 @@ class RoomOptionsSheet extends StatelessWidget {
       },
       {
         'name': 'Gold Confetti',
-        'icon': Icons.stars,
+        'icon': Icons.diamond_rounded,
         'color': Colors.amberAccent
       },
     ];

@@ -5,6 +5,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:creania/core/theme.dart';
 import '../../services/store/store_controller.dart';
+import '../../widgets/gems/gem_widgets.dart';
 
 class LuckyDrawScreen extends StatefulWidget {
   const LuckyDrawScreen({Key? key}) : super(key: key);
@@ -238,7 +239,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
                   Text('Your Balance: 🪙 ${_storeCtrl.coinsBalance.value}', style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12)),
                 ],
               ),
-              Icon(Icons.stars_rounded, color: Color(0xFFFFB800)),
+              const GemIcon(size: 24),
             ],
           ),
         ));

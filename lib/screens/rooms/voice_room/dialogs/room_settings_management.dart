@@ -834,7 +834,7 @@ class RoomSettingsManagement {
 
               _actionTile(
                 context: context,
-                icon: Icons.star_rounded,
+                icon: Icons.workspace_premium_rounded,
                 color: Colors.amber,
                 label: currentRole == 'Co-owner' ? 'Demote from Co-owner' : 'Make Co-owner',
                 onTap: () {

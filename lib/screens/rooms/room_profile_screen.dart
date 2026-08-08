@@ -242,7 +242,7 @@ class RoomProfileScreen extends StatelessWidget {
                                   onPressed: () {
                                     Get.dialog(RoomUpgradeDialog(roomId: roomId));
                                   },
-                                  icon: const Icon(Icons.star_outline, color: Colors.amber),
+                                  icon: const Icon(Icons.workspace_premium_rounded, color: Colors.amber),
                                   label: const Text('Upgrade'),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: Colors.amber,

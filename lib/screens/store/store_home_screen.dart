@@ -13,6 +13,7 @@ import './coin_store_screen.dart';
 import './vip_novel_store_tab.dart';
 import './lucky_draw_screen.dart';
 import './gift_membership_screen.dart';
+import '../../widgets/gems/gem_widgets.dart';
 import './history_screen.dart';
 import './admin_store_panel.dart';
 import '../home/main_screen.dart';
@@ -668,7 +669,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> with TickerProviderSt
       children: [
         Row(
           children: [
-            Icon(Icons.star_rounded, color: context.accentGold, size: 18),
+            const GemIcon(size: 18),
             SizedBox(width: 6),
             Text(
               'SPECIAL LIMITED PACKS',

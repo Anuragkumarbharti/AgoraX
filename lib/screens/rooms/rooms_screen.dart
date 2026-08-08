@@ -77,7 +77,7 @@ class _RoomsScreenState extends State<RoomsScreen>
 
   // Constant Categories
   final List<Map<String, dynamic>> _discoveryCategories = [
-    {'name': 'For You', 'icon': Icons.stars_rounded},
+    {'name': 'For You', 'icon': Icons.diamond_rounded},
     {'name': 'Communities', 'icon': Icons.group_work_rounded},
     {'name': 'Music Lounge', 'icon': Icons.music_note_rounded},
     {'name': 'Hangout', 'icon': Icons.nightlife_rounded},

@@ -86,7 +86,7 @@ class RoomCallChatBox extends StatelessWidget {
         icon = Icons.card_giftcard_rounded;
       } else if (isJackpot) {
         eventColor = const Color(0xFFF59E0B);
-        icon = Icons.stars_rounded;
+        icon = Icons.diamond_rounded;
       } else if (isLuckyWin) {
         eventColor = const Color(0xFF8B5CF6);
         icon = Icons.casino_rounded;

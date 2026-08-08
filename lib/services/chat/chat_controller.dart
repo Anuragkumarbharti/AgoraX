@@ -542,7 +542,7 @@ class ChatController extends GetxController {
 
   void sendGiftMessage(String conversationId, String giftName, String giftIcon, int giftStars, String recipientId) {
     final bool isUnlock = giftStars >= 2;
-    final String contentText = '$giftIcon Sent $giftName ($giftStars★)${isUnlock ? " • Unlocked 3 Request Messages 🔓" : ""}';
+    final String contentText = '$giftIcon Sent $giftName ($giftStars 💎)${isUnlock ? " • Unlocked 3 Request Messages 🔓" : ""}';
 
     sendMessage(
       conversationId,

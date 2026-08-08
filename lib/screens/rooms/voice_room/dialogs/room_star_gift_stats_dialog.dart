@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../utils/number_formatter.dart';
+import '../../../../widgets/gems/gem_widgets.dart';
 
 class RoomStarGiftStatsDialog extends StatefulWidget {
   final String roomId;
@@ -129,24 +130,13 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFB800).withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFFFB800),
-                          size: 20,
-                        ),
-                      ),
+                      const GemIcon(size: 20),
                       const SizedBox(width: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Room Gift Gems 💎',
+                            'Room Gem Gifts',
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -304,7 +294,7 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'No star gifts recorded for this period.',
+                        'No gem gifts recorded for this period.',
                         style: GoogleFonts.poppins(
                           color: Colors.white38,
                           fontSize: 12.5,
@@ -439,11 +429,7 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(
-                Icons.star_rounded,
-                color: iconColor,
-                size: 15,
-              ),
+              GemIcon(size: 15),
             ],
           ),
         ],

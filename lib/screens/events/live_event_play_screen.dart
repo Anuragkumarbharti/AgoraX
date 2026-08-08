@@ -8,6 +8,7 @@ import '../../models/community/event_model.dart';
 import '../../models/user/user_model.dart';
 import '../profile/profile_screen.dart';
 import './live_event_winner_screen.dart';
+import '../../widgets/gems/gem_widgets.dart';
 
 class LiveEventPlayScreen extends StatefulWidget {
   const LiveEventPlayScreen({Key? key, required this.event}) : super(key: key);
@@ -1018,7 +1019,7 @@ class _LiveEventPlayScreenState extends State<LiveEventPlayScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.stars_rounded, color: Colors.green, size: 20),
+                    const GemIcon(size: 20),
                     SizedBox(width: 8),
                     Text('QUALIFIED! 🎖️', style: TextStyle(color: Colors.green, fontSize: 14, fontWeight: FontWeight.bold)),
                   ],

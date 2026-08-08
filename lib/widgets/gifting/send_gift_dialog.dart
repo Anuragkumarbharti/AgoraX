@@ -117,8 +117,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         isLucky: true),
     GiftItem(
         id: 'f1000001-0000-0000-0000-000000000005',
-        name: 'Lucky Star',
-        icon: '⭐',
+        name: 'Lucky Gem',
+        icon: '💎',
         cost: 2,
         currency: 'gold',
         tier: GiftTier.tier1,

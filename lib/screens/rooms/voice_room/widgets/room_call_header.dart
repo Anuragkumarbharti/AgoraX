@@ -10,6 +10,7 @@ import '../../../../services/room/room_progression_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../widgets/room/creania_vp_progress_bar.dart';
 import '../../../../widgets/room/starmaker_dual_progress_bar.dart';
+import '../../../../widgets/gems/gem_widgets.dart';
 import '../dialogs/online_members_dialog.dart';
 import '../dialogs/seat_applications_dialog.dart';
 import '../dialogs/room_settings_dialog.dart';
@@ -134,11 +135,7 @@ class RoomCallHeader extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 3.5),
-                                const Icon(
-                                  Icons.star_rounded,
-                                  color: Color(0xFFFFD700),
-                                  size: 11.5,
-                                ),
+                                const GemIcon(size: 11.5, showGlow: false),
                               ],
                             ),
                           ),

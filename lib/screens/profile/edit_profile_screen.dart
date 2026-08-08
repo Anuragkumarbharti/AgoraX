@@ -13,6 +13,7 @@ import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/user/user_progress_sync_service.dart';
 import '../../services/storage/universal_image_optimizer.dart';
 import '../../services/storage/asset_cache_manager.dart';
+import '../../widgets/gems/gem_widgets.dart';
 import '../../widgets/profile/custom_image_editor.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -464,7 +465,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   color: context.accentOrange.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.stars_rounded, color: context.accentOrange, size: 48),
+                child: const GemIcon(size: 48),
               ),
               SizedBox(height: 18),
               Text(

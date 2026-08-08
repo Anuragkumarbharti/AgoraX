@@ -8,6 +8,7 @@ import '../../../../services/room/room_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/room/room_dual_progress_controller.dart';
 import '../../../../widgets/room/starmaker_dual_progress_bar.dart';
+import '../../../../widgets/gems/gem_widgets.dart';
 
 class RoomTasksAndRewardsDialog extends StatefulWidget {
   final String roomId;
@@ -349,13 +350,9 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
                       ? Colors.green.withOpacity(0.2)
                       : const Color(0xFF38BDF8).withOpacity(0.15),
                   radius: 18,
-                  child: Icon(
-                    task.isCompleted ? Icons.check_circle : Icons.star,
-                    color: task.isCompleted
-                        ? Colors.greenAccent
-                        : const Color(0xFF38BDF8),
-                    size: 20,
-                  ),
+                  child: task.isCompleted
+                      ? const Icon(Icons.check_circle, color: Colors.greenAccent, size: 20)
+                      : const GemIcon(size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

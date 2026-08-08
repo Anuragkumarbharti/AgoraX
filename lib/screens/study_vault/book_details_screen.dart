@@ -306,7 +306,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _infoTile('Pages', '${book.pages} pgs', Icons.menu_book),
-              _infoTile('Rating', '${book.rating} (${book.reviewsCount} reviews)', Icons.star, iconColor: context.accentGold),
+              _infoTile('Rating', '${book.rating} (${book.reviewsCount} reviews)', Icons.diamond_rounded, iconColor: context.accentGold),
               _infoTile('Language', book.language, Icons.translate),
             ],
           ),
@@ -623,9 +623,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                                         )
                                       ],
                                     ),
-                                    Row(
-                                      children: List.generate(5, (starIdx) => Icon(Icons.star, color: starIdx < rev.rating ? context.accentGold : context.borderColor, size: 10)),
-                                    )
+                                     Row(
+                                       children: List.generate(5, (starIdx) => Icon(Icons.diamond_rounded, color: starIdx < rev.rating ? context.accentGold : context.borderColor, size: 10)),
+                                     )
                                   ],
                                 ),
                               ),

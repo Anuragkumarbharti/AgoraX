@@ -9,6 +9,7 @@ import '../../models/progression/progression_models.dart';
 import './progression_admin_dashboard.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/storage/admob_service.dart';
+import '../../widgets/gems/gem_widgets.dart';
 
 class ProgressionCenterScreen extends StatefulWidget {
   const ProgressionCenterScreen({Key? key}) : super(key: key);
@@ -535,7 +536,7 @@ class _ProgressionCenterScreenState extends State<ProgressionCenterScreen>
                                 ? Icons.flash_on_rounded
                                 : r.rewardType == 'silver'
                                     ? Icons.monetization_on_rounded
-                                    : Icons.stars_rounded,
+                                    : Icons.diamond_rounded,
                             size: 11,
                             color: r.rewardType == 'xp'
                                 ? const Color(0xFF8B5CF6)
@@ -655,10 +656,10 @@ class _ProgressionCenterScreenState extends State<ProgressionCenterScreen>
       {'name': 'Silver Coins', 'icon': Icons.monetization_on_rounded, 'amount': '${200 * weekFactor} Silver', 'color': Colors.grey},
       {'name': 'Silver Coins', 'icon': Icons.monetization_on_rounded, 'amount': '${300 * weekFactor} Silver', 'color': Colors.grey},
       {'name': 'XP Points', 'icon': Icons.flash_on_rounded, 'amount': '100 XP', 'color': const Color(0xFF8B5CF6)},
-      {'name': 'Gold Coins', 'icon': Icons.stars_rounded, 'amount': '${1 * weekFactor} Gold', 'color': const Color(0xFFFFDB3C)},
+      {'name': 'Gold Coins', 'icon': Icons.diamond_rounded, 'amount': '${1 * weekFactor} Gold', 'color': const Color(0xFFFFDB3C)},
       {'name': 'Silver Coins', 'icon': Icons.monetization_on_rounded, 'amount': '${600 * weekFactor} Silver', 'color': Colors.grey},
       {'name': 'Spin Ticket', 'icon': Icons.confirmation_number_rounded, 'amount': '1 Ticket', 'color': const Color(0xFF6366F1)},
-      {'name': 'Gold Jackpot!', 'icon': Icons.stars_rounded, 'amount': '${15 * weekFactor} Gold', 'color': const Color(0xFFFFDB3C)},
+      {'name': 'Gold Jackpot!', 'icon': Icons.diamond_rounded, 'amount': '${15 * weekFactor} Gold', 'color': const Color(0xFFFFDB3C)},
     ];
 
     return ListView(
@@ -772,7 +773,7 @@ class _ProgressionCenterScreenState extends State<ProgressionCenterScreen>
                   children: [
                     Text('Day $dayNumber', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                     const SizedBox(height: 4),
-                    const Icon(Icons.star_rounded, color: Color(0xFF10B981), size: 18),
+                    const GemIcon(size: 18),
                   ],
                 );
               } else {

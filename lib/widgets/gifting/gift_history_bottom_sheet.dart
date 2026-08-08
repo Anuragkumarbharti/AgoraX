@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme.dart';
 import '../../services/user/user_profile_cache_manager.dart';
+import '../gems/gem_widgets.dart';
 
 class GiftHistoryBottomSheet extends StatefulWidget {
   final String userId;
@@ -41,9 +42,9 @@ class _GiftHistoryBottomSheetState extends State<GiftHistoryBottomSheet> {
 
   int _calculateStars(String itemId, int coinsValue, int quantity) {
     int starsPerUnit;
-    if (itemId == '2-Star Gift') {
+    if (itemId == '2-Star Gift' || itemId == '2-Gem Gift') {
       starsPerUnit = 2;
-    } else if (itemId == '1-Star Gift') {
+    } else if (itemId == '1-Star Gift' || itemId == '1-Gem Gift') {
       starsPerUnit = 1;
     } else {
       starsPerUnit = (coinsValue / 10).clamp(1, 999999).toInt();
@@ -200,18 +201,18 @@ class _GiftHistoryBottomSheetState extends State<GiftHistoryBottomSheet> {
                                   ),
                                 ),
 
-                                // Stars Reward count
+                                // Gems Reward count
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Row(
                                       children: [
-                                        const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 14),
+                                        const GemIcon(size: 14),
                                         const SizedBox(width: 4),
                                         Text(
                                           '$stars',
                                           style: GoogleFonts.poppins(
-                                            color: const Color(0xFFFBBF24),
+                                            color: const Color(0xFF00F2FE),
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14,
                                           ),
@@ -220,7 +221,7 @@ class _GiftHistoryBottomSheetState extends State<GiftHistoryBottomSheet> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Stars',
+                                      'Gems',
                                       style: GoogleFonts.poppins(
                                         color: Colors.white24,
                                         fontSize: 9,

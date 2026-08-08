@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../utils/number_formatter.dart';
+import '../gems/gem_widgets.dart';
 
 class RoomContributionDialog extends StatefulWidget {
   final String roomId;
@@ -116,9 +117,9 @@ class _RoomContributionDialogState extends State<RoomContributionDialog> with Si
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    Expanded(child: _buildStatTile('Total Room Gems', '${_formatStars(totalStars)} 💎', '$totalGifts Gifts')),
+                    Expanded(child: _buildStatTile('Total Room Gems', _formatStars(totalStars), '$totalGifts Gifts')),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildStatTile('This Session Gems', '${_formatStars(sessionStars)} 💎', '$sessionGifts Gifts')),
+                    Expanded(child: _buildStatTile('This Session Gems', _formatStars(sessionStars), '$sessionGifts Gifts')),
                   ],
                 ),
               ),
@@ -168,8 +169,14 @@ class _RoomContributionDialogState extends State<RoomContributionDialog> with Si
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: GoogleFonts.inter(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text(value, style: GoogleFonts.poppins(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(value, style: GoogleFonts.poppins(color: const Color(0xFF00F2FE), fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 4),
+              const GemIcon(size: 14),
+            ],
+          ),
           const SizedBox(height: 2),
           Text(sub, style: GoogleFonts.inter(color: Colors.white38, fontSize: 9)),
         ],
@@ -249,10 +256,7 @@ class _RoomContributionDialogState extends State<RoomContributionDialog> with Si
               ),
 
               // Total Gems
-              Text(
-                '${_formatStars(gems)} 💎',
-                style: GoogleFonts.poppins(color: const Color(0xFF00F2FE), fontSize: 12, fontWeight: FontWeight.bold),
-              ),
+              GemCounter(amount: gems, iconSize: 13),
             ],
           ),
         );

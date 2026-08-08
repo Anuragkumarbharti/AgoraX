@@ -13,6 +13,7 @@ import '../../models/user/user_model.dart';
 import '../../services/community/community_controller.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../profile/profile_screen.dart';
+import '../../widgets/gems/gem_widgets.dart';
 import '../../widgets/community/community_join_button.dart';
 
 class CommunityDetailScreen extends StatefulWidget {
@@ -923,7 +924,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               // Promote/Demote to Co-owner (Only Owner can assign Co-owner)
               if (canManage && myRole == 'Owner') ...[
                 _actionTile(
-                  icon: Icons.star_rounded,
+                  icon: Icons.workspace_premium_rounded,
                   color: Colors.amber,
                   label: currentRole == 'Co-Owner' ? 'Demote from Co-Owner' : 'Make Co-Owner',
                   onTap: () {
@@ -1025,7 +1026,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.stars_rounded, color: context.accentGold, size: 52),
+              const GemIcon(size: 52),
               SizedBox(height: 12),
               Text(
                 'Verified Coins Family',

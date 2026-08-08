@@ -1904,7 +1904,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
-          icon = Icons.star_rounded;
+          icon = Icons.diamond_rounded;
         } else if (type == 'community') {
           color = const Color(0xFFEC4899);
           gradient = const LinearGradient(
@@ -1936,7 +1936,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
-          icon = Icons.star_border_rounded;
+          icon = Icons.workspace_premium_rounded;
         }
 
         tags.add({
