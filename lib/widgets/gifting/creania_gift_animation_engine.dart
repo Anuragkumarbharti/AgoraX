@@ -89,6 +89,12 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   final List<PooledParticle> _activeParticles = [];
   bool _hasTriggeredImpact = false;
 
+  // FIX: Use explicit start/complete flags instead of _controller.isAnimating.
+  // isAnimating returns false during the reset()→forward() transition window,
+  // causing a single-frame blank render that Flutter interprets as animation end.
+  bool _hasStarted = false;
+  bool _isCompleted = false;
+
   @override
   void initState() {
     super.initState();
@@ -104,7 +110,8 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        debugPrint('[GIFT] EFFECT END | gift=${widget.event?.giftName}');
+        debugPrint('[GIFT] EFFECT END | gift=${widget.event?.giftName} | progress=${(_controller.value * 100).toStringAsFixed(1)}%');
+        _isCompleted = true;
         if (mounted && widget.onCompleted != null) widget.onCompleted!();
         GiftPipelineManager.to.onAnimationCompleted();
       }
@@ -128,6 +135,7 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
 
   void _startAnimation(GiftRequestEvent event) {
     _hasTriggeredImpact = false;
+    _isCompleted = false;
     _metadata = GiftMetadataRegistry.getMetadata(event.giftId.isNotEmpty ? event.giftId : event.giftName);
 
     final targetCount = (event.targetOffsets != null && event.targetOffsets!.isNotEmpty)
@@ -140,6 +148,8 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
     debugPrint('[GIFT] START | Configured Duration: ${duration.inMilliseconds}ms | gift=${event.giftName}');
 
     _initParticles();
+    // Mark started BEFORE reset+forward so no parent rebuild can blank us mid-transition.
+    _hasStarted = true;
     _controller.reset();
     _controller.forward();
   }
@@ -249,7 +259,10 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
-          if (!_controller.isAnimating) return const SizedBox.shrink();
+          // FIX: Do NOT use _controller.isAnimating — it returns false during
+          // the reset()→forward() window (1 frame) AND before first start.
+          // Use explicit flags that are immune to transient dismissed state.
+          if (!_hasStarted || _isCompleted) return const SizedBox.shrink();
 
           final progress = _controller.value;
           final tenInfo = AnimationTimeline.getTenStageInfo(progress, meta.tier, targetCount: targets.length);

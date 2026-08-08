@@ -687,23 +687,22 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   void _processEntranceQueue() async {
     if (_isEntrancePlaying.value || _entranceQueue.isEmpty) return;
 
-    _isEntrancePlaying.value = true;
+    // FIX: Do NOT set _isEntrancePlaying=true here yet.
+    // Old code set it first → Obx immediately rebuilt with isPlaying=true but
+    // _resolvedEntranceAnimation still empty → SizedBox.shrink() → widget disposed.
+    // Then setting each Rx var triggered more rebuilds with changing keys → full crash.
+
     final task = _entranceQueue.first;
 
-    _currentEntranceTaskId.value = task['taskId'] ?? 'entry_${task['userId']}_${DateTime.now().microsecondsSinceEpoch}';
-    _currentEntranceUser.value = task['userName'];
-    _currentEntranceUserId.value = task['userId'];
-    _currentEntranceVipLevel.value = task['vipLevel'];
-    _currentEntranceNovelLevel.value = task['novelLevel'];
-    _currentEntranceEntryEffect.value = task['entryEffect'] ?? '';
+    // ── Step 1: Read all data into local variables (ZERO Rx writes here) ──
+    final String taskId = task['taskId'] ?? 'entry_${task['userId']}_${DateTime.now().microsecondsSinceEpoch}';
+    final String userName = task['userName'] ?? 'User';
+    final String userId = task['userId'] ?? '';
+    final int vipLvl = task['vipLevel'] ?? 0;
+    final int novelLvl = task['novelLevel'] ?? 0;
+    final String effectStr = (task['entryEffect'] ?? '').toString().trim();
 
-    final completer = Completer<void>();
-    _currentEntranceCompleter = completer;
-
-    final String effectStr = (_currentEntranceEntryEffect.value ?? '').trim();
-    final int vipLvl = _currentEntranceVipLevel.value;
-    final int novelLvl = _currentEntranceNovelLevel.value;
-
+    // ── Step 2: Compute targetEffect locally (no Rx reads/writes) ──
     String targetEffect = 'None';
     if (effectStr.isNotEmpty && effectStr != 'null') {
       if (effectStr == 'Neon Gateway' ||
@@ -739,9 +738,26 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       }
     }
 
+    // ── Step 3: Write ALL Rx vars in one tight synchronous block ──
+    // GetX batches sequential .value= in same sync context into one Obx rebuild.
+    // Write data vars first, effect+key last — so when the Obx fires, the
+    // widget key (vip_entry_$taskId) is ALREADY set and stable.
+    _currentEntranceTaskId.value = taskId;
+    _currentEntranceUser.value = userName;
+    _currentEntranceUserId.value = userId;
+    _currentEntranceVipLevel.value = vipLvl;
+    _currentEntranceNovelLevel.value = novelLvl;
+    _currentEntranceEntryEffect.value = effectStr;
     _resolvedEntranceAnimation.value = targetEffect;
+
+    // ── Step 4: Set visibility flags LAST so Obx renders once with complete state ──
+    _isEntrancePlaying.value = true;
     _showEntranceOverlay.value = true;
-    debugPrint('[ENTRY_OVERLAY] OVERLAY CREATED | effect=$targetEffect | user=${_currentEntranceUser.value}');
+
+    debugPrint('[ENTRY_OVERLAY] OVERLAY CREATED | effect=$targetEffect | user=$userName');
+
+    final completer = Completer<void>();
+    _currentEntranceCompleter = completer;
 
     int maxDurationMs = 8500;
     if (targetEffect == 'VIP 2') {
@@ -772,8 +788,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     _controller.addSystemActivity(
       widget.roomId,
       '🟢 ${_currentEntranceUser.value} entered the arena.',
-      senderId: task['userId'],
-      senderName: task['userName'],
+      senderId: userId,
+      senderName: userName,
       activityKey: 'room-enter',
     );
 
