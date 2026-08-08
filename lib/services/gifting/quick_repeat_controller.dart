@@ -5,6 +5,7 @@ import '../user/user_profile_cache_manager.dart';
 import '../store/store_controller.dart';
 import '../room/room_gift_controller.dart';
 import '../../widgets/gifting/insufficient_balance_sheet.dart';
+import '../../models/gift/gift_animation_metadata.dart';
 
 class QuickRepeatState {
   final String originalGiftTransactionId;
@@ -13,6 +14,8 @@ class QuickRepeatState {
   final String giftId;
   final String giftName;
   final String giftIcon;
+  /// Resolved GIF asset path: assets/GIFTS_SHOWCCASE/ROSE.gif etc.
+  final String giftImageAssetPath;
   final String currency;
   final int giftCost;
   final List<String> recipientIds;
@@ -28,6 +31,7 @@ class QuickRepeatState {
     required this.giftId,
     required this.giftName,
     required this.giftIcon,
+    required this.giftImageAssetPath,
     required this.currency,
     required this.giftCost,
     required this.recipientIds,
@@ -47,24 +51,46 @@ class QuickRepeatController extends GetxController {
     return Get.find<QuickRepeatController>();
   }
 
+  // ── Timer Constants ───────────────────────────────────────────────────────
+  /// Total 10-second global window. Quick Repeat hides when this expires.
   static const int totalWindowSeconds = 10;
+
+  /// After each successful Repeat tap, inactivity timer resets to this value.
   static const int tapResetSeconds = 3;
 
+  /// On first activation, showcase fires after 2s of inactivity.
+  static const int inactivityShowcaseSeconds = 2;
+
+  // ── Observable State ──────────────────────────────────────────────────────
   final Rxn<QuickRepeatState> activeState = Rxn<QuickRepeatState>();
   final RxInt remainingSeconds = totalWindowSeconds.obs;
   final RxDouble progress = 1.0.obs;
   final RxBool isProcessing = false.obs;
 
-  Timer? _timer;
-  int _ticksRemaining = 100;
+  /// Pulses true briefly on each successful repeat, used for tap-pulse animation.
+  final RxBool tapPulse = false.obs;
+
+  /// Fires true when inactivity threshold expires → overlay should play showcase animation.
+  /// Resets to false immediately on the next Repeat tap.
+  final RxBool shouldTriggerShowcase = false.obs;
+
+  // ── Internal Timers ───────────────────────────────────────────────────────
+  /// Global 10-second countdown — never resets, hides QR at expiry.
+  Timer? _globalTimer;
+  int _globalTicksRemaining = totalWindowSeconds * 10;
+
+  /// Inactivity timer — 2s on activation, 3s after each Repeat tap.
+  Timer? _inactivityTimer;
 
   @override
   void onClose() {
-    _timer?.cancel();
+    _globalTimer?.cancel();
+    _inactivityTimer?.cancel();
     super.onClose();
   }
 
-  /// Activates or replaces Quick Repeat session for sender.
+  // ── Activate ─────────────────────────────────────────────────────────────
+
   void activateQuickRepeat({
     required String originalGiftTransactionId,
     required String roomId,
@@ -85,6 +111,10 @@ class QuickRepeatController extends GetxController {
       return;
     }
 
+    // Resolve GIF asset path from the gift metadata registry
+    final meta = GiftMetadataRegistry.getMetadata(giftId.isNotEmpty ? giftId : giftName);
+    final assetPath = meta.resolvedGifAssetPath;
+
     final state = QuickRepeatState(
       originalGiftTransactionId: originalGiftTransactionId,
       roomId: roomId,
@@ -92,6 +122,7 @@ class QuickRepeatController extends GetxController {
       giftId: giftId,
       giftName: giftName,
       giftIcon: giftIcon,
+      giftImageAssetPath: assetPath,
       currency: currency,
       giftCost: giftCost,
       recipientIds: List.from(recipientIds),
@@ -101,38 +132,36 @@ class QuickRepeatController extends GetxController {
     );
 
     activeState.value = state;
-    debugPrint('[QuickRepeat] Activated: ${giftName} x$initialQuantity to ${recipientNames.join(", ")} (10s total window)');
-    _resetTimer(isInitial: true);
+    debugPrint('[QuickRepeat] Activated: $giftName x$initialQuantity → $assetPath. 10s total window, 2s inactivity showcase.');
+    _startGlobalTimer();
+    _startInactivityTimer(seconds: inactivityShowcaseSeconds);
   }
 
-  /// Handles rapid repeat taps safely with pre-flight balance checks and sequential locks.
+  // ── Repeat Gift ───────────────────────────────────────────────────────────
+
   Future<bool> repeatGift(String roomId) async {
     final state = activeState.value;
     if (state == null) {
       debugPrint('[QuickRepeat] Repeat tap ignored: No active quick repeat state.');
       return false;
     }
-
     if (state.roomId != roomId) {
-      debugPrint('[QuickRepeat] Repeat tap ignored: Room mismatch (${state.roomId} != $roomId)');
+      debugPrint('[QuickRepeat] Repeat tap ignored: Room mismatch.');
       return false;
     }
-
     final currentUserId = UserProfileCacheManager.currentUserId;
     if (state.senderId != currentUserId) {
-      debugPrint('[QuickRepeat] Repeat tap ignored: Sender mismatch (${state.senderId} != $currentUserId)');
+      debugPrint('[QuickRepeat] Repeat tap ignored: Sender mismatch.');
       return false;
     }
-
     if (isProcessing.value) {
-      debugPrint('[QuickRepeat] Mutex Guard: Tap ignored while previous repeat operation is processing.');
+      debugPrint('[QuickRepeat] Mutex Guard: Tap ignored while processing.');
       return false;
     }
 
     isProcessing.value = true;
 
     try {
-      // 1. Balance verification pre-flight
       final totalCost = state.giftCost * 1 * state.recipientIds.length;
       RxInt? walletBalance;
       if (Get.isRegistered<StoreController>()) {
@@ -144,7 +173,7 @@ class QuickRepeatController extends GetxController {
 
       final int currentBalance = walletBalance?.value ?? 0;
       if (currentBalance < totalCost) {
-        debugPrint('[QuickRepeat] Insufficient balance for repeat: Required $totalCost ${state.currency}, available $currentBalance');
+        debugPrint('[QuickRepeat] Insufficient balance: Required $totalCost ${state.currency}, available $currentBalance');
         try {
           InsufficientBalanceSheet.show(
             currency: state.currency,
@@ -157,7 +186,6 @@ class QuickRepeatController extends GetxController {
         return false;
       }
 
-      // 2. Execute repeat gift transaction using production RoomGiftController pipeline
       final success = await RoomGiftController.to.sendStarGiftToRoom(
         roomId: state.roomId,
         giftId: state.giftId,
@@ -176,8 +204,11 @@ class QuickRepeatController extends GetxController {
 
       if (success) {
         state.currentQuantity.value += 1;
-        debugPrint('[QuickRepeat] Repeat SUCCESS: ${state.giftName} effective total is now x${state.currentQuantity.value}');
-        _resetTimer(isInitial: false); // Resets timer to 3s on every successful repeat tap
+        debugPrint('[QuickRepeat] Repeat SUCCESS: total=x${state.currentQuantity.value}');
+        // Reset inactivity timer to 3s (global 10s window continues unchanged)
+        _startInactivityTimer(seconds: tapResetSeconds);
+        // Trigger pulse animation
+        _triggerTapPulse();
         return true;
       } else {
         debugPrint('[QuickRepeat] Repeat FAILED in RoomGiftController.');
@@ -191,44 +222,77 @@ class QuickRepeatController extends GetxController {
     }
   }
 
-  void _resetTimer({required bool isInitial}) {
-    _timer?.cancel();
+  // ── Timer Internals ───────────────────────────────────────────────────────
 
-    if (isInitial) {
-      _ticksRemaining = totalWindowSeconds * 10;
-    } else {
-      _ticksRemaining = (tapResetSeconds * 10).clamp(1, totalWindowSeconds * 10);
-    }
+  /// 10-second global countdown. Drives the arc ring progress indicator.
+  /// Hides QR completely when it reaches 0. Never resets.
+  void _startGlobalTimer() {
+    _globalTimer?.cancel();
+    _globalTicksRemaining = totalWindowSeconds * 10;
+    remainingSeconds.value = totalWindowSeconds;
+    progress.value = 1.0;
 
-    remainingSeconds.value = (_ticksRemaining / 10).ceil().clamp(0, totalWindowSeconds);
-    progress.value = (_ticksRemaining / (totalWindowSeconds * 10)).clamp(0.0, 1.0);
+    _globalTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _globalTicksRemaining--;
+      final secs = (_globalTicksRemaining / 10).ceil().clamp(0, totalWindowSeconds);
+      remainingSeconds.value = secs;
+      progress.value = (_globalTicksRemaining / (totalWindowSeconds * 10)).clamp(0.0, 1.0);
 
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      _ticksRemaining--;
-      final remainingSec = (_ticksRemaining / 10).ceil().clamp(0, totalWindowSeconds);
-      remainingSeconds.value = remainingSec;
-      progress.value = (_ticksRemaining / (totalWindowSeconds * 10)).clamp(0.0, 1.0);
-
-      if (_ticksRemaining <= 0) {
+      if (_globalTicksRemaining <= 0) {
         timer.cancel();
+        debugPrint('[QuickRepeat] 10s global window expired → hiding Quick Repeat.');
         clearQuickRepeat();
       }
     });
   }
 
+  /// Inactivity timer — fires showcase trigger after [seconds] of no tap.
+  /// [seconds]: 2s on activation, 3s after each Repeat tap.
+  /// Quick Repeat widget remains visible — only animation starts.
+  void _startInactivityTimer({required int seconds}) {
+    _inactivityTimer?.cancel();
+    shouldTriggerShowcase.value = false;
+
+    int ticks = seconds * 10;
+    _inactivityTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      ticks--;
+      if (ticks <= 0) {
+        timer.cancel();
+        shouldTriggerShowcase.value = true;
+        debugPrint('[QuickRepeat] ${seconds}s inactivity → showcase animation triggered. QR still visible.');
+      }
+    });
+  }
+
+  void _triggerTapPulse() async {
+    tapPulse.value = true;
+    await Future.delayed(const Duration(milliseconds: 300));
+    tapPulse.value = false;
+  }
+
+  // ── Clear ─────────────────────────────────────────────────────────────────
+
   void clearQuickRepeat() {
-    _timer?.cancel();
-    _timer = null;
+    _globalTimer?.cancel();
+    _globalTimer = null;
+    _inactivityTimer?.cancel();
+    _inactivityTimer = null;
     activeState.value = null;
     remainingSeconds.value = 0;
     progress.value = 0.0;
     isProcessing.value = false;
+    tapPulse.value = false;
+    shouldTriggerShowcase.value = false;
     debugPrint('[QuickRepeat] Quick repeat session expired or cleared.');
   }
+
+  // ── Visibility ────────────────────────────────────────────────────────────
 
   bool isVisible(String roomId, String currentUserId) {
     final state = activeState.value;
     if (state == null) return false;
-    return state.roomId == roomId && state.senderId == currentUserId && remainingSeconds.value > 0;
+    return state.roomId == roomId &&
+        state.senderId == currentUserId &&
+        remainingSeconds.value > 0;
   }
 }
