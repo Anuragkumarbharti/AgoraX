@@ -69,8 +69,21 @@ class RoomGiftController extends GetxController {
         return false;
       }
 
-      final totalQuantity = count * comboCount;
-      final totalCost = giftCost * totalQuantity * targetUserIds.length;
+      final int receiverCount = targetUserIds.length;
+      if (receiverCount == 0) {
+        debugPrint('[GiftPipeline] FAILURE: No recipients selected.');
+        Get.snackbar('Gifting Error', 'Please select at least one recipient seat.');
+        return false;
+      }
+
+      final int maxAllowed = receiverCount > 100 ? 100 : receiverCount;
+      int effectiveMultiplier = comboCount;
+      if (effectiveMultiplier <= 0 || effectiveMultiplier > maxAllowed) {
+        effectiveMultiplier = maxAllowed;
+      }
+
+      final totalQuantity = effectiveMultiplier;
+      final totalCost = giftCost * effectiveMultiplier;
 
       // ── 1. BALANCE CHECK & INSTANT OPTIMISTIC DEDUCTION (<1ms) ──
       if (walletBalance.value < totalCost) {

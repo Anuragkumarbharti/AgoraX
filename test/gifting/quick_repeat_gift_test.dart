@@ -184,5 +184,29 @@ void main() {
       expect(QuickRepeatController.totalWindowSeconds, 10);
       expect(QuickRepeatController.inactivityShowcaseSeconds, 3);
     });
+
+    test('Preserves original multiplier (e.g. 10x) and exact recipients for Quick Repeat', () {
+      const originalRecipients = ['user_1', 'user_2', 'user_3', 'user_4', 'user_5', 'user_6', 'user_7', 'user_8', 'user_9', 'user_10'];
+      controller.activateQuickRepeat(
+        originalGiftTransactionId: 'tx_10x',
+        roomId: 'room_101',
+        senderId: 'user_sender_123',
+        giftId: 'f1000001-0000-0000-0000-000000000004',
+        giftName: 'Sakura',
+        giftIcon: '🌸',
+        currency: 'gold',
+        giftCost: 2,
+        recipientIds: originalRecipients,
+        recipientNames: originalRecipients.map((id) => 'Name_$id').toList(),
+        seatIndices: List.generate(10, (i) => i),
+        initialQuantity: 10,
+        multiplier: 10,
+      );
+
+      final state = controller.activeState.value!;
+      expect(state.originalMultiplier, equals(10));
+      expect(state.originalRecipientIds.length, equals(10));
+      expect(state.currentQuantity.value, equals(10));
+    });
   });
 }

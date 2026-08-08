@@ -400,12 +400,41 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   late VaultController _vaultCtrl;
   bool _giftAll = false;
 
+  int get _selectedRecipientCount {
+    if (_giftAll) {
+      final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
+      return seats.where((s) => s['userId'] != null).length;
+    }
+    return _selectedRecipients.length;
+  }
+
+  int get _effectiveMultiplier {
+    final count = _selectedRecipientCount;
+    if (count <= 0) return 0;
+    final maxAllowed = count > 100 ? 100 : count;
+    if (_selectedComboMultiplier > maxAllowed || _selectedComboMultiplier <= 0) {
+      return maxAllowed;
+    }
+    return _selectedComboMultiplier;
+  }
+
+  void _onRecipientSelectionChanged() {
+    final count = _selectedRecipientCount;
+    if (count <= 0) {
+      _selectedComboMultiplier = 0;
+    } else {
+      final maxAllowed = count > 100 ? 100 : count;
+      _selectedComboMultiplier = maxAllowed;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _vaultCtrl = Get.find<VaultController>();
     _selectedGift = _allGifts[3]; // Default select Sakura
     _initDefaultRecipients();
+    _onRecipientSelectionChanged();
   }
 
   @override
@@ -525,7 +554,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         selectedRecipients: _selectedRecipients,
         selectedRecipientNames: _selectedRecipientNames,
         selectedSeatIndices: _selectedSeatIndices,
-        comboMultiplier: _selectedComboMultiplier,
+        comboMultiplier: _effectiveMultiplier,
       );
 
       if (success) {
@@ -537,7 +566,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           widget.onGiftSent!(
             _selectedGift!.name,
             _selectedGift!.icon,
-            _selectedGift!.cost * _selectedComboMultiplier,
+            _selectedGift!.cost * _effectiveMultiplier,
             _selectedGift!.currency,
           );
         }
@@ -553,18 +582,13 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final activeReceiversCount = _giftAll
-        ? (_controller.roomSeatsInfo[widget.roomId] ?? [])
-            .where((s) => s['userId'] != null)
-            .length
-        : _selectedRecipients.length;
+    final activeReceiversCount = _selectedRecipientCount;
+    final effectiveMultiplier = _effectiveMultiplier;
 
     final double singleCost =
         _selectedGift != null ? _selectedGift!.cost.toDouble() : 0.0;
-    final totalCost = singleCost *
-        _selectedComboMultiplier *
-        (activeReceiversCount > 0 ? activeReceiversCount : 1);
-    final hasValidRecipient = _giftAll || _selectedRecipients.isNotEmpty;
+    final totalCost = singleCost * effectiveMultiplier;
+    final hasValidRecipient = activeReceiversCount > 0 && effectiveMultiplier > 0;
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Align(
@@ -722,6 +746,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                                 _selectedSeatIndices.add(seatIdx);
                               }
                             }
+                            _onRecipientSelectionChanged();
                           });
                         },
                         child: AnimatedContainer(
@@ -778,6 +803,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                       onTap: () {
                         setState(() {
                           _giftAll = !_giftAll;
+                          _onRecipientSelectionChanged();
                         });
                       },
                       child: AnimatedContainer(
@@ -1204,7 +1230,19 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   Future<void> _showCustomQuantityDialog() async {
     final TextEditingController ctrl = TextEditingController();
+    final int maxAllowed = _selectedRecipientCount > 100 ? 100 : _selectedRecipientCount;
     int? customVal;
+
+    if (maxAllowed <= 0) {
+      Get.snackbar(
+        'No Recipient Selected',
+        'Please select recipients before choosing a custom multiplier.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.amber,
+        colorText: Colors.black,
+      );
+      return;
+    }
 
     await Get.dialog(
       Dialog(
@@ -1216,11 +1254,20 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Enter Custom Gift Quantity 🎁',
+                'Enter Custom Gift Multiplier (2x - 100x) 🎁',
                 style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Max allowed for currently selected recipients: ${maxAllowed}x',
+                style: GoogleFonts.inter(
+                  color: Colors.amber,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 12),
@@ -1230,7 +1277,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 autofocus: true,
                 style: const TextStyle(color: Colors.white, fontSize: 16),
                 decoration: InputDecoration(
-                  hintText: 'e.g. 50, 100, 500',
+                  hintText: 'e.g. 2, 5, 10, 20, 50, 100',
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: const Color(0xFF090A10),
@@ -1243,13 +1290,22 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
-                children: [50, 100, 200, 500, 1000].map((preset) {
+                children: [2, 5, 10, 20, 50, 100].map((preset) {
+                  final isEnabled = preset <= maxAllowed;
                   return ActionChip(
-                    backgroundColor: const Color(0xFF282B40),
-                    label: Text('${preset}x', style: const TextStyle(color: Colors.white, fontSize: 10)),
-                    onPressed: () {
-                      ctrl.text = '$preset';
-                    },
+                    backgroundColor: isEnabled ? const Color(0xFF282B40) : const Color(0xFF1A1C29),
+                    label: Text(
+                      '${preset}x',
+                      style: TextStyle(
+                        color: isEnabled ? Colors.white : Colors.white24,
+                        fontSize: 10,
+                      ),
+                    ),
+                    onPressed: isEnabled
+                        ? () {
+                            ctrl.text = '$preset';
+                          }
+                        : null,
                   );
                 }).toList(),
               ),
@@ -1269,17 +1325,25 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                     ),
                     onPressed: () {
                       final val = int.tryParse(ctrl.text.trim());
-                      if (val != null && val > 0 && val <= 99999) {
-                        customVal = val;
-                        Get.back();
-                      } else {
+                      if (val == null || val < 1 || val > 100) {
                         Get.snackbar(
-                          'Invalid Quantity',
-                          'Please enter a valid count between 1 and 99999',
+                          'Invalid Multiplier',
+                          'Please enter a valid multiplier between 1x and 100x',
                           snackPosition: SnackPosition.BOTTOM,
                           backgroundColor: Colors.redAccent,
                           colorText: Colors.white,
                         );
+                      } else if (val > maxAllowed) {
+                        Get.snackbar(
+                          'Multiplier Exceeds Recipients',
+                          '${val}x exceeds selected recipient count ($maxAllowed).',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.redAccent,
+                          colorText: Colors.white,
+                        );
+                      } else {
+                        customVal = val;
+                        Get.back();
                       }
                     },
                     child: const Text('Apply', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -1300,8 +1364,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   }
 
   Widget _buildBottomControlBar(bool hasValidRecipient, double totalCost) {
-    final combos = [1, 5, 10, 99, 520, 1314];
-    final isCustomSelected = !combos.contains(_selectedComboMultiplier);
+    final combos = [2, 5, 10, 20, 50, 100];
+    final maxAllowed = _selectedRecipientCount > 100 ? 100 : _selectedRecipientCount;
+    final isCustomSelected = !combos.contains(_effectiveMultiplier) && _effectiveMultiplier > 0;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
@@ -1395,9 +1460,21 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ...combos.map((val) {
-                      final isSelected = _selectedComboMultiplier == val;
+                      final isEnabled = val <= maxAllowed;
+                      final isSelected = _effectiveMultiplier == val && isEnabled;
                       return GestureDetector(
                         onTap: () {
+                          if (!isEnabled) {
+                            Get.snackbar(
+                              'Multiplier Blocked',
+                              '${val}x requires at least $val selected recipients (currently $maxAllowed selected).',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: const Color(0xFF1E2032),
+                              colorText: Colors.amber,
+                              duration: const Duration(seconds: 2),
+                            );
+                            return;
+                          }
                           setState(() {
                             _selectedComboMultiplier = val;
                           });
@@ -1415,7 +1492,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           child: Text(
                             '${val}x',
                             style: GoogleFonts.inter(
-                              color: isSelected ? Colors.white : Colors.white60,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isEnabled ? Colors.white60 : Colors.white24),
                               fontSize: 8.5,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1437,7 +1516,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         ),
                         child: Text(
                           isCustomSelected
-                              ? 'Custom (${_selectedComboMultiplier}x)'
+                              ? 'Custom (${_effectiveMultiplier}x)'
                               : 'Custom',
                           style: GoogleFonts.inter(
                             color: isCustomSelected
@@ -1512,7 +1591,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                       const SizedBox(width: 4),
                       Text(
                         hasValidRecipient
-                            ? 'SEND (${formatCompactNumber(totalCost.toInt())})'
+                            ? 'SEND (${_effectiveMultiplier})'
                             : 'SELECT SEAT',
                         style: GoogleFonts.poppins(
                           color:

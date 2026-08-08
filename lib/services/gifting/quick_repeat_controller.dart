@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../store/store_controller.dart';
+import '../room/room_controller.dart';
 import '../room/room_gift_controller.dart';
 import '../../widgets/gifting/insufficient_balance_sheet.dart';
 import '../../models/gift/gift_animation_metadata.dart';
@@ -21,9 +23,10 @@ class QuickRepeatState {
 
   final String currency;
   final int giftCost;
-  final List<String> recipientIds;
-  final List<String> recipientNames;
-  final List<int> seatIndices;
+  final int originalMultiplier;
+  final List<String> originalRecipientIds;
+  final List<String> originalRecipientNames;
+  final List<int> originalSeatIndices;
   final RxInt currentQuantity;
   final DateTime createdAt;
 
@@ -37,13 +40,18 @@ class QuickRepeatState {
     required this.giftImageAssetPath,
     required this.currency,
     required this.giftCost,
-    required this.recipientIds,
-    required this.recipientNames,
-    required this.seatIndices,
+    required this.originalMultiplier,
+    required this.originalRecipientIds,
+    required this.originalRecipientNames,
+    required this.originalSeatIndices,
     required int initialQuantity,
     DateTime? createdAt,
   })  : currentQuantity = initialQuantity.obs,
         createdAt = createdAt ?? DateTime.now();
+
+  List<String> get recipientIds => originalRecipientIds;
+  List<String> get recipientNames => originalRecipientNames;
+  List<int> get seatIndices => originalSeatIndices;
 }
 
 /// Timer Logic Summary
@@ -138,6 +146,7 @@ class QuickRepeatController extends GetxController {
     required List<String> recipientNames,
     required List<int> seatIndices,
     required int initialQuantity,
+    int? multiplier,
   }) {
     final currentUserId = UserProfileCacheManager.currentUserId;
     if (senderId.isEmpty || currentUserId.isEmpty || senderId != currentUserId) {
@@ -155,6 +164,10 @@ class QuickRepeatController extends GetxController {
     final assetPath = meta.resolvedGifAssetPath;
     final resolvedIcon = (giftIcon.isNotEmpty && giftIcon != '🎁') ? giftIcon : meta.giftIcon;
 
+    final int effectiveMultiplier = (multiplier != null && multiplier > 0)
+        ? multiplier
+        : (recipientIds.isNotEmpty ? recipientIds.length : initialQuantity);
+
     final state = QuickRepeatState(
       originalGiftTransactionId: originalGiftTransactionId,
       roomId: roomId,
@@ -165,10 +178,11 @@ class QuickRepeatController extends GetxController {
       giftImageAssetPath: assetPath,
       currency: currency,
       giftCost: giftCost,
-      recipientIds: List.from(recipientIds),
-      recipientNames: List.from(recipientNames),
-      seatIndices: List.from(seatIndices),
-      initialQuantity: initialQuantity,
+      originalMultiplier: effectiveMultiplier,
+      originalRecipientIds: List.from(recipientIds),
+      originalRecipientNames: List.from(recipientNames),
+      originalSeatIndices: List.from(seatIndices),
+      initialQuantity: effectiveMultiplier,
     );
 
     _hasRepeated = false;
@@ -179,8 +193,7 @@ class QuickRepeatController extends GetxController {
     activeState.value = state;
 
     debugPrint(
-      '[QuickRepeat] Activated: $giftName x$initialQuantity → $assetPath. '
-      'Phase 1: 10s global window, no showcase until first repeat.',
+      '[QuickRepeat] Activated: $giftName x$effectiveMultiplier → $assetPath with ${recipientIds.length} recipients.',
     );
 
     _startGlobalTimer();
@@ -212,7 +225,58 @@ class QuickRepeatController extends GetxController {
     isProcessing.value = true;
 
     try {
-      final totalCost = state.giftCost * state.recipientIds.length;
+      List<String> validRecipientIds = [];
+      List<String> validRecipientNames = [];
+      List<int> validSeatIndices = [];
+
+      if (Get.isRegistered<RoomController>()) {
+        final roomSeats = RoomController.to.roomSeatsInfo[roomId] ?? [];
+        final currentOccupiedUserIds = roomSeats
+            .where((s) => s['userId'] != null)
+            .map((s) => s['userId'] as String)
+            .toSet();
+
+        for (int i = 0; i < state.originalRecipientIds.length; i++) {
+          final uId = state.originalRecipientIds[i];
+          if (currentOccupiedUserIds.contains(uId)) {
+            final seat = roomSeats.firstWhereOrNull((s) => s['userId'] == uId);
+            final passedName = i < state.originalRecipientNames.length
+                ? state.originalRecipientNames[i]
+                : '';
+            final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
+              uId,
+              passedName: passedName,
+              seatInfo: seat,
+            );
+            final seatIdx = seat != null ? (seat['seatIndex'] as int? ?? -1) : -1;
+
+            validRecipientIds.add(uId);
+            validRecipientNames.add(resolvedName);
+            validSeatIndices.add(seatIdx);
+          }
+        }
+      } else {
+        validRecipientIds = List.from(state.originalRecipientIds);
+        validRecipientNames = List.from(state.originalRecipientNames);
+        validSeatIndices = List.from(state.originalSeatIndices);
+      }
+
+      if (validRecipientIds.isEmpty) {
+        debugPrint('[QuickRepeat] Repeat failed: none of the original recipients are in the room.');
+        Get.snackbar(
+          'Recipients Unavailable',
+          'None of the original gift recipients are currently on mic seats.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.amber,
+          colorText: Colors.black,
+        );
+        return false;
+      }
+
+      // Calculate effective multiplier for repeat action based on remaining valid recipients
+      final int effectiveMultiplier = min(state.originalMultiplier, validRecipientIds.length);
+      final int totalCost = state.giftCost * effectiveMultiplier;
+
       RxInt? walletBalance;
       if (Get.isRegistered<StoreController>()) {
         final storeCtrl = Get.find<StoreController>();
@@ -246,39 +310,29 @@ class QuickRepeatController extends GetxController {
         giftIcon: state.giftIcon,
         giftCost: state.giftCost,
         currency: state.currency,
-        targetUserIds: state.recipientIds,
-        targetUserNames: state.recipientNames,
-        seatIndices: state.seatIndices,
+        targetUserIds: validRecipientIds,
+        targetUserNames: validRecipientNames,
+        seatIndices: validSeatIndices,
         roomsList: [],
         walletBalance: walletBalance ?? 0.obs,
         count: 1,
-        comboCount: 1,
+        comboCount: effectiveMultiplier,
       );
 
       if (success) {
-        state.currentQuantity.value += 1;
+        state.currentQuantity.value += effectiveMultiplier;
 
-        // ── Phase transition: first repeat ever ─────────────────────────────
         if (!_hasRepeated) {
           _hasRepeated = true;
-          debugPrint(
-            '[QuickRepeat] Phase 2 unlocked: first repeat done. '
-            '3s inactivity showcase now active.',
-          );
         }
 
-        // Reset the 10-second global countdown timer back to 10s on every repeat tap
         _startGlobalTimer();
-
-        // Reset / start inactivity timer on every successful repeat
         _resetInactivityTimer();
-
-        // Brief pulse animation on the circle
         _triggerTapPulse();
 
         debugPrint(
           '[QuickRepeat] Repeat SUCCESS: '
-          '${state.giftName} total=×${state.currentQuantity.value}',
+          '${state.giftName} multiplier=$effectiveMultiplier total=×${state.currentQuantity.value}',
         );
         return true;
       } else {

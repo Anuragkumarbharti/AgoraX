@@ -1,25 +1,6 @@
--- Migration: 202608080007_authoritative_gift_transaction_system.sql
--- Description: Server-authoritative, atomic, idempotent gifting transactions with race-condition safety and permanent persistence across room leave/re-entry/app restart.
+-- Migration: 202608080008_fix_gift_multiplier_and_validation.sql
+-- Description: Server-authoritative gift multiplier validation, capping at selected recipient count (max 100x), and exact cost logic.
 
--- 1. Ensure gift_transactions schema compatibility & idempotency_key column
-ALTER TABLE public.gift_transactions ADD COLUMN IF NOT EXISTS idempotency_key text;
-ALTER TABLE public.gift_transactions ADD COLUMN IF NOT EXISTS total_cost numeric;
-ALTER TABLE public.gift_transactions ADD COLUMN IF NOT EXISTS amount numeric;
-ALTER TABLE public.gift_transactions ADD COLUMN IF NOT EXISTS gift_name text;
-ALTER TABLE public.gift_transactions ADD COLUMN IF NOT EXISTS gift_icon text;
-ALTER TABLE public.gift_transactions ADD COLUMN IF NOT EXISTS stars_value numeric DEFAULT 0;
-ALTER TABLE public.gift_transactions ADD COLUMN IF NOT EXISTS gems_value numeric DEFAULT 0;
-
-CREATE INDEX IF NOT EXISTS idx_gift_tx_idempotency ON public.gift_transactions(idempotency_key);
-CREATE INDEX IF NOT EXISTS idx_gift_tx_sender_room ON public.gift_transactions(sender_id, room_id);
-
--- 2. Drop legacy signatures of send_star_gift to avoid overload ambiguity
-DROP FUNCTION IF EXISTS public.send_star_gift(text, uuid[], uuid, integer, integer, integer[]);
-DROP FUNCTION IF EXISTS public.send_star_gift(uuid, uuid[], uuid, integer, integer, integer[]);
-DROP FUNCTION IF EXISTS public.send_star_gift(text, uuid[], uuid, integer, integer, integer[], text);
-DROP FUNCTION IF EXISTS public.send_star_gift(text, uuid[], uuid, integer, integer, integer[], text, uuid);
-
--- 3. Create Canonical, Atomic, Idempotent send_star_gift RPC
 CREATE OR REPLACE FUNCTION public.send_star_gift(
   p_room_id text,
   p_receiver_ids uuid[],
@@ -71,7 +52,7 @@ BEGIN
     RAISE EXCEPTION 'Authentication required to send gifts.';
   END IF;
 
-  -- Idempotency protection: If transaction_id already exists in gift_transactions, return previous result
+  -- Idempotency protection
   IF p_transaction_id IS NOT NULL AND p_transaction_id <> '' THEN
     IF EXISTS (
       SELECT 1 FROM public.gift_transactions 
@@ -145,7 +126,7 @@ BEGIN
   v_total_quantity := v_effective_multiplier;
   v_total_cost := v_single_cost * v_effective_multiplier;
 
-  -- Calculate Universal Gem Values safely without error 42703
+  -- Calculate Universal Gem Values safely
   IF (to_jsonb(v_gift_record)->>'gem_value') IS NOT NULL THEN
     v_gem_unit_value := COALESCE((to_jsonb(v_gift_record)->>'gem_value')::integer, 0);
   ELSE
@@ -160,8 +141,8 @@ BEGIN
     END IF;
   END IF;
 
-  v_single_receiver_gems := v_gem_unit_value * v_total_quantity;
-  v_total_gems := v_single_receiver_gems * v_receivers_count;
+  v_single_receiver_gems := v_gem_unit_value * 1;
+  v_total_gems := v_gem_unit_value * v_effective_multiplier;
 
   -- Atomic Balance Verification & Row-Lock Deduction
   IF v_gift_currency = 'gold' THEN
@@ -240,7 +221,7 @@ BEGIN
     );
   END IF;
 
-  -- Record Gift Transactions & Atomically Update Target Seats
+  -- Record Gift Transactions & Update Target Seats
   v_receiver_idx := 1;
   FOREACH v_receiver_id IN ARRAY p_receiver_ids LOOP
     SELECT username INTO v_receiver_name FROM public.profiles WHERE id = v_receiver_id;
@@ -254,7 +235,7 @@ BEGIN
     INSERT INTO public.gift_transactions (
       room_id, sender_id, receiver_id, gift_id, gift_name, gift_icon, quantity, count, currency, amount, total_cost, stars_value, gems_value, status, idempotency_key, is_self_gift
     ) VALUES (
-      p_room_id, v_sender_id, v_receiver_id, p_gift_id, COALESCE(to_jsonb(v_gift_record)->>'name', 'Gift'), COALESCE(to_jsonb(v_gift_record)->>'icon', '🎁'), v_total_quantity, v_total_quantity, v_gift_currency, v_single_cost * v_total_quantity, v_single_cost * v_total_quantity, v_single_receiver_gems, v_single_receiver_gems, 'completed', p_transaction_id, (v_sender_id = v_receiver_id)
+      p_room_id, v_sender_id, v_receiver_id, p_gift_id, COALESCE(to_jsonb(v_gift_record)->>'name', 'Gift'), COALESCE(to_jsonb(v_gift_record)->>'icon', '🎁'), 1, 1, v_gift_currency, v_single_cost, v_single_cost, v_single_receiver_gems, v_single_receiver_gems, 'completed', p_transaction_id, (v_sender_id = v_receiver_id)
     );
 
     -- Update Seat Session Gem Counter Atomically on room_seats
@@ -263,7 +244,7 @@ BEGIN
       SET seat_session_gems = COALESCE(seat_session_gems, 0) + v_single_receiver_gems,
           seat_total_gems = COALESCE(seat_total_gems, 0) + v_single_receiver_gems,
           seat_total_stars = COALESCE(seat_total_stars, 0) + v_single_receiver_gems,
-          seat_total_gifts = COALESCE(seat_total_gifts, 0) + v_total_quantity,
+          seat_total_gifts = COALESCE(seat_total_gifts, 0) + 1,
           last_gift_time = NOW()
       WHERE room_id = p_room_id AND seat_index = v_seat_index;
     ELSE
@@ -271,7 +252,7 @@ BEGIN
       SET seat_session_gems = COALESCE(seat_session_gems, 0) + v_single_receiver_gems,
           seat_total_gems = COALESCE(seat_total_gems, 0) + v_single_receiver_gems,
           seat_total_stars = COALESCE(seat_total_stars, 0) + v_single_receiver_gems,
-          seat_total_gifts = COALESCE(seat_total_gifts, 0) + v_total_quantity,
+          seat_total_gifts = COALESCE(seat_total_gifts, 0) + 1,
           last_gift_time = NOW()
       WHERE room_id = p_room_id AND user_id = v_receiver_id;
     END IF;
@@ -311,8 +292,8 @@ BEGIN
         today_room_gems = COALESCE(today_room_gems, 0) + v_total_gems,
         total_room_stars = COALESCE(total_room_stars, 0) + v_total_gems,
         today_room_stars = COALESCE(today_room_stars, 0) + v_total_gems,
-        total_room_gifts = COALESCE(total_room_gifts, 0) + (v_total_quantity * v_receivers_count),
-        today_room_gifts = COALESCE(today_room_gifts, 0) + (v_total_quantity * v_receivers_count),
+        total_room_gifts = COALESCE(total_room_gifts, 0) + v_total_quantity,
+        today_room_gifts = COALESCE(today_room_gifts, 0) + v_total_quantity,
         room_xp = COALESCE(room_xp, 0) + v_total_gems,
         today_room_xp = COALESCE(today_room_xp, 0) + v_total_gems,
         updated_at = NOW()

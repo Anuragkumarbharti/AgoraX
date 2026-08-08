@@ -104,11 +104,17 @@ class GiftSendService extends GetxController {
       }
 
       // Check coin balance pre-flight
-      final totalQuantity = comboMultiplier;
+      final int receiverCount = receiverIds.length;
+      final int maxAllowed = receiverCount > 100 ? 100 : receiverCount;
+      int effectiveMultiplier = comboMultiplier;
+      if (effectiveMultiplier <= 0 || effectiveMultiplier > maxAllowed) {
+        effectiveMultiplier = maxAllowed;
+      }
+
       final storeCtrl = Get.find<StoreController>();
 
       if (!isVault && gift != null) {
-        final totalCost = gift.cost * totalQuantity * receiverIds.length;
+        final totalCost = gift.cost * effectiveMultiplier;
         final currentBalance = gift.currency == 'gold'
             ? storeCtrl.coinsBalance.value
             : storeCtrl.silverCoinsBalance.value;
@@ -134,8 +140,8 @@ class GiftSendService extends GetxController {
       if (isVault && vaultItem != null) {
         return true;
       } else if (gift != null) {
-        final totalCost = gift.cost * totalQuantity * receiverIds.length;
-        debugPrint('[Gift] API Request: roomId: $roomId, gift: ${gift.name}, count: $totalQuantity, totalCost: $totalCost');
+        final totalCost = gift.cost * effectiveMultiplier;
+        debugPrint('[Gift] API Request: roomId: $roomId, gift: ${gift.name}, multiplier: $effectiveMultiplier, totalCost: $totalCost');
         final success = await RoomGiftController.to.sendStarGiftToRoom(
           roomId: roomId,
           giftId: gift.id,
@@ -151,7 +157,7 @@ class GiftSendService extends GetxController {
               ? storeCtrl.coinsBalance
               : storeCtrl.silverCoinsBalance,
           count: 1,
-          comboCount: comboMultiplier,
+          comboCount: effectiveMultiplier,
         );
 
         if (!success) {
