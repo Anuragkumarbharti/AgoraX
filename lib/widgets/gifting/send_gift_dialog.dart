@@ -398,6 +398,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   final StoreController _storeCtrl = Get.find<StoreController>();
   late VaultController _vaultCtrl;
   bool _giftAll = false;
+  bool _isPriceAscending = true; // true = Price Low->High, false = Price High->Low
 
   int get _selectedRecipientCount {
     if (_giftAll) {
@@ -554,13 +555,16 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   }
 
   List<GiftItem> _getGiftsForTab(int tabIndex) {
+    List<GiftItem> gifts;
     switch (tabIndex) {
       case 0: // All (All Tier 1 through Tier 5 gifts!)
-        return _allGifts;
+        gifts = List<GiftItem>.from(_allGifts);
+        break;
       case 1: // Lucky Gifts
-        return _allGifts.where((g) => g.isLucky).toList();
+        gifts = _allGifts.where((g) => g.isLucky).toList();
+        break;
       case 2: // Event (Tier 5 & Special showcase gifts)
-        return _allGifts
+        gifts = _allGifts
             .where((g) =>
                 g.tier == GiftTier.tier5 ||
                 g.badge == 'LEGEND' ||
@@ -568,13 +572,22 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 g.badge == 'COSMIC' ||
                 g.category.contains('Tier 5'))
             .toList();
+        break;
       case 3: // Silver
-        return _allGifts.where((g) => g.currency == 'silver').toList();
+        gifts = _allGifts.where((g) => g.currency == 'silver').toList();
+        break;
       case 4: // Gold
-        return _allGifts.where((g) => g.currency == 'gold').toList();
+        gifts = _allGifts.where((g) => g.currency == 'gold').toList();
+        break;
       default:
-        return [];
+        gifts = [];
     }
+
+    gifts.sort((a, b) => _isPriceAscending
+        ? a.cost.compareTo(b.cost)
+        : b.cost.compareTo(a.cost));
+
+    return gifts;
   }
 
   @override
@@ -841,70 +854,121 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       height: 36,
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: ListView.builder(
-        controller: _tabScrollController,
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: _starMakerTabs.length,
-        itemBuilder: (context, index) {
-          final tabName = _starMakerTabs[index];
-          final isSelected = _selectedTabIndex == index;
-          return GestureDetector(
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _tabScrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: _starMakerTabs.length,
+              itemBuilder: (context, index) {
+                final tabName = _starMakerTabs[index];
+                final isSelected = _selectedTabIndex == index;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedTabIndex = index;
+                    });
+                    if (_pageController.hasClients) {
+                      _pageController.animateToPage(
+                        index,
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    margin: const EdgeInsets.only(right: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: isSelected
+                          ? const LinearGradient(
+                              colors: [Color(0xFF7C3AED), Color(0xFF6F5BFF)],
+                            )
+                          : null,
+                      color: isSelected ? null : const Color(0xFF141624),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFFA78BFA)
+                            : const Color(0xFF25283D),
+                        width: isSelected ? 1.5 : 1.0,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF6F5BFF)
+                                    .withValues(alpha: 0.35),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        tabName,
+                        style: GoogleFonts.poppins(
+                          color: isSelected ? Colors.white : Colors.white60,
+                          fontSize: 11,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 4),
+          // Price Sort Toggle Pill (Ascending / Descending)
+          GestureDetector(
             onTap: () {
               setState(() {
-                _selectedTabIndex = index;
+                _isPriceAscending = !_isPriceAscending;
               });
-              if (_pageController.hasClients) {
-                _pageController.animateToPage(
-                  index,
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOut,
-                );
-              }
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
               decoration: BoxDecoration(
-                gradient: isSelected
-                    ? const LinearGradient(
-                        colors: [Color(0xFF7C3AED), Color(0xFF6F5BFF)],
-                      )
-                    : null,
-                color: isSelected ? null : const Color(0xFF141624),
+                color: const Color(0xFF141624),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFFA78BFA)
-                      : const Color(0xFF25283D),
-                  width: isSelected ? 1.5 : 1.0,
+                  color: _isPriceAscending
+                      ? const Color(0xFFA78BFA).withValues(alpha: 0.6)
+                      : Colors.amber.withValues(alpha: 0.6),
+                  width: 1.2,
                 ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFF6F5BFF).withOpacity(0.35),
-                          blurRadius: 10,
-                          spreadRadius: 1,
-                        ),
-                      ]
-                    : null,
               ),
-              child: Center(
-                child: Text(
-                  tabName,
-                  style: GoogleFonts.poppins(
-                    color: isSelected ? Colors.white : Colors.white60,
-                    fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              child: Row(
+                children: [
+                  Icon(
+                    _isPriceAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                    color: Colors.amber,
+                    size: 12,
                   ),
-                ),
+                  const SizedBox(width: 2),
+                  Text(
+                    _isPriceAscending ? 'Low' : 'High',
+                    style: GoogleFonts.poppins(
+                      color: Colors.amber,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
+  }
   }
 
   Widget _buildTabGridView(List<GiftItem> gifts) {
@@ -1371,31 +1435,78 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           ),
           Row(
             children: [
-              GestureDetector(
-                onTap: _showCustomQuantityDialog,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF141624),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF282B40)),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${_effectiveMultiplier}',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141624),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF282B40)),
+                ),
+                child: Row(
+                  children: [
+                    // Minus (-) Button
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (_selectedComboMultiplier > 1) {
+                            _selectedComboMultiplier--;
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
                         ),
+                        child: const Icon(Icons.remove,
+                            color: Colors.white70, size: 12),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_right,
-                          color: Colors.white70, size: 14),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 5),
+                    // Multiplier Count & Arrow Picker Dialog
+                    GestureDetector(
+                      onTap: _showCustomQuantityDialog,
+                      child: Row(
+                        children: [
+                          Text(
+                            '${_effectiveMultiplier}',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          const Icon(Icons.arrow_right,
+                              color: Colors.white70, size: 14),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    // Plus (+) Button
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (_selectedComboMultiplier < 100) {
+                            _selectedComboMultiplier++;
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.add,
+                            color: Colors.white70, size: 12),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
