@@ -602,7 +602,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
               width: double.infinity,
-              height: screenHeight * 0.54,
+              height: screenHeight * 0.525,
               decoration: BoxDecoration(
                 color: const Color(0xFF111226).withValues(alpha: 0.70),
                 borderRadius: const BorderRadius.only(
@@ -928,7 +928,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             Colors.black,
             Colors.transparent,
           ],
-          stops: [0.0, 0.84, 0.94, 1.0],
+          stops: [0.0, 0.86, 0.96, 1.0],
         ).createShader(bounds);
       },
       blendMode: BlendMode.dstIn,
@@ -939,7 +939,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           crossAxisCount: 4,
           crossAxisSpacing: 8,
           mainAxisSpacing: 6,
-          childAspectRatio: 0.74,
+          childAspectRatio: 0.73,
         ),
         itemCount: gifts.length,
         itemBuilder: (context, index) {
