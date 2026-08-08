@@ -44,10 +44,12 @@ class RoomDualProgressController extends GetxController {
         final model = RoomDualProgress.fromJson(resp as Map<String, dynamic>);
         dualProgresses[roomId] = model;
         isOverflowingMap[roomId] = model.isOverflowActive;
+        dualProgresses.refresh();
         return model;
       } else {
         final defaultModel = RoomDualProgress(roomId: roomId);
         dualProgresses[roomId] = defaultModel;
+        dualProgresses.refresh();
         return defaultModel;
       }
     } catch (e) {
@@ -78,6 +80,7 @@ class RoomDualProgressController extends GetxController {
             if (updatedModel.isOverflowActive) {
               isOverflowingMap[roomId] = true;
             }
+            dualProgresses.refresh();
             debugPrint('[DualProgress Realtime] Room $roomId updated: Free=${updatedModel.dailyFreeProgress}/${updatedModel.freeTaskLimit}, Gold=${updatedModel.dailyGoldProgress}/${updatedModel.goldTaskLimit}, TotalTask=${updatedModel.totalTask}/${updatedModel.totalTaskTarget}, Level=${updatedModel.roomLevel}');
           }
         },

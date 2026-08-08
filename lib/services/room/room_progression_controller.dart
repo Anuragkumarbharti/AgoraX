@@ -57,7 +57,7 @@ class RoomProgressionController extends GetxController {
   }
 
   int get maxFreeDailyVp => isWeekend ? 1400 : 700;
-  int get maxGoldDailyVp => isWeekend ? 2400 : 1000;
+  int get maxGoldDailyVp => isWeekend ? 2000 : 1000;
   int get maxTotalDailyVp => maxFreeDailyVp + maxGoldDailyVp;
 
   final RxInt userTrustScore = 80.obs;
@@ -407,6 +407,8 @@ class RoomProgressionController extends GetxController {
       }).toList();
 
       roomDailyTaskLists[roomId] = mergedTasks;
+      roomDailyTaskLists.refresh();
+      roomLevelProgresses.refresh();
 
       final seatsResp = results[4] as List;
       final giftsResp = results[5] as List;

@@ -31,7 +31,7 @@ class CreaniaVpProgressBar extends StatefulWidget {
     this.roomId,
     this.roomName,
     this.coverUrl,
-    this.label = "Today's AP",
+    this.label = "Today AP",
     this.width = 110.0,
     this.onTap,
     this.onPlusTap,

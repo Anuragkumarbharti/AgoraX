@@ -83,7 +83,7 @@ class RoomCallHeader extends StatelessWidget {
                           roomId: '$liveId',
                           roomName: liveName,
                           roomLevel: roomLevel,
-                          label: isWeekend ? "Weekend AP" : "Today's AP",
+                          label: isWeekend ? "Today AP x2" : "Today AP",
                           onTap: () {
                             Get.dialog(
                               RoomTasksAndRewardsDialog(

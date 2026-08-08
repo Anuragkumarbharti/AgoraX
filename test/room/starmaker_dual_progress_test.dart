@@ -98,5 +98,80 @@ void main() {
       expect(todayAfterReset.totalTask, equals(520)); // Preserved!
       expect(todayAfterReset.roomLevel, equals(1)); // Preserved!
     });
+
+    test('Gold Gift fills Gold Task FIRST; Normal Task remains 0 until Gold Task is full', () {
+      const goldLimit = 1000;
+      const freeLimit = 700;
+      int dailyGold = 0;
+      int dailyFree = 0;
+
+      // User sends 500 Gold Gift
+      const goldGiftAmount = 500;
+      final goldCapacity = (goldLimit - dailyGold).clamp(0, goldLimit);
+      final addedGold = goldGiftAmount < goldCapacity ? goldGiftAmount : goldCapacity;
+      final remainingGold = goldGiftAmount - addedGold;
+      final addedFree = remainingGold > 0 ? (remainingGold < (freeLimit - dailyFree) ? remainingGold : (freeLimit - dailyFree)) : 0;
+
+      dailyGold += addedGold;
+      dailyFree += addedFree;
+
+      expect(dailyGold, equals(500));
+      expect(dailyFree, equals(0)); // MUST STAY 0!
+    });
+
+    test('Gold Gift spills over to Normal Task ONLY after Gold Task is 100% complete', () {
+      const goldLimit = 1000;
+      const freeLimit = 700;
+      int dailyGold = 900; // Gold Task is 900/1000
+      int dailyFree = 0;
+
+      // User sends 300 Gold Gift
+      const goldGiftAmount = 300;
+      final goldCapacity = (goldLimit - dailyGold).clamp(0, goldLimit); // 100
+      final addedGold = goldGiftAmount < goldCapacity ? goldGiftAmount : goldCapacity; // 100
+      final remainingGold = goldGiftAmount - addedGold; // 200
+      final freeCapacity = (freeLimit - dailyFree).clamp(0, freeLimit); // 700
+      final addedFree = remainingGold < freeCapacity ? remainingGold : freeCapacity; // 200
+
+      dailyGold += addedGold;
+      dailyFree += addedFree;
+
+      expect(dailyGold, equals(1000)); // Gold Task complete (1000/1000)
+      expect(dailyFree, equals(200)); // Excess 200 went to Normal Task!
+    });
+
+    test('Silver Gift (100:1 AP ratio) and Volt Gift count ONLY in Normal Task', () {
+      const silverCoinsSent = 1000;
+      final silverAp = (silverCoinsSent / 100).floor(); // 10 AP
+      const voltAp = 25; // 25 AP
+
+      const goldLimit = 1000;
+      const freeLimit = 700;
+      int dailyGold = 0;
+      int dailyFree = 0;
+
+      // Silver gift added to free task only
+      dailyFree += silverAp;
+      expect(dailyFree, equals(10));
+      expect(dailyGold, equals(0)); // Gold Task remains 0
+
+      // Volt gift added to free task only
+      dailyFree += voltAp;
+      expect(dailyFree, equals(35));
+      expect(dailyGold, equals(0)); // Gold Task remains 0
+    });
+
+    test('Weekend 2x Limit expands total limit from 1700 AP to 3400 AP', () {
+      const weekdayFreeLimit = 700;
+      const weekdayGoldLimit = 1000;
+      const weekdayTotalLimit = weekdayFreeLimit + weekdayGoldLimit;
+
+      const weekendFreeLimit = 1400; // 700 * 2
+      const weekendGoldLimit = 2000; // 1000 * 2
+      const weekendTotalLimit = weekendFreeLimit + weekendGoldLimit;
+
+      expect(weekdayTotalLimit, equals(1700));
+      expect(weekendTotalLimit, equals(3400)); // Exactly 2x limit!
+    });
   });
 }

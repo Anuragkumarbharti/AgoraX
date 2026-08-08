@@ -1,6 +1,14 @@
 class RoomDualProgress {
-  static const int FREE_TASK_LIMIT = 600;
-  static const int GOLD_TASK_LIMIT = 1200;
+  static const int FREE_TASK_LIMIT = 700;
+  static const int GOLD_TASK_LIMIT = 1000;
+
+  static bool get isWeekend {
+    final now = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30)).subtract(const Duration(hours: 4));
+    return now.weekday == DateTime.saturday || now.weekday == DateTime.sunday;
+  }
+
+  static int get defaultFreeTaskLimit => isWeekend ? 1400 : 700;
+  static int get defaultGoldTaskLimit => isWeekend ? 2000 : 1000;
 
   final String roomId;
   final int dailyFreeProgress;
@@ -22,21 +30,24 @@ class RoomDualProgress {
   const RoomDualProgress({
     required this.roomId,
     this.dailyFreeProgress = 0,
-    this.freeTaskLimit = FREE_TASK_LIMIT,
+    int? freeTaskLimit,
     this.dailyGoldProgress = 0,
-    this.goldTaskLimit = GOLD_TASK_LIMIT,
+    int? goldTaskLimit,
     this.totalTask = 0,
     this.totalTaskTarget = 35500,
     this.totalLifetimeTask = 0,
     this.lastResetDate,
     this.goldPoints = 0,
-    this.goldTarget = GOLD_TASK_LIMIT,
+    int? goldTarget,
     this.normalPoints = 0,
-    this.normalTarget = FREE_TASK_LIMIT,
+    int? normalTarget,
     this.overflowPoints = 0,
     this.roomLevel = 1,
     this.updatedAt,
-  });
+  })  : freeTaskLimit = freeTaskLimit ?? FREE_TASK_LIMIT,
+        goldTaskLimit = goldTaskLimit ?? GOLD_TASK_LIMIT,
+        goldTarget = goldTarget ?? goldTaskLimit ?? GOLD_TASK_LIMIT,
+        normalTarget = normalTarget ?? freeTaskLimit ?? FREE_TASK_LIMIT;
 
   static int getRequiredTaskForLevel(int level) {
     if (level == 1) return 35500;
