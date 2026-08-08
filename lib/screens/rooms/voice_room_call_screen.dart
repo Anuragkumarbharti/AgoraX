@@ -38,6 +38,7 @@ import 'voice_room/widgets/room_call_chat_box.dart';
 import 'voice_room/widgets/room_call_bottom_controls.dart';
 import 'voice_room/widgets/room_call_special_panels.dart';
 import 'voice_room/widgets/room_call_banner_and_xp.dart';
+import 'voice_room/widgets/room_layered_pipeline.dart';
 import 'voice_room/dialogs/room_audio_settings_dialog.dart';
 import 'voice_room/dialogs/seat_applications_dialog.dart';
 import 'voice_room/dialogs/online_members_dialog.dart';
@@ -62,6 +63,7 @@ export 'voice_room/widgets/room_call_chat_box.dart';
 export 'voice_room/widgets/room_call_bottom_controls.dart';
 export 'voice_room/widgets/room_call_special_panels.dart';
 export 'voice_room/widgets/room_call_banner_and_xp.dart';
+export 'voice_room/widgets/room_layered_pipeline.dart';
 export 'voice_room/dialogs/room_audio_settings_dialog.dart';
 export 'voice_room/dialogs/seat_applications_dialog.dart';
 export 'voice_room/dialogs/online_members_dialog.dart';
@@ -139,6 +141,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   final RxInt _currentEntranceNovelLevel = 0.obs;
   final RxString _currentEntranceEntryEffect = ''.obs;
   final RxString _resolvedEntranceAnimation = 'None'.obs;
+  final RxString _currentEntranceTaskId = ''.obs;
 
   // Floating Reactions
   final RxList<FloatingReaction> _reactions = <FloatingReaction>[].obs;
@@ -659,7 +662,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     final finalVip = vipLevel ?? identity.vipLevel;
     final finalNovel = novelLevel ?? identity.novelLevel;
 
+    final String taskId = 'entry_${userId}_${DateTime.now().microsecondsSinceEpoch}';
     _entranceQueue.add({
+      'taskId': taskId,
       'userId': userId,
       'userName': userName,
       'vipLevel': finalVip,
@@ -672,6 +677,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   Completer<void>? _currentEntranceCompleter;
 
   void _onEntranceAnimationFinished() {
+    debugPrint('[ENTRY_OVERLAY] OVERLAY REMOVED | completerIsCompleted=${_currentEntranceCompleter?.isCompleted}');
     if (_currentEntranceCompleter != null &&
         !_currentEntranceCompleter!.isCompleted) {
       _currentEntranceCompleter!.complete();
@@ -684,6 +690,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     _isEntrancePlaying.value = true;
     final task = _entranceQueue.first;
 
+    _currentEntranceTaskId.value = task['taskId'] ?? 'entry_${task['userId']}_${DateTime.now().microsecondsSinceEpoch}';
     _currentEntranceUser.value = task['userName'];
     _currentEntranceUserId.value = task['userId'];
     _currentEntranceVipLevel.value = task['vipLevel'];
@@ -733,56 +740,34 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
 
     _resolvedEntranceAnimation.value = targetEffect;
+    _showEntranceOverlay.value = true;
+    debugPrint('[ENTRY_OVERLAY] OVERLAY CREATED | effect=$targetEffect | user=${_currentEntranceUser.value}');
 
+    int maxDurationMs = 8500;
     if (targetEffect == 'VIP 2') {
-      _showEntranceOverlay.value = false;
-      VipEntryAnimation.show(
-        context,
-        username: _currentEntranceUser.value,
-        avatarUrl:
-            UserProfileCacheManager.getCachedUser(_currentEntranceUserId.value)
-                ?.avatar,
-        vipLevel: 2,
-        onFinished: () {
-          if (!mounted) return;
-          _onEntranceAnimationFinished();
-        },
-      );
+      maxDurationMs = 8500;
     } else if (targetEffect == 'Novel') {
-      _showEntranceOverlay.value = false;
-      final int activeNovelLvl = novelLvl > 0 ? novelLvl : 1;
-      NovelEntryAnimation.show(
-        context,
-        username: _currentEntranceUser.value,
-        avatarUrl:
-            UserProfileCacheManager.getCachedUser(_currentEntranceUserId.value)
-                ?.avatar,
-        novelLevel: activeNovelLvl,
-        onFinished: () {
-          if (!mounted) return;
-          final hasVipBanner = _currentEntranceVipLevel.value > 0;
-          final hasNovelBanner = _currentEntranceNovelLevel.value > 1;
-
-          if (hasVipBanner || hasNovelBanner) {
-            _showEntranceOverlay.value = true;
-          } else {
-            _onEntranceAnimationFinished();
-          }
-        },
-      );
+      maxDurationMs = 8500;
+    } else if (targetEffect == 'VIP 1') {
+      maxDurationMs = 8500;
     } else {
-      _showEntranceOverlay.value = true;
+      maxDurationMs = 6000;
     }
+
+    debugPrint('[ENTRY_TIMER] TIMER CREATED | duration=${maxDurationMs}ms | effect=$targetEffect');
+    Timer? fallbackTimer = Timer(Duration(milliseconds: maxDurationMs), () {
+      debugPrint('[ENTRY_TIMER] TIMER FIRED (Fallback) | duration=${maxDurationMs}ms');
+      _onEntranceAnimationFinished();
+    });
 
     await Future.any([
       completer.future,
-      Future.delayed(const Duration(seconds: 12)),
+      Future.delayed(Duration(milliseconds: maxDurationMs + 500)),
     ]);
 
+    debugPrint('[ENTRY_TIMER] TIMER CANCELLED');
+    fallbackTimer.cancel();
     if (!mounted) return;
-
-    _showEntranceOverlay.value = false;
-    _currentEntranceCompleter = null;
 
     _controller.addSystemActivity(
       widget.roomId,
@@ -793,9 +778,15 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     );
 
     _entranceQueue.removeAt(0);
-    _isEntrancePlaying.value = false;
+    _currentEntranceCompleter = null;
 
-    _processEntranceQueue();
+    if (_entranceQueue.isEmpty) {
+      _showEntranceOverlay.value = false;
+      _isEntrancePlaying.value = false;
+    } else {
+      _isEntrancePlaying.value = false;
+      _processEntranceQueue();
+    }
   }
 
   void _triggerGiftingAnimations(
@@ -881,6 +872,22 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       return u.avatar!;
     }
     return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+  }
+
+  ImageProvider _getAvatarImageProvider(String? url) {
+    if (url != null && url.isNotEmpty) {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return NetworkImage(url);
+      }
+      if (url.startsWith('assets/')) {
+        return AssetImage(url);
+      }
+      if (url.contains('assets/')) {
+        final path = url.substring(url.indexOf('assets/'));
+        return AssetImage(path);
+      }
+    }
+    return const NetworkImage('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150');
   }
 
   void _handleSeatClick(int seatIndex, dynamic user) {
@@ -1011,10 +1018,201 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[ROOM] rebuild');
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final isKeyboardOpen = bottomInset > 0;
     final dynamicShift =
         isKeyboardOpen ? (bottomInset * 0.42).clamp(0.0, 150.0) : 0.0;
+
+    final layeredPipeline = RoomLayeredPipeline(
+      // Layer 0: Static, Isolated Background Layer (Never rebuilds on UI/chat/seats events)
+      layer0Background: RoomCallBannerAndXp.buildCustomBackground(),
+
+      // Layer 4: Interactive Floating Room UI (Header, Seats, Panels, Chat, Controls)
+      layer4FloatingUI: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                Obx(() {
+                  final liveRoom = _controller.rooms.firstWhereOrNull(
+                          (r) => r.id == widget.roomId) ??
+                      VoiceRoom.dummy();
+                  return RoomCallHeader(
+                    roomId: widget.roomId,
+                    roomName: widget.roomName,
+                    room: liveRoom,
+                    userId: widget.userId,
+                    getUserDp: _getUserDp,
+                    onLeaveRoom: _leaveRoom,
+                    onShowRoomOptionsMenuSheet:
+                        _showRoomOptionsMenuSheet,
+                  );
+                }),
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    transform:
+                        Matrix4.translationValues(0, -dynamicShift, 0),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 8),
+                        RoomCallSeatGrid(
+                          roomId: widget.roomId,
+                          seatKeys: _seatKeys,
+                          onSeatClick: _handleSeatClick,
+                        ),
+                        const SizedBox(height: 8),
+                        Obx(() {
+                          final liveRoom = _controller.rooms
+                                  .firstWhereOrNull(
+                                      (r) => r.id == widget.roomId) ??
+                              VoiceRoom.dummy();
+                          return RoomCallSpecialPanels(
+                            roomId: widget.roomId,
+                            room: liveRoom,
+                            userId: widget.userId,
+                            userName: widget.userName,
+                            debateRound: _debateRound,
+                            debateTimerSeconds: _debateTimerSeconds,
+                            isDebateTimerRunning: _isDebateTimerRunning,
+                            scoreCandidateA: _scoreCandidateA,
+                            scoreCandidateB: _scoreCandidateB,
+                            debateTimer: _debateTimer,
+                            quizVotes: _quizVotes,
+                            quizSelectedOption: _quizSelectedOption,
+                            quizVoted: _quizVoted,
+                            songQueue: _songQueue,
+                            pollVotes: _pollVotes,
+                            pollSelectedOption: _pollSelectedOption,
+                            pollVoted: _pollVoted,
+                            seats: _seats,
+                            glowController: _glowController,
+                            getUserDp: _getUserDp,
+                            onJoinSeat: _joinSeat,
+                            onShowLeaveSeatMenu: (idx) =>
+                                SeatActionSheets.showSelfSeatActions(
+                              context: context,
+                              roomId: widget.roomId,
+                              seatIndex: idx,
+                              isMicOn: _isMicOn.value,
+                              onToggleMic: _toggleMic,
+                              onLeaveSeat: _leaveSeat,
+                              seats: _seats,
+                            ),
+                            onShowMiniProfileDialog:
+                                _showMiniProfileDialog,
+                          );
+                        }),
+                        Expanded(
+                          child: RoomCallChatBox(
+                            roomId: widget.roomId,
+                            chatScrollController: _chatScrollController,
+                            getUserDp: _getUserDp,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: bottomInset,
+            left: 0,
+            right: 0,
+            child: RoomCallBottomControls(
+              roomId: widget.roomId,
+              chatInputController: _chatInputController,
+              chatInputFocusNode: _chatInputFocusNode,
+              isMicOn: _isMicOn,
+              isCurrentUserOnSeat: _isCurrentUserOnSeat(),
+              onToggleMic: _toggleMic,
+              onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
+              onTriggerReaction: () => _triggerReaction('❤️'),
+            ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Obx(() {
+                final list = _reactions.toList();
+                return Stack(
+                  children: list.map((r) {
+                    return FloatingEmojiItem(
+                      key: r.key,
+                      reaction: r,
+                    );
+                  }).toList(),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+
+      // Layer 5: Dedicated Stable Gift Layer (STABLE KEY - Never destroyed on parent rebuilds)
+      layer5Gifts: GiftingAnimationOverlay(
+        key: const ValueKey('room_layer5_gifting_overlay_stable_key'),
+        activeAnimations: _activeGiftingAnimations,
+        seatKeys: _seatKeys,
+        onExplosion: (bool isMajor) {
+          if (isMajor) {
+            _shakeRoomScreen();
+          }
+        },
+      ),
+
+      // Layer 6: Dedicated Stable Entry Layer (STABLE KEY - Never regenerated during rebuilds)
+      layer6Entry: KeyedSubtree(
+        key: const ValueKey('room_layer6_entry_overlay_stable_key'),
+        child: Obx(() {
+          final isPlaying = _isEntrancePlaying.value;
+          final showOverlay = _showEntranceOverlay.value;
+          if (!isPlaying && !showOverlay) return const SizedBox.shrink();
+
+          final effect = _resolvedEntranceAnimation.value;
+          final username = _currentEntranceUser.value;
+          final userId = _currentEntranceUserId.value;
+          final avatarUrl =
+              UserProfileCacheManager.getCachedUser(userId)?.avatar;
+          final vipLvl = _currentEntranceVipLevel.value;
+          final novelLvl = _currentEntranceNovelLevel.value;
+
+          final String currentTaskId = _currentEntranceTaskId.value;
+          final String taskKeyId = currentTaskId.isNotEmpty ? currentTaskId : userId;
+
+          if (effect == 'VIP 2' || effect == 'VIP 1') {
+            return VipEntryAnimation(
+              key: ValueKey('vip_entry_$taskKeyId'),
+              username: username,
+              avatarUrl: avatarUrl,
+              vipLevel: vipLvl > 0 ? vipLvl : (effect == 'VIP 2' ? 2 : 1),
+              onFinished: () {
+                if (!mounted) return;
+                _onEntranceAnimationFinished();
+              },
+            );
+          } else if (effect == 'Novel') {
+            return NovelEntryAnimation(
+              key: ValueKey('novel_entry_$taskKeyId'),
+              username: username,
+              avatarUrl: avatarUrl,
+              novelLevel: novelLvl > 0 ? novelLvl : 1,
+              onFinished: () {
+                if (!mounted) return;
+                _onEntranceAnimationFinished();
+              },
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+      ),
+
+      // Layer 7: Global Effects Layer (Disconnect/Kick Overlay)
+      layer7Global: RoomCallBannerAndXp.buildDisconnectOverlay(),
+    );
 
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
@@ -1023,159 +1221,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         backgroundColor: Colors.transparent,
         resizeToAvoidBottomInset: false,
         body: Obx(() {
-          final liveRoom =
-              _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId) ??
-                  VoiceRoom.dummy();
           final offset = _shakeOffset.value;
-
           return Transform.translate(
             offset: offset,
-            child: Stack(
-              children: [
-                // 1. Dynamic Background Layer (100% Fixed background)
-                RoomCallBannerAndXp.buildCustomBackground(),
-
-                // 2. Main Content Body with Fixed Header & Smart Shiftable Stage
-                SafeArea(
-                  child: Column(
-                    children: [
-                      // Top App Bar (100% Fixed at top of screen)
-                      RoomCallHeader(
-                        roomId: widget.roomId,
-                        roomName: widget.roomName,
-                        room: liveRoom,
-                        userId: widget.userId,
-                        getUserDp: _getUserDp,
-                        onLeaveRoom: _leaveRoom,
-                        onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
-                      ),
-
-                      // Shiftable Stage Content (Seats, Special Panels, Chat Stream)
-                      Expanded(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOutCubic,
-                          transform:
-                              Matrix4.translationValues(0, -dynamicShift, 0),
-                          child: Column(
-                            children: [
-                              const SizedBox(height: 8),
-
-                              // Seat Grid Section (Host & Audience seats shift up together)
-                              RoomCallSeatGrid(
-                                roomId: widget.roomId,
-                                seatKeys: _seatKeys,
-                                onSeatClick: _handleSeatClick,
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              // Special Arena Panel (Debate/Study/Music/Event)
-                              RoomCallSpecialPanels(
-                                roomId: widget.roomId,
-                                room: liveRoom,
-                                userId: widget.userId,
-                                userName: widget.userName,
-                                debateRound: _debateRound,
-                                debateTimerSeconds: _debateTimerSeconds,
-                                isDebateTimerRunning: _isDebateTimerRunning,
-                                scoreCandidateA: _scoreCandidateA,
-                                scoreCandidateB: _scoreCandidateB,
-                                debateTimer: _debateTimer,
-                                quizVotes: _quizVotes,
-                                quizSelectedOption: _quizSelectedOption,
-                                quizVoted: _quizVoted,
-                                songQueue: _songQueue,
-                                pollVotes: _pollVotes,
-                                pollSelectedOption: _pollSelectedOption,
-                                pollVoted: _pollVoted,
-                                seats: _seats,
-                                glowController: _glowController,
-                                getUserDp: _getUserDp,
-                                onJoinSeat: _joinSeat,
-                                onShowLeaveSeatMenu: (idx) =>
-                                    SeatActionSheets.showSelfSeatActions(
-                                  context: context,
-                                  roomId: widget.roomId,
-                                  seatIndex: idx,
-                                  isMicOn: _isMicOn.value,
-                                  onToggleMic: _toggleMic,
-                                  onLeaveSeat: _leaveSeat,
-                                  seats: _seats,
-                                ),
-                                onShowMiniProfileDialog: _showMiniProfileDialog,
-                              ),
-
-                              // Chat Stream Box (Expands above keyboard)
-                              Expanded(
-                                child: RoomCallChatBox(
-                                  roomId: widget.roomId,
-                                  chatScrollController: _chatScrollController,
-                                  getUserDp: _getUserDp,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 3. Floating Bottom Controls Dock (Pinned above keyboard)
-                Positioned(
-                  bottom: bottomInset,
-                  left: 0,
-                  right: 0,
-                  child: RoomCallBottomControls(
-                    roomId: widget.roomId,
-                    chatInputController: _chatInputController,
-                    chatInputFocusNode: _chatInputFocusNode,
-                    isMicOn: _isMicOn,
-                    isCurrentUserOnSeat: _isCurrentUserOnSeat(),
-                    onToggleMic: _toggleMic,
-                    onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
-                    onTriggerReaction: () => _triggerReaction('❤️'),
-                  ),
-                ),
-
-              // 4. Floating Reactions Animation Layer
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Obx(() {
-                    final list = _reactions.toList();
-                    return Stack(
-                      children: list.map((r) {
-                        return FloatingEmojiItem(
-                          key: r.key,
-                          reaction: r,
-                        );
-                      }).toList(),
-                    );
-                  }),
-                ),
-              ),
-
-              // 5. Smart Gifting Animation Overlay Layer (Positioned on top of background & seats)
-              Positioned.fill(
-                child: GiftingAnimationOverlay(
-                  activeAnimations: _activeGiftingAnimations,
-                  seatKeys: _seatKeys,
-                  onExplosion: (bool isMajor) {
-                    if (isMajor) {
-                      _shakeRoomScreen();
-                    }
-                  },
-                ),
-              ),
-
-              // 6. Network Disconnect / Kick Overlay Layer
-              RoomCallBannerAndXp.buildDisconnectOverlay(),
-            ],
-          ),
-        );
-      }),
-    ),
-  );
-}
+            child: layeredPipeline,
+          );
+        }),
+      ),
+    );
+  }
 }

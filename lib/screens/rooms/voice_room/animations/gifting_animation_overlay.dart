@@ -41,10 +41,26 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
     }
     _animWorker =
         ever(widget.activeAnimations, (List<Map<String, dynamic>> anims) {
+      final now = DateTime.now().millisecondsSinceEpoch;
       for (final newAnim in anims) {
-        if (!_currentAnims.any((p) => p['id'] == newAnim['id'])) {
+        final animId = newAnim['id']?.toString() ?? '';
+        final sender = (newAnim['senderName'] ?? '').toString();
+        final gift = (newAnim['name'] ?? newAnim['giftId'] ?? '').toString();
+
+        final isDuplicate = _currentAnims.any((p) {
+          if (p['id']?.toString() == animId) return true;
+          final pSender = (p['senderName'] ?? '').toString();
+          final pGift = (p['name'] ?? p['giftId'] ?? '').toString();
+          final pTime = p['_addedAt'] as int? ?? now;
+          return pSender == sender && pGift == gift && (now - pTime).abs() < 2500;
+        });
+
+        if (!isDuplicate) {
           setState(() {
-            _currentAnims.add(newAnim);
+            _currentAnims.add({
+              ...newAnim,
+              '_addedAt': now,
+            });
           });
         }
       }
@@ -52,22 +68,29 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
 
     final giftAnimCtrl = GiftAnimationController.to; // Ensures controller is put & registered
     for (final evt in giftAnimCtrl.activeEvents) {
-      if (!_currentAnims.any((p) => p['id'] == evt.id)) {
-        _addEventFromPayload(evt);
-      }
+      _addEventFromPayload(evt);
     }
 
     _globalGiftWorker = ever(giftAnimCtrl.activeEvents,
         (List<GiftAnimationEventPayload> events) {
       for (final evt in events) {
-        if (!_currentAnims.any((p) => p['id'] == evt.id)) {
-          _addEventFromPayload(evt);
-        }
+        _addEventFromPayload(evt);
       }
     });
   }
 
   void _addEventFromPayload(GiftAnimationEventPayload evt) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final isDuplicate = _currentAnims.any((p) {
+      if (p['id']?.toString() == evt.id) return true;
+      final pSender = (p['senderName'] ?? '').toString();
+      final pGift = (p['name'] ?? p['giftId'] ?? '').toString();
+      final pTime = p['_addedAt'] as int? ?? now;
+      return pSender == evt.senderName && pGift == evt.giftName && (now - pTime).abs() < 2500;
+    });
+
+    if (isDuplicate) return;
+
     final roomId = RoomController.to.activeRoomId ?? '';
     final roomSeats = RoomController.to.roomSeatsInfo[roomId] ?? [];
 
@@ -108,12 +131,14 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
             : null,
         'targets': targets,
         'count': evt.count,
+        '_addedAt': now,
       });
     });
   }
 
   @override
   void dispose() {
+    debugPrint('[GIFT_OVERLAY] WIDGET DISPOSE | active count=${_currentAnims.length}');
     _animWorker?.dispose();
     _globalGiftWorker?.dispose();
     if (Get.isRegistered<GiftOverlayManager>()) {
@@ -124,49 +149,53 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[GIFT_OVERLAY] PARENT REBUILD | active count=${_currentAnims.length}');
     if (_currentAnims.isEmpty) return const SizedBox.shrink();
 
     final media = MediaQuery.of(context).size;
 
     return IgnorePointer(
-      child: Stack(
-        children: [
-          for (final anim in _currentAnims) ...[
-            CreaniaGiftAnimationEngine(
-              key: ValueKey(anim['id']),
-              event: GiftRequestEvent(
-                giftId: anim['giftId'] ?? anim['name'] ?? 'gift',
-                giftName: anim['name'] ?? 'Gift',
-                giftIcon: anim['icon'] ?? '🎁',
-                price: anim['price'] ?? 10,
-                currency: anim['currency'] ?? 'gold',
-                mode: GiftAnimationMode.roomSeat,
-                senderName: anim['senderName'] ?? 'Member',
-                senderAvatar: anim['senderAvatar'],
-                startOffset: anim['start'] ??
-                    Offset(media.width / 2, media.height * 0.92),
-                receiverName: anim['receiverName'] ?? 'Seat',
-                receiverAvatar: anim['receiverAvatar'],
-                targetOffset: (anim['targets'] as List<Offset>).isNotEmpty
-                    ? (anim['targets'] as List<Offset>).first
-                    : Offset(media.width / 2, media.height * 0.4),
-                targetOffsets: anim['targets'] as List<Offset>?,
-                count: anim['count'] ?? 1,
-              ),
-              onCompleted: () {
-                if (mounted) {
-                  final animId = anim['id'].toString();
-                  setState(() {
-                    _currentAnims.removeWhere((a) => a['id'].toString() == animId);
-                  });
-                  if (Get.isRegistered<GiftAnimationController>()) {
-                    GiftAnimationController.to.removeEvent(animId);
+      child: RepaintBoundary(
+        child: Stack(
+          children: [
+            for (final anim in _currentAnims)
+              CreaniaGiftAnimationEngine(
+                key: ValueKey(anim['id']),
+                event: GiftRequestEvent(
+                  giftId: anim['giftId'] ?? anim['name'] ?? 'gift',
+                  giftName: anim['name'] ?? 'Gift',
+                  giftIcon: anim['icon'] ?? '🎁',
+                  price: anim['price'] ?? 10,
+                  currency: anim['currency'] ?? 'gold',
+                  mode: GiftAnimationMode.roomSeat,
+                  senderName: anim['senderName'] ?? 'Member',
+                  senderAvatar: anim['senderAvatar'],
+                  startOffset: anim['start'] ??
+                      Offset(media.width / 2, media.height * 0.92),
+                  receiverName: anim['receiverName'] ?? 'Seat',
+                  receiverAvatar: anim['receiverAvatar'],
+                  targetOffset: (anim['targets'] as List<Offset>).isNotEmpty
+                      ? (anim['targets'] as List<Offset>).first
+                      : Offset(media.width / 2, media.height * 0.4),
+                  targetOffsets: anim['targets'] as List<Offset>?,
+                  count: anim['count'] ?? 1,
+                ),
+                onCompleted: () {
+                  debugPrint('[GIFT_OVERLAY] OVERLAY REMOVED | animId=${anim['id']}');
+                  if (mounted) {
+                    final animId = anim['id'].toString();
+                    setState(() {
+                      _currentAnims.removeWhere((a) => a['id'].toString() == animId);
+                    });
+                    widget.activeAnimations.removeWhere((a) => a['id'].toString() == animId);
+                    if (Get.isRegistered<GiftAnimationController>()) {
+                      GiftAnimationController.to.removeEvent(animId);
+                    }
                   }
-                }
-              },
-            ),
+                },
+              ),
           ],
-        ],
+        ),
       ),
     );
   }

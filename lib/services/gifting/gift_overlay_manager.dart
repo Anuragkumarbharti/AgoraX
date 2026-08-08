@@ -57,6 +57,7 @@ class GiftOverlayManager extends GetxController {
     }
 
     // Fallback standalone OverlayEntry creation
+    debugPrint('[GIFT_OVERLAY_MANAGER] OVERLAY CREATED | GiftStandaloneOverlay created for ${event.giftName}');
     late OverlayEntry overlayEntry;
     overlayEntry = OverlayEntry(
       builder: (BuildContext ctx) {
@@ -66,6 +67,7 @@ class GiftOverlayManager extends GetxController {
             child: CreaniaGiftAnimationEngine(
               event: event,
               onCompleted: () {
+                debugPrint('[GIFT_OVERLAY_MANAGER] OVERLAY REMOVED | GiftStandaloneOverlay completed');
                 overlayEntry.remove();
                 _activeOverlayEntries.remove(overlayEntry);
                 if (onCompleted != null) onCompleted();
@@ -83,6 +85,7 @@ class GiftOverlayManager extends GetxController {
 
   /// Removes all active overlay entries cleanly.
   void clearAllOverlayEntries() {
+    debugPrint('[GIFT_OVERLAY_MANAGER] OVERLAY REMOVED (clearAllOverlayEntries) | active count=${_activeOverlayEntries.length}');
     for (final entry in _activeOverlayEntries) {
       try {
         entry.remove();

@@ -198,6 +198,12 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
   @override
   void initState() {
     super.initState();
+    debugPrint('[NOVEL_ENTRY] START | Configured Duration: 8000ms | user=${widget.username} | novelLevel=${widget.novelLevel}');
+    debugPrint('[NOVEL_ENTRY] CONTROLLER CREATED');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[NOVEL_ENTRY] FIRST FRAME | user=${widget.username}');
+    });
     _particles = List.generate(45, (_) => _NParticle(_rng));
 
     // ── Controllers for pill card (all levels except 1) ───────────────────
@@ -226,7 +232,7 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
 
     // ── Controllers for full-screen (Novel Level 1) ───────────────────────
     _masterCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 4800));
+        vsync: this, duration: const Duration(milliseconds: 8000));
     _ringCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 3000))
       ..repeat();
@@ -237,7 +243,7 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
         vsync: this, duration: const Duration(milliseconds: 2200))
       ..repeat(reverse: true);
     _particleCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 4800));
+        vsync: this, duration: const Duration(milliseconds: 8000));
 
     _fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
         parent: _masterCtrl,
@@ -383,14 +389,18 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
         });
       }
 
-      // Start the master timeline regardless
+      // Start the master timeline ONLY WHEN video/visual is active and visible
+      _masterCtrl.reset();
       _masterCtrl.forward();
+      _particleCtrl.reset();
       _particleCtrl.forward();
     }
   }
 
   @override
   void dispose() {
+    debugPrint('[NOVEL_ENTRY] WIDGET DISPOSE | user=${widget.username}');
+    debugPrint('[NOVEL_ENTRY] CONTROLLER DISPOSE | slideCtrlVal=${_slideController.value} | masterCtrlVal=${_isFullScreen ? _masterCtrl.value : "N/A"}');
     _videoCtrl?.dispose();
     _slideController.dispose();
     _shineController.dispose();
@@ -405,6 +415,7 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    debugPrint('[NOVEL_ENTRY] WIDGET REBUILD | user=${widget.username}');
     if (widget.novelLevel < 1 || widget.novelLevel > 100)
       return const SizedBox.shrink();
     return _isFullScreen ? _buildFullScreen(context) : _buildPillCard(context);

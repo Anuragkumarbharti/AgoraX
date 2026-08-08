@@ -153,12 +153,31 @@ class _RoomBackgroundPickerSheetState
                           fit: StackFit.expand,
                           children: [
                             // Theme Image Preview
-                            Image.asset(
-                              item.assetPath,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(color: const Color(0xFF1E293B)),
-                            ),
+                            if (item.assetPath.isEmpty || item.id == 'theme_default')
+                              Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Color(0xFF0F172A),
+                                      Color(0xFF090D16),
+                                      Color(0xFF0D111D),
+                                    ],
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Icon(Icons.auto_awesome_rounded,
+                                      color: Colors.cyanAccent, size: 28),
+                                ),
+                              )
+                            else
+                              Image.asset(
+                                item.assetPath,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(color: const Color(0xFF1E293B)),
+                              ),
 
                             // Bottom Gradient Text Overlay
                             Positioned(

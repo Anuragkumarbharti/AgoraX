@@ -144,6 +144,12 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
   @override
   void initState() {
     super.initState();
+    debugPrint('[VIP_ENTRY] START | Configured Duration: 8000ms | user=${widget.username} | vipLevel=${widget.vipLevel}');
+    debugPrint('[VIP_ENTRY] CONTROLLER CREATED');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[VIP_ENTRY] FIRST FRAME | user=${widget.username}');
+    });
 
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 1400),
@@ -189,7 +195,7 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
 
     if (_isFullScreen) {
       _masterCtrl = AnimationController(
-        duration: const Duration(milliseconds: 3500),
+        duration: const Duration(milliseconds: 8000),
         vsync: this,
       );
 
@@ -209,17 +215,20 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
 
       _masterCtrl.addStatusListener((status) {
         if (status == AnimationStatus.completed && mounted) {
+          debugPrint('[Lifecycle] VIP Entry Animation Completed (FullScreen): user=${widget.username}');
           widget.onFinished?.call();
         }
       });
 
       _initVideo();
     } else {
-      // Slide in, pause, then slide out for pill card
+      debugPrint('[Lifecycle] VIP Entry Animation Started (Pill Card): user=${widget.username}');
+      // Slide in (1.2s), pause (5.6s), then slide out (1.2s) for pill card = 8.0 SECONDS
       _slideController.forward().then((_) async {
-        await Future.delayed(const Duration(milliseconds: 2500));
+        await Future.delayed(const Duration(milliseconds: 5600));
         if (mounted) {
           _slideController.reverse().then((_) {
+            debugPrint('[Lifecycle] VIP Entry Animation Completed (Pill Card): user=${widget.username}');
             widget.onFinished?.call();
           });
         }
@@ -291,12 +300,16 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
         }
       }
 
+      // Start master timeline ONLY WHEN video is active and visible on screen
+      _masterCtrl.reset();
       _masterCtrl.forward();
     }
   }
 
   @override
   void dispose() {
+    debugPrint('[VIP_ENTRY] WIDGET DISPOSE | user=${widget.username}');
+    debugPrint('[VIP_ENTRY] CONTROLLER DISPOSE | slideCtrlVal=${_slideController.value} | masterCtrlVal=${_isFullScreen ? _masterCtrl.value : "N/A"}');
     _videoCtrl?.dispose();
     if (_isFullScreen) {
       _masterCtrl.dispose();
@@ -329,6 +342,7 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[VIP_ENTRY] WIDGET REBUILD | user=${widget.username}');
     if (widget.vipLevel < 1 || widget.vipLevel > 7) {
       return const SizedBox.shrink();
     }

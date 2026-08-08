@@ -39,21 +39,21 @@ class RoomBackgroundItem {
 }
 
 class RoomBackgroundCatalog {
-  static const String defaultBackgroundId = 'theme_1';
+  static const String defaultBackgroundId = 'theme_default';
 
   static const RoomBackgroundItem defaultBackground = RoomBackgroundItem(
-    id: 'theme_1',
-    title: 'Theme 1',
-    assetPath: 'assets/backgroundroom/1.webp',
+    id: 'theme_default',
+    title: 'Classic Cosmic',
+    assetPath: '',
     isDefault: true,
   );
 
   static const List<RoomBackgroundItem> allBackgrounds = [
+    defaultBackground,
     RoomBackgroundItem(
       id: 'theme_1',
       title: 'Theme 1',
       assetPath: 'assets/backgroundroom/1.webp',
-      isDefault: true,
     ),
     RoomBackgroundItem(
       id: 'theme_2',

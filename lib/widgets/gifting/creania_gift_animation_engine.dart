@@ -41,6 +41,29 @@ class GiftRequestEvent {
     this.count = 1,
     this.luckyResult,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GiftRequestEvent &&
+          runtimeType == other.runtimeType &&
+          giftId == other.giftId &&
+          giftName == other.giftName &&
+          senderName == other.senderName &&
+          receiverName == other.receiverName &&
+          count == other.count &&
+          startOffset == other.startOffset &&
+          targetOffset == other.targetOffset;
+
+  @override
+  int get hashCode =>
+      giftId.hashCode ^
+      giftName.hashCode ^
+      senderName.hashCode ^
+      receiverName.hashCode ^
+      count.hashCode ^
+      startOffset.hashCode ^
+      targetOffset.hashCode;
 }
 
 class CreaniaGiftAnimationEngine extends StatefulWidget {
@@ -69,14 +92,20 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   @override
   void initState() {
     super.initState();
+    debugPrint('[GIFT] CONTROLLER CREATED | gift=${widget.event?.giftName}');
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
     );
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[GIFT] FIRST FRAME | gift=${widget.event?.giftName}');
+    });
+
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        if (widget.onCompleted != null) widget.onCompleted!();
+        debugPrint('[GIFT] EFFECT END | gift=${widget.event?.giftName}');
+        if (mounted && widget.onCompleted != null) widget.onCompleted!();
         GiftPipelineManager.to.onAnimationCompleted();
       }
     });
@@ -89,8 +118,11 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   @override
   void didUpdateWidget(CreaniaGiftAnimationEngine oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.event != oldWidget.event && widget.event != null) {
-      _startAnimation(widget.event!);
+    if (widget.event != null && oldWidget.event != null) {
+      if (widget.event != oldWidget.event) {
+        debugPrint('[GIFT] WIDGET REBUILD (Updated Payload) | gift=${widget.event?.giftName}');
+        _startAnimation(widget.event!);
+      }
     }
   }
 
@@ -105,13 +137,14 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
     final duration = AnimationTimeline.getTotalDuration(_metadata!.tier, targetCount: targetCount);
     _controller.duration = duration;
 
+    debugPrint('[GIFT] START | Configured Duration: ${duration.inMilliseconds}ms | gift=${event.giftName}');
+
     _initParticles();
     _controller.reset();
     _controller.forward();
   }
 
   void _initParticles() {
-    ParticlePoolManager().releaseAll();
     _activeParticles.clear();
     final random = Random();
     final count = min(42, GiftPipelineManager.to.maxAllowedParticles);
@@ -134,6 +167,9 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
 
   @override
   void dispose() {
+    final progress = (_controller.value * 100).toStringAsFixed(1);
+    debugPrint('[GIFT] WIDGET DISPOSE | gift=${widget.event?.giftName}');
+    debugPrint('[GIFT] CONTROLLER DISPOSE | gift=${widget.event?.giftName} | Progress: $progress%');
     _controller.dispose();
     ParticlePoolManager().releaseAll();
     super.dispose();

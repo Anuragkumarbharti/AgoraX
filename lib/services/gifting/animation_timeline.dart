@@ -54,15 +54,15 @@ class AnimationTimeline {
   static Duration getShowcaseDuration(GiftTier tier) {
     switch (tier) {
       case GiftTier.tier1:
-        return const Duration(milliseconds: 3000); // Tier 1: Minimum 3.0s center showcase
+        return const Duration(milliseconds: 5500); // Tier 1: 5.5s minimum center showcase
       case GiftTier.tier2:
-        return const Duration(milliseconds: 5000); // Tier 2: 5.0s center showcase
+        return const Duration(milliseconds: 7000); // Tier 2: 7.0s center showcase
       case GiftTier.tier3:
-        return const Duration(milliseconds: 7000); // Tier 3: 7.0s center showcase
+        return const Duration(milliseconds: 8800); // Tier 3: 8.8s center showcase
       case GiftTier.tier4:
-        return const Duration(milliseconds: 9000); // Tier 4: 9.0s center showcase
+        return const Duration(milliseconds: 10500); // Tier 4: 10.5s center showcase
       case GiftTier.tier5:
-        return const Duration(milliseconds: 10000); // Tier 5: 10.0s legendary showcase
+        return const Duration(milliseconds: 12500); // Tier 5: 12.5s legendary showcase
     }
   }
 
