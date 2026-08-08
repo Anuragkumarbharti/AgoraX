@@ -79,24 +79,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   // Master 35-Gift Catalog (1-to-1 match with Postgres gift_catalog table & GiftMetadataRegistry)
   final List<GiftItem> _allGifts = [
-    // 🎁 FREE GIFTS (0 Cost)
-    GiftItem(
-        id: 'f1000001-0000-0000-0000-000000000000',
-        name: 'Free Star',
-        icon: '⭐',
-        cost: 0,
-        currency: 'free',
-        tier: GiftTier.tier1,
-        category: '🥈 Tier 1'),
-    GiftItem(
-        id: 'f1000001-0000-0000-0000-00000000000a',
-        name: 'Free Rose',
-        icon: '🌹',
-        cost: 0,
-        currency: 'free',
-        tier: GiftTier.tier1,
-        category: '🥈 Tier 1'),
-
     // 🥈 TIER 1 (15 Gifts: 3 Silver, 12 Gold)
     GiftItem(
         id: 'f1000001-0000-0000-0000-000000000001',
@@ -1583,34 +1565,40 @@ class _BreathingGiftArtworkState extends State<_BreathingGiftArtwork>
                   : null,
             ),
           ),
-          Image.asset(
-            assetPath,
-            width: widget.size,
-            height: widget.size,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return Center(
-                child: Text(
-                  widget.gift.icon,
-                  style: TextStyle(
-                    fontSize: widget.size * 0.85,
-                    height: 1.0,
-                    shadows: [
-                      Shadow(
-                        color: (isGold ? const Color(0xFFFFD700) : themeColor)
-                            .withOpacity(0.6),
-                        blurRadius: 20,
-                      ),
-                      Shadow(
-                        color: Colors.black.withOpacity(0.85),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+          ColorFiltered(
+            colorFilter: const ColorFilter.mode(
+              Colors.black,
+              BlendMode.dstOut,
+            ),
+            child: Image.asset(
+              assetPath,
+              width: widget.size,
+              height: widget.size,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Center(
+                  child: Text(
+                    widget.gift.icon,
+                    style: TextStyle(
+                      fontSize: widget.size * 0.85,
+                      height: 1.0,
+                      shadows: [
+                        Shadow(
+                          color: (isGold ? const Color(0xFFFFD700) : themeColor)
+                              .withOpacity(0.6),
+                          blurRadius: 20,
+                        ),
+                        Shadow(
+                          color: Colors.black.withOpacity(0.85),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ],
       ),
