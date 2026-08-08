@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
@@ -294,11 +295,32 @@ class RoomConnectionController extends GetxController {
       if (response != null && response is Map<String, dynamic>) {
         if (response['seats'] != null && response['seats'] is List && Get.isRegistered<RoomSeatController>()) {
           final List<dynamic> seatsJson = response['seats'];
+          final seatCtrl = RoomSeatController.to;
+          final currentSeats = seatCtrl.roomSeatsInfo[roomId] ?? [];
           final List<Map<String, dynamic>> seatsList = [];
+
           for (final s in seatsJson) {
-            seatsList.add(Map<String, dynamic>.from(s as Map));
+            final map = Map<String, dynamic>.from(s as Map);
+            final sIdx = map['seatIndex'] as int?;
+            final uId = map['userId'] as String?;
+
+            if (sIdx != null && currentSeats.isNotEmpty) {
+              final existing = currentSeats.firstWhere(
+                (cs) => cs['seatIndex'] == sIdx,
+                orElse: () => <String, dynamic>{},
+              );
+              if (existing.isNotEmpty && existing['userId'] == uId && uId != null) {
+                final localGems = (existing['seatSessionGems'] as num?)?.toInt() ?? 0;
+                final remoteGems = (map['seatSessionGems'] as num?)?.toInt() ?? 0;
+                final resolvedGems = math.max(localGems, remoteGems);
+                map['seatSessionGems'] = resolvedGems;
+                map['seatTotalStars'] = resolvedGems;
+                map['seatTotalGems'] = resolvedGems;
+              }
+            }
+            seatsList.add(map);
           }
-          RoomSeatController.to.roomSeatsInfo[roomId] = seatsList;
+          seatCtrl.roomSeatsInfo[roomId] = seatsList;
         }
 
         if (response['members'] != null && response['members'] is List && Get.isRegistered<RoomMemberController>()) {

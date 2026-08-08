@@ -175,8 +175,8 @@ class VoiceRoom {
       todayRoomXp: json['todayRoomXp'] ?? json['today_room_xp'] ?? 0,
       totalRoomGifts: json['totalRoomGifts'] ?? json['total_room_gifts'] ?? 0,
       todayRoomGifts: json['todayRoomGifts'] ?? json['today_room_gifts'] ?? 0,
-      totalRoomStars: json['totalRoomStars'] ?? json['total_room_stars'] ?? 0,
-      todayRoomStars: json['todayRoomStars'] ?? json['today_room_stars'] ?? 0,
+      totalRoomStars: (json['totalRoomGems'] ?? json['total_room_gems'] ?? json['totalRoomStars'] ?? json['total_room_stars'] ?? 0) as int,
+      todayRoomStars: (json['todayRoomGems'] ?? json['today_room_gems'] ?? json['todayRoomStars'] ?? json['today_room_stars'] ?? 0) as int,
 
       // New Roles Hierarchy
       founderId: json['founderId'] ?? 'uid_anurag_101',
@@ -306,6 +306,11 @@ class VoiceRoom {
   int todayRoomGifts;
   int totalRoomStars;
   int todayRoomStars;
+
+  int get totalRoomGems => totalRoomStars;
+  set totalRoomGems(int val) => totalRoomStars = val;
+  int get todayRoomGems => todayRoomStars;
+  set todayRoomGems(int val) => todayRoomStars = val;
 
   // New Roles Hierarchy
   final String founderId;

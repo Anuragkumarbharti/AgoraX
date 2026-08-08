@@ -222,15 +222,28 @@ class UltraFastRoomJoinEngine {
     } catch (e) {
       debugPrint('[UltraFastRoomJoinEngine] Transaction failed: $e. Executing full transaction rollback...');
       await _rollbackJoinTransaction(room.id);
-      final errorMsg = e is PostgrestException && e.message.isNotEmpty
+
+      final String rawMsg = e is PostgrestException && e.message.isNotEmpty
           ? e.message
-          : 'Unable to connect to room: $e';
+          : e.toString();
+
+      String userFriendlyMessage = 'Network connection issue. Please check your internet connection and try again.';
+      if (!rawMsg.toLowerCase().contains('<html') &&
+          !rawMsg.toLowerCase().contains('<head>') &&
+          !rawMsg.toLowerCase().contains('<!doctype') &&
+          !rawMsg.toLowerCase().contains('portal_url')) {
+        if (e is PostgrestException && e.message.isNotEmpty) {
+          userFriendlyMessage = e.message;
+        }
+      }
+
       Get.snackbar(
-        'Room Join Failed 📡',
-        errorMsg,
+        'Network Connection Error 📶',
+        userFriendlyMessage,
         backgroundColor: Colors.red.shade900,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 4),
       );
     }
   }

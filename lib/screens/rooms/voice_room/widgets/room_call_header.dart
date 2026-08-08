@@ -101,14 +101,14 @@ class RoomCallHeader extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 32),
                     child: Builder(
                       builder: (context) {
-                        final totalStars = liveRoom?.totalRoomStars ?? 0;
+                        final totalGems = liveRoom?.totalRoomGems ?? liveRoom?.totalRoomStars ?? 0;
                         return GestureDetector(
                           onTap: () {
                             Get.dialog(
                               RoomStarGiftStatsDialog(
                                 roomId: liveId,
                                 roomName: liveName,
-                                totalStars: totalStars,
+                                totalStars: totalGems,
                               ),
                             );
                           },
@@ -126,16 +126,16 @@ class RoomCallHeader extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                const GemIcon(size: 11.5, showGlow: false),
+                                const SizedBox(width: 3.5),
                                 Text(
-                                  '$totalStars',
+                                  '$totalGems',
                                   style: GoogleFonts.poppins(
                                     color: const Color(0xFFFFD700),
                                     fontSize: 10.0,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(width: 3.5),
-                                const GemIcon(size: 11.5, showGlow: false),
                               ],
                             ),
                           ),

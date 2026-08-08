@@ -5,6 +5,7 @@ import '../room/room_realtime_controller.dart';
 import '../room/room_seat_controller.dart';
 import '../room/room_chat_controller.dart';
 import '../room/room_dual_progress_controller.dart';
+import '../room/room_controller.dart';
 import './gift_animation_controller.dart';
 import '../../models/gift/gift_animation_metadata.dart';
 import '../user/user_profile_cache_manager.dart';
@@ -132,16 +133,31 @@ class GiftEventService extends GetxController {
     }
   }
 
+  final Set<String> _processedGiftEventIds = <String>{};
+
   /// Processes incoming realtime gift payload on every client in the room
   void handleIncomingGiftEvent(String roomId, Map<String, dynamic> rawPayload) {
     final normalized = normalizePayload(rawPayload);
+    final String eventId = (normalized['id'] ?? '').toString();
+    final bool isDuplicate = eventId.isNotEmpty && _processedGiftEventIds.contains(eventId);
+
+    if (eventId.isNotEmpty) {
+      _processedGiftEventIds.add(eventId);
+      if (_processedGiftEventIds.length > 500) {
+        _processedGiftEventIds.remove(_processedGiftEventIds.first);
+      }
+    }
+
     debugPrint(
-        '[GiftEventService] Received Gift Event: ${normalized['messageText']}');
+        '[GiftEventService] Received Gift Event (dup=$isDuplicate): ${normalized['messageText']}');
 
     // 1. Dispatch event to GiftAnimationController queue
     if (Get.isRegistered<GiftAnimationController>()) {
       GiftAnimationController.to.dispatchBroadcastGiftEvent(normalized);
     }
+
+    // If duplicate event delivery, skip applying transaction counters twice
+    if (isDuplicate) return;
 
     // 2. Dispatch standard gift chat announcement to room chat feed
     try {
@@ -190,37 +206,101 @@ class GiftEventService extends GetxController {
       debugPrint('[GiftEventService] Error handling lucky message in chat: $e');
     }
 
-    // 3. Update reactive seat total stars
+    // 4. Update reactive seat session gems
+    int singleReceiverGems = 0;
     try {
       if (Get.isRegistered<RoomSeatController>()) {
         final seatCtrl = RoomSeatController.to;
         final seats = seatCtrl.roomSeatsInfo[roomId];
         final List<int> seatIndices =
-            List<int>.from(normalized['receiverSeats']);
-        final int giftValue = normalized['giftValue'] as int;
-        final int quantity = normalized['quantity'] as int;
+            List<int>.from(normalized['receiverSeats'] ?? []);
+        final int giftValue = (normalized['giftValue'] as num?)?.toInt() ?? 1;
+        final int quantity = (normalized['quantity'] as num?)?.toInt() ?? 1;
+        final String currency = (normalized['currency'] ?? 'gold').toString().toLowerCase();
 
-        if (seats != null && seatIndices.isNotEmpty) {
-          for (final idx in seatIndices) {
-            final seatPos = seats.indexWhere((s) => s['seatIndex'] == idx);
-            if (seatPos != -1) {
-              final currentStars =
-                  (seats[seatPos]['seatTotalStars'] as num?)?.toInt() ?? 0;
-              seats[seatPos]['seatTotalStars'] =
-                  currentStars + (giftValue * quantity);
-              seatCtrl.roomSeatsInfo.refresh();
+        singleReceiverGems = (normalized['gemsValue'] as num?)?.toInt() ?? 0;
+        if (singleReceiverGems <= 0) {
+          if (currency == 'silver') {
+            singleReceiverGems = (giftValue / 100).floor().clamp(1, 999999) * quantity;
+          } else {
+            singleReceiverGems = giftValue * quantity;
+          }
+        }
+
+        if (seats != null) {
+          final List<int> seatIndices = List<int>.from(normalized['receiverSeats'] ?? []);
+          final List<String> receiverIds = List<String>.from(normalized['receiverIds'] ?? []);
+          final Set<int> targetPositions = <int>{};
+
+          for (final sIdx in seatIndices) {
+            final pos = seats.indexWhere((s) => s['seatIndex'] == sIdx);
+            if (pos != -1) targetPositions.add(pos);
+          }
+
+          for (final rId in receiverIds) {
+            if (rId.isNotEmpty) {
+              final pos = seats.indexWhere((s) => s['userId'] == rId);
+              if (pos != -1) targetPositions.add(pos);
             }
           }
+
+          for (final seatPos in targetPositions) {
+            final currentGems =
+                (seats[seatPos]['seatSessionGems'] as num?)?.toInt() ??
+                (seats[seatPos]['seatTotalStars'] as num?)?.toInt() ??
+                0;
+            final newGems = currentGems + singleReceiverGems;
+            seats[seatPos]['seatSessionGems'] = newGems;
+            seats[seatPos]['seatTotalStars'] = newGems;
+            seats[seatPos]['seatTotalGems'] = newGems;
+          }
+          seatCtrl.roomSeatsInfo.refresh();
         }
       }
     } catch (e) {
       debugPrint('[GiftEventService] Seat star update error: $e');
     }
 
-    // 5. Trigger Room Task Dual Progress sync across clients
+    // 5. Update room header Total & Today Gems in realtime
+    try {
+      if (Get.isRegistered<RoomController>()) {
+        final roomCtrl = RoomController.to;
+        final List<int> seatIndices = List<int>.from(normalized['receiverSeats'] ?? []);
+        final int countReceivers = seatIndices.isNotEmpty ? seatIndices.length : 1;
+        final int totalAddedGems = singleReceiverGems * countReceivers;
+
+        final idx = roomCtrl.rooms.indexWhere((r) => r.id == roomId);
+        if (idx != -1) {
+          final liveRoom = roomCtrl.rooms[idx];
+          liveRoom.totalRoomGems += totalAddedGems;
+          liveRoom.todayRoomGems += totalAddedGems;
+          roomCtrl.rooms.refresh();
+        }
+      }
+    } catch (e) {
+      debugPrint('[GiftEventService] Room header gems refresh note: $e');
+    }
+
+    // 6. Trigger Room Task Dual Progress (Gold AP) sync across clients
     try {
       if (Get.isRegistered<RoomDualProgressController>()) {
-        RoomDualProgressController.to.fetchDualProgress(roomId);
+        final dualCtrl = RoomDualProgressController.to;
+        final int giftValue = (normalized['giftValue'] as num?)?.toInt() ?? 1;
+        final int quantity = (normalized['quantity'] as num?)?.toInt() ?? 1;
+        final String currency = (normalized['currency'] ?? 'gold').toString().toLowerCase();
+
+        if (currency == 'gold' && dualCtrl.dualProgresses.containsKey(roomId)) {
+          final currentDual = dualCtrl.dualProgresses[roomId];
+          if (currentDual != null) {
+            final addedGold = giftValue * quantity;
+            dualCtrl.dualProgresses[roomId] = currentDual.copyWith(
+              goldPoints: currentDual.goldPoints + addedGold,
+              totalTask: currentDual.totalTask + addedGold,
+            );
+          }
+        }
+
+        dualCtrl.fetchDualProgress(roomId);
       }
     } catch (e) {
       debugPrint('[GiftEventService] Room Dual Progress refresh error: $e');

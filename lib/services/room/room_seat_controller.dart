@@ -96,12 +96,28 @@ class RoomSeatController extends GetxController {
             seats.map((s) => Map<String, dynamic>.from(s)));
         final List<Map<String, dynamic>> updatedSeats = List.from(backupSeats);
 
+        final targetIdx =
+            updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
+
+        final bool isAlreadyOnSeat =
+            targetIdx != -1 && updatedSeats[targetIdx]['userId'] == currentUserId;
+        final int existingGems = isAlreadyOnSeat
+            ? ((updatedSeats[targetIdx]['seatSessionGems'] as num?)?.toInt() ?? 0)
+            : 0;
+        final String? existingSessionId = isAlreadyOnSeat
+            ? updatedSeats[targetIdx]['seatSessionId'] as String?
+            : null;
+
         final prevIdx =
-            updatedSeats.indexWhere((s) => s['userId'] == currentUserId);
+            updatedSeats.indexWhere((s) => s['userId'] == currentUserId && s['seatIndex'] != seatIndex);
         if (prevIdx != -1) {
           updatedSeats[prevIdx] = {
             ...updatedSeats[prevIdx],
             'userId': null,
+            'seatSessionId': null,
+            'seatSessionGems': 0,
+            'seatTotalStars': 0,
+            'seatTotalGems': 0,
             'name': getSeatName(prevIdx),
             'avatar': null,
             'isSpeaking': false,
@@ -110,12 +126,14 @@ class RoomSeatController extends GetxController {
 
         final profile = UserProfileCacheManager.currentUser;
 
-        final targetIdx =
-            updatedSeats.indexWhere((s) => s['seatIndex'] == seatIndex);
         if (targetIdx != -1) {
           updatedSeats[targetIdx] = {
             ...updatedSeats[targetIdx],
             'userId': currentUserId,
+            'seatSessionId': existingSessionId ?? 'ss_local_${DateTime.now().microsecondsSinceEpoch}',
+            'seatSessionGems': existingGems,
+            'seatTotalStars': existingGems,
+            'seatTotalGems': existingGems,
             'name': profile?.username ?? 'Creaniaa Student',
             'avatar': profile?.avatar,
             'level': profile?.level ?? 1,
@@ -200,6 +218,10 @@ class RoomSeatController extends GetxController {
           updatedSeats[targetIdx] = {
             ...updatedSeats[targetIdx],
             'userId': null,
+            'seatSessionId': null,
+            'seatSessionGems': 0,
+            'seatTotalStars': 0,
+            'seatTotalGems': 0,
             'name': getSeatName(seatIndex),
             'avatar': null,
             'isSpeaking': false,
@@ -268,6 +290,10 @@ class RoomSeatController extends GetxController {
           updatedSeats[targetIdx] = {
             ...updatedSeats[targetIdx],
             'userId': null,
+            'seatSessionId': null,
+            'seatSessionGems': 0,
+            'seatTotalStars': 0,
+            'seatTotalGems': 0,
             'name': getSeatName(seatIndex),
             'avatar': null,
             'isSpeaking': false,

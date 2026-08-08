@@ -267,6 +267,9 @@ class QuickRepeatController extends GetxController {
           );
         }
 
+        // Reset the 10-second global countdown timer back to 10s on every repeat tap
+        _startGlobalTimer();
+
         // Reset / start inactivity timer on every successful repeat
         _resetInactivityTimer();
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -429,10 +430,29 @@ class RoomProgressionController extends GetxController {
         final uId = s['user_id'] as String?;
         final profile = uId != null ? UserProfileCacheManager.getCachedUser(uId) : null;
         final count = giftMap[seatIdx] ?? 0;
+        final int sessionGems = (s['seat_session_gems'] ?? s['seat_total_gems'] ?? s['seat_total_stars'] ?? 0) as int;
+        final String? sessionId = s['seat_session_id'] as String?;
+
+        int resolvedGems = sessionGems;
+        if (Get.isRegistered<RoomSeatController>()) {
+          final currentSeats = RoomSeatController.to.roomSeatsInfo[roomId] ?? [];
+          final existing = currentSeats.firstWhere(
+            (cs) => cs['seatIndex'] == seatIdx,
+            orElse: () => <String, dynamic>{},
+          );
+          if (existing.isNotEmpty && existing['userId'] == uId && uId != null) {
+            final localGems = (existing['seatSessionGems'] as num?)?.toInt() ?? 0;
+            resolvedGems = math.max(localGems, sessionGems);
+          }
+        }
 
         seatsList.add({
           'seatIndex': seatIdx,
           'userId': uId,
+          'seatSessionId': sessionId,
+          'seatSessionGems': resolvedGems,
+          'seatTotalStars': resolvedGems,
+          'seatTotalGems': resolvedGems,
           'name': profile?.username ?? (uId != null ? 'Member' : RoomSeatController.getSeatName(seatIdx)),
           'avatar': profile?.avatar,
           'level': profile?.level ?? 1,
