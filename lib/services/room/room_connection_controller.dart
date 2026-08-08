@@ -627,6 +627,8 @@ class RoomConnectionController extends GetxController {
       } catch (err) {
         debugPrint('Socket join status notify failed: $err');
       }
+    } catch (e) {
+      debugPrint('Error entering room: $e');
       String rawErr = e.toString();
       String errorMsg = rawErr.replaceAll('Exception: ', '');
       if (rawErr.contains('<html') ||
