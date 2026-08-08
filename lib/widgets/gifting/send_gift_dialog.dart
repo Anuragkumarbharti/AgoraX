@@ -12,6 +12,7 @@ import '../../models/vault/vault_models.dart';
 import '../../models/gift/gift_animation_metadata.dart';
 import '../../utils/number_formatter.dart';
 import '../../services/user/user_profile_cache_manager.dart';
+import '../../screens/store/coin_store_screen.dart';
 
 class GiftItem {
   final String id;
@@ -590,7 +591,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         color: Colors.transparent,
         child: Container(
           width: double.infinity,
-          height: screenHeight * 0.62,
+          height: screenHeight * 0.53,
           decoration: BoxDecoration(
             color: const Color(0xFF090A10).withOpacity(0.97),
             borderRadius: const BorderRadius.only(
@@ -978,7 +979,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                     crossAxisCount: 4,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
-                    childAspectRatio: 0.74,
+                    childAspectRatio: 0.72,
                   ),
                   itemCount: pageGifts.length,
                   itemBuilder: (context, index) {
@@ -1021,94 +1022,84 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           _selectedGift = gift;
         });
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isGold
-                  ? const Color(0xFFFFD700).withOpacity(0.18)
-                  : const Color(0xFF8B5CF6).withOpacity(0.25))
-              : const Color(0xFF131522),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected
-                ? (isGold ? const Color(0xFFFFD700) : const Color(0xFFA78BFA))
-                : const Color(0xFF23263B),
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
+      child: Container(
+        color: Colors.transparent,
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.03),
-                  ),
-                  child: Text(
-                    gift.icon,
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Text(
-                    gift.name,
-                    style: GoogleFonts.poppins(
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: _BreathingGiftArtwork(
+                      gift: gift,
+                      isSelected: isSelected,
+                      size: 66,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
                   ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    isGold
-                        ? _buildGoldCoinIcon(size: 10)
-                        : _buildSilverCoinIcon(size: 10),
-                    const SizedBox(width: 2),
-                    Text(
-                      formatCompactNumber(gift.cost),
-                      style: GoogleFonts.inter(
-                        fontSize: 9,
-                        color:
-                            isGold ? const Color(0xFFFFD700) : Colors.white70,
-                        fontWeight: FontWeight.w800,
+                  const SizedBox(height: 2),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Text(
+                      gift.name,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      isGold
+                          ? _buildGoldCoinIcon(size: 11)
+                          : _buildSilverCoinIcon(size: 11),
+                      const SizedBox(width: 3),
+                      Text(
+                        formatCompactNumber(gift.cost),
+                        style: GoogleFonts.inter(
+                          fontSize: 10.5,
+                          color:
+                              isGold ? const Color(0xFFFFD700) : Colors.white70,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             if (gift.badge != null)
               Positioned(
-                top: 2,
+                top: 0,
                 right: 2,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: BoxDecoration(
                     gradient: _getBadgeGradient(gift.badge!),
-                    borderRadius: BorderRadius.circular(5),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
                   child: Text(
                     gift.badge!,
                     style: GoogleFonts.poppins(
                       color: Colors.white,
-                      fontSize: 5.5,
+                      fontSize: 6.5,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 0.2,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ),
@@ -1163,7 +1154,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           crossAxisCount: 4,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
-          childAspectRatio: 0.8,
+          childAspectRatio: 0.72,
         ),
         itemCount: vaultItemsList.length,
         itemBuilder: (context, index) {
@@ -1176,43 +1167,54 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 _selectedVaultItem = item;
               });
             },
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF8B5CF6).withOpacity(0.25)
-                    : const Color(0xFF131522),
-                borderRadius: BorderRadius.circular(12),
+                    ? const Color(0xFF8B5CF6).withOpacity(0.22)
+                    : const Color(0xFF101220),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF8B5CF6)
-                      : const Color(0xFF23263B),
+                      ? const Color(0xFFA78BFA)
+                      : const Color(0xFF222538),
+                  width: isSelected ? 1.8 : 1.0,
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    item.category == 'Premium' ? '👑' : '🎒',
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.displayName,
-                    style: GoogleFonts.poppins(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          item.category == 'Premium' ? '👑' : '🎒',
+                          style: const TextStyle(fontSize: 42),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.displayName,
+                      style: GoogleFonts.poppins(
                         color: Colors.white,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    'Qty: ${item.quantity}',
-                    style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Qty: ${item.quantity}',
+                      style: GoogleFonts.inter(
                         color: Colors.amber,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ],
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -1345,11 +1347,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   }
 
   Widget _buildBottomControlBar(bool hasValidRecipient, double totalCost) {
-    final combos = [2, 5, 10, 20, 50, 100];
-    final isCustomSelected = !combos.contains(_effectiveMultiplier) && _effectiveMultiplier > 1;
-
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: const BoxDecoration(
         color: Color(0xFF090A10),
         borderRadius: BorderRadius.only(
@@ -1359,220 +1358,159 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         border: Border(top: BorderSide(color: Color(0xFF1E2032))),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          Row(
             children: [
-              Obx(() => Row(
-                    children: [
-                      _buildGoldCoinIcon(size: 11),
-                      const SizedBox(width: 3),
-                      Text(
-                        formatCompactNumber(_storeCtrl.coinsBalance.value),
-                        style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 2),
-                      const Icon(Icons.add_circle,
-                          color: Colors.amber, size: 10),
-                    ],
-                  )),
-              const SizedBox(height: 2),
-              Obx(() => Row(
-                    children: [
-                      _buildSilverCoinIcon(size: 11),
-                      const SizedBox(width: 3),
-                      Text(
-                        formatCompactNumber(
-                            _storeCtrl.silverCoinsBalance.value),
-                        style: GoogleFonts.inter(
-                            color: Colors.white70,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  )),
-            ],
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () {},
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF8A2387), Color(0xFFE94057)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Text('👑', style: TextStyle(fontSize: 10)),
-                  const SizedBox(width: 3),
-                  Text(
-                    'VIP',
-                    style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900),
+              GestureDetector(
+                onTap: () {
+                  Get.to(() => CoinStoreScreen());
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141624),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF282B40)),
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Container(
-                height: 28,
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF141624),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF282B40)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ...combos.map((val) {
-                      final isSelected = _effectiveMultiplier == val;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedComboMultiplier = isSelected ? 1 : val;
-                          });
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFF7C3AED)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${val}x',
+                  child: Row(
+                    children: [
+                      _buildGoldCoinIcon(size: 13),
+                      const SizedBox(width: 4),
+                      Obx(() => Text(
+                            formatCompactNumber(_storeCtrl.coinsBalance.value),
                             style: GoogleFonts.inter(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.white60,
-                              fontSize: 8.5,
+                              color: Colors.white,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
+                          )),
+                      const SizedBox(width: 3),
+                      const Icon(Icons.chevron_right,
+                          color: Colors.white54, size: 14),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141624),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF282B40)),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildSilverCoinIcon(size: 13),
+                      const SizedBox(width: 4),
+                      Obx(() => Text(
+                            formatCompactNumber(
+                                _storeCtrl.silverCoinsBalance.value),
+                            style: GoogleFonts.inter(
+                              color: Colors.white70,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )),
+                      const SizedBox(width: 3),
+                      const Icon(Icons.chevron_right,
+                          color: Colors.white54, size: 14),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _showCustomQuantityDialog,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141624),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF282B40)),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${_effectiveMultiplier}',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_right,
+                          color: Colors.white70, size: 14),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed:
+                    (hasValidRecipient && !_isSending) ? _sendGift : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                ),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: (hasValidRecipient && !_isSending)
+                        ? const LinearGradient(
+                            colors: [
+                              Color(0xFF7C3AED),
+                              Color(0xFF6F5BFF),
+                              Color(0xFF8B5CF6)
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          )
+                        : const LinearGradient(
+                            colors: [Color(0xFF3A3D52), Color(0xFF2A2C3D)],
                           ),
-                        ),
-                      );
-                    }).toList(),
-                    GestureDetector(
-                      onTap: _showCustomQuantityDialog,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isCustomSelected
-                              ? const Color(0xFF7C3AED)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          isCustomSelected
-                              ? 'Custom (${_effectiveMultiplier}x)'
-                              : 'Custom',
-                          style: GoogleFonts.inter(
-                            color: isCustomSelected
-                                ? Colors.white
-                                : Colors.white60,
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: (hasValidRecipient && !_isSending)
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF6F5BFF).withOpacity(0.4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22, vertical: 9),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _isSending
+                          ? 'SENDING...'
+                          : (hasValidRecipient ? 'Send' : 'SELECT SEAT'),
+                      style: GoogleFonts.poppins(
+                        color:
+                            hasValidRecipient ? Colors.white : Colors.white38,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: (hasValidRecipient && !_isSending) ? _sendGift : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              padding: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-            ),
-            child: Ink(
-              decoration: BoxDecoration(
-                gradient: (hasValidRecipient && !_isSending)
-                    ? const LinearGradient(
-                        colors: [
-                          Color(0xFFFF416C),
-                          Color(0xFFFF4B2B),
-                          Color(0xFF8B5CF6)
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : const LinearGradient(
-                        colors: [Color(0xFF3A3D52), Color(0xFF2A2C3D)],
-                      ),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_isSending) ...[
-                      const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'SENDING...',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ] else ...[
-                      const Text('🎁', style: TextStyle(fontSize: 12)),
-                      const SizedBox(width: 4),
-                      Text(
-                        hasValidRecipient
-                            ? 'SEND (${_effectiveMultiplier})'
-                            : 'SELECT SEAT',
-                        style: GoogleFonts.poppins(
-                          color:
-                              hasValidRecipient ? Colors.white : Colors.white38,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+            ],
           ),
         ],
       ),
@@ -1599,3 +1537,147 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     );
   }
 }
+
+class _BreathingGiftArtwork extends StatefulWidget {
+  final GiftItem gift;
+  final bool isSelected;
+  final double size;
+
+  const _BreathingGiftArtwork({
+    Key? key,
+    required this.gift,
+    required this.isSelected,
+    this.size = 52,
+  }) : super(key: key);
+
+  @override
+  State<_BreathingGiftArtwork> createState() => _BreathingGiftArtworkState();
+}
+
+class _BreathingGiftArtworkState extends State<_BreathingGiftArtwork>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _scaleAnimation = Tween<double>(begin: 0.98, end: 1.12).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    if (widget.isSelected) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _BreathingGiftArtwork oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected != oldWidget.isSelected) {
+      if (widget.isSelected) {
+        _controller.repeat(reverse: true);
+      } else {
+        _controller.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _buildArtworkContent() {
+    final meta = GiftMetadataRegistry.getMetadata(widget.gift.id);
+    final assetPath = meta.resolvedGifAssetPath;
+    final isGold = widget.gift.currency == 'gold';
+    final themeColor = meta.themeColor;
+    final isSelected = widget.isSelected;
+
+    return Center(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Soft circular/elliptical light purple glow (#6F5BFF) behind the gift image
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: widget.size * 1.15,
+            height: widget.size * 1.15,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  isSelected
+                      ? const Color(0xFF6F5BFF).withOpacity(0.85)
+                      : const Color(0xFF6F5BFF).withOpacity(0.35),
+                  const Color(0xFF6F5BFF).withOpacity(0.0),
+                ],
+                stops: const [0.2, 1.0],
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF6F5BFF).withOpacity(0.55),
+                        blurRadius: 24,
+                        spreadRadius: 4,
+                      ),
+                    ]
+                  : null,
+            ),
+          ),
+          Image.asset(
+            assetPath,
+            width: widget.size,
+            height: widget.size,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Center(
+                child: Text(
+                  widget.gift.icon,
+                  style: TextStyle(
+                    fontSize: widget.size * 0.85,
+                    height: 1.0,
+                    shadows: [
+                      Shadow(
+                        color: (isGold ? const Color(0xFFFFD700) : themeColor)
+                            .withOpacity(0.6),
+                        blurRadius: 20,
+                      ),
+                      Shadow(
+                        color: Colors.black.withOpacity(0.85),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: _buildArtworkContent(),
+    );
+  }
+}
+
