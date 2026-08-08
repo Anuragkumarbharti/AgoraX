@@ -627,11 +627,19 @@ class RoomConnectionController extends GetxController {
       } catch (err) {
         debugPrint('Socket join status notify failed: $err');
       }
-    } catch (e) {
-      debugPrint('Error entering room: $e');
+      String rawErr = e.toString();
+      String errorMsg = rawErr.replaceAll('Exception: ', '');
+      if (rawErr.contains('<html') ||
+          rawErr.contains('<HTML') ||
+          rawErr.contains('DOMParser') ||
+          rawErr.contains('SocketException') ||
+          rawErr.contains('ClientException') ||
+          rawErr.contains('Failed host lookup')) {
+        errorMsg = 'Network connection is unstable. Please check your internet connection and try again.';
+      }
       Get.snackbar(
         'Join Failed',
-        e.toString().replaceAll('Exception: ', ''),
+        errorMsg,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.8),
         colorText: Colors.white,

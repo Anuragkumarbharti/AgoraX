@@ -222,30 +222,43 @@ class UltraFastRoomJoinEngine {
     } catch (e) {
       debugPrint('[UltraFastRoomJoinEngine] Transaction failed: $e. Executing full transaction rollback...');
       await _rollbackJoinTransaction(room.id);
-
-      final String rawMsg = e is PostgrestException && e.message.isNotEmpty
-          ? e.message
-          : e.toString();
-
-      String userFriendlyMessage = 'Network connection issue. Please check your internet connection and try again.';
-      if (!rawMsg.toLowerCase().contains('<html') &&
-          !rawMsg.toLowerCase().contains('<head>') &&
-          !rawMsg.toLowerCase().contains('<!doctype') &&
-          !rawMsg.toLowerCase().contains('portal_url')) {
-        if (e is PostgrestException && e.message.isNotEmpty) {
-          userFriendlyMessage = e.message;
-        }
-      }
-
+      final errorMsg = _sanitizeErrorMessage(e);
       Get.snackbar(
-        'Network Connection Error 📶',
-        userFriendlyMessage,
+        'Room Join Failed 📡',
+        errorMsg,
         backgroundColor: Colors.red.shade900,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 4),
       );
     }
+  }
+
+  String _sanitizeErrorMessage(dynamic e) {
+    final raw = e.toString();
+    if (raw.contains('<html') ||
+        raw.contains('<HTML') ||
+        raw.contains('<!DOCTYPE') ||
+        raw.contains('DOMParser') ||
+        raw.contains('SocketException') ||
+        raw.contains('ClientException') ||
+        raw.contains('HttpException') ||
+        raw.contains('NetworkException') ||
+        raw.contains('Failed host lookup') ||
+        raw.contains('Connection refused') ||
+        raw.contains('Connection timed out') ||
+        raw.contains('HandshakeException')) {
+      return 'Network connection is unstable. Please check your internet connection and try again.';
+    }
+
+    if (e is PostgrestException && e.message.isNotEmpty) {
+      if (e.message.contains('<html') || e.message.contains('<HTML')) {
+        return 'Network connection is unstable. Please check your internet connection and try again.';
+      }
+      return e.message;
+    }
+
+    return 'Network connection is unstable. Please check your internet connection and try again.';
   }
 
   /// Roll back complete join transaction if any stage fails (Requirement 1)
