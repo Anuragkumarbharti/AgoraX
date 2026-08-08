@@ -1,6 +1,7 @@
 // lib/widgets/gifting/send_gift_dialog.dart
 
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'dart:math';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -610,32 +611,42 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       alignment: Alignment.bottomCenter,
       child: Material(
         color: Colors.transparent,
-        child: Container(
-          width: double.infinity,
-          height: screenHeight * 0.58,
-          decoration: BoxDecoration(
-            color: const Color(0xFF090A10).withOpacity(0.97),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-            border: const Border(
-              top: BorderSide(color: Color(0xFF2A2D42), width: 1.5),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF7C3AED).withOpacity(0.2),
-                blurRadius: 30,
-                spreadRadius: 2,
-              ),
-              BoxShadow(
-                color: Colors.black.withOpacity(0.9),
-                blurRadius: 25,
-                offset: const Offset(0, -10),
-              )
-            ],
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
           ),
-          child: Column(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              width: double.infinity,
+              height: screenHeight * 0.58,
+              decoration: BoxDecoration(
+                color: const Color(0xFF111226).withValues(alpha: 0.88),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+                border: Border(
+                  top: BorderSide(
+                    color: const Color(0xFF171735).withValues(alpha: 0.9),
+                    width: 1.2,
+                  ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6F5BFF).withValues(alpha: 0.12),
+                    blurRadius: 24,
+                    spreadRadius: 1,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    blurRadius: 20,
+                    offset: const Offset(0, -6),
+                  ),
+                ],
+              ),
+              child: Column(
             children: [
               Container(
                 margin: const EdgeInsets.only(top: 8, bottom: 4),
@@ -680,6 +691,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -1276,13 +1288,18 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   Widget _buildBottomControlBar(bool hasValidRecipient, double totalCost) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Color(0xFF090A10),
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: const Color(0xFF111226).withValues(alpha: 0.92),
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
-        border: Border(top: BorderSide(color: Color(0xFF1E2032))),
+        border: Border(
+          top: BorderSide(
+            color: const Color(0xFF171735).withValues(alpha: 0.9),
+            width: 1.2,
+          ),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
