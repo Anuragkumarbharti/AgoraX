@@ -926,30 +926,38 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                                   isSelected ? FontWeight.bold : FontWeight.w500,
                             ),
                           ),
-                          if (index == 0) ...
-                            [
-                              const SizedBox(width: 4),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                spacing: 0,
-                                children: [
-                                  Icon(
-                                    Icons.arrow_drop_up_rounded,
-                                    size: 14,
-                                    color: _isPriceAscending
-                                        ? Colors.white
-                                        : Colors.white.withValues(alpha: 0.18),
+                          if (index == 0) ...[
+                            const SizedBox(width: 3),
+                            SizedBox(
+                              width: 12,
+                              height: 18,
+                              child: ClipRect(
+                                child: OverflowBox(
+                                  maxHeight: 32,
+                                  alignment: Alignment.center,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.arrow_drop_up_rounded,
+                                        size: 16,
+                                        color: _isPriceAscending
+                                            ? Colors.white
+                                            : Colors.white.withValues(alpha: 0.18),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_drop_down_rounded,
+                                        size: 16,
+                                        color: !_isPriceAscending
+                                            ? Colors.white
+                                            : Colors.white.withValues(alpha: 0.18),
+                                      ),
+                                    ],
                                   ),
-                                  Icon(
-                                    Icons.arrow_drop_down_rounded,
-                                    size: 14,
-                                    color: !_isPriceAscending
-                                        ? Colors.white
-                                        : Colors.white.withValues(alpha: 0.18),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
