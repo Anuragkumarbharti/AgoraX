@@ -18,6 +18,7 @@ class RoomProgressionController extends GetxController {
       <String, RoomStatistics>{}.obs;
   final RxMap<String, List<RoomDailyTask>> roomDailyTaskLists =
       <String, List<RoomDailyTask>>{}.obs;
+  final RxMap<String, int> roomTotalGemsMap = <String, int>{}.obs;
   final RxList<String> marqueeAnnouncementsQueue = <String>[].obs;
 
   Timer? _progressionTimer;
@@ -355,6 +356,7 @@ class RoomProgressionController extends GetxController {
         client.from('user_daily_task_progress').select().eq('task_date', todayDateStr),
         client.from('room_seats').select().eq('room_id', roomId).order('seat_index', ascending: true),
         client.from('room_seat_gifts').select().eq('room_id', roomId),
+        client.rpc('get_room_contribution_stats', params: {'p_room_id': roomId}),
       ]);
 
       final progressResp = results[0];
@@ -365,6 +367,14 @@ class RoomProgressionController extends GetxController {
       final statsResp = results[1];
       if (statsResp != null) {
         roomStats[roomId] = RoomStatistics.fromJson(statsResp as Map<String, dynamic>);
+      }
+
+      final contribResp = results[6];
+      if (contribResp != null && contribResp is Map) {
+        final totalGems = ((contribResp['total_gems'] ?? contribResp['total_stars'] ?? 0) as num).toInt();
+        if (totalGems > 0) {
+          roomTotalGemsMap[roomId] = math.max(roomTotalGemsMap[roomId] ?? 0, totalGems);
+        }
       }
 
       final catalogResp = results[2] as List;

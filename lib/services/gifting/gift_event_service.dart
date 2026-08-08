@@ -5,6 +5,8 @@ import '../room/room_realtime_controller.dart';
 import '../room/room_seat_controller.dart';
 import '../room/room_chat_controller.dart';
 import '../room/room_dual_progress_controller.dart';
+import '../room/room_progression_controller.dart';
+import '../room/room_discovery_controller.dart';
 import '../room/room_controller.dart';
 import './gift_animation_controller.dart';
 import '../../models/gift/gift_animation_metadata.dart';
@@ -263,12 +265,18 @@ class GiftEventService extends GetxController {
 
     // 5. Update room header Total & Today Gems in realtime
     try {
-      if (Get.isRegistered<RoomController>()) {
-        final roomCtrl = RoomController.to;
-        final List<int> seatIndices = List<int>.from(normalized['receiverSeats'] ?? []);
-        final int countReceivers = seatIndices.isNotEmpty ? seatIndices.length : 1;
-        final int totalAddedGems = singleReceiverGems * countReceivers;
+      final List<int> seatIndices = List<int>.from(normalized['receiverSeats'] ?? []);
+      final int countReceivers = seatIndices.isNotEmpty ? seatIndices.length : 1;
+      final int totalAddedGems = singleReceiverGems * countReceivers;
 
+      if (Get.isRegistered<RoomProgressionController>()) {
+        final progCtrl = RoomProgressionController.to;
+        final currentMapGems = progCtrl.roomTotalGemsMap[roomId] ?? 0;
+        progCtrl.roomTotalGemsMap[roomId] = currentMapGems + totalAddedGems;
+      }
+
+      if (Get.isRegistered<RoomDiscoveryController>()) {
+        final roomCtrl = RoomDiscoveryController.to;
         final idx = roomCtrl.rooms.indexWhere((r) => r.id == roomId);
         if (idx != -1) {
           final liveRoom = roomCtrl.rooms[idx];
