@@ -409,22 +409,15 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   }
 
   int get _effectiveMultiplier {
-    final count = _selectedRecipientCount;
-    if (count <= 0) return 0;
-    final maxAllowed = count > 100 ? 100 : count;
-    if (_selectedComboMultiplier > maxAllowed || _selectedComboMultiplier <= 0) {
-      return maxAllowed;
-    }
+    if (_selectedRecipientCount <= 0) return 0;
+    if (_selectedComboMultiplier <= 0) return 1;
+    if (_selectedComboMultiplier > 100) return 100;
     return _selectedComboMultiplier;
   }
 
   void _onRecipientSelectionChanged() {
-    final count = _selectedRecipientCount;
-    if (count <= 0) {
-      _selectedComboMultiplier = 0;
-    } else {
-      final maxAllowed = count > 100 ? 100 : count;
-      _selectedComboMultiplier = maxAllowed;
+    if (_selectedComboMultiplier <= 0) {
+      _selectedComboMultiplier = 1;
     }
   }
 
@@ -1230,10 +1223,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   Future<void> _showCustomQuantityDialog() async {
     final TextEditingController ctrl = TextEditingController();
-    final int maxAllowed = _selectedRecipientCount > 100 ? 100 : _selectedRecipientCount;
     int? customVal;
 
-    if (maxAllowed <= 0) {
+    if (_selectedRecipientCount <= 0) {
       Get.snackbar(
         'No Recipient Selected',
         'Please select recipients before choosing a custom multiplier.',
@@ -1254,7 +1246,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Enter Custom Gift Multiplier (2x - 100x) 🎁',
+                'Enter Custom Gift Multiplier (1x - 100x) 🎁',
                 style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontSize: 14,
@@ -1263,7 +1255,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Max allowed for currently selected recipients: ${maxAllowed}x',
+                'Multiplier applies to EACH selected recipient',
                 style: GoogleFonts.inter(
                   color: Colors.amber,
                   fontSize: 11,
@@ -1291,21 +1283,18 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               Wrap(
                 spacing: 8,
                 children: [2, 5, 10, 20, 50, 100].map((preset) {
-                  final isEnabled = preset <= maxAllowed;
                   return ActionChip(
-                    backgroundColor: isEnabled ? const Color(0xFF282B40) : const Color(0xFF1A1C29),
+                    backgroundColor: const Color(0xFF282B40),
                     label: Text(
                       '${preset}x',
-                      style: TextStyle(
-                        color: isEnabled ? Colors.white : Colors.white24,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontSize: 10,
                       ),
                     ),
-                    onPressed: isEnabled
-                        ? () {
-                            ctrl.text = '$preset';
-                          }
-                        : null,
+                    onPressed: () {
+                      ctrl.text = '$preset';
+                    },
                   );
                 }).toList(),
               ),
@@ -1329,14 +1318,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         Get.snackbar(
                           'Invalid Multiplier',
                           'Please enter a valid multiplier between 1x and 100x',
-                          snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: Colors.redAccent,
-                          colorText: Colors.white,
-                        );
-                      } else if (val > maxAllowed) {
-                        Get.snackbar(
-                          'Multiplier Exceeds Recipients',
-                          '${val}x exceeds selected recipient count ($maxAllowed).',
                           snackPosition: SnackPosition.BOTTOM,
                           backgroundColor: Colors.redAccent,
                           colorText: Colors.white,
@@ -1365,8 +1346,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   Widget _buildBottomControlBar(bool hasValidRecipient, double totalCost) {
     final combos = [2, 5, 10, 20, 50, 100];
-    final maxAllowed = _selectedRecipientCount > 100 ? 100 : _selectedRecipientCount;
-    final isCustomSelected = !combos.contains(_effectiveMultiplier) && _effectiveMultiplier > 0;
+    final isCustomSelected = !combos.contains(_effectiveMultiplier) && _effectiveMultiplier > 1;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
@@ -1460,23 +1440,11 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ...combos.map((val) {
-                      final isEnabled = val <= maxAllowed;
-                      final isSelected = _effectiveMultiplier == val && isEnabled;
+                      final isSelected = _effectiveMultiplier == val;
                       return GestureDetector(
                         onTap: () {
-                          if (!isEnabled) {
-                            Get.snackbar(
-                              'Multiplier Blocked',
-                              '${val}x requires at least $val selected recipients (currently $maxAllowed selected).',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: const Color(0xFF1E2032),
-                              colorText: Colors.amber,
-                              duration: const Duration(seconds: 2),
-                            );
-                            return;
-                          }
                           setState(() {
-                            _selectedComboMultiplier = val;
+                            _selectedComboMultiplier = isSelected ? 1 : val;
                           });
                         },
                         child: AnimatedContainer(
@@ -1494,7 +1462,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                             style: GoogleFonts.inter(
                               color: isSelected
                                   ? Colors.white
-                                  : (isEnabled ? Colors.white60 : Colors.white24),
+                                  : Colors.white60,
                               fontSize: 8.5,
                               fontWeight: FontWeight.bold,
                             ),

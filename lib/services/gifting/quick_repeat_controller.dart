@@ -166,7 +166,7 @@ class QuickRepeatController extends GetxController {
 
     final int effectiveMultiplier = (multiplier != null && multiplier > 0)
         ? multiplier
-        : (recipientIds.isNotEmpty ? recipientIds.length : initialQuantity);
+        : 1;
 
     final state = QuickRepeatState(
       originalGiftTransactionId: originalGiftTransactionId,
@@ -182,7 +182,7 @@ class QuickRepeatController extends GetxController {
       originalRecipientIds: List.from(recipientIds),
       originalRecipientNames: List.from(recipientNames),
       originalSeatIndices: List.from(seatIndices),
-      initialQuantity: effectiveMultiplier,
+      initialQuantity: initialQuantity,
     );
 
     _hasRepeated = false;
@@ -274,8 +274,9 @@ class QuickRepeatController extends GetxController {
       }
 
       // Calculate effective multiplier for repeat action based on remaining valid recipients
-      final int effectiveMultiplier = min(state.originalMultiplier, validRecipientIds.length);
-      final int totalCost = state.giftCost * effectiveMultiplier;
+      final int effectiveMultiplier = state.originalMultiplier > 0 ? state.originalMultiplier : 1;
+      final int totalQuantity = validRecipientIds.length * effectiveMultiplier;
+      final int totalCost = state.giftCost * totalQuantity;
 
       RxInt? walletBalance;
       if (Get.isRegistered<StoreController>()) {
@@ -320,7 +321,7 @@ class QuickRepeatController extends GetxController {
       );
 
       if (success) {
-        state.currentQuantity.value += effectiveMultiplier;
+        state.currentQuantity.value += totalQuantity;
 
         if (!_hasRepeated) {
           _hasRepeated = true;

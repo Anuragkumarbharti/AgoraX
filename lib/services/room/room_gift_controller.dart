@@ -76,14 +76,12 @@ class RoomGiftController extends GetxController {
         return false;
       }
 
-      final int maxAllowed = receiverCount > 100 ? 100 : receiverCount;
       int effectiveMultiplier = comboCount;
-      if (effectiveMultiplier <= 0 || effectiveMultiplier > maxAllowed) {
-        effectiveMultiplier = maxAllowed;
-      }
+      if (effectiveMultiplier < 1) effectiveMultiplier = 1;
+      if (effectiveMultiplier > 100) effectiveMultiplier = 100;
 
-      final totalQuantity = effectiveMultiplier;
-      final totalCost = giftCost * effectiveMultiplier;
+      final totalQuantity = receiverCount * effectiveMultiplier;
+      final totalCost = giftCost * totalQuantity;
 
       // ── 1. BALANCE CHECK & INSTANT OPTIMISTIC DEDUCTION (<1ms) ──
       if (walletBalance.value < totalCost) {
@@ -268,6 +266,7 @@ class RoomGiftController extends GetxController {
             recipientNames: targetUserNames,
             seatIndices: seatIndices,
             initialQuantity: totalQuantity,
+            multiplier: effectiveMultiplier,
           );
         }
       } catch (e) {
