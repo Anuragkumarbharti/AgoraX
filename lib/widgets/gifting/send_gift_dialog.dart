@@ -683,6 +683,164 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     );
   }
 
+  Widget _buildAvatarOnlyRecipientSelector() {
+    final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
+    final occupiedSeats = seats.where((s) => s['userId'] != null).toList();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      child: Row(
+        children: [
+          Text(
+            'To:',
+            style: GoogleFonts.poppins(
+                color: Colors.white38,
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  if (occupiedSeats.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141624),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        'No occupied seats',
+                        style: GoogleFonts.inter(
+                            color: Colors.white38, fontSize: 10),
+                      ),
+                    )
+                  else
+                    ...occupiedSeats.map((seat) {
+                      final uId = seat['userId'] as String;
+                      final uName = UserProfileCacheManager.resolveUsernameForGifting(
+                        uId,
+                        passedName: seat['username'] as String? ?? seat['name'] as String?,
+                        seatInfo: seat,
+                      );
+                      final avatar = seat['avatar'] as String?;
+                      final seatIdx = seat['seatIndex'] as int;
+                      final isSelected =
+                          _giftAll || _selectedRecipients.contains(uId);
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (_giftAll) _giftAll = false;
+                            if (isSelected && !_giftAll) {
+                              _selectedRecipients.remove(uId);
+                              _selectedRecipientNames.removeWhere((n) => n == uName || n == 'User');
+                              _selectedSeatIndices.remove(seatIdx);
+                            } else {
+                              if (!_selectedRecipients.contains(uId)) {
+                                _selectedRecipients.add(uId);
+                                _selectedRecipientNames.add(uName);
+                                _selectedSeatIndices.add(seatIdx);
+                              }
+                            }
+                            _onRecipientSelectionChanged();
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          margin: const EdgeInsets.only(right: 8),
+                          width: 34,
+                          height: 34,
+                          padding: const EdgeInsets.all(1.5),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: isSelected
+                                ? const LinearGradient(colors: [
+                                    Color(0xFFFF416C),
+                                    Color(0xFFFF4B2B),
+                                    Color(0xFF8B5CF6)
+                                  ])
+                                : const LinearGradient(colors: [
+                                    Color(0xFF25283D),
+                                    Color(0xFF1A1C29)
+                                  ]),
+                          ),
+                          child: Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 15,
+                                backgroundImage:
+                                    avatar != null && avatar.isNotEmpty
+                                        ? NetworkImage(avatar)
+                                        : const AssetImage(
+                                                'assets/images/placeholder.png')
+                                            as ImageProvider,
+                              ),
+                              if (isSelected)
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(1.5),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF10B981),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.check,
+                                        size: 7, color: Colors.white),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  if (occupiedSeats.length > 1)
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _giftAll = !_giftAll;
+                          _onRecipientSelectionChanged();
+                        });
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        margin: const EdgeInsets.only(left: 2, right: 4),
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _giftAll
+                              ? const Color(0xFFFF9F43)
+                              : const Color(0xFF141624),
+                          border: Border.all(
+                            color: _giftAll
+                                ? Colors.amber
+                                : const Color(0xFF25283D),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            '🎙️',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStarMakerCategoryBar() {
     return Container(
       height: 36,
