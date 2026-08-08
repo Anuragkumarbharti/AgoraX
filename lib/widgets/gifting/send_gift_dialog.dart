@@ -602,7 +602,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
               width: double.infinity,
-              height: screenHeight * 0.58,
+              height: screenHeight * 0.54,
               decoration: BoxDecoration(
                 color: const Color(0xFF111226).withValues(alpha: 0.70),
                 borderRadius: const BorderRadius.only(
@@ -917,21 +917,37 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(10, 4, 10, 12),
-      physics: const BouncingScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 0.76,
-      ),
-      itemCount: gifts.length,
-      itemBuilder: (context, index) {
-        final gift = gifts[index];
-        final isSelected = _selectedGift?.id == gift.id;
-        return _buildGiftCardItem(gift, isSelected);
+    return ShaderMask(
+      shaderCallback: (Rect bounds) {
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black,
+            Colors.black,
+            Colors.black,
+            Colors.transparent,
+          ],
+          stops: [0.0, 0.84, 0.94, 1.0],
+        ).createShader(bounds);
       },
+      blendMode: BlendMode.dstIn,
+      child: GridView.builder(
+        padding: const EdgeInsets.fromLTRB(10, 2, 10, 8),
+        physics: const BouncingScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 6,
+          childAspectRatio: 0.74,
+        ),
+        itemCount: gifts.length,
+        itemBuilder: (context, index) {
+          final gift = gifts[index];
+          final isSelected = _selectedGift?.id == gift.id;
+          return _buildGiftCardItem(gift, isSelected);
+        },
+      ),
     );
   }
 
