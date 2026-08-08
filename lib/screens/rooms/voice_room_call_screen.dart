@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:creania/core/theme.dart';
 import '../../models/room/room_model.dart';
@@ -30,8 +31,6 @@ import 'voice_room/models/floating_reaction.dart';
 import 'voice_room/animations/floating_emoji_item.dart';
 import 'voice_room/animations/gifting_animation_overlay.dart';
 import 'voice_room/widgets/breathing_indicators.dart';
-import 'voice_room/widgets/seat_voice_effect.dart';
-import 'voice_room/widgets/voice_waveform_widget.dart';
 import 'voice_room/widgets/room_call_header.dart';
 import 'voice_room/widgets/room_call_seat_grid.dart';
 import 'voice_room/widgets/room_call_chat_box.dart';
@@ -55,9 +54,8 @@ export 'voice_room/models/floating_reaction.dart';
 export 'voice_room/animations/floating_emoji_item.dart';
 export 'voice_room/animations/gifting_animation_overlay.dart';
 export 'voice_room/widgets/breathing_indicators.dart';
-export 'voice_room/widgets/seat_voice_effect.dart';
-export 'voice_room/widgets/voice_waveform_widget.dart';
 export 'voice_room/widgets/room_call_header.dart';
+
 export 'voice_room/widgets/room_call_seat_grid.dart';
 export 'voice_room/widgets/room_call_chat_box.dart';
 export 'voice_room/widgets/room_call_bottom_controls.dart';
@@ -413,8 +411,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   Future<void> _startBackgroundRoomJoin() async {
     try {
       // Validate Entry Permission before connecting voice or initializing chat
-      final liveRoom = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId) ??
-          VoiceRoom.dummy(widget.roomId);
+      final liveRoom =
+          _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId) ??
+              VoiceRoom.dummy(widget.roomId);
       final currentUid = widget.userId;
       final userVip = UserProfileCacheManager.currentUser?.vipLevel ?? 1;
 
@@ -425,7 +424,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       );
 
       if (!validationResult.isAllowed) {
-        debugPrint('[VoiceRoomCallScreen] Access Denied: ${validationResult.message}');
+        debugPrint(
+            '[VoiceRoomCallScreen] Access Denied: ${validationResult.message}');
         if (mounted) {
           Get.back(); // Immediately exit room screen!
         }
@@ -459,7 +459,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       await _controller.enterRoom(widget.roomId);
       await _controller.fetchRoomProgression(widget.roomId);
       if (Get.isRegistered<RoomDualProgressController>()) {
-        RoomDualProgressController.to.subscribeToRealtimeDualProgress(widget.roomId);
+        RoomDualProgressController.to
+            .subscribeToRealtimeDualProgress(widget.roomId);
       }
 
       if (mounted) {
@@ -484,8 +485,20 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   }
 
   bool _isCurrentUserOnSeat() {
-    final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? [];
-    return seatsList.any((s) => s['userId'] == widget.userId);
+    final seatsList = _controller.roomSeatsInfo[widget.roomId] ?? _seats;
+    final currentAuthUid = Supabase.instance.client.auth.currentUser?.id;
+    final cachedUid = UserProfileCacheManager.currentUserId;
+
+    return seatsList.any((s) {
+      final u = s['userId'] as String?;
+      if (u == null || u.isEmpty) return false;
+      if (u == widget.userId) return true;
+      if (currentAuthUid != null && u == currentAuthUid) return true;
+      if (cachedUid.isNotEmpty && u == cachedUid) return true;
+      if ((widget.userId == 'me' || widget.userId == 'uid_anurag_101') &&
+          (u == currentAuthUid || u == cachedUid)) return true;
+      return false;
+    });
   }
 
   Future<void> _toggleMic() async {
@@ -662,7 +675,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     final finalVip = vipLevel ?? identity.vipLevel;
     final finalNovel = novelLevel ?? identity.novelLevel;
 
-    final String taskId = 'entry_${userId}_${DateTime.now().microsecondsSinceEpoch}';
+    final String taskId =
+        'entry_${userId}_${DateTime.now().microsecondsSinceEpoch}';
     _entranceQueue.add({
       'taskId': taskId,
       'userId': userId,
@@ -677,7 +691,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   Completer<void>? _currentEntranceCompleter;
 
   void _onEntranceAnimationFinished() {
-    debugPrint('[ENTRY_OVERLAY] OVERLAY REMOVED | completerIsCompleted=${_currentEntranceCompleter?.isCompleted}');
+    debugPrint(
+        '[ENTRY_OVERLAY] OVERLAY REMOVED | completerIsCompleted=${_currentEntranceCompleter?.isCompleted}');
     if (_currentEntranceCompleter != null &&
         !_currentEntranceCompleter!.isCompleted) {
       _currentEntranceCompleter!.complete();
@@ -695,7 +710,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     final task = _entranceQueue.first;
 
     // ── Step 1: Read all data into local variables (ZERO Rx writes here) ──
-    final String taskId = task['taskId'] ?? 'entry_${task['userId']}_${DateTime.now().microsecondsSinceEpoch}';
+    final String taskId = task['taskId'] ??
+        'entry_${task['userId']}_${DateTime.now().microsecondsSinceEpoch}';
     final String userName = task['userName'] ?? 'User';
     final String userId = task['userId'] ?? '';
     final int vipLvl = task['vipLevel'] ?? 0;
@@ -754,7 +770,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     _isEntrancePlaying.value = true;
     _showEntranceOverlay.value = true;
 
-    debugPrint('[ENTRY_OVERLAY] OVERLAY CREATED | effect=$targetEffect | user=$userName');
+    debugPrint(
+        '[ENTRY_OVERLAY] OVERLAY CREATED | effect=$targetEffect | user=$userName');
 
     final completer = Completer<void>();
     _currentEntranceCompleter = completer;
@@ -770,9 +787,11 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       maxDurationMs = 6000;
     }
 
-    debugPrint('[ENTRY_TIMER] TIMER CREATED | duration=${maxDurationMs}ms | effect=$targetEffect');
+    debugPrint(
+        '[ENTRY_TIMER] TIMER CREATED | duration=${maxDurationMs}ms | effect=$targetEffect');
     Timer? fallbackTimer = Timer(Duration(milliseconds: maxDurationMs), () {
-      debugPrint('[ENTRY_TIMER] TIMER FIRED (Fallback) | duration=${maxDurationMs}ms');
+      debugPrint(
+          '[ENTRY_TIMER] TIMER FIRED (Fallback) | duration=${maxDurationMs}ms');
       _onEntranceAnimationFinished();
     });
 
@@ -903,7 +922,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         return AssetImage(path);
       }
     }
-    return const NetworkImage('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150');
+    return const NetworkImage(
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150');
   }
 
   void _handleSeatClick(int seatIndex, dynamic user) {
@@ -1014,7 +1034,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
   @override
   void dispose() {
     if (Get.isRegistered<RoomDualProgressController>()) {
-      RoomDualProgressController.to.unsubscribeRealtimeDualProgress(widget.roomId);
+      RoomDualProgressController.to
+          .unsubscribeRealtimeDualProgress(widget.roomId);
     }
     _glowController.dispose();
     _chatInputController.dispose();
@@ -1051,8 +1072,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             child: Column(
               children: [
                 Obx(() {
-                  final liveRoom = _controller.rooms.firstWhereOrNull(
-                          (r) => r.id == widget.roomId) ??
+                  final liveRoom = _controller.rooms
+                          .firstWhereOrNull((r) => r.id == widget.roomId) ??
                       VoiceRoom.dummy();
                   return RoomCallHeader(
                     roomId: widget.roomId,
@@ -1061,16 +1082,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                     userId: widget.userId,
                     getUserDp: _getUserDp,
                     onLeaveRoom: _leaveRoom,
-                    onShowRoomOptionsMenuSheet:
-                        _showRoomOptionsMenuSheet,
+                    onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
                   );
                 }),
                 Expanded(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOutCubic,
-                    transform:
-                        Matrix4.translationValues(0, -dynamicShift, 0),
+                    transform: Matrix4.translationValues(0, -dynamicShift, 0),
                     child: Column(
                       children: [
                         const SizedBox(height: 8),
@@ -1081,9 +1100,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                         ),
                         const SizedBox(height: 8),
                         Obx(() {
-                          final liveRoom = _controller.rooms
-                                  .firstWhereOrNull(
-                                      (r) => r.id == widget.roomId) ??
+                          final liveRoom = _controller.rooms.firstWhereOrNull(
+                                  (r) => r.id == widget.roomId) ??
                               VoiceRoom.dummy();
                           return RoomCallSpecialPanels(
                             roomId: widget.roomId,
@@ -1117,8 +1135,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                               onLeaveSeat: _leaveSeat,
                               seats: _seats,
                             ),
-                            onShowMiniProfileDialog:
-                                _showMiniProfileDialog,
+                            onShowMiniProfileDialog: _showMiniProfileDialog,
                           );
                         }),
                         Expanded(
@@ -1139,16 +1156,19 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             bottom: bottomInset,
             left: 0,
             right: 0,
-            child: RoomCallBottomControls(
-              roomId: widget.roomId,
-              chatInputController: _chatInputController,
-              chatInputFocusNode: _chatInputFocusNode,
-              isMicOn: _isMicOn,
-              isCurrentUserOnSeat: _isCurrentUserOnSeat(),
-              onToggleMic: _toggleMic,
-              onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
-              onTriggerReaction: () => _triggerReaction('❤️'),
-            ),
+            child: Obx(() {
+              final _ = _controller.roomSeatsInfo[widget.roomId]?.length;
+              return RoomCallBottomControls(
+                roomId: widget.roomId,
+                chatInputController: _chatInputController,
+                chatInputFocusNode: _chatInputFocusNode,
+                isMicOn: _isMicOn,
+                isCurrentUserOnSeat: _isCurrentUserOnSeat(),
+                onToggleMic: _toggleMic,
+                onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
+                onTriggerReaction: () => _triggerReaction('❤️'),
+              );
+            }),
           ),
           Positioned.fill(
             child: IgnorePointer(
@@ -1197,7 +1217,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           final novelLvl = _currentEntranceNovelLevel.value;
 
           final String currentTaskId = _currentEntranceTaskId.value;
-          final String taskKeyId = currentTaskId.isNotEmpty ? currentTaskId : userId;
+          final String taskKeyId =
+              currentTaskId.isNotEmpty ? currentTaskId : userId;
 
           if (effect == 'VIP 2' || effect == 'VIP 1') {
             return VipEntryAnimation(

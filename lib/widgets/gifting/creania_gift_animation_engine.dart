@@ -95,6 +95,12 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   bool _hasStarted = false;
   bool _isCompleted = false;
 
+  // ── Diagnostic timing fields (remove after root cause is confirmed) ──
+  int _forwardCallCount = 0;
+  int? _startTimestampMs;
+  int? _firstFrameTimestampMs;
+  bool _firstFrameLogged = false;
+
   @override
   void initState() {
     super.initState();
@@ -110,7 +116,22 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        debugPrint('[GIFT] EFFECT END | gift=${widget.event?.giftName} | progress=${(_controller.value * 100).toStringAsFixed(1)}%');
+        final endMs = DateTime.now().millisecondsSinceEpoch;
+        final totalPlaybackMs = endMs - (_startTimestampMs ?? endMs);
+        final configuredMs = _controller.duration?.inMilliseconds ?? 0;
+        final speedRatio = totalPlaybackMs > 0
+            ? (configuredMs / totalPlaybackMs).toStringAsFixed(2)
+            : 'N/A';
+        debugPrint('╔══════════════════════════════════════════════════════╗');
+        debugPrint('[GIFT_TIMING] EFFECT END TIMESTAMP   : $endMs ms');
+        debugPrint('[GIFT_TIMING] CONFIGURED DURATION    : ${configuredMs}ms');
+        debugPrint('[GIFT_TIMING] TOTAL ACTUAL PLAYBACK  : ${totalPlaybackMs}ms');
+        debugPrint('[GIFT_TIMING] SPEED RATIO            : ${speedRatio}x (1.0 = correct)');
+        debugPrint('[GIFT_TIMING] FINAL CONTROLLER VALUE : ${_controller.value}');
+        debugPrint('[GIFT_TIMING] FINAL STATUS           : ${_controller.status}');
+        debugPrint('[GIFT_TIMING] FORWARD CALLS TOTAL    : $_forwardCallCount');
+        debugPrint('[GIFT_TIMING] GIFT                   : ${widget.event?.giftName}');
+        debugPrint('╚══════════════════════════════════════════════════════╝');
         _isCompleted = true;
         if (mounted && widget.onCompleted != null) widget.onCompleted!();
         GiftPipelineManager.to.onAnimationCompleted();
@@ -134,6 +155,9 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   }
 
   void _startAnimation(GiftRequestEvent event) {
+    _forwardCallCount++;
+    _startTimestampMs = DateTime.now().millisecondsSinceEpoch;
+    _firstFrameLogged = false;
     _hasTriggeredImpact = false;
     _isCompleted = false;
     _metadata = GiftMetadataRegistry.getMetadata(event.giftId.isNotEmpty ? event.giftId : event.giftName);
@@ -143,15 +167,27 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
         : 1;
 
     final duration = AnimationTimeline.getTotalDuration(_metadata!.tier, targetCount: targetCount);
-    _controller.duration = duration;
 
-    debugPrint('[GIFT] START | Configured Duration: ${duration.inMilliseconds}ms | gift=${event.giftName}');
+    debugPrint('╔══════════════════════════════════════════════════════╗');
+    debugPrint('[GIFT_TIMING] EFFECT START TIMESTAMP : $_startTimestampMs ms');
+    debugPrint('[GIFT_TIMING] CONFIGURED DURATION    : ${duration.inMilliseconds}ms');
+    debugPrint('[GIFT_TIMING] CTRL DURATION BEFORE   : ${_controller.duration?.inMilliseconds}ms');
+    debugPrint('[GIFT_TIMING] CTRL VALUE BEFORE RESET: ${_controller.value}');
+    debugPrint('[GIFT_TIMING] CTRL STATUS BEFORE     : ${_controller.status}');
+    debugPrint('[GIFT_TIMING] FORWARD CALL COUNT     : $_forwardCallCount (should be 1)');
+    debugPrint('[GIFT_TIMING] GIFT                   : ${event.giftName} | tier: ${_metadata?.tier}');
+
+    _controller.duration = duration;
+    debugPrint('[GIFT_TIMING] CTRL DURATION AFTER SET: ${_controller.duration?.inMilliseconds}ms');
 
     _initParticles();
     // Mark started BEFORE reset+forward so no parent rebuild can blank us mid-transition.
     _hasStarted = true;
     _controller.reset();
+    debugPrint('[GIFT_TIMING] VALUE AFTER RESET       : ${_controller.value} | status: ${_controller.status}');
     _controller.forward();
+    debugPrint('[GIFT_TIMING] VALUE AFTER FORWARD     : ${_controller.value} | status: ${_controller.status} | isAnimating: ${_controller.isAnimating}');
+    debugPrint('╚══════════════════════════════════════════════════════╝');
   }
 
   void _initParticles() {
@@ -263,6 +299,17 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           // the reset()→forward() window (1 frame) AND before first start.
           // Use explicit flags that are immune to transient dismissed state.
           if (!_hasStarted || _isCompleted) return const SizedBox.shrink();
+
+          // ── First frame timing log ──
+          if (!_firstFrameLogged) {
+            _firstFrameLogged = true;
+            _firstFrameTimestampMs = DateTime.now().millisecondsSinceEpoch;
+            final elapsedSinceStart = _firstFrameTimestampMs! - (_startTimestampMs ?? _firstFrameTimestampMs!);
+            debugPrint('[GIFT_TIMING] FIRST FRAME TIMESTAMP  : $_firstFrameTimestampMs ms');
+            debugPrint('[GIFT_TIMING] ELAPSED SINCE START     : ${elapsedSinceStart}ms');
+            debugPrint('[GIFT_TIMING] CTRL VALUE AT 1ST FRAME : ${_controller.value}');
+            debugPrint('[GIFT_TIMING] CTRL STATUS AT 1ST FRAME: ${_controller.status}');
+          }
 
           final progress = _controller.value;
           final tenInfo = AnimationTimeline.getTenStageInfo(progress, meta.tier, targetCount: targets.length);
@@ -710,3 +757,4 @@ class GiftParticlePainter extends CustomPainter {
     return oldDelegate.progress != progress || oldDelegate.center != center || oldDelegate.stage != stage;
   }
 }
+

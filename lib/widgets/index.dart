@@ -46,3 +46,5 @@ export 'skeletons/followers_skeleton_widget.dart';
 export 'skeletons/notification_skeleton_widget.dart';
 export 'skeletons/profile_skeleton_widget.dart';
 export 'skeletons/store_skeleton_widget.dart';
+export 'voice/single_voice_ripple.dart';
+

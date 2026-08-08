@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// Novel Level 1 Entry Effect — Full-screen transparent Flutter animation.
@@ -339,3 +339,4 @@ class _ParticlePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ParticlePainter old) => true;
 }
+

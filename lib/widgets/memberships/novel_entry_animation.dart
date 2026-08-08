@@ -195,9 +195,21 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
 
   bool get _isFullScreen => widget.novelLevel == 1;
 
+  // ── Diagnostic timing fields ──
+  int? _startTimestampMs;
+
   @override
   void initState() {
     super.initState();
+    _startTimestampMs = DateTime.now().millisecondsSinceEpoch;
+    debugPrint('╔══════════════════════════════════════════════════════╗');
+    debugPrint('[NOVEL_TIMING] EFFECT START          : $_startTimestampMs ms');
+    debugPrint('[NOVEL_TIMING] IS FULLSCREEN          : $_isFullScreen');
+    debugPrint('[NOVEL_TIMING] SLIDE CTRL DURATION    : 1500ms (hardcoded)');
+    debugPrint('[NOVEL_TIMING] MASTER CTRL DURATION   : 8000ms');
+    debugPrint('[NOVEL_TIMING] PILL TOTAL (EXPECTED)  : ${!_isFullScreen ? "1500 + 3000 + 1500 = 6000ms" : "N/A (fullscreen)"}');
+    debugPrint('[NOVEL_TIMING] USER                   : ${widget.username} | NOVEL: ${widget.novelLevel}');
+    debugPrint('╚══════════════════════════════════════════════════════╝');
     debugPrint('[NOVEL_ENTRY] START | Configured Duration: 8000ms | user=${widget.username} | novelLevel=${widget.novelLevel}');
     debugPrint('[NOVEL_ENTRY] CONTROLLER CREATED');
 
@@ -271,12 +283,26 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
       });
       _initVideo();
     } else {
+      final slideForwardMs = DateTime.now().millisecondsSinceEpoch;
+      debugPrint('[NOVEL_TIMING] SLIDE FORWARD() CALLED : ${slideForwardMs}ms | elapsed: ${slideForwardMs - (_startTimestampMs ?? slideForwardMs)}ms');
       _slideController.forward().then((_) async {
+        final slideEndMs = DateTime.now().millisecondsSinceEpoch;
+        debugPrint('[NOVEL_TIMING] SLIDE FORWARD DONE     : ${slideEndMs}ms | slide value: ${_slideController.value}');
+        final delayStartMs = DateTime.now().millisecondsSinceEpoch;
+        debugPrint('[NOVEL_TIMING] DELAY 3000ms START     : ${delayStartMs}ms');
         await Future.delayed(const Duration(milliseconds: 3000));
+        final delayEndMs = DateTime.now().millisecondsSinceEpoch;
+        debugPrint('[NOVEL_TIMING] DELAY 3000ms DONE      : ${delayEndMs}ms | actual: ${delayEndMs - delayStartMs}ms');
         if (mounted) {
+          debugPrint('[NOVEL_TIMING] SLIDE REVERSE() CALLED : ${DateTime.now().millisecondsSinceEpoch}ms | total elapsed: ${DateTime.now().millisecondsSinceEpoch - (_startTimestampMs ?? 0)}ms');
           _slideController.reverse().then((_) {
+            final finishedMs = DateTime.now().millisecondsSinceEpoch;
+            final totalMs = finishedMs - (_startTimestampMs ?? finishedMs);
+            debugPrint('[NOVEL_TIMING] ON_FINISHED CALLED     : ${finishedMs}ms | TOTAL: ${totalMs}ms (expected ~6000ms)');
             widget.onFinished?.call();
           });
+        } else {
+          debugPrint('[NOVEL_TIMING] !!! UNMOUNTED before reverse at ${DateTime.now().millisecondsSinceEpoch}ms | elapsed: ${DateTime.now().millisecondsSinceEpoch - (_startTimestampMs ?? 0)}ms');
         }
       });
     }
@@ -923,3 +949,4 @@ class _NParticlePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _NParticlePainter o) => true;
 }
+

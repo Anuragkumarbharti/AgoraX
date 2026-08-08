@@ -11,6 +11,8 @@ import '../memberships/vip_avatar_decorator.dart'; // VIP 1 & 2 active
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../voice/single_voice_ripple.dart';
+
 class CustomAvatarFrame extends StatefulWidget {
   final String userId;
   final String username;
@@ -47,23 +49,11 @@ class CustomAvatarFrame extends StatefulWidget {
   State<CustomAvatarFrame> createState() => _CustomAvatarFrameState();
 }
 
-class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTickerProviderStateMixin {
-  late AnimationController _glowAnimationController;
-
+class _CustomAvatarFrameState extends State<CustomAvatarFrame> {
   @override
   void initState() {
     super.initState();
-    _glowAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat();
     _resolveProfile();
-  }
-
-  @override
-  void dispose() {
-    _glowAnimationController.dispose();
-    super.dispose();
   }
 
   void _resolveProfile() {
@@ -83,60 +73,6 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
     }
   }
 
-  Widget _buildEqualizerPill(double volumeFactor, double seatSize) {
-    final double scale = seatSize / 56.0;
-    final double pillWidth = 28.0 * scale;
-    final double pillHeight = 14.0 * scale;
-    final double barWidth = 2.0 * scale;
-    final double maxBarHeight = 8.0 * scale;
-    final double minBarHeight = 2.0 * scale;
-
-    double calculateBarHeight(double phaseOffset) {
-      final double bounce = (0.2 + 0.8 * math.sin((_glowAnimationController.value + phaseOffset) * 2 * math.pi).abs());
-      return minBarHeight + (maxBarHeight - minBarHeight) * volumeFactor * bounce;
-    }
-
-    return Container(
-      width: pillWidth,
-      height: pillHeight,
-      decoration: BoxDecoration(
-        color: const Color(0xFF09090B).withOpacity(0.85),
-        borderRadius: BorderRadius.circular(pillHeight / 2),
-        border: Border.all(
-          color: const Color(0xFF00FF66).withOpacity(0.4),
-          width: 0.8 * scale,
-        ),
-      ),
-      padding: EdgeInsets.symmetric(horizontal: 3.0 * scale),
-      child: AnimatedBuilder(
-        animation: _glowAnimationController,
-        builder: (context, _) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _buildBar(calculateBarHeight(0.0), barWidth),
-              _buildBar(calculateBarHeight(0.25), barWidth),
-              _buildBar(calculateBarHeight(0.55), barWidth),
-              _buildBar(calculateBarHeight(0.8), barWidth),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildBar(double height, double width) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: const Color(0xFF00FF66),
-        borderRadius: BorderRadius.circular(0.5),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentUid = Supabase.instance.client.auth.currentUser?.id;
@@ -144,7 +80,7 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
 
     final double seatSize = widget.size;
     final double avatarSize = seatSize;          // Avatar completely fills seat with 100% coverage
-    final double frameSize = seatSize * 1.065;   // Avatar frame is +6.5% larger (within +5% to +8% range)
+    final double frameSize = seatSize * 1.065;   // Avatar frame is +6.5% larger
 
     // Determine if frame is equipped
     final resolvedId = (widget.userId == 'me' || widget.userId == 'uid_anurag_101' || widget.userId == currentUid)
@@ -168,10 +104,6 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
     final bool hasFrame = !isExplicitlyUnequipped &&
         ((dynamicFrameUrl != null && dynamicFrameUrl.isNotEmpty) ||
          (activeFrameName.isNotEmpty && !isExplicitlyUnequipped));
-
-    final double volumeFactor = widget.isSpeaking
-        ? (0.4 + 0.6 * (widget.soundLevel / 40.0).clamp(0.0, 1.0))
-        : 0.0;
 
     Widget mainWidget = Obx(() {
       // Touch equip trigger to force reactive rebuild when equipment changes
@@ -257,98 +189,54 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> with SingleTicker
       );
     });
 
+    final double targetSize = hasFrame ? frameSize : seatSize;
+
     Widget seatBody = SizedBox(
-      width: hasFrame ? frameSize : seatSize,
-      height: hasFrame ? frameSize : seatSize,
+      width: targetSize,
+      height: targetSize,
       child: mainWidget,
     );
 
-    return Stack(
-      alignment: Alignment.center,
-      clipBehavior: Clip.none,
-      children: [
-        // 360° Circular Voice Ripple Wave
-        if (widget.isSpeaking)
-          AnimatedBuilder(
-            animation: _glowAnimationController,
-            builder: (context, _) {
-              final double waveVal = _glowAnimationController.value;
-              final double baseTargetSize = hasFrame ? frameSize : seatSize;
-              final double rippleMaxSize = baseTargetSize + 18.0;
-              final double currentRippleSize = baseTargetSize + (rippleMaxSize - baseTargetSize) * waveVal;
-              final double rippleOpacity = (1.0 - waveVal) * 0.7 * volumeFactor.clamp(0.3, 1.0);
-
-              final double waveVal2 = (waveVal + 0.5) % 1.0;
-              final double currentRippleSize2 = baseTargetSize + (rippleMaxSize - baseTargetSize) * waveVal2;
-              final double rippleOpacity2 = (1.0 - waveVal2) * 0.4 * volumeFactor.clamp(0.3, 1.0);
-
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Outer Wave Ring
-                  Container(
-                    width: currentRippleSize,
-                    height: currentRippleSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF00FF66).withOpacity(rippleOpacity),
-                        width: 2.0,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00FF66).withOpacity(rippleOpacity * 0.6),
-                          blurRadius: 8.0 * waveVal,
-                          spreadRadius: 2.0 * waveVal,
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Inner Pulse Wave
-                  Container(
-                    width: currentRippleSize2,
-                    height: currentRippleSize2,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF00FF66).withOpacity(rippleOpacity2),
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-
-        seatBody,
-
-        if (widget.isSpeaking)
-          Positioned(
-            bottom: -6 * (seatSize / 56.0),
-            child: _buildEqualizerPill(volumeFactor, seatSize),
-          ),
-
-        if (widget.showBadges && seatSize >= 40) ...[
-          if (widget.role != null && widget.role != 'Guest' && widget.role != 'Listener' && widget.role != 'Audience')
-            Positioned(
-              top: -seatSize * 0.12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: widget.role == 'Owner' || widget.role == 'Host'
-                      ? const Color(0xFF8A2BE2)
-                      : (widget.role == 'Co-owner' || widget.role == 'Co-Host' ? const Color(0xFFFF8C00) : const Color(0xFF007AFF)),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  widget.role == 'Moderator' ? 'Admin' : widget.role!,
-                  style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold),
-                ),
+    return SizedBox(
+      width: targetSize,
+      height: targetSize,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // Visual-only Circular Voice Ripple (never affects layout bounds)
+          if (widget.isSpeaking)
+            Positioned.fill(
+              child: SingleVoiceRipple(
+                isSpeaking: widget.isSpeaking,
+                soundLevel: widget.soundLevel,
+                baseSize: targetSize,
               ),
             ),
+
+          seatBody,
+
+          if (widget.showBadges && seatSize >= 40) ...[
+            if (widget.role != null && widget.role != 'Guest' && widget.role != 'Listener' && widget.role != 'Audience')
+              Positioned(
+                top: -seatSize * 0.12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: widget.role == 'Owner' || widget.role == 'Host'
+                        ? const Color(0xFF8A2BE2)
+                        : (widget.role == 'Co-owner' || widget.role == 'Co-Host' ? const Color(0xFFFF8C00) : const Color(0xFF007AFF)),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    widget.role == 'Moderator' ? 'Admin' : widget.role!,
+                    style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+          ],
         ],
-      ],
+      ),
     );
   }
 

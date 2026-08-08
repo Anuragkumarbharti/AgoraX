@@ -141,9 +141,25 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
 
   bool get _isFullScreen => widget.vipLevel == 2;
 
+  // ── Diagnostic timing fields ──
+  int? _startTimestampMs;
+  int? _slideForwardCalledMs;
+  int? _delayStartMs;
+  int? _delayEndMs;
+  int? _reverseCalledMs;
+
   @override
   void initState() {
     super.initState();
+    _startTimestampMs = DateTime.now().millisecondsSinceEpoch;
+    debugPrint('╔══════════════════════════════════════════════════════╗');
+    debugPrint('[ENTRY_TIMING] EFFECT START          : $_startTimestampMs ms');
+    debugPrint('[ENTRY_TIMING] IS FULLSCREEN          : $_isFullScreen');
+    debugPrint('[ENTRY_TIMING] SLIDE CTRL DURATION    : 1400ms (hardcoded)');
+    debugPrint('[ENTRY_TIMING] MASTER CTRL DURATION   : ${_isFullScreen ? "8000ms" : "N/A (pill card)"}');
+    debugPrint('[ENTRY_TIMING] PILL TOTAL (EXPECTED)  : ${!_isFullScreen ? "1400 + 5600 + 1400 = 8400ms" : "N/A"}');
+    debugPrint('[ENTRY_TIMING] USER                   : ${widget.username} | VIP: ${widget.vipLevel}');
+    debugPrint('╚══════════════════════════════════════════════════════╝');
     debugPrint('[VIP_ENTRY] START | Configured Duration: 8000ms | user=${widget.username} | vipLevel=${widget.vipLevel}');
     debugPrint('[VIP_ENTRY] CONTROLLER CREATED');
 
@@ -224,13 +240,34 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
     } else {
       debugPrint('[Lifecycle] VIP Entry Animation Started (Pill Card): user=${widget.username}');
       // Slide in (1.2s), pause (5.6s), then slide out (1.2s) for pill card = 8.0 SECONDS
+      _slideForwardCalledMs = DateTime.now().millisecondsSinceEpoch;
+      debugPrint('[ENTRY_TIMING] SLIDE FORWARD() CALLED : $_slideForwardCalledMs ms | elapsed: ${_slideForwardCalledMs! - (_startTimestampMs ?? _slideForwardCalledMs!)}ms since start');
       _slideController.forward().then((_) async {
+        final slideEndMs = DateTime.now().millisecondsSinceEpoch;
+        debugPrint('[ENTRY_TIMING] SLIDE FORWARD DONE     : $slideEndMs ms | elapsed: ${slideEndMs - (_startTimestampMs ?? slideEndMs)}ms | slide value: ${_slideController.value} | status: ${_slideController.status}');
+        _delayStartMs = DateTime.now().millisecondsSinceEpoch;
+        debugPrint('[ENTRY_TIMING] DELAY 5600ms START     : $_delayStartMs ms');
         await Future.delayed(const Duration(milliseconds: 5600));
+        _delayEndMs = DateTime.now().millisecondsSinceEpoch;
+        final actualDelay = _delayEndMs! - _delayStartMs!;
+        debugPrint('[ENTRY_TIMING] DELAY 5600ms DONE      : $_delayEndMs ms | actual delay: ${actualDelay}ms (expected 5600ms)');
         if (mounted) {
+          _reverseCalledMs = DateTime.now().millisecondsSinceEpoch;
+          debugPrint('[ENTRY_TIMING] SLIDE REVERSE() CALLED : $_reverseCalledMs ms | total elapsed: ${_reverseCalledMs! - (_startTimestampMs ?? _reverseCalledMs!)}ms');
           _slideController.reverse().then((_) {
+            final finishedMs = DateTime.now().millisecondsSinceEpoch;
+            final totalMs = finishedMs - (_startTimestampMs ?? finishedMs);
+            debugPrint('╔══════════════════════════════════════════════════════╗');
+            debugPrint('[ENTRY_TIMING] ON_FINISHED CALLED     : $finishedMs ms');
+            debugPrint('[ENTRY_TIMING] TOTAL ACTUAL PLAYBACK  : ${totalMs}ms (expected ~8400ms)');
+            debugPrint('[ENTRY_TIMING] SLIDE VALUE AT END      : ${_slideController.value} | status: ${_slideController.status}');
+            debugPrint('╚══════════════════════════════════════════════════════╝');
             debugPrint('[Lifecycle] VIP Entry Animation Completed (Pill Card): user=${widget.username}');
             widget.onFinished?.call();
           });
+        } else {
+          final disposedMs = DateTime.now().millisecondsSinceEpoch;
+          debugPrint('[ENTRY_TIMING] !!! WIDGET UNMOUNTED before reverse !!! disposed at ${disposedMs}ms | elapsed: ${disposedMs - (_startTimestampMs ?? disposedMs)}ms');
         }
       });
     }
@@ -708,3 +745,4 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
     );
   }
 }
+

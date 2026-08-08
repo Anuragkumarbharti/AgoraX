@@ -75,7 +75,6 @@ class RoomCallSeatGrid extends StatelessWidget {
 
     return Obx(() {
       final _seatsCount = controller.roomSeatsInfo.length;
-      final _levelsCount = VoiceController.to.userSoundLevels.length;
       final _cacheCount = UserProfileCacheManager.rxCache.length;
       final seatsList = controller.roomSeatsInfo[roomId] ?? [];
       final seat = seatsList.firstWhereOrNull((s) => s['seatIndex'] == index);
@@ -83,10 +82,6 @@ class RoomCallSeatGrid extends StatelessWidget {
       final isOccupied = userId != null;
       final isLocked = seat?['isLocked'] == true;
       final micStatus = seat?['micStatus'] as String? ?? 'unmuted';
-      final soundLevel = isOccupied
-          ? (VoiceController.to.userSoundLevels[userId] ?? 0.0)
-          : 0.0;
-      final isSpeaking = isOccupied && soundLevel > 3.0 && micStatus != 'muted';
 
       // Resolve user properties reactively
       final u = isOccupied
@@ -95,8 +90,6 @@ class RoomCallSeatGrid extends StatelessWidget {
           : null;
 
       final avatarUrl = u?.avatar ?? seat?['avatar'] as String?;
-      final avatarFrame =
-          u?.avatarFrame ?? seat?['avatarFrame'] as String? ?? 'Normal';
       final userName = u?.username ??
           seat?['name'] as String? ??
           RoomSeatController.getSeatName(index);
@@ -110,9 +103,7 @@ class RoomCallSeatGrid extends StatelessWidget {
       final tokens =
           AdaptiveSeatThemeEngine.resolve(bg, isDarkMode: context.isDark);
 
-      final seatBackground = AnimatedContainer(
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeInOutCubic,
+      final seatBackground = Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
@@ -128,20 +119,10 @@ class RoomCallSeatGrid extends StatelessWidget {
           borderRadius: BorderRadius.circular(size / 2),
           child: Center(
             child: isLocked
-                ? TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: const Duration(milliseconds: 280),
-                    curve: Curves.easeOutBack,
-                    builder: (context, val, child) {
-                      return Transform.scale(
-                        scale: val,
-                        child: Icon(
-                          Icons.lock_rounded,
-                          color: tokens.lockIconColor,
-                          size: 16 * scale,
-                        ),
-                      );
-                    },
+                ? Icon(
+                    Icons.lock_rounded,
+                    color: tokens.lockIconColor,
+                    size: 16 * scale,
                   )
                 : Icon(
                     Icons.chair_rounded,
@@ -160,69 +141,78 @@ class RoomCallSeatGrid extends StatelessWidget {
           );
         },
         child: isOccupied
-            ? CustomAvatarFrame(
-                userId: userId!,
-                username: userName,
-                size: size,
-                vipLevel: vipLevel,
-                novelLevel: nobleLevel,
-                level: userLevel,
-                soundLevel: soundLevel,
-                isSpeaking: isSpeaking && micStatus != 'muted',
-                showBadges: false,
-                child: avatarUrl != null && avatarUrl.isNotEmpty
-                    ? Image.network(avatarUrl, fit: BoxFit.cover)
-                    : Container(
-                        color: Theme.of(context).primaryColor.withOpacity(0.2),
-                        child: Center(
-                          child: Text(
-                            userName.isNotEmpty
-                                ? userName[0].toUpperCase()
-                                : 'U',
-                            style: TextStyle(
-                              color: tokens.usernameColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14 * scale,
+            ? Obx(() {
+                final soundLevel =
+                    VoiceController.to.userSoundLevels[userId] ?? 0.0;
+                final isSpeaking =
+                    soundLevel > 3.0 && micStatus != 'muted';
+
+                return CustomAvatarFrame(
+                  userId: userId!,
+                  username: userName,
+                  size: size,
+                  vipLevel: vipLevel,
+                  novelLevel: nobleLevel,
+                  level: userLevel,
+                  soundLevel: soundLevel,
+                  isSpeaking: isSpeaking,
+                  showBadges: false,
+                  child: avatarUrl != null && avatarUrl.isNotEmpty
+                      ? Image.network(avatarUrl, fit: BoxFit.cover)
+                      : Container(
+                          color: Theme.of(context).primaryColor.withOpacity(0.2),
+                          child: Center(
+                            child: Text(
+                              userName.isNotEmpty
+                                  ? userName[0].toUpperCase()
+                                  : 'U',
+                              style: TextStyle(
+                                color: tokens.usernameColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14 * scale,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-              )
+                );
+              })
             : seatBackground,
       );
 
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Stack(
-            key: seatKeys.putIfAbsent(index, () => GlobalKey()),
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              seatAndAvatarStack,
+          SizedBox(
+            width: size,
+            height: size,
+            child: Stack(
+              key: seatKeys.putIfAbsent(index, () => GlobalKey()),
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                seatAndAvatarStack,
 
-              // Speaker red mic off badge (top right)
-              if (isOccupied &&
-                  (controller.mutedUsers[roomId]?.contains(userId) ?? false))
-                Positioned(
-                  top: -1 * scale,
-                  right: -1 * scale,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 280),
-                    curve: Curves.easeInOutCubic,
-                    padding: EdgeInsets.all(1.5 * scale),
-                    decoration: BoxDecoration(
-                      color: tokens.micOffBadgeBg,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.mic_off,
-                      color: tokens.micOffIconColor,
-                      size: 7 * scale,
+                // Speaker red mic off badge (top right)
+                if (isOccupied &&
+                    (controller.mutedUsers[roomId]?.contains(userId) ?? false))
+                  Positioned(
+                    top: -1 * scale,
+                    right: -1 * scale,
+                    child: Container(
+                      padding: EdgeInsets.all(1.5 * scale),
+                      decoration: BoxDecoration(
+                        color: tokens.micOffBadgeBg,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.mic_off,
+                        color: tokens.micOffIconColor,
+                        size: 7 * scale,
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
           SizedBox(height: 5 * scale),
 

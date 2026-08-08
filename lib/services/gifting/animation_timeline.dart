@@ -3,16 +3,16 @@
 import '../../models/gift/gift_animation_metadata.dart';
 
 enum AnimationStage {
-  stage1Trigger,        // Stage 1: Gift Trigger from Seat (0-200ms)
-  stage2ZoomOut,        // Stage 2: Zoom Out from Seat (200-500ms)
+  stage1Trigger, // Stage 1: Gift Trigger from Seat (0-200ms)
+  stage2ZoomOut, // Stage 2: Zoom Out from Seat (200-500ms)
   stage3CenterShowcase, // Stage 3: Center Screen Showcase (Center 2.5x-3.5x size)
-  stage4MidEffects,     // Stage 4: Mid Animation Effects (Fireworks, clouds, rays, floating)
-  stage5ZoomIn,         // Stage 5: Zoom In towards receiver vector
+  stage4MidEffects, // Stage 4: Mid Animation Effects (Fireworks, clouds, rays, floating)
+  stage5ZoomIn, // Stage 5: Zoom In towards receiver vector
   stage6MoveToReceiver, // Stage 6: Natural Curved Bezier path travel to receiver
-  stage7ReachReceiver,  // Stage 7: Reach Receiver & Elastic bounce
+  stage7ReachReceiver, // Stage 7: Reach Receiver & Elastic bounce
   stage8ImpactAnimation, // Stage 8: Impact Golden Aura/Halo burst & absorption
-  stage9UpdatePoints,   // Stage 9: Update Points & Total (+100 / +1000)
-  stage10Finish,        // Stage 10: Animation Complete & Cleanup
+  stage9UpdatePoints, // Stage 9: Update Points & Total (+100 / +1000)
+  stage10Finish, // Stage 10: Animation Complete & Cleanup
   // Legacy aliases
   stageA,
   stageB,
@@ -54,15 +54,20 @@ class AnimationTimeline {
   static Duration getShowcaseDuration(GiftTier tier) {
     switch (tier) {
       case GiftTier.tier1:
-        return const Duration(milliseconds: 5500); // Tier 1: 5.5s minimum center showcase
+        return const Duration(
+            milliseconds: 5500); // Tier 1: 5.5s minimum center showcase
       case GiftTier.tier2:
-        return const Duration(milliseconds: 7000); // Tier 2: 7.0s center showcase
+        return const Duration(
+            milliseconds: 7000); // Tier 2: 7.0s center showcase
       case GiftTier.tier3:
-        return const Duration(milliseconds: 8800); // Tier 3: 8.8s center showcase
+        return const Duration(
+            milliseconds: 8800); // Tier 3: 8.8s center showcase
       case GiftTier.tier4:
-        return const Duration(milliseconds: 10500); // Tier 4: 10.5s center showcase
+        return const Duration(
+            milliseconds: 10500); // Tier 4: 10.5s center showcase
       case GiftTier.tier5:
-        return const Duration(milliseconds: 12500); // Tier 5: 12.5s legendary showcase
+        return const Duration(
+            milliseconds: 12500); // Tier 5: 12.5s legendary showcase
     }
   }
 
@@ -103,7 +108,8 @@ class AnimationTimeline {
   }
 
   /// Calculates exact 10-Stage progress info for total progress value (0.0 to 1.0)
-  static TenStageInfo getTenStageInfo(double progress, GiftTier tier, {int targetCount = 1}) {
+  static TenStageInfo getTenStageInfo(double progress, GiftTier tier,
+      {int targetCount = 1}) {
     final weights = getStageWeights(tier, targetCount: targetCount);
     final totalMs = weights.reduce((a, b) => a + b);
     final clampedP = progress.clamp(0.0, 1.0);
@@ -144,7 +150,8 @@ class AnimationTimeline {
   }
 
   /// Legacy helper method for backward compatibility
-  static StageProgress getStageProgress(double progress, GiftTier tier, {int targetCount = 1}) {
+  static StageProgress getStageProgress(double progress, GiftTier tier,
+      {int targetCount = 1}) {
     final info = getTenStageInfo(progress, tier, targetCount: targetCount);
     if (info.stage == AnimationStage.stage1Trigger ||
         info.stage == AnimationStage.stage2ZoomOut) {
