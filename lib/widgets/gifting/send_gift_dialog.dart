@@ -61,26 +61,41 @@ class SendGiftDialog extends StatefulWidget {
 }
 
 class _SendGiftDialogState extends State<SendGiftDialog> {
-  // 0 = All, 1 = Gold, 2 = Silver, 3 = Vault
-  int _selectedCurrencyTab = 0;
-  String _selectedCategory = 'All';
+  int _selectedTabIndex = 0;
   int _selectedComboMultiplier = 1;
-  int _currentCarouselPage = 0;
 
-  final PageController _pageController = PageController();
+  final PageController _pageController = PageController(initialPage: 0);
+  final ScrollController _tabScrollController = ScrollController();
 
-  final List<String> _categories = [
+  final List<String> _starMakerTabs = [
     'All',
     '🎰 Lucky Gifts',
-    '🥈 Tier 1',
-    '🥇 Tier 2',
-    '👑 Tier 3',
-    '💎 Tier 4',
-    '⚡ Tier 5',
+    '🎉 Event',
+    '⚪ Silver',
+    '🟡 Gold',
+    '🎒 Vault',
   ];
 
   // Master 35-Gift Catalog (1-to-1 match with Postgres gift_catalog table & GiftMetadataRegistry)
   final List<GiftItem> _allGifts = [
+    // 🎁 FREE GIFTS (0 Cost)
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-000000000000',
+        name: 'Free Star',
+        icon: '⭐',
+        cost: 0,
+        currency: 'free',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+    GiftItem(
+        id: 'f1000001-0000-0000-0000-00000000000a',
+        name: 'Free Rose',
+        icon: '🌹',
+        cost: 0,
+        currency: 'free',
+        tier: GiftTier.tier1,
+        category: '🥈 Tier 1'),
+
     // 🥈 TIER 1 (15 Gifts: 3 Silver, 12 Gold)
     GiftItem(
         id: 'f1000001-0000-0000-0000-000000000001',
@@ -434,6 +449,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   @override
   void dispose() {
     _pageController.dispose();
+    _tabScrollController.dispose();
     super.dispose();
   }
 
@@ -491,26 +507,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     }
   }
 
-  List<GiftItem> get _filteredGifts {
-    return _allGifts.where((g) {
-      if (_selectedCurrencyTab == 1 && g.currency != 'gold') return false;
-      if (_selectedCurrencyTab == 2 && g.currency != 'silver') return false;
-      if (_selectedCurrencyTab == 3) return false;
-
-      if (_selectedCategory != 'All') {
-        if (_selectedCategory == '🎰 Lucky Gifts') {
-          return g.isLucky;
-        }
-        final cleanCat =
-            _selectedCategory.replaceAll(RegExp(r'[^\w\s]'), '').trim();
-        final cleanGCat = g.category.replaceAll(RegExp(r'[^\w\s]'), '').trim();
-        if (!cleanGCat.toLowerCase().contains(cleanCat.toLowerCase()))
-          return false;
-      }
-      return true;
-    }).toList();
-  }
-
   List<VaultItem> get _giftableVaultItems {
     return _vaultCtrl.vaultItems.where((item) {
       return item.giftable &&
@@ -543,7 +539,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         roomId: widget.roomId,
         gift: _selectedGift,
         vaultItem: _selectedVaultItem,
-        isVault: _selectedCurrencyTab == 3,
+        isVault: _selectedTabIndex == 5,
         giftAll: _giftAll,
         selectedRecipients: _selectedRecipients,
         selectedRecipientNames: _selectedRecipientNames,
@@ -574,6 +570,30 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     }
   }
 
+  List<GiftItem> _getGiftsForTab(int tabIndex) {
+    switch (tabIndex) {
+      case 0: // All (All Tier 1 through Tier 5 gifts!)
+        return _allGifts;
+      case 1: // Lucky Gifts
+        return _allGifts.where((g) => g.isLucky).toList();
+      case 2: // Event (Tier 5 & Special showcase gifts)
+        return _allGifts
+            .where((g) =>
+                g.tier == GiftTier.tier5 ||
+                g.badge == 'LEGEND' ||
+                g.badge == 'MYTHIC' ||
+                g.badge == 'COSMIC' ||
+                g.category.contains('Tier 5'))
+            .toList();
+      case 3: // Silver
+        return _allGifts.where((g) => g.currency == 'silver').toList();
+      case 4: // Gold
+        return _allGifts.where((g) => g.currency == 'gold').toList();
+      default:
+        return [];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeReceiversCount = _selectedRecipientCount;
@@ -582,7 +602,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     final double singleCost =
         _selectedGift != null ? _selectedGift!.cost.toDouble() : 0.0;
     final totalCost = singleCost * effectiveMultiplier;
-    final hasValidRecipient = activeReceiversCount > 0 && effectiveMultiplier > 0;
+    final hasValidRecipient =
+        activeReceiversCount > 0 && effectiveMultiplier > 0;
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Align(
@@ -591,7 +612,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         color: Colors.transparent,
         child: Container(
           width: double.infinity,
-          height: screenHeight * 0.53,
+          height: screenHeight * 0.58,
           decoration: BoxDecoration(
             color: const Color(0xFF090A10).withOpacity(0.97),
             borderRadius: const BorderRadius.only(
@@ -625,14 +646,34 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              _buildCurrencyTabsRow(),
               _buildAvatarOnlyRecipientSelector(),
-              if (_selectedCurrencyTab != 3) _buildCategoryChipsRow(),
+              _buildStarMakerCategoryBar(),
               const SizedBox(height: 4),
               Expanded(
-                child: _selectedCurrencyTab == 3
-                    ? _buildVaultView()
-                    : _buildHorizontalGiftCarousel(),
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: _starMakerTabs.length,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _selectedTabIndex = index;
+                    });
+                    if (_tabScrollController.hasClients) {
+                      _tabScrollController.animateTo(
+                        (index * 75.0).clamp(
+                            0.0, _tabScrollController.position.maxScrollExtent),
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  },
+                  itemBuilder: (context, index) {
+                    if (index == 5) {
+                      return _buildVaultView();
+                    }
+                    final tabGifts = _getGiftsForTab(index);
+                    return _buildTabGridView(tabGifts);
+                  },
+                ),
               ),
               _buildBottomControlBar(hasValidRecipient, totalCost),
             ],
@@ -642,294 +683,66 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     );
   }
 
-  Widget _buildCurrencyTabsRow() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 2),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: [
-                  _currencyTabPill(0, 'All Gifts', '⭐', null),
-                  const SizedBox(width: 6),
-                  Obx(() => _currencyTabPill(1, 'Gold', '🟡',
-                      formatCompactNumber(_storeCtrl.coinsBalance.value))),
-                  const SizedBox(width: 6),
-                  Obx(() => _currencyTabPill(
-                      2,
-                      'Silver',
-                      '⚪',
-                      formatCompactNumber(
-                          _storeCtrl.silverCoinsBalance.value))),
-                  const SizedBox(width: 6),
-                  Obx(() => _currencyTabPill(
-                      3, 'Vault', '🎁', '${_giftableVaultItems.length}')),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAvatarOnlyRecipientSelector() {
-    final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
-    final occupiedSeats = seats.where((s) => s['userId'] != null).toList();
-
+  Widget _buildStarMakerCategoryBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      child: Row(
-        children: [
-          Text(
-            'To:',
-            style: GoogleFonts.poppins(
-                color: Colors.white38,
-                fontSize: 10.5,
-                fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: [
-                  if (occupiedSeats.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF141624),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        'No occupied seats',
-                        style: GoogleFonts.inter(
-                            color: Colors.white38, fontSize: 10),
-                      ),
-                    )
-                  else
-                    ...occupiedSeats.map((seat) {
-                      final uId = seat['userId'] as String;
-                      final uName = UserProfileCacheManager.resolveUsernameForGifting(
-                        uId,
-                        passedName: seat['username'] as String? ?? seat['name'] as String?,
-                        seatInfo: seat,
-                      );
-                      final avatar = seat['avatar'] as String?;
-                      final seatIdx = seat['seatIndex'] as int;
-                      final isSelected =
-                          _giftAll || _selectedRecipients.contains(uId);
-
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            if (_giftAll) _giftAll = false;
-                            if (isSelected && !_giftAll) {
-                              _selectedRecipients.remove(uId);
-                              _selectedRecipientNames.removeWhere((n) => n == uName || n == 'User');
-                              _selectedSeatIndices.remove(seatIdx);
-                            } else {
-                              if (!_selectedRecipients.contains(uId)) {
-                                _selectedRecipients.add(uId);
-                                _selectedRecipientNames.add(uName);
-                                _selectedSeatIndices.add(seatIdx);
-                              }
-                            }
-                            _onRecipientSelectionChanged();
-                          });
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          margin: const EdgeInsets.only(right: 8),
-                          width: 34,
-                          height: 34,
-                          padding: const EdgeInsets.all(1.5),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: isSelected
-                                ? const LinearGradient(colors: [
-                                    Color(0xFFFF416C),
-                                    Color(0xFFFF4B2B),
-                                    Color(0xFF8B5CF6)
-                                  ])
-                                : const LinearGradient(colors: [
-                                    Color(0xFF25283D),
-                                    Color(0xFF1A1C29)
-                                  ]),
-                          ),
-                          child: Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 15,
-                                backgroundImage:
-                                    avatar != null && avatar.isNotEmpty
-                                        ? NetworkImage(avatar)
-                                        : const AssetImage(
-                                                'assets/images/placeholder.png')
-                                            as ImageProvider,
-                              ),
-                              if (isSelected)
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(1.5),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF10B981),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.check,
-                                        size: 7, color: Colors.white),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  if (occupiedSeats.length > 1)
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _giftAll = !_giftAll;
-                          _onRecipientSelectionChanged();
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        margin: const EdgeInsets.only(left: 2, right: 4),
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _giftAll
-                              ? const Color(0xFFFF9F43)
-                              : const Color(0xFF141624),
-                          border: Border.all(
-                            color: _giftAll
-                                ? Colors.amber
-                                : const Color(0xFF25283D),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '🎙️',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _currencyTabPill(
-      int index, String label, String iconEmoji, String? balanceStr) {
-    final isSelected = _selectedCurrencyTab == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedCurrencyTab = index;
-          _currentCarouselPage = 0;
-          if (_pageController.hasClients) {
-            _pageController.jumpToPage(0);
-          }
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF7C3AED) : const Color(0xFF141624),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color:
-                isSelected ? const Color(0xFFA78BFA) : const Color(0xFF25283D),
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(iconEmoji, style: const TextStyle(fontSize: 12)),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                color: isSelected ? Colors.white : Colors.white70,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (balanceStr != null && balanceStr.isNotEmpty) ...[
-              const SizedBox(width: 4),
-              Text(
-                balanceStr,
-                style: GoogleFonts.inter(
-                  color: isSelected ? Colors.amberAccent : Colors.white38,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ]
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryChipsRow() {
-    return Container(
-      height: 30,
-      margin: const EdgeInsets.symmetric(vertical: 2),
+      height: 36,
+      margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: ListView.builder(
+        controller: _tabScrollController,
         scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
+        physics: const BouncingScrollPhysics(),
+        itemCount: _starMakerTabs.length,
         itemBuilder: (context, index) {
-          final cat = _categories[index];
-          final isSelected = _selectedCategory == cat;
+          final tabName = _starMakerTabs[index];
+          final isSelected = _selectedTabIndex == index;
           return GestureDetector(
             onTap: () {
               setState(() {
-                _selectedCategory = cat;
-                _currentCarouselPage = 0;
-                if (_pageController.hasClients) {
-                  _pageController.jumpToPage(0);
-                }
+                _selectedTabIndex = index;
               });
+              if (_pageController.hasClients) {
+                _pageController.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                );
+              }
             },
-            child: Container(
-              margin: const EdgeInsets.only(right: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(0xFF8B5CF6)
-                    : const Color(0xFF141624),
-                borderRadius: BorderRadius.circular(14),
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFF7C3AED), Color(0xFF6F5BFF)],
+                      )
+                    : null,
+                color: isSelected ? null : const Color(0xFF141624),
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: isSelected
                       ? const Color(0xFFA78BFA)
                       : const Color(0xFF25283D),
+                  width: isSelected ? 1.5 : 1.0,
                 ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF6F5BFF).withOpacity(0.35),
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : null,
               ),
               child: Center(
                 child: Text(
-                  cat,
+                  tabName,
                   style: GoogleFonts.poppins(
                     color: isSelected ? Colors.white : Colors.white60,
-                    fontSize: 9.5,
+                    fontSize: 11,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   ),
                 ),
@@ -941,75 +754,31 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     );
   }
 
-  Widget _buildHorizontalGiftCarousel() {
-    final filtered = _filteredGifts;
-    if (filtered.isEmpty) {
+  Widget _buildTabGridView(List<GiftItem> gifts) {
+    if (gifts.isEmpty) {
       return Center(
         child: Text(
-          'No gifts found in this category.',
+          'No gifts available in this section.',
           style: GoogleFonts.inter(color: Colors.white38, fontSize: 12),
         ),
       );
     }
 
-    const int itemsPerPage = 8;
-    final int pageCount = (filtered.length / itemsPerPage).ceil();
-
-    return Column(
-      children: [
-        Expanded(
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: pageCount,
-            onPageChanged: (page) {
-              setState(() {
-                _currentCarouselPage = page;
-              });
-            },
-            itemBuilder: (context, pageIndex) {
-              final startIdx = pageIndex * itemsPerPage;
-              final endIdx = min(startIdx + itemsPerPage, filtered.length);
-              final pageGifts = filtered.sublist(startIdx, endIdx);
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    childAspectRatio: 0.72,
-                  ),
-                  itemCount: pageGifts.length,
-                  itemBuilder: (context, index) {
-                    final gift = pageGifts[index];
-                    final isSelected = _selectedGift?.id == gift.id;
-                    return _buildGiftCardItem(gift, isSelected);
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-        if (pageCount > 1)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(pageCount, (idx) {
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                width: _currentCarouselPage == idx ? 12 : 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: _currentCarouselPage == idx
-                      ? const Color(0xFF8B5CF6)
-                      : Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              );
-            }),
-          ),
-      ],
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(10, 4, 10, 12),
+      physics: const BouncingScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 0.76,
+      ),
+      itemCount: gifts.length,
+      itemBuilder: (context, index) {
+        final gift = gifts[index];
+        final isSelected = _selectedGift?.id == gift.id;
+        return _buildGiftCardItem(gift, isSelected);
+      },
     );
   }
 
