@@ -158,7 +158,7 @@ void main() {
       expect(controller.remainingSeconds.value, 0);
     });
 
-    test('Inactivity Timer: starts at inactivityWindowSeconds and resets on repeat', () {
+    test('Smart Timer: 10s global window, 3s inactivity showcase after repeat', () {
       controller.activateQuickRepeat(
         originalGiftTransactionId: 'tx_timer',
         roomId: 'room_101',
@@ -174,12 +174,15 @@ void main() {
         initialQuantity: 1,
       );
 
-      // Initially active with full inactivity window
-      expect(controller.remainingSeconds.value, QuickRepeatController.inactivityWindowSeconds);
+      // Initially active with full 10s global window
+      expect(controller.remainingSeconds.value, QuickRepeatController.totalWindowSeconds);
       expect(controller.progress.value, 1.0);
+      // Phase 1: 0 repeats -> shouldTriggerShowcase is false
+      expect(controller.shouldTriggerShowcase.value, false);
 
-      // Verify timer constant
-      expect(QuickRepeatController.inactivityWindowSeconds, 12);
+      // Verify timer constants
+      expect(QuickRepeatController.totalWindowSeconds, 10);
+      expect(QuickRepeatController.inactivityShowcaseSeconds, 3);
     });
   });
 }

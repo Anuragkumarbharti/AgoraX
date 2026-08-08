@@ -140,6 +140,7 @@ class GiftSendService extends GetxController {
           roomId: roomId,
           giftId: gift.id,
           giftName: gift.name,
+          giftIcon: gift.icon,
           giftCost: gift.cost,
           currency: gift.currency,
           targetUserIds: receiverIds,

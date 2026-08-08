@@ -130,12 +130,13 @@ class RoomGiftController extends GetxController {
       // Ensure valid 36-character UUID string for Supabase RPC
       final meta = GiftMetadataRegistry.getMetadata(giftId.isNotEmpty ? giftId : giftName);
       final String canonicalGiftUuid = meta.giftId;
+      final String resolvedGiftIcon = (giftIcon.isNotEmpty && giftIcon != '🎁') ? giftIcon : meta.giftIcon;
 
       final Map<String, dynamic> eventPayload = {
         'id': 'evt_${DateTime.now().microsecondsSinceEpoch}',
         'giftId': canonicalGiftUuid,
         'giftName': giftName,
-        'giftIcon': giftIcon.isNotEmpty ? giftIcon : '🎁',
+        'giftIcon': resolvedGiftIcon,
         'senderId': UserProfileCacheManager.currentUserId,
         'senderName': senderName,
         'senderAvatar': senderAvatar,
@@ -165,7 +166,7 @@ class RoomGiftController extends GetxController {
             senderId: UserProfileCacheManager.currentUserId,
             giftId: canonicalGiftUuid,
             giftName: giftName,
-            giftIcon: giftIcon.isNotEmpty ? giftIcon : '🎁',
+            giftIcon: resolvedGiftIcon,
             currency: currency,
             giftCost: giftCost,
             recipientIds: targetUserIds,

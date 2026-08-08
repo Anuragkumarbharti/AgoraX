@@ -1176,8 +1176,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
             }),
           ),
           Positioned(
-            bottom: bottomInset + 58,
-            right: 12,
+            bottom: bottomInset + 96,
+            right: 14,
             child: QuickRepeatButtonWidget(
               roomId: widget.roomId,
               currentUserId: widget.userId,

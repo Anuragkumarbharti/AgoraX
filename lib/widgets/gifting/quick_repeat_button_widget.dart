@@ -61,6 +61,16 @@ class _QuickRepeatButtonWidgetState extends State<QuickRepeatButtonWidget>
         });
       }
     });
+
+    // 2s/3s inactivity → auto-play showcase animation through production gift pipeline.
+    // QR button remains visible for the rest of the 10s window.
+    _showcaseWorker = ever(QuickRepeatController.to.shouldTriggerShowcase, (bool trigger) {
+      if (!trigger) return;
+      final state = QuickRepeatController.to.activeState.value;
+      if (state == null) return;
+      if (!QuickRepeatController.to.isVisible(widget.roomId, widget.currentUserId)) return;
+      _fireShowcaseAnimation(state);
+    });
   }
 
   @override
@@ -92,7 +102,7 @@ class _QuickRepeatButtonWidgetState extends State<QuickRepeatButtonWidget>
       'receiverIds': state.recipientIds,
       'receiverNames': state.recipientNames,
       'seat_indices': state.seatIndices,
-      'count': 1,
+      'count': state.currentQuantity.value,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
   }

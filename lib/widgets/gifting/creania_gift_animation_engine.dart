@@ -733,12 +733,9 @@ class GiftParticlePainter extends CustomPainter {
 
     if (stage == AnimationStage.stage3CenterShowcase ||
         stage == AnimationStage.stage4MidEffects) {
-      // 1. Draw Volumetric Atmospheric Smoke / Cloud Energy Puffs (matching Mic Seat Smoke image)
-      final smokePaint = Paint()
-        ..style = PaintingStyle.fill
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28);
+      // 1. Draw Volumetric Atmospheric Smoke / Cloud Energy Puffs (GPU Shader Accelerated)
+      final smokePaint = Paint()..style = PaintingStyle.fill;
 
-      final random = Random(center.dx.toInt() + 42);
       for (int i = 0; i < 8; i++) {
         final angle = (i * (2 * pi / 8)) + (progress * pi);
         final dist = 40.0 + sin(progress * pi * 3 + i) * 20.0;
@@ -746,18 +743,30 @@ class GiftParticlePainter extends CustomPainter {
         final cy = center.dy + sin(angle) * dist;
 
         final smokeAlpha = (0.35 + 0.15 * sin(progress * pi * 4 + i)).clamp(0.0, 0.55);
-        smokePaint.color = Colors.white.withOpacity(smokeAlpha * 0.45);
-        canvas.drawCircle(Offset(cx, cy), 45.0 + (i * 6.0), smokePaint);
 
-        smokePaint.color = themeColor.withOpacity(smokeAlpha * 0.50);
-        canvas.drawCircle(Offset(cx + 10, cy - 10), 35.0, smokePaint);
+        final r1 = 45.0 + (i * 6.0);
+        smokePaint.shader = RadialGradient(
+          colors: [
+            Colors.white.withOpacity(smokeAlpha * 0.45),
+            Colors.white.withOpacity(0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r1));
+        canvas.drawCircle(Offset(cx, cy), r1, smokePaint);
+
+        const r2 = 35.0;
+        smokePaint.shader = RadialGradient(
+          colors: [
+            themeColor.withOpacity(smokeAlpha * 0.50),
+            themeColor.withOpacity(0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: Offset(cx + 10, cy - 10), radius: r2));
+        canvas.drawCircle(Offset(cx + 10, cy - 10), r2, smokePaint);
       }
 
       // 2. Rotating Radial Energy Rays
       final rayPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+        ..strokeWidth = 2.5;
 
       for (int r = 0; r < 12; r++) {
         final rayAngle = (r * (2 * pi / 12)) + (progress * pi * 2);
@@ -770,13 +779,20 @@ class GiftParticlePainter extends CustomPainter {
         canvas.drawLine(rayStart, rayEnd, rayPaint);
       }
 
-      // 3. Central Glowing Aura Ring
+      // 3. Central Glowing Aura Ring (GPU Shader Gradient)
+      final auraRadius = 70.0 + sin(progress * pi * 4) * 15.0;
       final auraPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.5
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12)
-        ..color = themeColor.withOpacity(0.70);
-      canvas.drawCircle(center, 70.0 + sin(progress * pi * 4) * 15.0, auraPaint);
+        ..strokeWidth = 4.0;
+      auraPaint.shader = RadialGradient(
+        colors: [
+          themeColor.withOpacity(0.0),
+          themeColor.withOpacity(0.85),
+          themeColor.withOpacity(0.0),
+        ],
+        stops: const [0.70, 0.88, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: auraRadius + 8));
+      canvas.drawCircle(center, auraRadius, auraPaint);
     }
 
     // 4. Draw background fireworks & sparkle particles during center showcase
