@@ -114,8 +114,12 @@ BEGIN
     SELECT * INTO v_gift_record FROM public.gift_catalog LIMIT 1;
   END IF;
 
-  v_single_cost := COALESCE(v_gift_record.cost_stars, 1);
-  v_gift_currency := LOWER(COALESCE(v_gift_record.currency, 'gold'));
+  v_single_cost := COALESCE(
+    (to_jsonb(v_gift_record)->>'cost_stars')::integer,
+    (to_jsonb(v_gift_record)->>'cost')::integer,
+    1
+  );
+  v_gift_currency := LOWER(COALESCE(to_jsonb(v_gift_record)->>'currency', 'gold'));
   v_receivers_count := array_length(p_receiver_ids, 1);
   IF v_receivers_count IS NULL OR v_receivers_count = 0 THEN
     v_receivers_count := 1;
@@ -124,8 +128,13 @@ BEGIN
   v_total_quantity := COALESCE(p_quantity, 1) * COALESCE(p_combo_count, 1);
   v_total_cost := v_single_cost * v_total_quantity * v_receivers_count;
 
-  -- Calculate Universal Gem Values
-  v_gem_unit_value := COALESCE(v_gift_record.gem_value, 0);
+  -- Calculate Universal Gem Values safely without error 42703
+  IF (to_jsonb(v_gift_record)->>'gem_value') IS NOT NULL THEN
+    v_gem_unit_value := COALESCE((to_jsonb(v_gift_record)->>'gem_value')::integer, 0);
+  ELSE
+    v_gem_unit_value := 0;
+  END IF;
+
   IF v_gem_unit_value <= 0 THEN
     IF v_gift_currency = 'silver' THEN
       v_gem_unit_value := GREATEST(1, floor(v_single_cost / 100.0)::integer);
@@ -177,7 +186,7 @@ BEGIN
   END IF;
 
   -- Lucky Gift Cashback Logic
-  v_is_lucky := COALESCE(v_gift_record.is_magic, false) OR COALESCE(v_gift_record.is_lucky, false);
+  v_is_lucky := COALESCE((to_jsonb(v_gift_record)->>'is_magic')::boolean, false) OR COALESCE((to_jsonb(v_gift_record)->>'is_lucky')::boolean, false);
   IF v_is_lucky AND v_gift_currency = 'gold' THEN
     v_rand := random();
     IF v_rand < 0.01 THEN
@@ -228,9 +237,8 @@ BEGIN
     INSERT INTO public.gift_transactions (
       room_id, sender_id, receiver_id, gift_id, gift_name, gift_icon, quantity, count, currency, amount, total_cost, stars_value, gems_value, status, idempotency_key, is_self_gift
     ) VALUES (
-      p_room_id, v_sender_id, v_receiver_id, p_gift_id, COALESCE(v_gift_record.name, 'Gift'), COALESCE(v_gift_record.icon, '🎁'), v_total_quantity, v_total_quantity, v_gift_currency, v_single_cost * v_total_quantity, v_single_cost * v_total_quantity, v_single_receiver_gems, v_single_receiver_gems, 'completed', p_transaction_id, (v_sender_id = v_receiver_id)
+      p_room_id, v_sender_id, v_receiver_id, p_gift_id, COALESCE(to_jsonb(v_gift_record)->>'name', 'Gift'), COALESCE(to_jsonb(v_gift_record)->>'icon', '🎁'), v_total_quantity, v_total_quantity, v_gift_currency, v_single_cost * v_total_quantity, v_single_cost * v_total_quantity, v_single_receiver_gems, v_single_receiver_gems, 'completed', p_transaction_id, (v_sender_id = v_receiver_id)
     );
-
 
     -- Update Seat Session Gem Counter Atomically on room_seats
     IF v_seat_index >= 0 THEN
@@ -300,8 +308,8 @@ BEGIN
   v_event_payload := jsonb_build_object(
     'id', COALESCE(p_transaction_id, 'evt_' || extract(epoch from now())::bigint || '_' || (random()*1000)::int),
     'giftId', p_gift_id,
-    'giftName', v_gift_record.name,
-    'giftIcon', v_gift_record.icon,
+    'giftName', COALESCE(to_jsonb(v_gift_record)->>'name', 'Gift'),
+    'giftIcon', COALESCE(to_jsonb(v_gift_record)->>'icon', '🎁'),
     'senderId', v_sender_id,
     'senderName', v_sender_name,
     'senderAvatar', v_sender_avatar,
