@@ -617,19 +617,19 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             topRight: Radius.circular(24),
           ),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
               width: double.infinity,
               height: screenHeight * 0.58,
               decoration: BoxDecoration(
-                color: const Color(0xFF111226).withValues(alpha: 0.88),
+                color: const Color(0xFF111226).withValues(alpha: 0.70),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),
                 ),
                 border: Border(
                   top: BorderSide(
-                    color: const Color(0xFF171735).withValues(alpha: 0.9),
+                    color: const Color(0xFF171735).withValues(alpha: 0.75),
                     width: 1.2,
                   ),
                 ),
@@ -1290,14 +1290,14 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF111226).withValues(alpha: 0.92),
+        color: const Color(0xFF111226).withValues(alpha: 0.75),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
         border: Border(
           top: BorderSide(
-            color: const Color(0xFF171735).withValues(alpha: 0.9),
+            color: const Color(0xFF171735).withValues(alpha: 0.75),
             width: 1.2,
           ),
         ),
