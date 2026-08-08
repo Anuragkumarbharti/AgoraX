@@ -172,13 +172,24 @@ class GiftSendService extends GetxController {
   }
 
   void _showError(String message) {
+    String friendlyMsg = message;
+    if (message.contains('<html') ||
+        message.contains('<HTML') ||
+        message.contains('SocketException') ||
+        message.contains('ClientException') ||
+        message.contains('Failed host lookup') ||
+        message.contains('Connection refused') ||
+        message.contains('TimeoutException') ||
+        message.contains('HandshakeException')) {
+      friendlyMsg = 'Network connection issue. Please check your connection and try again later.';
+    }
     Get.snackbar(
       'Gift Sending Failed',
-      message,
+      friendlyMsg,
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: const Color(0xFFEF4444),
       colorText: Colors.white,
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 4),
     );
   }
 }

@@ -1199,8 +1199,106 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     });
   }
 
+  Future<void> _showCustomQuantityDialog() async {
+    final TextEditingController ctrl = TextEditingController();
+    int? customVal;
+
+    await Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFF141624),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Enter Custom Gift Quantity 🎁',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: 'e.g. 50, 100, 500',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: const Color(0xFF090A10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFF7C3AED)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [50, 100, 200, 500, 1000].map((preset) {
+                  return ActionChip(
+                    backgroundColor: const Color(0xFF282B40),
+                    label: Text('${preset}x', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                    onPressed: () {
+                      ctrl.text = '$preset';
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7C3AED),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      final val = int.tryParse(ctrl.text.trim());
+                      if (val != null && val > 0 && val <= 99999) {
+                        customVal = val;
+                        Get.back();
+                      } else {
+                        Get.snackbar(
+                          'Invalid Quantity',
+                          'Please enter a valid count between 1 and 99999',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.redAccent,
+                          colorText: Colors.white,
+                        );
+                      }
+                    },
+                    child: const Text('Apply', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (customVal != null) {
+      setState(() {
+        _selectedComboMultiplier = customVal!;
+      });
+    }
+  }
+
   Widget _buildBottomControlBar(bool hasValidRecipient, double totalCost) {
     final combos = [1, 5, 10, 99, 520, 1314];
+    final isCustomSelected = !combos.contains(_selectedComboMultiplier);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
@@ -1292,35 +1390,63 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: combos.map((val) {
-                    final isSelected = _selectedComboMultiplier == val;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedComboMultiplier = val;
-                        });
-                      },
+                  children: [
+                    ...combos.map((val) {
+                      final isSelected = _selectedComboMultiplier == val;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedComboMultiplier = val;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFF7C3AED)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${val}x',
+                            style: GoogleFonts.inter(
+                              color: isSelected ? Colors.white : Colors.white60,
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    GestureDetector(
+                      onTap: _showCustomQuantityDialog,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: isSelected
+                          color: isCustomSelected
                               ? const Color(0xFF7C3AED)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          '${val}x',
+                          isCustomSelected
+                              ? 'Custom (${_selectedComboMultiplier}x)'
+                              : 'Custom',
                           style: GoogleFonts.inter(
-                            color: isSelected ? Colors.white : Colors.white60,
+                            color: isCustomSelected
+                                ? Colors.white
+                                : Colors.white60,
                             fontSize: 8.5,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ],
                 ),
               ),
             ),

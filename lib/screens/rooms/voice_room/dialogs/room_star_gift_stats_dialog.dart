@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../utils/number_formatter.dart';
 import '../../../../widgets/gems/gem_widgets.dart';
+import '../../../../services/room/room_progression_controller.dart';
 
 class RoomStarGiftStatsDialog extends StatefulWidget {
   final String roomId;
@@ -34,12 +35,27 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
   List<Map<String, dynamic>> _todayReceivedGifts = [];
   List<Map<String, dynamic>> _totalSentGifts = [];
   List<Map<String, dynamic>> _totalReceivedGifts = [];
+  Worker? _gemsWorker;
 
   @override
   void initState() {
     super.initState();
     _totalStars = widget.totalStars.toDouble();
     _fetchGiftStats();
+
+    if (Get.isRegistered<RoomProgressionController>()) {
+      _gemsWorker = ever(RoomProgressionController.to.roomTotalGemsMap, (_) {
+        if (mounted) {
+          _fetchGiftStats();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _gemsWorker?.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchGiftStats() async {
@@ -130,7 +146,7 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                 children: [
                   Row(
                     children: [
-                      const GemIcon(size: 20),
+                      GemIcon(size: 20),
                       const SizedBox(width: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
