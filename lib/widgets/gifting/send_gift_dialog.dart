@@ -450,9 +450,12 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       } else {
         // Rule B: If nobody is on any mic seat, select Room Owner / Host by default!
         final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
-        final ownerId = (room?.hostId != null && room!.hostId.isNotEmpty)
+        final String fallbackUid = UserProfileCacheManager.currentUserId.isNotEmpty
+            ? UserProfileCacheManager.currentUserId
+            : '00000000-0000-0000-0000-000000000000';
+        final ownerId = (room?.hostId != null && room!.hostId.isNotEmpty && room.hostId != 'room_owner')
             ? room.hostId
-            : 'room_owner';
+            : fallbackUid;
         final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
           ownerId,
           passedName: room?.ownerName,

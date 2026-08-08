@@ -157,11 +157,13 @@ class RoomGiftController extends GetxController {
       };
 
       // ── 3. SYNCHRONOUS SERVER-AUTHORITATIVE RPC TRANSACTION ──
+      final List<String> sanitizedTargetUserIds = _sanitizeUuidList(targetUserIds);
+
       dynamic response;
       try {
         response = await Supabase.instance.client.rpc('send_star_gift', params: {
           'p_room_id': roomId,
-          'p_receiver_ids': targetUserIds,
+          'p_receiver_ids': sanitizedTargetUserIds,
           'p_gift_id': canonicalGiftUuid,
           'p_quantity': count,
           'p_combo_count': comboCount,
@@ -170,35 +172,35 @@ class RoomGiftController extends GetxController {
           'p_sender_id': UserProfileCacheManager.currentUserId,
         });
       } catch (rpcError) {
-        debugPrint('[GiftPipeline] Server RPC Error: $rpcError');
-        // Rollback optimistic balance on network/RPC failure!
-        walletBalance.value = previousBalance;
-        try {
-          if (Get.isRegistered<StoreController>()) {
-            final storeCtrl = Get.find<StoreController>();
-            if (currency == 'gold') {
-              storeCtrl.coinsBalance.value = previousBalance;
-            } else {
-              storeCtrl.silverCoinsBalance.value = previousBalance;
-            }
-          }
-        } catch (_) {}
-        
-        String friendlyError = 'Network/Server connection issue. Gift not sent.';
         final errStr = rpcError.toString();
-        if (errStr.contains('Insufficient')) {
-          friendlyError = errStr.replaceAll('Exception: ', '').replaceAll('PostgrestException', '').trim();
+        debugPrint('[GiftPipeline] Primary 8-param RPC Error: $errStr');
+
+        // Check if 8-param signature is missing on DB, fallback to 6-param signature
+        if (errStr.contains('PGRST202') ||
+            errStr.contains('Could not find') ||
+            errStr.contains('function') ||
+            errStr.contains('schema cache')) {
+          try {
+            debugPrint('[GiftPipeline] Falling back to 6-parameter send_star_gift signature...');
+            response = await Supabase.instance.client.rpc('send_star_gift', params: {
+              'p_room_id': roomId,
+              'p_receiver_ids': sanitizedTargetUserIds,
+              'p_gift_id': canonicalGiftUuid,
+              'p_quantity': count,
+              'p_combo_count': comboCount,
+              'p_seat_indices': seatIndices,
+            });
+          } catch (fallbackError) {
+            debugPrint('[GiftPipeline] Fallback 6-param RPC Error: $fallbackError');
+            _rollbackBalance(walletBalance, previousBalance, currency);
+            _showGiftErrorSnackbar(fallbackError.toString());
+            return false;
+          }
+        } else {
+          _rollbackBalance(walletBalance, previousBalance, currency);
+          _showGiftErrorSnackbar(errStr);
+          return false;
         }
-        
-        Get.snackbar(
-          'Gift Sending Failed',
-          friendlyError,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFEF4444),
-          colorText: Colors.white,
-          duration: const Duration(seconds: 4),
-        );
-        return false;
       }
 
       if (response == null || (response is Map && response['success'] != true)) {
@@ -336,4 +338,52 @@ class RoomGiftController extends GetxController {
       );
     }
   }
+
+  void _rollbackBalance(RxInt walletBalance, int previousBalance, String currency) {
+    walletBalance.value = previousBalance;
+    try {
+      if (Get.isRegistered<StoreController>()) {
+        final storeCtrl = Get.find<StoreController>();
+        if (currency == 'gold') {
+          storeCtrl.coinsBalance.value = previousBalance;
+        } else {
+          storeCtrl.silverCoinsBalance.value = previousBalance;
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _showGiftErrorSnackbar(String errorMsg) {
+    String friendlyError = 'Network/Server connection issue. Gift not sent.';
+    if (errorMsg.contains('Insufficient')) {
+      friendlyError = errorMsg.replaceAll('Exception: ', '').replaceAll('PostgrestException', '').trim();
+    }
+
+    Get.snackbar(
+      'Gift Sending Failed',
+      friendlyError,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: const Color(0xFFEF4444),
+      colorText: Colors.white,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  List<String> _sanitizeUuidList(List<String> ids) {
+    final RegExp uuidRegExp = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    );
+    final String currentUid = UserProfileCacheManager.currentUserId;
+    final String validCurrentUid = (currentUid.isNotEmpty && uuidRegExp.hasMatch(currentUid))
+        ? currentUid
+        : '00000000-0000-0000-0000-000000000000';
+
+    return ids.map((id) {
+      if (uuidRegExp.hasMatch(id)) {
+        return id;
+      }
+      return validCurrentUid;
+    }).toList();
+  }
 }
+
