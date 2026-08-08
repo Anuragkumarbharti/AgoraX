@@ -10,6 +10,7 @@ import '../../widgets/gifting/insufficient_balance_sheet.dart';
 
 import '../network/network_connectivity_service.dart';
 import '../network/network_guard.dart';
+import '../user/user_profile_cache_manager.dart';
 
 class GiftSendService extends GetxController {
   static GiftSendService get to {
@@ -78,12 +79,17 @@ class GiftSendService extends GetxController {
               .toList()
           : List.from(selectedRecipients);
 
-      final List<String> receiverNames = giftAll
-          ? roomSeats
-              .where((s) => s['userId'] != null)
-              .map((s) => (s['name'] as String? ?? 'User'))
-              .toList()
-          : List.from(selectedRecipientNames);
+      final List<String> receiverNames = [];
+      for (int i = 0; i < receiverIds.length; i++) {
+        final uId = receiverIds[i];
+        final passedName = i < selectedRecipientNames.length ? selectedRecipientNames[i] : '';
+        final seat = roomSeats.firstWhereOrNull((s) => s['userId'] == uId);
+        receiverNames.add(UserProfileCacheManager.resolveUsernameForGifting(
+          uId,
+          passedName: passedName,
+          seatInfo: seat,
+        ));
+      }
 
       final List<int> seatIndices = giftAll
           ? roomSeats

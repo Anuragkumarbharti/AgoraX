@@ -105,8 +105,27 @@ class RoomGiftController extends GetxController {
 
       // ── 2. INSTANT LOCAL EVENT, ANIMATION & CHAT DISPATCH (<10ms) ──
       final user = UserProfileCacheManager.currentUser;
-      final String senderName = user?.fullName ?? user?.username ?? 'Member';
+      final String uName = user?.username ?? '';
+      final String fName = user?.fullName ?? '';
+      final String senderName = (uName.isNotEmpty && uName != 'User')
+          ? uName
+          : (fName.isNotEmpty)
+              ? fName
+              : 'Member';
       final String? senderAvatar = user?.avatar;
+
+      final roomSeats = RoomController.to.roomSeatsInfo[roomId] ?? [];
+      final List<String> cleanTargetUserNames = [];
+      for (int i = 0; i < targetUserIds.length; i++) {
+        final uId = targetUserIds[i];
+        final passedName = i < targetUserNames.length ? targetUserNames[i] : '';
+        final seat = roomSeats.firstWhereOrNull((s) => s['userId'] == uId);
+        cleanTargetUserNames.add(UserProfileCacheManager.resolveUsernameForGifting(
+          uId,
+          passedName: passedName,
+          seatInfo: seat,
+        ));
+      }
 
       // Ensure valid 36-character UUID string for Supabase RPC
       final meta = GiftMetadataRegistry.getMetadata(giftId.isNotEmpty ? giftId : giftName);
@@ -121,7 +140,7 @@ class RoomGiftController extends GetxController {
         'senderName': senderName,
         'senderAvatar': senderAvatar,
         'receiverIds': targetUserIds,
-        'receiverNames': targetUserNames,
+        'receiverNames': cleanTargetUserNames,
         'receiverSeats': seatIndices,
         'roomId': roomId,
         'giftType': currency,
@@ -130,7 +149,7 @@ class RoomGiftController extends GetxController {
         'quantity': totalQuantity,
         'count': totalQuantity,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
-        'messageText': '🎁 $senderName sent $giftName × $totalQuantity to ${targetUserNames.join(", ")}.',
+        'messageText': '🎁 $senderName sent $giftName × $totalQuantity to ${cleanTargetUserNames.join(", ")}.',
       };
 
       // 🚀 Trigger instant zero-latency animation playback & WebSocket broadcast room-wide

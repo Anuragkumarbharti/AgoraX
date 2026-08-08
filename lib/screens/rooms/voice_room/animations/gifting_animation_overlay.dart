@@ -33,6 +33,8 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
   Worker? _globalGiftWorker;
   final Map<String, Offset> _lastKnownSeatPositions = {};
 
+  final Set<String> _processedEventIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -44,18 +46,27 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
       final now = DateTime.now().millisecondsSinceEpoch;
       for (final newAnim in anims) {
         final animId = newAnim['id']?.toString() ?? '';
+        if (animId.isNotEmpty && _processedEventIds.contains(animId)) continue;
+        if (animId.isNotEmpty) _processedEventIds.add(animId);
+
         final sender = (newAnim['senderName'] ?? '').toString();
         final gift = (newAnim['name'] ?? newAnim['giftId'] ?? '').toString();
 
-        final isDuplicate = _currentAnims.any((p) {
-          if (p['id']?.toString() == animId) return true;
+        final existingIndex = _currentAnims.indexWhere((p) {
           final pSender = (p['senderName'] ?? '').toString();
           final pGift = (p['name'] ?? p['giftId'] ?? '').toString();
           final pTime = p['_addedAt'] as int? ?? now;
-          return pSender == sender && pGift == gift && (now - pTime).abs() < 2500;
+          return pSender == sender && pGift == gift && (now - pTime).abs() < 3000;
         });
 
-        if (!isDuplicate) {
+        if (existingIndex != -1) {
+          setState(() {
+            final currentCount = (_currentAnims[existingIndex]['count'] as int? ?? 1);
+            final addCount = (newAnim['count'] as int? ?? 1);
+            _currentAnims[existingIndex]['count'] = currentCount + addCount;
+            _currentAnims[existingIndex]['_addedAt'] = now;
+          });
+        } else {
           setState(() {
             _currentAnims.add({
               ...newAnim,
@@ -66,7 +77,7 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
       }
     });
 
-    final giftAnimCtrl = GiftAnimationController.to; // Ensures controller is put & registered
+    final giftAnimCtrl = GiftAnimationController.to;
     for (final evt in giftAnimCtrl.activeEvents) {
       _addEventFromPayload(evt);
     }
@@ -80,16 +91,17 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
   }
 
   void _addEventFromPayload(GiftAnimationEventPayload evt) {
+    if (_processedEventIds.contains(evt.id)) return;
+    _processedEventIds.add(evt.id);
+
     final now = DateTime.now().millisecondsSinceEpoch;
-    final isDuplicate = _currentAnims.any((p) {
-      if (p['id']?.toString() == evt.id) return true;
+
+    final existingIndex = _currentAnims.indexWhere((p) {
       final pSender = (p['senderName'] ?? '').toString();
       final pGift = (p['name'] ?? p['giftId'] ?? '').toString();
       final pTime = p['_addedAt'] as int? ?? now;
-      return pSender == evt.senderName && pGift == evt.giftName && (now - pTime).abs() < 2500;
+      return pSender == evt.senderName && pGift == evt.giftName && (now - pTime).abs() < 3000;
     });
-
-    if (isDuplicate) return;
 
     final roomId = RoomController.to.activeRoomId ?? '';
     final roomSeats = RoomController.to.roomSeatsInfo[roomId] ?? [];
@@ -111,6 +123,19 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
 
     final List<Offset> targets =
         resolvedReceivers.map((r) => r.roomPosition).toList();
+    final receiverNamesText = resolvedReceivers.map((r) => r.userName).join(', ');
+
+    if (existingIndex != -1) {
+      setState(() {
+        final currentCount = (_currentAnims[existingIndex]['count'] as int? ?? 1);
+        _currentAnims[existingIndex]['count'] = currentCount + evt.count;
+        _currentAnims[existingIndex]['_addedAt'] = now;
+        _currentAnims[existingIndex]['receiverName'] = receiverNamesText.isNotEmpty ? receiverNamesText : 'Seat';
+        _currentAnims[existingIndex]['targets'] = targets;
+      });
+      debugPrint('[GIFT_OVERLAY] COMBO ACCUMULATED | gift=${evt.giftName} | new total=${_currentAnims[existingIndex]['count']}');
+      return;
+    }
 
     setState(() {
       _currentAnims.add({
@@ -123,9 +148,7 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
         'senderName': evt.senderName,
         'senderAvatar': evt.senderAvatar,
         'start': startPos,
-        'receiverName': resolvedReceivers.isNotEmpty
-            ? resolvedReceivers.first.userName
-            : 'Seat',
+        'receiverName': receiverNamesText.isNotEmpty ? receiverNamesText : 'Seat',
         'receiverAvatar': resolvedReceivers.isNotEmpty
             ? resolvedReceivers.first.userAvatar
             : null,

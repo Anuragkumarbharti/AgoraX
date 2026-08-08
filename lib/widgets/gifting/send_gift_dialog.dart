@@ -11,6 +11,7 @@ import '../../services/gifting/gift_send_service.dart';
 import '../../models/vault/vault_models.dart';
 import '../../models/gift/gift_animation_metadata.dart';
 import '../../utils/number_formatter.dart';
+import '../../services/user/user_profile_cache_manager.dart';
 
 class GiftItem {
   final String id;
@@ -421,10 +422,15 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
 
     if (widget.targetUserId != null) {
-      _selectedRecipients.add(widget.targetUserId!);
-      _selectedRecipientNames.add(widget.targetUserName ?? 'User');
       final seat =
           seats.firstWhereOrNull((s) => s['userId'] == widget.targetUserId);
+      final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
+        widget.targetUserId,
+        passedName: widget.targetUserName,
+        seatInfo: seat,
+      );
+      _selectedRecipients.add(widget.targetUserId!);
+      _selectedRecipientNames.add(resolvedName);
       if (seat != null) {
         _selectedSeatIndices.add(seat['seatIndex'] as int);
       }
@@ -432,10 +438,14 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       final firstSeat = seats.firstWhereOrNull((s) => s['userId'] != null);
       if (firstSeat != null) {
         final uId = firstSeat['userId'] as String;
-        final uName = firstSeat['name'] as String? ?? 'User';
+        final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
+          uId,
+          passedName: firstSeat['username'] as String? ?? firstSeat['name'] as String?,
+          seatInfo: firstSeat,
+        );
         final seatIdx = firstSeat['seatIndex'] as int;
         _selectedRecipients.add(uId);
-        _selectedRecipientNames.add(uName);
+        _selectedRecipientNames.add(resolvedName);
         _selectedSeatIndices.add(seatIdx);
       } else {
         // Rule B: If nobody is on any mic seat, select Room Owner / Host by default!
@@ -443,10 +453,13 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         final ownerId = (room?.hostId != null && room!.hostId.isNotEmpty)
             ? room.hostId
             : 'room_owner';
-        final ownerName = room?.ownerName ?? 'Room Owner';
+        final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
+          ownerId,
+          passedName: room?.ownerName,
+        );
 
         _selectedRecipients.add(ownerId);
-        _selectedRecipientNames.add(ownerName);
+        _selectedRecipientNames.add(resolvedName);
         _selectedSeatIndices.add(0);
       }
     }
@@ -681,7 +694,11 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   else
                     ...occupiedSeats.map((seat) {
                       final uId = seat['userId'] as String;
-                      final uName = seat['name'] as String? ?? 'User';
+                      final uName = UserProfileCacheManager.resolveUsernameForGifting(
+                        uId,
+                        passedName: seat['username'] as String? ?? seat['name'] as String?,
+                        seatInfo: seat,
+                      );
                       final avatar = seat['avatar'] as String?;
                       final seatIdx = seat['seatIndex'] as int;
                       final isSelected =
@@ -693,10 +710,10 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                             if (_giftAll) _giftAll = false;
                             if (isSelected && !_giftAll) {
                               _selectedRecipients.remove(uId);
-                              _selectedRecipientNames.remove(uName);
+                              _selectedRecipientNames.removeWhere((n) => n == uName || n == 'User');
                               _selectedSeatIndices.remove(seatIdx);
                             } else {
-                              if (_selectedRecipients.length < 10) {
+                              if (!_selectedRecipients.contains(uId)) {
                                 _selectedRecipients.add(uId);
                                 _selectedRecipientNames.add(uName);
                                 _selectedSeatIndices.add(seatIdx);

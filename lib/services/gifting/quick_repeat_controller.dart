@@ -47,14 +47,16 @@ class QuickRepeatController extends GetxController {
     return Get.find<QuickRepeatController>();
   }
 
-  static const int quickRepeatTimeoutSeconds = 12;
+  static const int totalWindowSeconds = 10;
+  static const int tapResetSeconds = 3;
 
   final Rxn<QuickRepeatState> activeState = Rxn<QuickRepeatState>();
-  final RxInt remainingSeconds = quickRepeatTimeoutSeconds.obs;
+  final RxInt remainingSeconds = totalWindowSeconds.obs;
   final RxDouble progress = 1.0.obs;
   final RxBool isProcessing = false.obs;
 
   Timer? _timer;
+  int _ticksRemaining = 100;
 
   @override
   void onClose() {
@@ -99,8 +101,8 @@ class QuickRepeatController extends GetxController {
     );
 
     activeState.value = state;
-    debugPrint('[QuickRepeat] Activated: ${giftName} x$initialQuantity to ${recipientNames.join(", ")} (Timeout: 12s)');
-    _startTimer();
+    debugPrint('[QuickRepeat] Activated: ${giftName} x$initialQuantity to ${recipientNames.join(", ")} (10s total window)');
+    _resetTimer(isInitial: true);
   }
 
   /// Handles rapid repeat taps safely with pre-flight balance checks and sequential locks.
@@ -175,7 +177,7 @@ class QuickRepeatController extends GetxController {
       if (success) {
         state.currentQuantity.value += 1;
         debugPrint('[QuickRepeat] Repeat SUCCESS: ${state.giftName} effective total is now x${state.currentQuantity.value}');
-        _startTimer(); // Reset 12-second inactivity timer on every successful repeat
+        _resetTimer(isInitial: false); // Resets timer to 3s on every successful repeat tap
         return true;
       } else {
         debugPrint('[QuickRepeat] Repeat FAILED in RoomGiftController.');
@@ -189,21 +191,25 @@ class QuickRepeatController extends GetxController {
     }
   }
 
-  void _startTimer() {
+  void _resetTimer({required bool isInitial}) {
     _timer?.cancel();
-    remainingSeconds.value = quickRepeatTimeoutSeconds;
-    progress.value = 1.0;
 
-    int totalTicks = quickRepeatTimeoutSeconds * 10;
-    int currentTick = 0;
+    if (isInitial) {
+      _ticksRemaining = totalWindowSeconds * 10;
+    } else {
+      _ticksRemaining = (tapResetSeconds * 10).clamp(1, totalWindowSeconds * 10);
+    }
+
+    remainingSeconds.value = (_ticksRemaining / 10).ceil().clamp(0, totalWindowSeconds);
+    progress.value = (_ticksRemaining / (totalWindowSeconds * 10)).clamp(0.0, 1.0);
 
     _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      currentTick++;
-      final remaining = (quickRepeatTimeoutSeconds - (currentTick / 10.0)).ceil();
-      remainingSeconds.value = remaining.clamp(0, quickRepeatTimeoutSeconds);
-      progress.value = ((totalTicks - currentTick) / totalTicks).clamp(0.0, 1.0);
+      _ticksRemaining--;
+      final remainingSec = (_ticksRemaining / 10).ceil().clamp(0, totalWindowSeconds);
+      remainingSeconds.value = remainingSec;
+      progress.value = (_ticksRemaining / (totalWindowSeconds * 10)).clamp(0.0, 1.0);
 
-      if (currentTick >= totalTicks) {
+      if (_ticksRemaining <= 0) {
         timer.cancel();
         clearQuickRepeat();
       }

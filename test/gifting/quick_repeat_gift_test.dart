@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:creania/models/user/user_model.dart';
 import 'package:creania/services/gifting/quick_repeat_controller.dart';
+import 'package:creania/services/gifting/gift_event_service.dart';
 import 'package:creania/services/user/user_profile_cache_manager.dart';
 
 void main() {
@@ -155,6 +156,31 @@ void main() {
       controller.clearQuickRepeat();
       expect(controller.activeState.value, isNull);
       expect(controller.remainingSeconds.value, 0);
+    });
+
+    test('Smart Timer: 10s total window and 3s repeat reset rule', () {
+      controller.activateQuickRepeat(
+        originalGiftTransactionId: 'tx_timer',
+        roomId: 'room_101',
+        senderId: 'user_sender_123',
+        giftId: 'g_pearl',
+        giftName: 'Pearl',
+        giftIcon: '🦪',
+        currency: 'gold',
+        giftCost: 1,
+        recipientIds: ['rec_a'],
+        recipientNames: ['Alice'],
+        seatIndices: [1],
+        initialQuantity: 1,
+      );
+
+      // Initially active with 10s window
+      expect(controller.remainingSeconds.value, 10);
+      expect(controller.progress.value, 1.0);
+
+      // Verify timer constants
+      expect(QuickRepeatController.totalWindowSeconds, 10);
+      expect(QuickRepeatController.tapResetSeconds, 3);
     });
   });
 }

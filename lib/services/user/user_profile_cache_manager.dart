@@ -42,6 +42,65 @@ class UserProfileCacheManager {
     return _currentSessionId;
   }
 
+  /// Resolves clean @username for gift events and chat notifications.
+  /// Never returns generic "User", "User.", "Seat No.", or "No. X".
+  static String resolveUsernameForGifting(
+    String? userId, {
+    String? passedName,
+    Map<String, dynamic>? seatInfo,
+  }) {
+    final uid = userId?.trim() ?? '';
+    final curUser = currentUser;
+    final curId = currentUserId;
+
+    // 1. If sending to self or matching logged-in user
+    if (uid.isNotEmpty && uid == curId && curUser != null) {
+      if (curUser.username.isNotEmpty && curUser.username != 'User' && curUser.username != 'User.') {
+        return curUser.username;
+      }
+    }
+
+    // 2. Check live room seat info
+    if (seatInfo != null) {
+      final sUsername = (seatInfo['username'] as String?)?.trim() ?? (seatInfo['name'] as String?)?.trim();
+      if (sUsername != null &&
+          sUsername.isNotEmpty &&
+          sUsername != 'User' &&
+          sUsername != 'User.' &&
+          !sUsername.startsWith('Seat') &&
+          !sUsername.startsWith('No.')) {
+        return sUsername;
+      }
+    }
+
+    // 3. Check passedName if valid username
+    final pName = passedName?.trim() ?? '';
+    if (pName.isNotEmpty &&
+        pName != 'User' &&
+        pName != 'User.' &&
+        !pName.startsWith('Seat') &&
+        !pName.startsWith('No.')) {
+      return pName;
+    }
+
+    // 4. Check cached user profile
+    if (uid.isNotEmpty) {
+      final cached = getCachedUser(uid);
+      if (cached != null &&
+          cached.username.isNotEmpty &&
+          cached.username != 'User' &&
+          cached.username != 'User.') {
+        return cached.username;
+      }
+    }
+
+    // 5. Fallback
+    if (uid.isNotEmpty && uid == curId && curUser != null && curUser.username.isNotEmpty) {
+      return curUser.username;
+    }
+    return 'Member';
+  }
+
   static Future<String> getOrGenerateSessionId() async {
     if (_currentSessionId.isNotEmpty) return _currentSessionId;
     try {

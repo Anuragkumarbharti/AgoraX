@@ -36,9 +36,11 @@ class GiftEventService extends GetxController {
             raw['user_id'] ??
             UserProfileCacheManager.currentUserId)
         .toString();
-    final String senderName =
-        (raw['senderName'] ?? raw['sender_name'] ?? raw['username'] ?? 'Member')
-            .toString();
+    final String rawSender = (raw['senderName'] ?? raw['sender_name'] ?? raw['username'] ?? '').toString();
+    final String senderName = UserProfileCacheManager.resolveUsernameForGifting(
+      senderId,
+      passedName: rawSender,
+    );
     final String? senderAvatar = raw['senderAvatar'] ?? raw['sender_avatar'];
 
     final List<dynamic> rIdsRaw = raw['receiverIds'] ??
@@ -49,8 +51,16 @@ class GiftEventService extends GetxController {
     final List<dynamic> rNamesRaw = raw['receiverNames'] ??
         raw['receiver_names'] ??
         [raw['target_username'] ?? 'User'];
-    final List<String> receiverNames =
-        rNamesRaw.map((e) => e.toString()).toList();
+    final List<String> receiverNames = [];
+    for (int i = 0; i < rNamesRaw.length; i++) {
+      final uId = i < receiverIds.length ? receiverIds[i] : '';
+      final nameItem = rNamesRaw[i].toString();
+      final resolved = UserProfileCacheManager.resolveUsernameForGifting(uId, passedName: nameItem);
+      if (!receiverNames.contains(resolved)) {
+        receiverNames.add(resolved);
+      }
+    }
+    if (receiverNames.isEmpty) receiverNames.add('Member');
 
     final List<dynamic> rSeatsRaw = raw['receiverSeats'] ??
         raw['receiver_seats'] ??

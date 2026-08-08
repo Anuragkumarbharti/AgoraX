@@ -379,38 +379,43 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                     top: currentPos.dy - (currentVisualSize / 2),
                     child: SizedBox(
                       width: currentVisualSize,
-                      height: currentVisualSize,
+                      height: currentVisualSize * 1.5,
                       child: Opacity(
                         opacity: opacity,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildGiftVisual(size: currentVisualSize * 0.70, themeColor: meta.themeColor),
-                            const SizedBox(height: 2),
-                            // Sender to Receiver Banner Text Tag
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.85),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: meta.themeColor, width: 1.2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: meta.themeColor.withOpacity(0.40),
-                                    blurRadius: 8,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildGiftVisual(size: currentVisualSize * 0.70, themeColor: meta.themeColor),
+                              if (meta.tier != GiftTier.tier1 && meta.tier != GiftTier.tier2) ...[
+                                const SizedBox(height: 2),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.85),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: meta.themeColor, width: 1.2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: meta.themeColor.withOpacity(0.40),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: Text(
-                                '${event.senderName} sent ${event.giftName} x${event.count} to ${event.receiverName}',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
+                                  child: Text(
+                                    '${event.senderName} sent ${event.giftName} x${event.count} to ${event.receiverName}',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ],
+                              ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -466,43 +471,79 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                   ),
                   Positioned(
                     left: centerStage.dx - (baseShowcaseSize / 2),
-                    top: centerStage.dy - (baseShowcaseSize / 2) + floatY,
+                    top: centerStage.dy - (baseShowcaseSize / 2) + floatY - 20,
                     child: SizedBox(
                       width: baseShowcaseSize,
-                      height: baseShowcaseSize,
-                      child: Transform.scale(
-                        scale: showcaseScale,
-                        child: Transform.rotate(
-                          angle: rotationAngle,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _buildGiftVisual(size: baseShowcaseSize * 0.60, themeColor: meta.themeColor),
-                              const SizedBox(height: 6),
-                              // Sender Username sent Gift to Receiver Username Banner
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.85),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: meta.themeColor, width: 1.5),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: meta.themeColor.withOpacity(0.50),
-                                      blurRadius: 12,
+                      height: baseShowcaseSize * 1.8,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Transform.scale(
+                          scale: showcaseScale,
+                          child: Transform.rotate(
+                            angle: rotationAngle,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // ⚡ Top Animated Showcase Combo Counter Badge (×1, ×2, ×3...)
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                                  child: Container(
+                                    key: ValueKey('showcase_count_${event.count}'),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFFF59E0B).withOpacity(0.6),
+                                          blurRadius: 12,
+                                          spreadRadius: 2,
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                child: Text(
-                                  '${event.senderName} sent ${event.giftName} x${event.count} to ${event.receiverName}',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
+                                    child: Text(
+                                      '×${event.count}',
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 6),
+                                _buildGiftVisual(size: baseShowcaseSize * 0.60, themeColor: meta.themeColor),
+                                if (meta.tier != GiftTier.tier1 && meta.tier != GiftTier.tier2) ...[
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.85),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: meta.themeColor, width: 1.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: meta.themeColor.withOpacity(0.50),
+                                          blurRadius: 12,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      '${event.senderName} sent ${event.giftName} x${event.count} to ${event.receiverName}',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ),
                       ),

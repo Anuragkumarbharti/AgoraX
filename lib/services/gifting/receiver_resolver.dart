@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../user/user_profile_cache_manager.dart';
 
 class ResolvedReceiver {
   final String userId;
@@ -34,11 +35,17 @@ class ReceiverResolver {
     for (int i = 0; i < receiverIds.length; i++) {
       final uId = receiverIds[i];
       final seatIdx = i < seatIndices.length ? seatIndices[i] : -1;
-      final uName = i < receiverNames.length ? receiverNames[i] : 'User';
+      final rawName = i < receiverNames.length ? receiverNames[i] : '';
 
       // Live seat lookup: check if user is on a seat or at original seat index
       final liveSeat = roomSeats.firstWhereOrNull((s) => s['userId'] == uId) ??
           roomSeats.firstWhereOrNull((s) => s['seatIndex'] == seatIdx);
+
+      final String uName = UserProfileCacheManager.resolveUsernameForGifting(
+        uId,
+        passedName: rawName,
+        seatInfo: liveSeat,
+      );
 
       int finalSeatIndex = seatIdx;
       String? avatar;
