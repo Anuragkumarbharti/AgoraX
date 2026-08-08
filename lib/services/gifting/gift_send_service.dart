@@ -150,7 +150,7 @@ class GiftSendService extends GetxController {
           walletBalance: gift.currency == 'gold'
               ? storeCtrl.coinsBalance
               : storeCtrl.silverCoinsBalance,
-          count: totalQuantity,
+          count: 1,
           comboCount: comboMultiplier,
         );
 

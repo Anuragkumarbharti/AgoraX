@@ -226,10 +226,11 @@ BEGIN
 
     -- Insert Transaction Record
     INSERT INTO public.gift_transactions (
-      room_id, sender_id, receiver_id, gift_id, gift_name, gift_icon, quantity, count, currency, amount, total_cost, stars_value, gems_value, status, idempotency_key
+      room_id, sender_id, receiver_id, gift_id, gift_name, gift_icon, quantity, count, currency, amount, total_cost, stars_value, gems_value, status, idempotency_key, is_self_gift
     ) VALUES (
-      p_room_id, v_sender_id, v_receiver_id, p_gift_id, COALESCE(v_gift_record.name, 'Gift'), COALESCE(v_gift_record.icon, '🎁'), v_total_quantity, v_total_quantity, v_gift_currency, v_single_cost * v_total_quantity, v_single_cost * v_total_quantity, v_single_receiver_gems, v_single_receiver_gems, 'completed', p_transaction_id
+      p_room_id, v_sender_id, v_receiver_id, p_gift_id, COALESCE(v_gift_record.name, 'Gift'), COALESCE(v_gift_record.icon, '🎁'), v_total_quantity, v_total_quantity, v_gift_currency, v_single_cost * v_total_quantity, v_single_cost * v_total_quantity, v_single_receiver_gems, v_single_receiver_gems, 'completed', p_transaction_id, (v_sender_id = v_receiver_id)
     );
+
 
     -- Update Seat Session Gem Counter Atomically on room_seats
     IF v_seat_index >= 0 THEN

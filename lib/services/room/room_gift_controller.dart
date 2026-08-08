@@ -354,9 +354,19 @@ class RoomGiftController extends GetxController {
   }
 
   void _showGiftErrorSnackbar(String errorMsg) {
-    String friendlyError = 'Network/Server connection issue. Gift not sent.';
-    if (errorMsg.contains('Insufficient')) {
-      friendlyError = errorMsg.replaceAll('Exception: ', '').replaceAll('PostgrestException', '').trim();
+    String friendlyError = errorMsg
+        .replaceAll('Exception: ', '')
+        .replaceAll('PostgrestException(', '')
+        .replaceAll('message: ', '')
+        .replaceAll(')', '')
+        .trim();
+
+    if (friendlyError.contains('<html') ||
+        friendlyError.contains('SocketException') ||
+        friendlyError.contains('Failed host lookup') ||
+        friendlyError.contains('ClientException') ||
+        friendlyError.contains('TimeoutException')) {
+      friendlyError = 'Network/Server connection issue. Gift not sent.';
     }
 
     Get.snackbar(
