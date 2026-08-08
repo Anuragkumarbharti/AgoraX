@@ -609,9 +609,11 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
     // Calculate exact height for 2 rows of the 4-column gift grid
     final screenWidth = MediaQuery.of(context).size.width;
-    final gridItemWidth = (screenWidth - 20.0 - 24.0) / 4.0; // 20=hPad*2, 24=3×spacing
+    final gridItemWidth =
+        (screenWidth - 20.0 - 24.0) / 4.0; // 20=hPad*2, 24=3×spacing
     final gridItemHeight = gridItemWidth / 0.73;
-    final gridTwoRowHeight = (gridItemHeight * 2 + 6 + 10).ceilToDouble(); // 2rows + 1spacing + padding
+    final gridTwoRowHeight = (gridItemHeight * 2 + 6 + 10)
+        .ceilToDouble(); // 2rows + 1spacing + padding
 
     return Align(
       alignment: Alignment.bottomCenter,
