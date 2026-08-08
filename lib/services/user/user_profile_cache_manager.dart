@@ -1016,8 +1016,8 @@ class UserProfileCacheManager {
               if (newRecord != null && newRecord['id'] != null) {
                 final String userId = newRecord['id'];
                 if (userId == currentUserId) {
-                  final num coins = newRecord['coins_balance'] ?? 0;
-                  final num silver = newRecord['silver_balance'] ?? 0;
+                  final num coins = newRecord['coins_balance'] ?? newRecord['gold_coins'] ?? 0;
+                  final num silver = newRecord['silver_coins_balance'] ?? newRecord['silver_coins'] ?? newRecord['silver_balance'] ?? 0;
                   try {
                     if (Get.isRegistered<StoreController>()) {
                       Get.find<StoreController>().coinsBalance.value =

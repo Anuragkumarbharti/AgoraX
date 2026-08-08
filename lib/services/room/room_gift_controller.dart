@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -103,7 +104,7 @@ class RoomGiftController extends GetxController {
         }
       } catch (_) {}
 
-      // ── 2. INSTANT LOCAL EVENT, ANIMATION & CHAT DISPATCH (<10ms) ──
+      // ── 2. PREPARE IDEMPOTENT TRANSACTION IDENTIFIER & PAYLOAD ──
       final user = UserProfileCacheManager.currentUser;
       final String uName = user?.username ?? '';
       final String fName = user?.fullName ?? '';
@@ -132,8 +133,10 @@ class RoomGiftController extends GetxController {
       final String canonicalGiftUuid = meta.giftId;
       final String resolvedGiftIcon = (giftIcon.isNotEmpty && giftIcon != '🎁') ? giftIcon : meta.giftIcon;
 
+      final String transactionId = 'tx_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(999999)}';
+
       final Map<String, dynamic> eventPayload = {
-        'id': 'evt_${DateTime.now().microsecondsSinceEpoch}',
+        'id': transactionId,
         'giftId': canonicalGiftUuid,
         'giftName': giftName,
         'giftIcon': resolvedGiftIcon,
@@ -153,7 +156,84 @@ class RoomGiftController extends GetxController {
         'messageText': '🎁 $senderName sent $giftName × $totalQuantity to ${cleanTargetUserNames.join(", ")}.',
       };
 
-      // 🚀 Trigger instant zero-latency animation playback & WebSocket broadcast room-wide
+      // ── 3. SYNCHRONOUS SERVER-AUTHORITATIVE RPC TRANSACTION ──
+      dynamic response;
+      try {
+        response = await Supabase.instance.client.rpc('send_star_gift', params: {
+          'p_room_id': roomId,
+          'p_receiver_ids': targetUserIds,
+          'p_gift_id': canonicalGiftUuid,
+          'p_quantity': count,
+          'p_combo_count': comboCount,
+          'p_seat_indices': seatIndices,
+          'p_transaction_id': transactionId,
+          'p_sender_id': UserProfileCacheManager.currentUserId,
+        });
+      } catch (rpcError) {
+        debugPrint('[GiftPipeline] Server RPC Error: $rpcError');
+        // Rollback optimistic balance on network/RPC failure!
+        walletBalance.value = previousBalance;
+        try {
+          if (Get.isRegistered<StoreController>()) {
+            final storeCtrl = Get.find<StoreController>();
+            if (currency == 'gold') {
+              storeCtrl.coinsBalance.value = previousBalance;
+            } else {
+              storeCtrl.silverCoinsBalance.value = previousBalance;
+            }
+          }
+        } catch (_) {}
+        
+        String friendlyError = 'Network/Server connection issue. Gift not sent.';
+        final errStr = rpcError.toString();
+        if (errStr.contains('Insufficient')) {
+          friendlyError = errStr.replaceAll('Exception: ', '').replaceAll('PostgrestException', '').trim();
+        }
+        
+        Get.snackbar(
+          'Gift Sending Failed',
+          friendlyError,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFEF4444),
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+        return false;
+      }
+
+      if (response == null || (response is Map && response['success'] != true)) {
+        // Rollback optimistic balance on invalid server response
+        walletBalance.value = previousBalance;
+        try {
+          if (Get.isRegistered<StoreController>()) {
+            final storeCtrl = Get.find<StoreController>();
+            if (currency == 'gold') {
+              storeCtrl.coinsBalance.value = previousBalance;
+            } else {
+              storeCtrl.silverCoinsBalance.value = previousBalance;
+            }
+          }
+        } catch (_) {}
+        return false;
+      }
+
+      // ── 4. SERVER CONFIRMED SUCCESS: UPDATE AUTHORITATIVE STATE & DISPATCH ──
+      final Map<String, dynamic> resMap = Map<String, dynamic>.from(response as Map);
+      final int remaining = (resMap['remaining_balance'] as num).toInt();
+      walletBalance.value = remaining;
+
+      try {
+        if (Get.isRegistered<StoreController>()) {
+          final storeCtrl = Get.find<StoreController>();
+          if (currency == 'gold') {
+            storeCtrl.coinsBalance.value = remaining;
+          } else {
+            storeCtrl.silverCoinsBalance.value = remaining;
+          }
+        }
+      } catch (_) {}
+
+      // 🚀 Trigger instant animation playback & WebSocket broadcast room-wide
       unawaited(GiftEventService.to.broadcastGiftEvent(roomId, eventPayload));
 
       // ⚡ Activate / Refresh Sender-Only Quick Repeat Session
@@ -161,7 +241,7 @@ class RoomGiftController extends GetxController {
         final qrCtrl = QuickRepeatController.to;
         if (!qrCtrl.isProcessing.value) {
           qrCtrl.activateQuickRepeat(
-            originalGiftTransactionId: eventPayload['id'] as String,
+            originalGiftTransactionId: transactionId,
             roomId: roomId,
             senderId: UserProfileCacheManager.currentUserId,
             giftId: canonicalGiftUuid,
@@ -179,53 +259,22 @@ class RoomGiftController extends GetxController {
         debugPrint('[QuickRepeat] Activation hook note: $e');
       }
 
-      // ── 3. ASYNC BACKGROUND SERVER RPC SYNC & AP TASK REFRESH ──
-      unawaited(Future(() async {
-        try {
-          final response = await Supabase.instance.client.rpc('send_star_gift', params: {
-            'p_room_id': roomId,
-            'p_receiver_ids': targetUserIds,
-            'p_gift_id': canonicalGiftUuid,
-            'p_quantity': count,
-            'p_combo_count': comboCount,
-            'p_seat_indices': seatIndices,
-          });
+      // Refresh Room AP Dual Progress bar & Progression
+      if (Get.isRegistered<RoomDualProgressController>()) {
+        unawaited(RoomDualProgressController.to.fetchDualProgress(roomId));
+      }
+      if (Get.isRegistered<RoomProgressionController>()) {
+        final progCtrl = Get.find<RoomProgressionController>();
+        unawaited(progCtrl.fetchRoomProgression(roomId, onUpdateSeats: (_) {}, onUpdateSeatGifts: (_) {}));
+      }
 
-          if (response != null && response['success'] == true) {
-            final remaining = (response['remaining_balance'] as num).toInt();
-            walletBalance.value = remaining;
-            try {
-              if (Get.isRegistered<StoreController>()) {
-                final storeCtrl = Get.find<StoreController>();
-                if (currency == 'gold') {
-                  storeCtrl.coinsBalance.value = remaining;
-                } else {
-                  storeCtrl.silverCoinsBalance.value = remaining;
-                }
-              }
-            } catch (_) {}
-
-            // Refresh Room AP Dual Progress bar & Progression
-            if (Get.isRegistered<RoomDualProgressController>()) {
-              unawaited(RoomDualProgressController.to.fetchDualProgress(roomId));
-            }
-            if (Get.isRegistered<RoomProgressionController>()) {
-              final progCtrl = Get.find<RoomProgressionController>();
-              unawaited(progCtrl.fetchRoomProgression(roomId, onUpdateSeats: (_) {}, onUpdateSeatGifts: (_) {}));
-            }
-
-            // Lucky reward notification check
-            final luckyResult = response['lucky_result'];
-            if (luckyResult != null && luckyResult is Map && luckyResult['is_lucky_gift'] == true) {
-              if (Get.isRegistered<RoomChatController>()) {
-                RoomChatController.to.addLuckyGiftMessage(roomId, Map<String, dynamic>.from(luckyResult));
-              }
-            }
-          }
-        } catch (e) {
-          debugPrint('[GiftPipeline] Background RPC note: $e');
+      // Lucky reward notification check
+      final luckyResult = resMap['lucky_result'];
+      if (luckyResult != null && luckyResult is Map && luckyResult['is_lucky_gift'] == true) {
+        if (Get.isRegistered<RoomChatController>()) {
+          RoomChatController.to.addLuckyGiftMessage(roomId, Map<String, dynamic>.from(luckyResult));
         }
-      }));
+      }
 
       return true;
     } catch (e, stack) {
@@ -233,6 +282,7 @@ class RoomGiftController extends GetxController {
       return false;
     }
   }
+
 
   Future<void> sendRoomGift(
     String roomId,
