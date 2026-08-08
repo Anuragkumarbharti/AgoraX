@@ -398,7 +398,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   final StoreController _storeCtrl = Get.find<StoreController>();
   late VaultController _vaultCtrl;
   bool _giftAll = false;
-  bool _isPriceAscending = true; // true = Price Low->High, false = Price High->Low
+  bool _isPriceAscending =
+      true; // true = Price Low->High, false = Price High->Low
 
   int get _selectedRecipientCount {
     if (_giftAll) {
@@ -463,7 +464,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         final uId = firstSeat['userId'] as String;
         final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
           uId,
-          passedName: firstSeat['username'] as String? ?? firstSeat['name'] as String?,
+          passedName:
+              firstSeat['username'] as String? ?? firstSeat['name'] as String?,
           seatInfo: firstSeat,
         );
         final seatIdx = firstSeat['seatIndex'] as int;
@@ -472,11 +474,15 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         _selectedSeatIndices.add(seatIdx);
       } else {
         // Rule B: If nobody is on any mic seat, select Room Owner / Host by default!
-        final room = _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
-        final String fallbackUid = UserProfileCacheManager.currentUserId.isNotEmpty
-            ? UserProfileCacheManager.currentUserId
-            : '00000000-0000-0000-0000-000000000000';
-        final ownerId = (room?.hostId != null && room!.hostId.isNotEmpty && room.hostId != 'room_owner')
+        final room =
+            _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+        final String fallbackUid =
+            UserProfileCacheManager.currentUserId.isNotEmpty
+                ? UserProfileCacheManager.currentUserId
+                : '00000000-0000-0000-0000-000000000000';
+        final ownerId = (room?.hostId != null &&
+                room!.hostId.isNotEmpty &&
+                room.hostId != 'room_owner')
             ? room.hostId
             : fallbackUid;
         final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
@@ -600,7 +606,12 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     final totalCost = singleCost * effectiveMultiplier;
     final hasValidRecipient =
         activeReceiversCount > 0 && effectiveMultiplier > 0;
-    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Calculate exact height for 2 rows of the 4-column gift grid
+    final screenWidth = MediaQuery.of(context).size.width;
+    final gridItemWidth = (screenWidth - 20.0 - 24.0) / 4.0; // 20=hPad*2, 24=3×spacing
+    final gridItemHeight = gridItemWidth / 0.73;
+    final gridTwoRowHeight = (gridItemHeight * 2 + 6 + 10).ceilToDouble(); // 2rows + 1spacing + padding
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -615,7 +626,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
               width: double.infinity,
-              height: screenHeight * 0.525,
+              // No fixed height — shrinks to exactly 2-row grid + other elements
               decoration: BoxDecoration(
                 color: const Color(0xFF111226).withValues(alpha: 0.70),
                 borderRadius: const BorderRadius.only(
@@ -642,53 +653,55 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 ],
               ),
               child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 4),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 8, bottom: 4),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  _buildAvatarOnlyRecipientSelector(),
+                  _buildStarMakerCategoryBar(),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: gridTwoRowHeight,
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: _starMakerTabs.length,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _selectedTabIndex = index;
+                        });
+                        if (_tabScrollController.hasClients) {
+                          _tabScrollController.animateTo(
+                            (index * 75.0).clamp(0.0,
+                                _tabScrollController.position.maxScrollExtent),
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                          );
+                        }
+                      },
+                      itemBuilder: (context, index) {
+                        if (index == 5) {
+                          return _buildVaultView();
+                        }
+                        final tabGifts = _getGiftsForTab(index);
+                        return _buildTabGridView(tabGifts);
+                      },
+                    ),
+                  ),
+                  _buildBottomControlBar(hasValidRecipient, totalCost),
+                ],
               ),
-              _buildAvatarOnlyRecipientSelector(),
-              _buildStarMakerCategoryBar(),
-              const SizedBox(height: 4),
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _starMakerTabs.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _selectedTabIndex = index;
-                    });
-                    if (_tabScrollController.hasClients) {
-                      _tabScrollController.animateTo(
-                        (index * 75.0).clamp(
-                            0.0, _tabScrollController.position.maxScrollExtent),
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOut,
-                      );
-                    }
-                  },
-                  itemBuilder: (context, index) {
-                    if (index == 5) {
-                      return _buildVaultView();
-                    }
-                    final tabGifts = _getGiftsForTab(index);
-                    return _buildTabGridView(tabGifts);
-                  },
-                ),
-              ),
-              _buildBottomControlBar(hasValidRecipient, totalCost),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  ),
-);
+    );
   }
 
   Widget _buildAvatarOnlyRecipientSelector() {
@@ -730,9 +743,11 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                   else
                     ...occupiedSeats.map((seat) {
                       final uId = seat['userId'] as String;
-                      final uName = UserProfileCacheManager.resolveUsernameForGifting(
+                      final uName =
+                          UserProfileCacheManager.resolveUsernameForGifting(
                         uId,
-                        passedName: seat['username'] as String? ?? seat['name'] as String?,
+                        passedName: seat['username'] as String? ??
+                            seat['name'] as String?,
                         seatInfo: seat,
                       );
                       final avatar = seat['avatar'] as String?;
@@ -746,7 +761,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                             if (_giftAll) _giftAll = false;
                             if (isSelected && !_giftAll) {
                               _selectedRecipients.remove(uId);
-                              _selectedRecipientNames.removeWhere((n) => n == uName || n == 'User');
+                              _selectedRecipientNames.removeWhere(
+                                  (n) => n == uName || n == 'User');
                               _selectedSeatIndices.remove(seatIdx);
                             } else {
                               if (!_selectedRecipients.contains(uId)) {
@@ -922,8 +938,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                             style: GoogleFonts.poppins(
                               color: isSelected ? Colors.white : Colors.white60,
                               fontSize: 11,
-                              fontWeight:
-                                  isSelected ? FontWeight.bold : FontWeight.w500,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
                             ),
                           ),
                           if (index == 0) ...[
@@ -978,7 +995,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               },
             ),
           ),
-
         ],
       ),
     );
@@ -994,37 +1010,21 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
       );
     }
 
-    return ShaderMask(
-      shaderCallback: (Rect bounds) {
-        return const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black,
-            Colors.black,
-            Colors.black,
-            Colors.transparent,
-          ],
-          stops: [0.0, 0.65, 0.88, 1.0],
-        ).createShader(bounds);
-      },
-      blendMode: BlendMode.dstIn,
-      child: GridView.builder(
-        padding: const EdgeInsets.fromLTRB(10, 2, 10, 8),
-        physics: const BouncingScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 6,
-          childAspectRatio: 0.73,
-        ),
-        itemCount: gifts.length,
-        itemBuilder: (context, index) {
-          final gift = gifts[index];
-          final isSelected = _selectedGift?.id == gift.id;
-          return _buildGiftCardItem(gift, isSelected);
-        },
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(10, 2, 10, 8),
+      physics: const BouncingScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 6,
+        childAspectRatio: 0.73,
       ),
+      itemCount: gifts.length,
+      itemBuilder: (context, index) {
+        final gift = gifts[index];
+        final isSelected = _selectedGift?.id == gift.id;
+        return _buildGiftCardItem(gift, isSelected);
+      },
     );
   }
 
@@ -1321,13 +1321,15 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Get.back(),
-                    child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+                    child: const Text('Cancel',
+                        style: TextStyle(color: Colors.white60)),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7C3AED),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () {
                       final val = int.tryParse(ctrl.text.trim());
@@ -1344,7 +1346,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         Get.back();
                       }
                     },
-                    child: const Text('Apply', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text('Apply',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -1449,8 +1453,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFF141624),
                   borderRadius: BorderRadius.circular(16),
@@ -1560,8 +1563,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                         : null,
                   ),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 22, vertical: 9),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 22, vertical: 9),
                     alignment: Alignment.center,
                     child: Text(
                       _isSending
@@ -1747,4 +1750,3 @@ class _BreathingGiftArtworkState extends State<_BreathingGiftArtwork>
     );
   }
 }
-
