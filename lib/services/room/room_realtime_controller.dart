@@ -11,6 +11,7 @@ import 'room_activity_controller.dart';
 import 'room_background_controller.dart';
 import '../gifting/gift_animation_controller.dart';
 import 'room_seat_controller.dart';
+import 'room_connection_controller.dart';
 import 'room_controller.dart';
 import 'room_progression_controller.dart';
 import 'room_gift_controller.dart';
@@ -240,31 +241,12 @@ class RoomRealtimeController extends GetxController {
         debugPrint(
             '[RoomRealtimeController] Channel status for room $roomId: $status, error: $error');
         if (status == RealtimeSubscribeStatus.channelError || status == RealtimeSubscribeStatus.timedOut) {
-          if (reconnectTimer == null) {
-            debugPrint(
-                '[RoomRealtimeController] Connection lost. Reconnection timer started (20s).');
-            reconnectTimer = Timer(const Duration(seconds: 20), () async {
-              if (activeRoomId == roomId) {
-                debugPrint(
-                    '[RoomRealtimeController] Reconnection timed out. Exiting room.');
-                onCleanupResources();
-                Get.snackbar(
-                  'Connection Lost 📡',
-                  'You have been disconnected from the room due to network issues.',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.orange.withOpacity(0.9),
-                  colorText: Colors.white,
-                );
-              }
-            });
+          debugPrint('[RoomRealtimeController] Realtime channel error/timeout for room $roomId');
+          if (Get.isRegistered<RoomConnectionController>()) {
+            RoomConnectionController.to.handleSocketOrNetworkDrop();
           }
         } else if (status == RealtimeSubscribeStatus.subscribed) {
-          if (reconnectTimer != null) {
-            reconnectTimer!.cancel();
-            reconnectTimer = null;
-            debugPrint(
-                '[RoomRealtimeController] Connection restored successfully within 20s!');
-          }
+          debugPrint('[RoomRealtimeController] Channel subscribed successfully for room $roomId');
           Future.microtask(() async {
             await onFetchPermissions(roomId);
             await onFetchMembers(roomId);

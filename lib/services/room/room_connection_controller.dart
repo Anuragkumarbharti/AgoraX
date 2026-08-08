@@ -24,22 +24,62 @@ import 'room_moderation_controller.dart';
 import '../network/network_connectivity_service.dart';
 import '../network/network_guard.dart';
 
+enum RoomNetworkState {
+  connected,
+  networkIssue,
+  networkLost,
+  leftRoom,
+}
+
 class RoomConnectionController extends GetxController {
   static RoomConnectionController get to => Get.find<RoomConnectionController>();
 
   String? activeRoomId;
+
+  final Rx<RoomNetworkState> roomNetworkState = RoomNetworkState.connected.obs;
+  final RxBool isReconnecting = false.obs;
 
   final RxBool isRoomDisconnecting = false.obs;
   final RxString disconnectTitle = ''.obs;
   final RxString disconnectReason = ''.obs;
 
   Timer? _activeHeartbeatTimer;
+  Timer? _reconnectGraceTimer;
+  Timer? _offlineConfirmTimer;
   int _consecutiveHeartbeatFailures = 0;
+  Worker? _onlineStateWorker;
 
+  @override
+  void onInit() {
+    super.onInit();
+    if (Get.isRegistered<NetworkConnectivityService>()) {
+      _onlineStateWorker = ever(NetworkConnectivityService.to.isOnline, (bool isOnline) {
+        _handleNetworkConnectivityChange(isOnline);
+      });
+    }
+  }
+
+  @override
+  void onClose() {
+    _onlineStateWorker?.dispose();
+    _cancelAllTimers();
+    super.onClose();
+  }
+
+  void _cancelAllTimers() {
+    _activeHeartbeatTimer?.cancel();
+    _reconnectGraceTimer?.cancel();
+    _offlineConfirmTimer?.cancel();
+    _activeHeartbeatTimer = null;
+    _reconnectGraceTimer = null;
+    _offlineConfirmTimer = null;
+  }
+
+  /// Entry Protection Validation (Step 1)
   Map<String, dynamic> validate12StepRoomEntry(String roomId, String userId) {
     if (!NetworkConnectivityService.to.isOnline.value) {
       NetworkConnectivityService.to.logAnalyticsEvent('failed_room_join_offline', {'room_id': roomId});
-      return {'canJoin': false, 'reason': "No internet connection. You can't join the room."};
+      return {'canJoin': false, 'reason': "No internet connection. Please check your network."};
     }
 
     final rooms = Get.isRegistered<RoomDiscoveryController>()
@@ -58,6 +98,105 @@ class RoomConnectionController extends GetxController {
     }
 
     return {'canJoin': true, 'reason': 'Allowed'};
+  }
+
+  /// Network State Engine & Connectivity Event Receiver
+  void _handleNetworkConnectivityChange(bool isOnline) {
+    if (activeRoomId == null) {
+      // User is outside any room. Reconnected event here does NOT force-navigate user into a room.
+      return;
+    }
+
+    if (!isOnline) {
+      // Device lost internet connection.
+      // Trigger short 2.5-second confirmation window to prevent false drop eviction (Step 3)
+      _startOfflineConfirmationTimer();
+    } else {
+      // Internet connection restored!
+      _handleInternetRestored();
+    }
+  }
+
+  /// Step 3: Short 2 to 3 second confirmation window for complete internet loss
+  void _startOfflineConfirmationTimer() {
+    if (roomNetworkState.value == RoomNetworkState.networkLost) return;
+    debugPrint('[RoomConnectionController] 📶 Internet lost detected! Starting 2.5s confirmation timer...');
+
+    roomNetworkState.value = RoomNetworkState.networkLost;
+    _offlineConfirmTimer?.cancel();
+    _offlineConfirmTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (!NetworkConnectivityService.to.isOnline.value && activeRoomId != null) {
+        debugPrint('[RoomConnectionController] ❌ 2.5s confirmed complete network loss timeout reached. Leaving room.');
+        leaveActiveRoomLocally(
+          reason: 'No internet connection. Please check your network.',
+          navigateToArena: true,
+        );
+        roomNetworkState.value = RoomNetworkState.leftRoom;
+      }
+    });
+  }
+
+  /// Step 2: Unstable connection / Socket drop -> 10s frontend grace period
+  void handleSocketOrNetworkDrop() {
+    if (activeRoomId == null || roomNetworkState.value == RoomNetworkState.leftRoom) return;
+
+    if (roomNetworkState.value == RoomNetworkState.connected) {
+      debugPrint('[RoomConnectionController] ⚠️ Network issue/socket drop detected! Starting 10s frontend grace period.');
+      roomNetworkState.value = RoomNetworkState.networkIssue;
+      isReconnecting.value = true;
+
+      _reconnectGraceTimer?.cancel();
+      _reconnectGraceTimer = Timer(const Duration(seconds: 10), () {
+        if (roomNetworkState.value == RoomNetworkState.networkIssue && activeRoomId != null) {
+          debugPrint('[RoomConnectionController] ⏱️ 10s frontend grace period expired. Leaving room.');
+          leaveActiveRoomLocally(
+            reason: 'Network issue. Could not reconnect within 10s.',
+            navigateToArena: true,
+          );
+          roomNetworkState.value = RoomNetworkState.leftRoom;
+        }
+      });
+    }
+  }
+
+  /// Step 4: Automatic Reconnection when internet recovers within grace period
+  void _handleInternetRestored() {
+    debugPrint('[RoomConnectionController] 📶 Internet restored! Restoring room session...');
+    _offlineConfirmTimer?.cancel();
+    _offlineConfirmTimer = null;
+
+    if (roomNetworkState.value == RoomNetworkState.networkIssue ||
+        roomNetworkState.value == RoomNetworkState.networkLost) {
+      _performBackgroundReconnection();
+    }
+  }
+
+  Future<void> _performBackgroundReconnection() async {
+    final roomId = activeRoomId;
+    if (roomId == null) return;
+
+    try {
+      debugPrint('[RoomConnectionController] Attempting background session & socket auto-reconnect...');
+      
+      // 1. Reconnect Heartbeat RPC
+      final bool hbSuccess = await heartbeatRoomMember(roomId, false);
+      if (hbSuccess) {
+        // 2. Repair room state from snapshot
+        await repairRoomState(roomId);
+
+        // 3. Restore clean connected state
+        _reconnectGraceTimer?.cancel();
+        _reconnectGraceTimer = null;
+        roomNetworkState.value = RoomNetworkState.connected;
+        isReconnecting.value = false;
+
+        debugPrint('[RoomConnectionController] 🟢 Background reconnection completed cleanly for room $roomId!');
+      } else {
+        debugPrint('[RoomConnectionController] Background heartbeat failed during reconnect attempt.');
+      }
+    } catch (e) {
+      debugPrint('[RoomConnectionController] Background reconnection error: $e');
+    }
   }
 
   void triggerInRoomDisconnectOverlay({
@@ -81,11 +220,15 @@ class RoomConnectionController extends GetxController {
     });
   }
 
+  /// Step 5: 10s Heartbeat Loop with 30s Server Grace Period (3 failures = 30s)
   void startHeartbeatLoop(String roomId, bool Function() isMicOnGetter) {
     _activeHeartbeatTimer?.cancel();
     _consecutiveHeartbeatFailures = 0;
+    roomNetworkState.value = RoomNetworkState.connected;
+    isReconnecting.value = false;
+
     _activeHeartbeatTimer =
-        Timer.periodic(const Duration(seconds: 20), (timer) async {
+        Timer.periodic(const Duration(seconds: 10), (timer) async {
       if (activeRoomId != roomId) {
         timer.cancel();
         return;
@@ -94,19 +237,29 @@ class RoomConnectionController extends GetxController {
       if (!success) {
         _consecutiveHeartbeatFailures++;
         debugPrint(
-            '[RoomConnectionController] 20s Heartbeat failed ($_consecutiveHeartbeatFailures/3 - ${_consecutiveHeartbeatFailures * 20}s grace period)');
+            '[RoomConnectionController] 10s Heartbeat failed ($_consecutiveHeartbeatFailures/3 - ${_consecutiveHeartbeatFailures * 10}s grace period)');
+        
+        handleSocketOrNetworkDrop();
+
         if (_consecutiveHeartbeatFailures >= 3) {
           debugPrint(
-              '[RoomConnectionController] 60s grace period timeout reached. Leaving room & redirecting to Arena.');
+              '[RoomConnectionController] 30s server grace period expired. Leaving room & redirecting to Arena.');
           timer.cancel();
-          triggerInRoomDisconnectOverlay(
-            title: 'Network Disconnected 📡',
-            reason:
-                'Disconnected due to no internet (60s grace period expired)',
+          leaveActiveRoomLocally(
+            reason: 'Disconnected due to no internet (30s server grace period expired)',
+            navigateToArena: true,
           );
+          roomNetworkState.value = RoomNetworkState.leftRoom;
         }
       } else {
         _consecutiveHeartbeatFailures = 0;
+        if (roomNetworkState.value == RoomNetworkState.networkIssue ||
+            roomNetworkState.value == RoomNetworkState.networkLost) {
+          _reconnectGraceTimer?.cancel();
+          _reconnectGraceTimer = null;
+          roomNetworkState.value = RoomNetworkState.connected;
+          isReconnecting.value = false;
+        }
       }
       await repairRoomState(roomId);
     });
@@ -194,9 +347,10 @@ class RoomConnectionController extends GetxController {
 
   void leaveActiveRoomLocally({String? reason, bool navigateToArena = false}) {
     try {
-      _activeHeartbeatTimer?.cancel();
-      _activeHeartbeatTimer = null;
+      _cancelAllTimers();
       _consecutiveHeartbeatFailures = 0;
+      roomNetworkState.value = RoomNetworkState.leftRoom;
+      isReconnecting.value = false;
 
       String currentUserId = '';
       try {
@@ -298,10 +452,14 @@ class RoomConnectionController extends GetxController {
 
   Future<void> enterRoom(String roomId, {String? password}) async {
     try {
-      if (!NetworkGuard.checkInternet(actionName: 'room_entry')) {
+      final bool hasNet = await NetworkConnectivityService.to.verifyInternetAccess();
+      if (!hasNet || !NetworkGuard.checkInternet(actionName: 'room_entry', customOfflineMessage: 'No internet connection. Please check your network.')) {
         NetworkConnectivityService.to.logAnalyticsEvent('failed_room_join_offline', {'room_id': roomId});
-        return;
+        throw Exception('No internet connection. Please check your network.');
       }
+
+      roomNetworkState.value = RoomNetworkState.connected;
+      isReconnecting.value = false;
 
       final currentUserId = UserProfileCacheManager.currentUserId;
       if (activeRoomId != null && activeRoomId != roomId) {

@@ -1260,8 +1260,13 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         }),
       ),
 
-      // Layer 7: Global Effects Layer (Disconnect/Kick Overlay)
-      layer7Global: RoomCallBannerAndXp.buildDisconnectOverlay(),
+      // Layer 7: Global Effects Layer (Disconnect/Kick Overlay & Non-Blocking Network Banner)
+      layer7Global: Stack(
+        children: [
+          RoomCallBannerAndXp.buildNonBlockingNetworkStatusBanner(),
+          RoomCallBannerAndXp.buildDisconnectOverlay(),
+        ],
+      ),
     );
 
     return GestureDetector(

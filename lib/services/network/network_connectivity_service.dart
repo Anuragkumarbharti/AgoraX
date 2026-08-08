@@ -27,7 +27,6 @@ class NetworkConnectivityService extends GetxService {
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<List<ConnectivityResult>>? _subscription;
   Timer? _periodicPingTimer;
-  Timer? _reconnect8sTimer;
 
   // Observables for real-time UI reactions
   final RxBool isOnline = true.obs;
@@ -164,10 +163,7 @@ class NetworkConnectivityService extends GetxService {
   }
 
   void _handleRestoredConnection() {
-    debugPrint('[NetworkConnectivityService] 📶 Network connection restored! Cancelling 8s room disconnect timer.');
-    _reconnect8sTimer?.cancel();
-    _reconnect8sTimer = null;
-
+    debugPrint('[NetworkConnectivityService] 📶 Network connection restored!');
     logAnalyticsEvent('internet_restored');
 
     for (final callback in List<VoidCallback>.from(_onReconnectedCallbacks)) {
@@ -180,7 +176,7 @@ class NetworkConnectivityService extends GetxService {
   }
 
   void _handleLostConnection() {
-    debugPrint('[NetworkConnectivityService] ❌ Network connection lost! Starting 8s grace period timer.');
+    debugPrint('[NetworkConnectivityService] ❌ Network connection lost! Notifying registered network listeners.');
     logAnalyticsEvent('internet_lost');
 
     for (final callback in List<VoidCallback>.from(_onDisconnectedCallbacks)) {
@@ -190,18 +186,6 @@ class NetworkConnectivityService extends GetxService {
         debugPrint('[NetworkConnectivityService] Disconnected callback error: $e');
       }
     }
-
-    _reconnect8sTimer?.cancel();
-    _reconnect8sTimer = Timer(const Duration(seconds: 8), () {
-      if (!isOnline.value && Get.isRegistered<RoomController>() && RoomController.to.activeRoomId != null) {
-        debugPrint('[NetworkConnectivityService] 8s network disconnect timeout reached. Disconnecting room session.');
-        logAnalyticsEvent('forced_room_exit_offline');
-        RoomController.to.leaveActiveRoomLocally(
-          reason: 'Network disconnect: Redirected to Arena main page (8s timeout)',
-          navigateToArena: true,
-        );
-      }
-    });
   }
 
   /// Manually force a re-check of internet connectivity (e.g. from Retry UI button)
@@ -245,7 +229,6 @@ class NetworkConnectivityService extends GetxService {
   void onClose() {
     _subscription?.cancel();
     _periodicPingTimer?.cancel();
-    _reconnect8sTimer?.cancel();
     _onReconnectedCallbacks.clear();
     _onDisconnectedCallbacks.clear();
     super.onClose();

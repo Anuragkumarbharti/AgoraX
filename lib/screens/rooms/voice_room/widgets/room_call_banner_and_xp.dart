@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../services/room/room_connection_controller.dart';
 import '../../../../services/room/room_controller.dart';
 import '../../../../widgets/index.dart';
 
@@ -101,6 +102,74 @@ class RoomCallBannerAndXp {
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  static Widget buildNonBlockingNetworkStatusBanner() {
+    return Obx(() {
+      if (!Get.isRegistered<RoomConnectionController>()) {
+        return const SizedBox.shrink();
+      }
+      final connCtrl = RoomConnectionController.to;
+      final netState = connCtrl.roomNetworkState.value;
+      final isReconnecting = connCtrl.isReconnecting.value;
+
+      final bool showBanner = isReconnecting ||
+          netState == RoomNetworkState.networkIssue ||
+          netState == RoomNetworkState.networkLost;
+
+      if (!showBanner) {
+        return const SizedBox.shrink();
+      }
+
+      final String message = netState == RoomNetworkState.networkLost
+          ? "No internet connection. Reconnecting..."
+          : "Network issue. Reconnecting...";
+
+      return Positioned(
+        top: 90,
+        left: 20,
+        right: 20,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade900.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.amberAccent.withOpacity(0.6), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.amberAccent),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  message,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

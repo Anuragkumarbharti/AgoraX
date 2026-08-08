@@ -168,12 +168,8 @@ class RoomController extends GetxController with WidgetsBindingObserver {
     subscribeToRoomsList();
 
     if (Get.isRegistered<NetworkConnectivityService>()) {
-      NetworkConnectivityService.to.addDisconnectedCallback(() {
-        debugPrint('[RoomController] Network dropped. Leaving room locally.');
-        leaveActiveRoomLocally(reason: 'Network connection lost. Left room automatically.');
-      });
       NetworkConnectivityService.to.addReconnectedCallback(() {
-        debugPrint('[RoomController] Network restored. Auto-fetching rooms.');
+        debugPrint('[RoomController] Network restored. Auto-fetching rooms catalog.');
         fetchRooms(forceRefresh: true);
       });
     }
