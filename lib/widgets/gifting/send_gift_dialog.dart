@@ -692,7 +692,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         ),
       ),
     ),
-    );
+  ),
+);
   }
 
   Widget _buildAvatarOnlyRecipientSelector() {
