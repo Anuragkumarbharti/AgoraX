@@ -1565,40 +1565,34 @@ class _BreathingGiftArtworkState extends State<_BreathingGiftArtwork>
                   : null,
             ),
           ),
-          ColorFiltered(
-            colorFilter: const ColorFilter.mode(
-              Colors.black,
-              BlendMode.dstOut,
-            ),
-            child: Image.asset(
-              assetPath,
-              width: widget.size,
-              height: widget.size,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Center(
-                  child: Text(
-                    widget.gift.icon,
-                    style: TextStyle(
-                      fontSize: widget.size * 0.85,
-                      height: 1.0,
-                      shadows: [
-                        Shadow(
-                          color: (isGold ? const Color(0xFFFFD700) : themeColor)
-                              .withOpacity(0.6),
-                          blurRadius: 20,
-                        ),
-                        Shadow(
-                          color: Colors.black.withOpacity(0.85),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
+          Image.asset(
+            assetPath,
+            width: widget.size,
+            height: widget.size,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Center(
+                child: Text(
+                  widget.gift.icon,
+                  style: TextStyle(
+                    fontSize: widget.size * 0.85,
+                    height: 1.0,
+                    shadows: [
+                      Shadow(
+                        color: (isGold ? const Color(0xFFFFD700) : themeColor)
+                            .withOpacity(0.6),
+                        blurRadius: 20,
+                      ),
+                      Shadow(
+                        color: Colors.black.withOpacity(0.85),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
         ],
       ),
