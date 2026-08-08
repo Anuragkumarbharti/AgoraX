@@ -5,10 +5,10 @@ import 'dart:ui';
 import 'dart:math';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../services/room/room_controller.dart';
 import '../../services/store/store_controller.dart';
 import '../../services/vault/vault_controller.dart';
 import '../../services/gifting/gift_send_service.dart';
+import '../../services/gifting/arena_gift_recipient_manager.dart';
 import '../../models/vault/vault_models.dart';
 import '../../models/gift/gift_animation_metadata.dart';
 import '../../utils/number_formatter.dart';
@@ -390,24 +390,17 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   GiftItem? _selectedGift;
   VaultItem? _selectedVaultItem;
 
-  final List<String> _selectedRecipients = [];
-  final List<String> _selectedRecipientNames = [];
-  final List<int> _selectedSeatIndices = [];
+  // ── Recipient state is managed by ArenaGiftRecipientManager ────────────────
+  // Local fields only kept for backward-compat with GiftSendService API;
+  // actual source of truth lives in ArenaGiftRecipientManager.
+  late ArenaGiftRecipientManager _recipientMgr;
 
-  final RoomController _controller = RoomController.to;
   final StoreController _storeCtrl = Get.find<StoreController>();
   late VaultController _vaultCtrl;
-  bool _giftAll = false;
   bool _isPriceAscending =
       true; // true = Price Low->High, false = Price High->Low
 
-  int get _selectedRecipientCount {
-    if (_giftAll) {
-      final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
-      return seats.where((s) => s['userId'] != null).length;
-    }
-    return _selectedRecipients.length;
-  }
+  int get _selectedRecipientCount => _recipientMgr.activeCount;
 
   int get _effectiveMultiplier {
     if (_selectedRecipientCount <= 0) return 0;
@@ -427,7 +420,15 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     super.initState();
     _vaultCtrl = Get.find<VaultController>();
     _selectedGift = _allGifts[3]; // Default select Sakura
-    _initDefaultRecipients();
+    // Initialise recipient manager — auto-selects all occupied seats
+    // or Room Owner fallback if no seats are occupied.
+    // If targetUserId is set (tap-to-gift flow), only that user is pre-selected.
+    _recipientMgr = ArenaGiftRecipientManager.to;
+    _recipientMgr.initForRoom(
+      widget.roomId,
+      targetUserId: widget.targetUserId,
+      targetUserName: widget.targetUserName,
+    );
     _onRecipientSelectionChanged();
   }
 
@@ -435,66 +436,9 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   void dispose() {
     _pageController.dispose();
     _tabScrollController.dispose();
+    // Clean up recipient manager state when panel closes
+    _recipientMgr.disposeForRoom();
     super.dispose();
-  }
-
-  void _initDefaultRecipients() {
-    _selectedRecipients.clear();
-    _selectedRecipientNames.clear();
-    _selectedSeatIndices.clear();
-
-    final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
-
-    if (widget.targetUserId != null) {
-      final seat =
-          seats.firstWhereOrNull((s) => s['userId'] == widget.targetUserId);
-      final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
-        widget.targetUserId,
-        passedName: widget.targetUserName,
-        seatInfo: seat,
-      );
-      _selectedRecipients.add(widget.targetUserId!);
-      _selectedRecipientNames.add(resolvedName);
-      if (seat != null) {
-        _selectedSeatIndices.add(seat['seatIndex'] as int);
-      }
-    } else {
-      final firstSeat = seats.firstWhereOrNull((s) => s['userId'] != null);
-      if (firstSeat != null) {
-        final uId = firstSeat['userId'] as String;
-        final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
-          uId,
-          passedName:
-              firstSeat['username'] as String? ?? firstSeat['name'] as String?,
-          seatInfo: firstSeat,
-        );
-        final seatIdx = firstSeat['seatIndex'] as int;
-        _selectedRecipients.add(uId);
-        _selectedRecipientNames.add(resolvedName);
-        _selectedSeatIndices.add(seatIdx);
-      } else {
-        // Rule B: If nobody is on any mic seat, select Room Owner / Host by default!
-        final room =
-            _controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
-        final String fallbackUid =
-            UserProfileCacheManager.currentUserId.isNotEmpty
-                ? UserProfileCacheManager.currentUserId
-                : '00000000-0000-0000-0000-000000000000';
-        final ownerId = (room?.hostId != null &&
-                room!.hostId.isNotEmpty &&
-                room.hostId != 'room_owner')
-            ? room.hostId
-            : fallbackUid;
-        final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
-          ownerId,
-          passedName: room?.ownerName,
-        );
-
-        _selectedRecipients.add(ownerId);
-        _selectedRecipientNames.add(resolvedName);
-        _selectedSeatIndices.add(0);
-      }
-    }
   }
 
   List<VaultItem> get _giftableVaultItems {
@@ -509,10 +453,15 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
 
   void _sendGift() async {
     if (_isSending) return;
-    if (!_giftAll && _selectedRecipients.isEmpty) {
+
+    // Validate recipients via manager (handles Room Owner fallback internally)
+    final finalRecipients =
+        _recipientMgr.validateAndGetFinalRecipients(widget.roomId);
+
+    if (finalRecipients.isEmpty) {
       Get.snackbar(
-        'No Recipient Selected',
-        'Please select a seat/recipient first.',
+        'No Recipient Available',
+        'Could not determine a gift recipient. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.amber,
         colorText: Colors.black,
@@ -530,10 +479,13 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         gift: _selectedGift,
         vaultItem: _selectedVaultItem,
         isVault: _selectedTabIndex == 5,
-        giftAll: _giftAll,
-        selectedRecipients: _selectedRecipients,
-        selectedRecipientNames: _selectedRecipientNames,
-        selectedSeatIndices: _selectedSeatIndices,
+        giftAll: false, // manager handles 'all' selection internally
+        selectedRecipients:
+            finalRecipients.map((e) => e.userId).toList(),
+        selectedRecipientNames:
+            finalRecipients.map((e) => e.userName).toList(),
+        selectedSeatIndices:
+            finalRecipients.map((e) => e.seatIndex).toList(),
         comboMultiplier: _effectiveMultiplier,
       );
 
@@ -707,74 +659,39 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
   }
 
   Widget _buildAvatarOnlyRecipientSelector() {
-    final seats = _controller.roomSeatsInfo[widget.roomId] ?? [];
-    final occupiedSeats = seats.where((s) => s['userId'] != null).toList();
+    return Obx(() {
+      final displayable = _recipientMgr.displayableRecipients;
+      final activeIds =
+          _recipientMgr.activeRecipients.map((e) => e.userId).toSet();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      child: Row(
-        children: [
-          Text(
-            'To:',
-            style: GoogleFonts.poppins(
-                color: Colors.white38,
-                fontSize: 10.5,
-                fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: [
-                  if (occupiedSeats.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF141624),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        'No occupied seats',
-                        style: GoogleFonts.inter(
-                            color: Colors.white38, fontSize: 10),
-                      ),
-                    )
-                  else
-                    ...occupiedSeats.map((seat) {
-                      final uId = seat['userId'] as String;
-                      final uName =
-                          UserProfileCacheManager.resolveUsernameForGifting(
-                        uId,
-                        passedName: seat['username'] as String? ??
-                            seat['name'] as String?,
-                        seatInfo: seat,
-                      );
-                      final avatar = seat['avatar'] as String?;
-                      final seatIdx = seat['seatIndex'] as int;
-                      final isSelected =
-                          _giftAll || _selectedRecipients.contains(uId);
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        child: Row(
+          children: [
+            Text(
+              'To:',
+              style: GoogleFonts.poppins(
+                  color: Colors.white38,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    ...displayable.map((entry) {
+                      final isSelected = activeIds.contains(entry.userId);
+                      final isOwner = entry.isRoomOwner;
+                      final isProtected =
+                          _recipientMgr.isQuickGiftProtected(entry.userId);
 
                       return GestureDetector(
                         onTap: () {
-                          setState(() {
-                            if (_giftAll) _giftAll = false;
-                            if (isSelected && !_giftAll) {
-                              _selectedRecipients.remove(uId);
-                              _selectedRecipientNames.removeWhere(
-                                  (n) => n == uName || n == 'User');
-                              _selectedSeatIndices.remove(seatIdx);
-                            } else {
-                              if (!_selectedRecipients.contains(uId)) {
-                                _selectedRecipients.add(uId);
-                                _selectedRecipientNames.add(uName);
-                                _selectedSeatIndices.add(seatIdx);
-                              }
-                            }
-                            _onRecipientSelectionChanged();
-                          });
+                          _recipientMgr.toggleRecipient(entry);
+                          _onRecipientSelectionChanged();
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
@@ -784,27 +701,48 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           padding: const EdgeInsets.all(1.5),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
+                            // Owner gets an amber/gold ring; others get the
+                            // standard pink-purple gradient ring when selected.
                             gradient: isSelected
-                                ? const LinearGradient(colors: [
-                                    Color(0xFFFF416C),
-                                    Color(0xFFFF4B2B),
-                                    Color(0xFF8B5CF6)
-                                  ])
+                                ? (isOwner
+                                    ? const LinearGradient(colors: [
+                                        Color(0xFFFFD700),
+                                        Color(0xFFFF9F43),
+                                        Color(0xFF8B5CF6),
+                                      ])
+                                    : const LinearGradient(colors: [
+                                        Color(0xFFFF416C),
+                                        Color(0xFFFF4B2B),
+                                        Color(0xFF8B5CF6),
+                                      ]))
                                 : const LinearGradient(colors: [
                                     Color(0xFF25283D),
-                                    Color(0xFF1A1C29)
+                                    Color(0xFF1A1C29),
                                   ]),
                           ),
                           child: Stack(
                             children: [
                               CircleAvatar(
                                 radius: 15,
-                                backgroundImage:
-                                    avatar != null && avatar.isNotEmpty
-                                        ? NetworkImage(avatar)
-                                        : const AssetImage(
-                                                'assets/images/placeholder.png')
-                                            as ImageProvider,
+                                backgroundImage: (entry.avatarUrl != null &&
+                                        entry.avatarUrl!.isNotEmpty)
+                                    ? NetworkImage(entry.avatarUrl!)
+                                        as ImageProvider
+                                    : const AssetImage(
+                                        'assets/images/placeholder.png'),
+                                // Owner badge: small crown overlay on avatar
+                                child: isOwner
+                                    ? Align(
+                                        alignment: Alignment.topCenter,
+                                        child: Transform.translate(
+                                          offset: const Offset(0, -4),
+                                          child: const Text(
+                                            '👑',
+                                            style: TextStyle(fontSize: 8),
+                                          ),
+                                        ),
+                                      )
+                                    : null,
                               ),
                               if (isSelected)
                                 Positioned(
@@ -812,59 +750,32 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                                   right: 0,
                                   child: Container(
                                     padding: const EdgeInsets.all(1.5),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF10B981),
+                                    decoration: BoxDecoration(
+                                      color: isProtected
+                                          ? const Color(0xFFFF9F43)
+                                          : const Color(0xFF10B981),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.check,
-                                        size: 7, color: Colors.white),
+                                    child: Icon(
+                                      isProtected ? Icons.lock : Icons.check,
+                                      size: 7,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                             ],
                           ),
                         ),
                       );
-                    }).toList(),
-                  if (occupiedSeats.length > 1)
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _giftAll = !_giftAll;
-                          _onRecipientSelectionChanged();
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        margin: const EdgeInsets.only(left: 2, right: 4),
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _giftAll
-                              ? const Color(0xFFFF9F43)
-                              : const Color(0xFF141624),
-                          border: Border.all(
-                            color: _giftAll
-                                ? Colors.amber
-                                : const Color(0xFF25283D),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '🎙️',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+                    }),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildStarMakerCategoryBar() {

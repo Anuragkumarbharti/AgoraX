@@ -8,6 +8,7 @@ import '../room/room_controller.dart';
 import '../room/room_gift_controller.dart';
 import '../../widgets/gifting/insufficient_balance_sheet.dart';
 import '../../models/gift/gift_animation_metadata.dart';
+import 'arena_gift_recipient_manager.dart';
 
 class QuickRepeatState {
   final String originalGiftTransactionId;
@@ -192,6 +193,12 @@ class QuickRepeatController extends GetxController {
 
     activeState.value = state;
 
+    // Lock the current selected recipients into the Quick Gift session so
+    // they remain protected even if they leave an Arena seat mid-session.
+    if (Get.isRegistered<ArenaGiftRecipientManager>()) {
+      ArenaGiftRecipientManager.to.startQuickGiftSession();
+    }
+
     debugPrint(
       '[QuickRepeat] Activated: $giftName x$effectiveMultiplier → $assetPath with ${recipientIds.length} recipients.',
     );
@@ -225,51 +232,65 @@ class QuickRepeatController extends GetxController {
     isProcessing.value = true;
 
     try {
+      // ── Recipient Resolution (Rules 3, 7, 9, 13) ──────────────────────────
+      // Use ArenaGiftRecipientManager as the source of truth.
+      // It preserves QG-protected users who left their seat and applies
+      // Room Owner fallback if no valid seat recipient remains.
       List<String> validRecipientIds = [];
       List<String> validRecipientNames = [];
       List<int> validSeatIndices = [];
 
-      if (Get.isRegistered<RoomController>()) {
-        final roomSeats = RoomController.to.roomSeatsInfo[roomId] ?? [];
-        final currentOccupiedUserIds = roomSeats
-            .where((s) => s['userId'] != null)
-            .map((s) => s['userId'] as String)
-            .toSet();
-
-        for (int i = 0; i < state.originalRecipientIds.length; i++) {
-          final uId = state.originalRecipientIds[i];
-          if (currentOccupiedUserIds.contains(uId)) {
-            final seat = roomSeats.firstWhereOrNull((s) => s['userId'] == uId);
-            final passedName = i < state.originalRecipientNames.length
-                ? state.originalRecipientNames[i]
-                : '';
-            final resolvedName = UserProfileCacheManager.resolveUsernameForGifting(
-              uId,
-              passedName: passedName,
-              seatInfo: seat,
-            );
-            final seatIdx = seat != null ? (seat['seatIndex'] as int? ?? -1) : -1;
-
-            validRecipientIds.add(uId);
-            validRecipientNames.add(resolvedName);
-            validSeatIndices.add(seatIdx);
-          }
+      if (Get.isRegistered<ArenaGiftRecipientManager>()) {
+        final finalRecipients =
+            ArenaGiftRecipientManager.to.validateAndGetFinalRecipients(state.roomId);
+        for (final entry in finalRecipients) {
+          validRecipientIds.add(entry.userId);
+          validRecipientNames.add(entry.userName);
+          validSeatIndices.add(entry.seatIndex);
         }
       } else {
-        validRecipientIds = List.from(state.originalRecipientIds);
-        validRecipientNames = List.from(state.originalRecipientNames);
-        validSeatIndices = List.from(state.originalSeatIndices);
+        // Fallback: use the original recipients if manager is not registered.
+        if (Get.isRegistered<RoomController>()) {
+          final roomSeats = RoomController.to.roomSeatsInfo[state.roomId] ?? [];
+          final currentOccupiedUserIds = roomSeats
+              .where((s) => s['userId'] != null)
+              .map((s) => s['userId'] as String)
+              .toSet();
+          for (int i = 0; i < state.originalRecipientIds.length; i++) {
+            final uId = state.originalRecipientIds[i];
+            if (currentOccupiedUserIds.contains(uId)) {
+              final seat =
+                  roomSeats.firstWhereOrNull((s) => s['userId'] == uId);
+              final passedName = i < state.originalRecipientNames.length
+                  ? state.originalRecipientNames[i]
+                  : '';
+              final resolvedName =
+                  UserProfileCacheManager.resolveUsernameForGifting(
+                uId,
+                passedName: passedName,
+                seatInfo: seat,
+              );
+              final seatIdx =
+                  seat != null ? (seat['seatIndex'] as int? ?? -1) : -1;
+              validRecipientIds.add(uId);
+              validRecipientNames.add(resolvedName);
+              validSeatIndices.add(seatIdx);
+            }
+          }
+        } else {
+          validRecipientIds = List.from(state.originalRecipientIds);
+          validRecipientNames = List.from(state.originalRecipientNames);
+          validSeatIndices = List.from(state.originalSeatIndices);
+        }
       }
 
       if (validRecipientIds.isEmpty) {
-        debugPrint('[QuickRepeat] Repeat failed: none of the original recipients are in the room.');
-        Get.snackbar(
-          'Recipients Unavailable',
-          'None of the original gift recipients are currently on mic seats.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.amber,
-          colorText: Colors.black,
+        debugPrint(
+          '[QuickRepeat] Repeat failed: no valid recipients '
+          '(all left seats and no Room Owner fallback available).',
         );
+        // No snackbar — silently clear the QR session since we have no one to send to.
+        clearQuickRepeat();
         return false;
       }
 
@@ -428,6 +449,10 @@ class QuickRepeatController extends GetxController {
     isProcessing.value = false;
     tapPulse.value = false;
     shouldTriggerShowcase.value = false;
+    // End QG session so seat-left users are no longer protected
+    if (Get.isRegistered<ArenaGiftRecipientManager>()) {
+      ArenaGiftRecipientManager.to.endQuickGiftSession();
+    }
     debugPrint('[QuickRepeat] Session cleared.');
   }
 

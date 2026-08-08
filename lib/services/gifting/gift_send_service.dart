@@ -5,12 +5,11 @@ import '../room/room_gift_controller.dart';
 import '../store/store_controller.dart';
 import '../../widgets/gifting/send_gift_dialog.dart';
 import '../../models/vault/vault_models.dart';
-
 import '../../widgets/gifting/insufficient_balance_sheet.dart';
-
 import '../network/network_connectivity_service.dart';
 import '../network/network_guard.dart';
 import '../user/user_profile_cache_manager.dart';
+import 'arena_gift_recipient_manager.dart';
 
 class GiftSendService extends GetxController {
   static GiftSendService get to {
@@ -72,35 +71,59 @@ class GiftSendService extends GetxController {
       }
 
       final roomSeats = RoomController.to.roomSeatsInfo[roomId] ?? [];
-      final List<String> receiverIds = giftAll
+
+      // Build initial receiver list from caller's selection.
+      // 'giftAll' is now only used as a legacy path; the manager handles
+      // all-seat selection internally via initForRoom / auto-select-all.
+      List<String> receiverIds = giftAll
           ? roomSeats
               .where((s) => s['userId'] != null)
               .map((s) => s['userId'] as String)
               .toList()
           : List.from(selectedRecipients);
 
-      final List<String> receiverNames = [];
-      for (int i = 0; i < receiverIds.length; i++) {
-        final uId = receiverIds[i];
-        final passedName = i < selectedRecipientNames.length ? selectedRecipientNames[i] : '';
-        final seat = roomSeats.firstWhereOrNull((s) => s['userId'] == uId);
-        receiverNames.add(UserProfileCacheManager.resolveUsernameForGifting(
-          uId,
-          passedName: passedName,
-          seatInfo: seat,
-        ));
-      }
-
-      final List<int> seatIndices = giftAll
+      List<String> receiverNames = [];
+      List<int> seatIndices = giftAll
           ? roomSeats
               .where((s) => s['userId'] != null)
               .map((s) => s['seatIndex'] as int)
               .toList()
           : List.from(selectedSeatIndices);
 
+      // Rule 7 / 13: If the caller list is empty, ask the manager for a
+      // validated fallback (Room Owner) rather than immediately failing.
+      if (receiverIds.isEmpty) {
+        if (Get.isRegistered<ArenaGiftRecipientManager>()) {
+          final fallbacks =
+              ArenaGiftRecipientManager.to.validateAndGetFinalRecipients(roomId);
+          if (fallbacks.isNotEmpty) {
+            receiverIds = fallbacks.map((e) => e.userId).toList();
+            seatIndices = fallbacks.map((e) => e.seatIndex).toList();
+            debugPrint(
+              '[GiftSendService] Empty recipient list — using manager fallback: '
+              '${receiverIds.length} recipient(s).',
+            );
+          }
+        }
+      }
+
       if (receiverIds.isEmpty) {
         _showError('Please select at least one recipient seat.');
         return false;
+      }
+
+      // Resolve display names for the final receiverIds.
+      for (int i = 0; i < receiverIds.length; i++) {
+        final uId = receiverIds[i];
+        final passedName = i < selectedRecipientNames.length
+            ? selectedRecipientNames[i]
+            : '';
+        final seat = roomSeats.firstWhereOrNull((s) => s['userId'] == uId);
+        receiverNames.add(UserProfileCacheManager.resolveUsernameForGifting(
+          uId,
+          passedName: passedName,
+          seatInfo: seat,
+        ));
       }
 
       // Check coin balance pre-flight
