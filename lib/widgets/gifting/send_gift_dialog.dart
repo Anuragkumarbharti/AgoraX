@@ -929,14 +929,25 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           if (index == 0) ...
                             [
                               const SizedBox(width: 4),
-                              Icon(
-                                _isPriceAscending
-                                    ? Icons.arrow_upward_rounded
-                                    : Icons.arrow_downward_rounded,
-                                size: 11,
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.white60,
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                spacing: 0,
+                                children: [
+                                  Icon(
+                                    Icons.arrow_drop_up_rounded,
+                                    size: 14,
+                                    color: _isPriceAscending
+                                        ? Colors.white
+                                        : Colors.white.withValues(alpha: 0.18),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_drop_down_rounded,
+                                    size: 14,
+                                    color: !_isPriceAscending
+                                        ? Colors.white
+                                        : Colors.white.withValues(alpha: 0.18),
+                                  ),
+                                ],
                               ),
                             ],
                         ],
