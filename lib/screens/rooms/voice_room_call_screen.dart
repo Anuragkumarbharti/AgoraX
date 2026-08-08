@@ -24,6 +24,8 @@ import '../../widgets/memberships/novel_entry_animation.dart';
 import '../../services/room/room_entry_permission_engine.dart';
 import '../../services/gifting/gift_animation_controller.dart';
 import '../../services/gifting/gift_overlay_manager.dart';
+import '../../services/gifting/quick_repeat_controller.dart';
+import '../../widgets/gifting/quick_repeat_button_widget.dart';
 import '../../services/room/room_dual_progress_controller.dart';
 
 // Extracted Sub-Modules
@@ -1050,6 +1052,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     _marqueeWorker.dispose();
     _giftNotificationWorker?.dispose();
     _systemNotificationWorker?.dispose();
+    if (Get.isRegistered<QuickRepeatController>()) {
+      QuickRepeatController.to.clearQuickRepeat();
+    }
     super.dispose();
   }
 
@@ -1169,6 +1174,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                 onTriggerReaction: () => _triggerReaction('❤️'),
               );
             }),
+          ),
+          Positioned(
+            bottom: bottomInset + 58,
+            right: 12,
+            child: QuickRepeatButtonWidget(
+              roomId: widget.roomId,
+              currentUserId: widget.userId,
+            ),
           ),
           Positioned.fill(
             child: IgnorePointer(

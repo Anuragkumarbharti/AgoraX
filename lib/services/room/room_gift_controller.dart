@@ -9,6 +9,7 @@ import '../user/user_profile_cache_manager.dart';
 import '../store/store_controller.dart';
 import '../gifting/gift_animation_controller.dart';
 import '../gifting/gift_event_service.dart';
+import '../gifting/quick_repeat_controller.dart';
 import 'room_seat_controller.dart';
 import 'room_activity_controller.dart';
 import 'room_controller.dart';
@@ -134,6 +135,29 @@ class RoomGiftController extends GetxController {
 
       // 🚀 Trigger instant zero-latency animation playback & WebSocket broadcast room-wide
       unawaited(GiftEventService.to.broadcastGiftEvent(roomId, eventPayload));
+
+      // ⚡ Activate / Refresh Sender-Only Quick Repeat Session
+      try {
+        final qrCtrl = QuickRepeatController.to;
+        if (!qrCtrl.isProcessing.value) {
+          qrCtrl.activateQuickRepeat(
+            originalGiftTransactionId: eventPayload['id'] as String,
+            roomId: roomId,
+            senderId: UserProfileCacheManager.currentUserId,
+            giftId: canonicalGiftUuid,
+            giftName: giftName,
+            giftIcon: giftIcon.isNotEmpty ? giftIcon : '🎁',
+            currency: currency,
+            giftCost: giftCost,
+            recipientIds: targetUserIds,
+            recipientNames: targetUserNames,
+            seatIndices: seatIndices,
+            initialQuantity: totalQuantity,
+          );
+        }
+      } catch (e) {
+        debugPrint('[QuickRepeat] Activation hook note: $e');
+      }
 
       // ── 3. ASYNC BACKGROUND SERVER RPC SYNC & AP TASK REFRESH ──
       unawaited(Future(() async {

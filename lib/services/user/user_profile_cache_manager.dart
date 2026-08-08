@@ -135,9 +135,15 @@ class UserProfileCacheManager {
 
   static User? get currentUser => _currentUser;
 
+  static void setCurrentUserForTesting(User? user) {
+    _currentUser = user;
+  }
+
   static String get currentUserId {
-    final authUid = Supabase.instance.client.auth.currentUser?.id;
-    if (authUid != null && authUid.isNotEmpty) return authUid;
+    try {
+      final authUid = Supabase.instance.client.auth.currentUser?.id;
+      if (authUid != null && authUid.isNotEmpty) return authUid;
+    } catch (_) {}
     final cachedUid = _currentUser?.id;
     if (cachedUid != null && cachedUid.isNotEmpty) return cachedUid;
     return '';

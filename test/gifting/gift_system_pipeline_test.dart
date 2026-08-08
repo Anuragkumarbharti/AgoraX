@@ -12,19 +12,17 @@ void main() {
 
   group('Gift Animation Pipeline & Timing Tests', () {
     test('AnimationTimeline stage durations and total duration by tier', () {
-      expect(AnimationTimeline.getStageADuration(GiftTier.tier1), const Duration(milliseconds: 800));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.tier1), const Duration(milliseconds: 3000));
-      expect(AnimationTimeline.getStageCDuration(GiftTier.tier1), const Duration(milliseconds: 800));
-      expect(AnimationTimeline.getTotalDuration(GiftTier.tier1), const Duration(milliseconds: 4600));
+      expect(AnimationTimeline.getShowcaseDuration(GiftTier.tier1), const Duration(milliseconds: 5500));
+      expect(AnimationTimeline.getTotalDuration(GiftTier.tier1), const Duration(milliseconds: 8100));
 
-      expect(AnimationTimeline.getStageBDuration(GiftTier.tier2), const Duration(milliseconds: 5000));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.tier3), const Duration(milliseconds: 7000));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.tier4), const Duration(milliseconds: 9000));
-      expect(AnimationTimeline.getStageBDuration(GiftTier.tier5), const Duration(milliseconds: 10000));
+      expect(AnimationTimeline.getShowcaseDuration(GiftTier.tier2), const Duration(milliseconds: 7000));
+      expect(AnimationTimeline.getShowcaseDuration(GiftTier.tier3), const Duration(milliseconds: 8800));
+      expect(AnimationTimeline.getShowcaseDuration(GiftTier.tier4), const Duration(milliseconds: 10500));
+      expect(AnimationTimeline.getShowcaseDuration(GiftTier.tier5), const Duration(milliseconds: 12500));
     });
 
     test('AnimationTimeline stage progress calculation', () {
-      final stageA = AnimationTimeline.getStageProgress(0.10, GiftTier.tier1);
+      final stageA = AnimationTimeline.getStageProgress(0.02, GiftTier.tier1);
       expect(stageA.stage, AnimationStage.stageA);
 
       final stageB = AnimationTimeline.getStageProgress(0.50, GiftTier.tier1);
