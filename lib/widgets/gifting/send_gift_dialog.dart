@@ -947,10 +947,10 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    _isPriceAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                  const Icon(
+                    Icons.swap_vert,
                     color: Colors.amber,
-                    size: 12,
+                    size: 14,
                   ),
                   const SizedBox(width: 2),
                   Text(
@@ -968,7 +968,6 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         ],
       ),
     );
-  }
   }
 
   Widget _buildTabGridView(List<GiftItem> gifts) {
@@ -992,7 +991,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
             Colors.black,
             Colors.transparent,
           ],
-          stops: [0.0, 0.86, 0.96, 1.0],
+          stops: [0.0, 0.65, 0.88, 1.0],
         ).createShader(bounds);
       },
       blendMode: BlendMode.dstIn,
@@ -1359,8 +1358,8 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
         ),
         border: Border(
           top: BorderSide(
-            color: const Color(0xFF171735).withValues(alpha: 0.75),
-            width: 1.2,
+            color: const Color(0xFF171735).withValues(alpha: 0.25),
+            width: 0.8,
           ),
         ),
       ),
