@@ -101,7 +101,9 @@ class RoomCallHeader extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 32),
                     child: Builder(
                       builder: (context) {
-                        final totalGems = liveRoom?.totalRoomGems ?? liveRoom?.totalRoomStars ?? 0;
+                        final int liveGems = liveRoom?.totalRoomGems ?? liveRoom?.totalRoomStars ?? 0;
+                        final int initialGems = room?.totalRoomGems ?? room?.totalRoomStars ?? 0;
+                        final int totalGems = liveGems > 0 ? liveGems : initialGems;
                         return GestureDetector(
                           onTap: () {
                             Get.dialog(

@@ -323,6 +323,24 @@ class RoomConnectionController extends GetxController {
           seatCtrl.roomSeatsInfo[roomId] = seatsList;
         }
 
+        if (response['room'] != null && response['room'] is Map && Get.isRegistered<RoomDiscoveryController>()) {
+          final roomData = Map<String, dynamic>.from(response['room'] as Map);
+          final discoveryCtrl = RoomDiscoveryController.to;
+          final idx = discoveryCtrl.rooms.indexWhere((r) => r.id == roomId);
+          final int remoteTotalGems = ((roomData['total_room_gems'] ?? roomData['total_room_stars'] ?? 0) as num).toInt();
+          final int remoteTodayGems = ((roomData['today_room_gems'] ?? roomData['today_room_stars'] ?? 0) as num).toInt();
+
+          if (idx != -1) {
+            final liveRoom = discoveryCtrl.rooms[idx];
+            liveRoom.totalRoomGems = math.max<int>(liveRoom.totalRoomGems, remoteTotalGems);
+            liveRoom.todayRoomGems = math.max<int>(liveRoom.todayRoomGems, remoteTodayGems);
+            discoveryCtrl.rooms.refresh();
+          } else {
+            final newRoom = VoiceRoom.fromJson(roomData);
+            discoveryCtrl.rooms.add(newRoom);
+          }
+        }
+
         if (response['members'] != null && response['members'] is List && Get.isRegistered<RoomMemberController>()) {
           final List<dynamic> mems = response['members'];
           RoomMemberController.to.activeMembers.assignAll(mems

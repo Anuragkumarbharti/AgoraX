@@ -175,8 +175,8 @@ class VoiceRoom {
       todayRoomXp: json['todayRoomXp'] ?? json['today_room_xp'] ?? 0,
       totalRoomGifts: json['totalRoomGifts'] ?? json['total_room_gifts'] ?? 0,
       todayRoomGifts: json['todayRoomGifts'] ?? json['today_room_gifts'] ?? 0,
-      totalRoomStars: (json['totalRoomGems'] ?? json['total_room_gems'] ?? json['totalRoomStars'] ?? json['total_room_stars'] ?? 0) as int,
-      todayRoomStars: (json['todayRoomGems'] ?? json['today_room_gems'] ?? json['todayRoomStars'] ?? json['today_room_stars'] ?? 0) as int,
+      totalRoomStars: ((json['totalRoomGems'] ?? json['total_room_gems'] ?? json['totalRoomStars'] ?? json['total_room_stars'] ?? 0) as num).toInt(),
+      todayRoomStars: ((json['todayRoomGems'] ?? json['today_room_gems'] ?? json['todayRoomStars'] ?? json['today_room_stars'] ?? 0) as num).toInt(),
 
       // New Roles Hierarchy
       founderId: json['founderId'] ?? 'uid_anurag_101',
