@@ -868,9 +868,14 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                 return GestureDetector(
                   onTap: () {
                     setState(() {
-                      _selectedTabIndex = index;
+                      if (index == 0 && _selectedTabIndex == 0) {
+                        // All tab already selected — toggle sort
+                        _isPriceAscending = !_isPriceAscending;
+                      } else {
+                        _selectedTabIndex = index;
+                      }
                     });
-                    if (_pageController.hasClients) {
+                    if (index != 0 && _pageController.hasClients) {
                       _pageController.animateToPage(
                         index,
                         duration: const Duration(milliseconds: 250),
@@ -909,14 +914,32 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           : null,
                     ),
                     child: Center(
-                      child: Text(
-                        tabName,
-                        style: GoogleFonts.poppins(
-                          color: isSelected ? Colors.white : Colors.white60,
-                          fontSize: 11,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w500,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            tabName,
+                            style: GoogleFonts.poppins(
+                              color: isSelected ? Colors.white : Colors.white60,
+                              fontSize: 11,
+                              fontWeight:
+                                  isSelected ? FontWeight.bold : FontWeight.w500,
+                            ),
+                          ),
+                          if (index == 0) ...
+                            [
+                              const SizedBox(width: 4),
+                              Icon(
+                                _isPriceAscending
+                                    ? Icons.arrow_upward_rounded
+                                    : Icons.arrow_downward_rounded,
+                                size: 11,
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.white60,
+                              ),
+                            ],
+                        ],
                       ),
                     ),
                   ),
@@ -924,47 +947,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
               },
             ),
           ),
-          const SizedBox(width: 4),
-          // Price Sort Toggle Pill (Ascending / Descending)
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _isPriceAscending = !_isPriceAscending;
-              });
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF141624),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: _isPriceAscending
-                      ? const Color(0xFFA78BFA).withValues(alpha: 0.6)
-                      : Colors.amber.withValues(alpha: 0.6),
-                  width: 1.2,
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.swap_vert,
-                    color: Colors.amber,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 2),
-                  Text(
-                    _isPriceAscending ? 'Low' : 'High',
-                    style: GoogleFonts.poppins(
-                      color: Colors.amber,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+
         ],
       ),
     );
