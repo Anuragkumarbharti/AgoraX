@@ -182,7 +182,7 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                 children: [
                   Expanded(
                     child: _buildSummaryCard(
-                      label: "Today's Gems 💎",
+                      label: "Today's Gems ❖",
                       stars: _todayStars,
                       iconColor: const Color(0xFF00F2FE),
                     ),
@@ -190,7 +190,7 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _buildSummaryCard(
-                      label: "Total Gems 💎",
+                      label: "Total Gems ❖",
                       stars: _totalStars,
                       iconColor: const Color(0xFF00F2FE),
                     ),
@@ -377,7 +377,7 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                                 ),
                               ),
                               const SizedBox(width: 3),
-                              const Text('💎', style: TextStyle(fontSize: 12)),
+                              const Text('❖', style: TextStyle(fontSize: 12, color: Color(0xFF00F2FE), fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ],

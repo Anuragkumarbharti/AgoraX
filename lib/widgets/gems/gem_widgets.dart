@@ -71,12 +71,22 @@ class _GemIconState extends State<GemIcon> with SingleTickerProviderStateMixin {
         ];
     final defaultGlow = widget.glowColor ?? const Color(0xFF00F2FE).withOpacity(0.45);
 
-    Widget iconWidget = CustomPaint(
-      size: Size(effectiveSize, effectiveSize),
-      painter: _GemVectorPainter(
-        gradientColors: defaultColors,
-        showGlow: widget.showGlow,
-        glowColor: defaultGlow,
+    Widget iconWidget = Text(
+      '❖',
+      style: TextStyle(
+        fontSize: effectiveSize,
+        height: 1.0,
+        fontWeight: FontWeight.bold,
+        color: const Color(0xFF00F2FE),
+        shadows: widget.showGlow
+            ? [
+                BoxShadow(
+                  color: defaultGlow,
+                  blurRadius: effectiveSize * 0.4,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
       ),
     );
 
