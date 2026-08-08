@@ -929,7 +929,7 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           if (index == 0) ...[
                             const SizedBox(width: 3),
                             SizedBox(
-                              width: 12,
+                              width: 14,
                               height: 18,
                               child: ClipRect(
                                 child: OverflowBox(
@@ -938,19 +938,31 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
-                                        Icons.arrow_drop_up_rounded,
-                                        size: 16,
-                                        color: _isPriceAscending
-                                            ? Colors.white
-                                            : Colors.white.withValues(alpha: 0.18),
+                                      GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () => setState(
+                                            () => _isPriceAscending = true),
+                                        child: Icon(
+                                          Icons.arrow_drop_up_rounded,
+                                          size: 16,
+                                          color: _isPriceAscending
+                                              ? Colors.white
+                                              : Colors.white
+                                                  .withValues(alpha: 0.18),
+                                        ),
                                       ),
-                                      Icon(
-                                        Icons.arrow_drop_down_rounded,
-                                        size: 16,
-                                        color: !_isPriceAscending
-                                            ? Colors.white
-                                            : Colors.white.withValues(alpha: 0.18),
+                                      GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () => setState(
+                                            () => _isPriceAscending = false),
+                                        child: Icon(
+                                          Icons.arrow_drop_down_rounded,
+                                          size: 16,
+                                          color: !_isPriceAscending
+                                              ? Colors.white
+                                              : Colors.white
+                                                  .withValues(alpha: 0.18),
+                                        ),
                                       ),
                                     ],
                                   ),
