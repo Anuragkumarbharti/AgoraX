@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:ui';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import 'package:creania/core/theme.dart';
 import '../../services/store/store_controller.dart';
@@ -34,7 +32,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF07070A),
+      backgroundColor: context.backgroundColor,
       body: Stack(
         children: [
           SafeArea(
@@ -61,11 +59,11 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
 
   Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.textPrimary, size: 18),
             onPressed: () => Get.back(),
           ),
           Text(
@@ -74,7 +72,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
               fontWeight: FontWeight.w900,
               fontSize: 18,
               letterSpacing: 2,
-              color: Colors.white,
+              color: context.textPrimary,
             ),
           ),
         ],
@@ -84,24 +82,26 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
 
   Widget _buildTabBar() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      height: 44,
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      height: 46,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: context.secondaryBackgroundColor,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.borderColor, width: 0.5),
       ),
       child: TabBar(
         controller: _tabCtrl,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)],
           ),
         ),
         labelColor: Colors.white,
-        unselectedLabelColor: Colors.white38,
+        unselectedLabelColor: context.textSecondary,
         labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 12),
+        unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 12),
         tabs: const [
           Tab(text: 'Orders & Receipts'),
           Tab(text: 'Coin Ledger'),
@@ -144,7 +144,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
       }
 
       return ListView.builder(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         physics: const BouncingScrollPhysics(),
         itemCount: allOrders.length,
         itemBuilder: (context, index) {
@@ -152,12 +152,12 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
           final isRefunded = o.status == 'Refunded' || o.status == 'Refund Requested';
 
           return Container(
-            margin: EdgeInsets.only(bottom: 12),
-            padding: EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: context.secondaryBackgroundColor,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.03)),
+              border: Border.all(color: context.borderColor, width: 0.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,37 +165,40 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(o.orderId, style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9.5, fontWeight: FontWeight.bold)),
+                    Text(
+                      o.orderId,
+                      style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isRefunded ? Colors.redAccent.withOpacity(0.12) : Color(0xFF10B981).withOpacity(0.12),
+                        color: isRefunded ? Colors.redAccent.withOpacity(0.12) : const Color(0xFF10B981).withOpacity(0.12),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         o.status,
                         style: GoogleFonts.poppins(
-                          color: isRefunded ? Colors.redAccent : Color(0xFF34D399),
-                          fontSize: 9,
+                          color: isRefunded ? Colors.redAccent : const Color(0xFF10B981),
+                          fontSize: 9.5,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   o.name,
-                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   '${o.dateTime.day}/${o.dateTime.month}/${o.dateTime.year} via ${o.paymentMethod}',
-                  style: GoogleFonts.poppins(color: Colors.white24, fontSize: 10),
+                  style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10.0),
-                  child: Divider(color: Colors.white10, height: 1),
+                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                  child: Divider(color: context.borderColor, height: 1),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -203,8 +206,9 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Total Charged (GST Inc.)', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9)),
-                        Text('₹${o.finalAmount.toStringAsFixed(2)}', style: GoogleFonts.poppins(color: Color(0xFFFFD700), fontSize: 14, fontWeight: FontWeight.bold)),
+                        Text('Total Charged (GST Inc.)', style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 9.5)),
+                        const SizedBox(height: 2),
+                        Text('₹${o.finalAmount.toStringAsFixed(2)}', style: GoogleFonts.poppins(color: const Color(0xFFF4B400), fontSize: 15, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     Row(
@@ -217,7 +221,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
                             child: Text('Request Refund', style: GoogleFonts.poppins(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                           ),
                         IconButton(
-                          icon: Icon(Icons.receipt_long_rounded, color: Colors.white60, size: 18),
+                          icon: Icon(Icons.receipt_long_rounded, color: context.textSecondary, size: 18),
                           tooltip: 'View Invoice',
                           onPressed: () => _showInvoiceDialog(o),
                         ),
@@ -241,7 +245,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
       }
 
       return ListView.builder(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         physics: const BouncingScrollPhysics(),
         itemCount: txs.length,
         itemBuilder: (context, index) {
@@ -249,12 +253,12 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
           final isCredit = tx.type == 'Purchased' || tx.type == 'Received' || tx.type == 'Refunded';
 
           return Container(
-            margin: EdgeInsets.only(bottom: 8),
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: context.secondaryBackgroundColor,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.02)),
+              border: Border.all(color: context.borderColor, width: 0.5),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -262,18 +266,18 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(tx.description, style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 2),
+                    Text(tx.description, style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12.5, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
                     Text(
                       '${tx.dateTime.day}/${tx.dateTime.month} • ${tx.type}',
-                      style: GoogleFonts.poppins(color: Colors.white38, fontSize: 10),
+                      style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 10.5),
                     ),
                   ],
                 ),
                 Text(
                   '${isCredit ? "+" : "-"}${tx.amount} Coins',
                   style: GoogleFonts.poppins(
-                    color: isCredit ? Color(0xFF10B981) : Colors.redAccent,
+                    color: isCredit ? const Color(0xFF10B981) : Colors.redAccent,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
@@ -290,7 +294,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
     return Center(
       child: Text(
         msg,
-        style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12),
+        style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12.5),
       ),
     );
   }
@@ -299,16 +303,16 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: context.secondaryBackgroundColor,
+        backgroundColor: context.surfaceColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: Colors.white10),
+          side: BorderSide(color: context.borderColor),
         ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('CREANIAA INVOICE', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            IconButton(icon: Icon(Icons.close, color: Colors.white60, size: 18), onPressed: () => Navigator.pop(context)),
+            Text('CREANIAA INVOICE', style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+            IconButton(icon: Icon(Icons.close, color: context.textSecondary, size: 18), onPressed: () => Navigator.pop(context)),
           ],
         ),
         content: Column(
@@ -319,13 +323,13 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
             _invoiceLine('Date & Time', '${o.dateTime.day}/${o.dateTime.month}/${o.dateTime.year}'),
             _invoiceLine('Billing Target', 'Me (${UserProfileCacheManager.currentUser?.username ?? Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ?? 'Student'})'),
             _invoiceLine('Payment Method', o.paymentMethod),
-            Divider(color: Colors.white10, height: 24),
+            Divider(color: context.borderColor, height: 24),
             _invoiceLine('Product / Item', o.name),
             _invoiceLine('Price Charged', '₹${o.amount.toStringAsFixed(2)}'),
             if (o.discount > 0)
               _invoiceLine('Discount Deducted', '-₹${o.discount.toStringAsFixed(2)}'),
             _invoiceLine('GST (18% inclusive)', '₹${o.gst.toStringAsFixed(2)}'),
-            Divider(color: Colors.white10, height: 24),
+            Divider(color: context.borderColor, height: 24),
             _invoiceLine('Total Net Price', '₹${o.finalAmount.toStringAsFixed(2)}', highlight: true),
           ],
         ),
@@ -335,12 +339,12 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
 
   Widget _invoiceLine(String key, String val, {bool highlight = false}) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(key, style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11)),
-          Text(val, style: GoogleFonts.poppins(color: highlight ? Color(0xFFFFD700) : Colors.white70, fontSize: 11.5, fontWeight: highlight ? FontWeight.bold : FontWeight.normal)),
+          Text(key, style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11)),
+          Text(val, style: GoogleFonts.poppins(color: highlight ? const Color(0xFFF4B400) : context.textPrimary, fontSize: 11.5, fontWeight: highlight ? FontWeight.bold : FontWeight.normal)),
         ],
       ),
     );
