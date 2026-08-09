@@ -195,6 +195,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       } catch (e) {
         debugPrint('[CheckoutScreen] Error activating Novel: $e');
       }
+    } else if (cleanCategory.toUpperCase() == 'COINS' ||
+        cleanName.toUpperCase().contains('COIN') ||
+        cleanName.toUpperCase().contains('PACK') ||
+        cleanName.toUpperCase().contains('RECHARGE')) {
+      try {
+        final storeCtrl = Get.find<StoreController>();
+        final packMatch = storeCtrl.coinPacks.firstWhereOrNull(
+          (p) => p.name.toUpperCase() == cleanName.toUpperCase() || cleanName.toUpperCase().contains(p.name.toUpperCase()),
+        );
+        final totalCoins = packMatch != null ? (packMatch.coins + packMatch.bonusCoins) : (price * 0.50).round();
+        await storeCtrl.rechargeGoldCoins(price, paymentId: paymentId, totalCoins: totalCoins);
+      } catch (e) {
+        debugPrint('[CheckoutScreen] Error activating Coins: $e');
+      }
     }
   }
 

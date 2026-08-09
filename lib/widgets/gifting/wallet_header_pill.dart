@@ -37,6 +37,13 @@ class _WalletHeaderPillState extends State<WalletHeaderPill> {
     if (now.difference(_lastPillClick) < _debounceDuration) return;
     _lastPillClick = now;
 
+    // Force sync authoritative balance from Supabase database upon pill click
+    try {
+      if (Get.isRegistered<StoreController>()) {
+        StoreController.to.syncWithDatabase(force: true);
+      }
+    } catch (_) {}
+
     if (widget.onPillPressed != null) {
       widget.onPillPressed!();
     } else {

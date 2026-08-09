@@ -375,13 +375,17 @@ class RazorpayBackendService extends GetxController {
       );
       _saveLocalDb();
 
-      // ── Tier 1: purchase_and_activate_rpc (migration 009) ────────────────
+      // ── Tier 1: purchase_and_activate_rpc ────────────────
       bool entitlementSuccess = false;
-      try {
-        String category = 'VIP';
-        if (old.product.contains('Novel')) category = 'Novel';
-        else if (old.product.contains('Coins')) category = 'Coins';
+      String category = 'VIP';
+      final prodUpper = old.product.toUpperCase();
+      if (prodUpper.contains('NOVEL')) {
+        category = 'Novel';
+      } else if (prodUpper.contains('COIN') || prodUpper.contains('PACK') || prodUpper.contains('RECHARGE')) {
+        category = 'Coins';
+      }
 
+      try {
         _log('Entitlement', 'Calling purchase_and_activate_rpc: ${old.product} / $category');
 
         final rpcResult = await Supabase.instance.client.rpc('purchase_and_activate_rpc', params: {
@@ -407,10 +411,6 @@ class RazorpayBackendService extends GetxController {
       // ── Tier 2: fallback to record_membership_purchase ───────────────────
       if (!entitlementSuccess) {
         try {
-          String category = 'VIP';
-          if (old.product.contains('Novel')) category = 'Novel';
-          else if (old.product.contains('Coins')) category = 'Coins';
-
           final daysMap = {
             '3 Days': 3, '7 Days': 7, '15 Days': 15,
             '30 Days': 30, '1 Month': 30, '90 Days': 90,
@@ -436,18 +436,29 @@ class RazorpayBackendService extends GetxController {
         }
       }
 
-      // ── Reload all state from DB after confirmed activation ───────────────
+      // ── Reload and credit local state after confirmed activation ───────────────
       final uid = Supabase.instance.client.auth.currentUser?.id ?? currentUid;
       await UserProfileCacheManager.fetchUserProfile(uid, forceRefresh: true);
       try {
-        if (old.product.contains('VIP')) {
-          await Get.find<VipController>().loadVipFromDatabase();
-        } else if (old.product.contains('Novel')) {
-          await Get.find<NovelController>().loadNovelFromDatabase();
-        } else if (old.product.contains('Coins')) {
-          try { await Get.find<StoreController>().syncWithDatabase(force: true); } catch (_) {}
+        if (category == 'VIP') {
+          final match = RegExp(r'(\d+)').firstMatch(old.product);
+          final lvl = match != null ? (int.tryParse(match.group(1)!) ?? 1) : 1;
+          await Get.find<VipController>().purchaseVip(lvl, old.duration, old.amount, paymentMethod: 'Razorpay Gateway', paymentId: paymentId);
+        } else if (category == 'Novel') {
+          final match = RegExp(r'(\d+)').firstMatch(old.product);
+          final lvl = match != null ? (int.tryParse(match.group(1)!) ?? 1) : 1;
+          await Get.find<NovelController>().purchaseNovel(lvl, old.duration, old.amount, paymentId: paymentId);
+        } else if (category == 'Coins') {
+          final storeCtrl = Get.find<StoreController>();
+          final packMatch = storeCtrl.coinPacks.firstWhereOrNull(
+            (p) => p.name.toUpperCase() == old.product.toUpperCase() || old.product.toUpperCase().contains(p.name.toUpperCase())
+          );
+          final totalCoins = packMatch != null ? (packMatch.coins + packMatch.bonusCoins) : (old.amount * 0.50).round();
+          await storeCtrl.rechargeGoldCoins(old.amount, paymentId: paymentId, totalCoins: totalCoins);
         }
-      } catch (_) {}
+      } catch (e) {
+        _log('Client State Sync Warning', 'Error updating local controller state after payment: $e');
+      }
 
       return {'success': true, 'error': null};
 

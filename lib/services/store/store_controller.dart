@@ -231,10 +231,18 @@ class StoreController extends GetxController with WidgetsBindingObserver {
 
   void _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    coinsBalance.value = prefs.getInt('store_coins_balance') ?? 0;
-    silverCoinsBalance.value = prefs.getInt('store_silver_balance') ?? 0;
-    diamondsBalance.value = prefs.getInt('store_diamonds_balance') ?? 0;
-    availableIncomeBalance.value = prefs.getDouble('store_income_balance') ?? 0.00;
+    if (prefs.containsKey('store_coins_balance')) {
+      coinsBalance.value = prefs.getInt('store_coins_balance') ?? coinsBalance.value;
+    }
+    if (prefs.containsKey('store_silver_balance')) {
+      silverCoinsBalance.value = prefs.getInt('store_silver_balance') ?? silverCoinsBalance.value;
+    }
+    if (prefs.containsKey('store_diamonds_balance')) {
+      diamondsBalance.value = prefs.getInt('store_diamonds_balance') ?? diamondsBalance.value;
+    }
+    if (prefs.containsKey('store_income_balance')) {
+      availableIncomeBalance.value = prefs.getDouble('store_income_balance') ?? availableIncomeBalance.value;
+    }
   }
 
   Future<void> _saveDataLocalOnly() async {
@@ -456,13 +464,52 @@ class StoreController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  // ₹100 = 50 Gold Coins
-  void rechargeGoldCoins(double inrAmount, String paymentId) async {
+  // ₹100 = 50 Gold Coins or specific Pack Coins
+  Future<void> rechargeGoldCoins(double inrAmount, {String? paymentId, int? totalCoins}) async {
     if (inrAmount <= 0) return;
-    int coinsAdded = (inrAmount * 0.50).round();
+    int coinsAdded = totalCoins ?? (inrAmount * 0.50).round();
+    if (coinsAdded <= 0) coinsAdded = (inrAmount * 0.50).round();
+
+    // 1. Instantly credit local GetX balance for responsive UI
+    coinsBalance.value += coinsAdded;
+    await _saveDataLocalOnly();
+
+    // 2. Authoritative backend wallet credit via purchase_and_activate_rpc
+    try {
+      final client = Supabase.instance.client;
+      final uid = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
+      if (uid.isNotEmpty) {
+        await client.rpc('purchase_and_activate_rpc', params: {
+          'p_user_id': uid,
+          'p_product_name': '$coinsAdded Coins Pack',
+          'p_category': 'Coins',
+          'p_amount': inrAmount,
+          'p_final_amount': inrAmount,
+          'p_payment_method': 'Razorpay Gateway',
+          'p_duration': 'One-Time',
+          if (paymentId != null) 'p_payment_id': paymentId,
+        });
+      }
+    } catch (e) {
+      debugPrint('[StoreController] rechargeGoldCoins RPC error: $e. Executing local wallet table fallback.');
+      try {
+        final client = Supabase.instance.client;
+        final uid = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
+        if (uid.isNotEmpty) {
+          final wallet = await client.from('wallets').select('coins_balance, gold_coins').eq('id', uid).maybeSingle();
+          final curCoins = (wallet?['coins_balance'] ?? wallet?['gold_coins'] ?? 0) as int;
+          await client.from('wallets').upsert({
+            'id': uid,
+            'coins_balance': curCoins + coinsAdded,
+            'gold_coins': curCoins + coinsAdded,
+          });
+        }
+      } catch (fallbackErr) {
+        debugPrint('[StoreController] Wallet upsert fallback error: $fallbackErr');
+      }
+    }
     
-    syncWithDatabase(force: true);
-    
+    // 3. Log history & coin ledger
     final orderId = 'RCG-${Random().nextInt(90000) + 10000}-PAY';
     orderHistory.insert(0, StoreOrderItem(
       orderId: orderId,
@@ -470,10 +517,10 @@ class StoreController extends GetxController with WidgetsBindingObserver {
       category: 'Coins',
       amount: inrAmount,
       discount: 0,
-      gst: 0,
+      gst: (inrAmount * 0.18 / 1.18),
       finalAmount: inrAmount,
       dateTime: DateTime.now(),
-      paymentMethod: 'UPI (Razorpay ID: $paymentId)',
+      paymentMethod: 'UPI (Razorpay ID: ${paymentId ?? "direct"})',
       status: 'Completed',
       duration: 'One-Time',
     ));
@@ -481,7 +528,7 @@ class StoreController extends GetxController with WidgetsBindingObserver {
     coinTransactions.insert(0, CoinTransaction(
       type: 'Purchased',
       amount: coinsAdded,
-      description: 'Recharged ₹${inrAmount.toStringAsFixed(2)}',
+      description: 'Recharged ₹${inrAmount.toStringAsFixed(2)} ($coinsAdded Coins)',
       dateTime: DateTime.now(),
     ));
 
@@ -494,13 +541,14 @@ class StoreController extends GetxController with WidgetsBindingObserver {
           'currency': 'INR',
           'type': 'Recharge',
           'status': 'Completed',
-          'reference_id': paymentId,
+          'reference_id': paymentId ?? orderId,
           'details': 'Recharged $coinsAdded Coins',
-        });
+        }).catchError((_) {});
       }
     } catch (_) {}
-    
-    _saveDataLocalOnly();
+
+    // 4. Server-authoritative balance sync
+    await syncWithDatabase(force: true);
   }
 
   // Place Order / Gold Coins Payments

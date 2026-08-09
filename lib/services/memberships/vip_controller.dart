@@ -544,7 +544,23 @@ class VipController extends GetxController {
       }
     }
 
-    // ── Backend confirmed: reload state from DB ──
+    // ── Derive display values and update local GetX reactive state ──
+    final confirmedLevel  = (rpcResult?['level'] as num?)?.toInt() ?? level;
+    final confirmedExpiryStr = rpcResult?['expiry']?.toString();
+    final confirmedFrame  = rpcResult?['frame_name']?.toString() ?? '';
+
+    vipLevel.value = confirmedLevel;
+    if (confirmedExpiryStr != null && DateTime.tryParse(confirmedExpiryStr) != null) {
+      expiryDate.value = DateTime.parse(confirmedExpiryStr);
+    }
+    if (confirmedFrame.isNotEmpty && confirmedFrame != 'Normal') {
+      activeFrame.value = confirmedFrame;
+    } else if (activeFrame.value == 'Normal' || activeFrame.value.isEmpty) {
+      activeFrame.value = _getFrameNameForLevel(confirmedLevel);
+    }
+    await _saveState(syncToRemote: false);
+
+    // ── Backend confirmed: reload state from DB in background ──
     try {
       await loadVipFromDatabase();
       final uid = Supabase.instance.client.auth.currentUser?.id;
@@ -556,13 +572,7 @@ class VipController extends GetxController {
       }
     } catch (_) {}
 
-    // ── Derive display values from confirmed RPC result ──
-    final confirmedLevel  = (rpcResult?['level']    as num?)?.toInt()  ?? level;
-    final confirmedExpiry = rpcResult?['expiry']?.toString();
-    final confirmedFrame  = rpcResult?['frame_name']?.toString() ?? '';
-    final totalDays = confirmedExpiry != null
-        ? DateTime.tryParse(confirmedExpiry)?.difference(now).inDays ?? 0
-        : (expiryDate.value != null ? expiryDate.value!.difference(now).inDays : 0);
+    final totalDays = expiryDate.value != null ? expiryDate.value!.difference(now).inDays : 0;
 
     // Transaction History Log
     final tx = {

@@ -625,7 +625,19 @@ class NovelController extends GetxController {
     }
 
 
-    // ── Backend confirmed: reload state from DB ──
+    // ── Derive display values and update local GetX reactive state ──
+    final confirmedLevel = (rpcResult?['level'] as num?)?.toInt() ?? targetLevel;
+    final confirmedExpiryStr = rpcResult?['expiry']?.toString();
+
+    novelLevel.value = confirmedLevel;
+    if (confirmedExpiryStr != null && DateTime.tryParse(confirmedExpiryStr) != null) {
+      expiryDate.value = DateTime.parse(confirmedExpiryStr);
+    }
+    activeNovelStyle.value = confirmedLevel;
+    if (!ownedNovels.contains(confirmedLevel)) ownedNovels.add(confirmedLevel);
+    await _saveState(syncToRemote: false);
+
+    // ── Backend confirmed: reload state from DB in background ──
     try {
       await loadNovelFromDatabase();
       final uid = Supabase.instance.client.auth.currentUser?.id;
@@ -637,16 +649,7 @@ class NovelController extends GetxController {
       }
     } catch (_) {}
 
-    // Update collector system from confirmed state
-    if (!ownedNovels.contains(targetLevel)) ownedNovels.add(targetLevel);
-    activeNovelStyle.value = targetLevel;
-
-    // Derive display values from confirmed result
-    final confirmedLevel = (rpcResult?['level'] as num?)?.toInt() ?? targetLevel;
-    final confirmedExpiry = rpcResult?['expiry']?.toString();
-    final totalDays = confirmedExpiry != null
-        ? DateTime.tryParse(confirmedExpiry)?.difference(now).inDays ?? 0
-        : (expiryDate.value != null ? expiryDate.value!.difference(now).inDays : 0);
+    final totalDays = expiryDate.value != null ? expiryDate.value!.difference(now).inDays : 0;
 
     // Transaction History Log
     final tx = {
