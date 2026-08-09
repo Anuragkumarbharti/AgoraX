@@ -50,61 +50,48 @@ class StageProgress {
 /// 9. Update Points & Total
 /// 10. Animation Complete
 class AnimationTimeline {
-  /// Returns Center Showcase duration (Stage 3 & 4 combined) based on Gift Tier
-  static Duration getShowcaseDuration(GiftTier tier) {
+  /// Returns total animation timeline duration matching exact tier timing rules:
+  /// Tier 1: 1.2s (1200ms)
+  /// Tier 2: 1.8s (1800ms)
+  /// Tier 3: 2.5s (2500ms)
+  /// Tier 4: 3.5s (3500ms)
+  /// Tier 5: 5.0s (5000ms)
+  static Duration getTotalDuration(GiftTier tier, {int targetCount = 1}) {
     switch (tier) {
       case GiftTier.tier1:
-        return const Duration(
-            milliseconds: 5500); // Tier 1: 5.5s minimum center showcase
+        return const Duration(milliseconds: 1200);
       case GiftTier.tier2:
-        return const Duration(
-            milliseconds: 7000); // Tier 2: 7.0s center showcase
+        return const Duration(milliseconds: 1800);
       case GiftTier.tier3:
-        return const Duration(
-            milliseconds: 8800); // Tier 3: 8.8s center showcase
+        return const Duration(milliseconds: 2500);
       case GiftTier.tier4:
-        return const Duration(
-            milliseconds: 10500); // Tier 4: 10.5s center showcase
+        return const Duration(milliseconds: 3500);
       case GiftTier.tier5:
-        return const Duration(
-            milliseconds: 12500); // Tier 5: 12.5s legendary showcase
+        return const Duration(milliseconds: 5000);
     }
   }
 
-  /// Calculates stage durations array for given Gift Tier & target count
+  /// Calculates stage durations array matching exact stage timeline flow
   static List<double> getStageWeights(GiftTier tier, {int targetCount = 1}) {
-    final showcaseMs = getShowcaseDuration(tier).inMilliseconds.toDouble();
+    final double totalMs = getTotalDuration(tier, targetCount: targetCount).inMilliseconds.toDouble();
 
-    // Base durations in ms:
-    // Stage 1: 200ms (Trigger)
-    // Stage 2: 300ms (Zoom Out)
-    // Stage 3: showcaseMs * 0.45 (Center Showcase Entry)
-    // Stage 4: showcaseMs * 0.55 (Mid Animation Effects)
-    // Stage 5: 300ms (Zoom In / Direction Align)
-    // Stage 6: 800ms (Move to Receiver Curved Path)
-    // Stage 7: 200ms (Reach Receiver & Bounce)
-    // Stage 8: 400ms (Impact Golden Halo Burst)
-    // Stage 9: 200ms (Update Points & Total)
-    // Stage 10: 200ms (Animation Complete Fade)
-    final double s1 = 200;
-    final double s2 = 300;
-    final double s3 = showcaseMs * 0.45;
-    final double s4 = showcaseMs * 0.55;
-    final double s5 = 300;
-    final double s6 = targetCount > 1 ? 1100 : 800;
-    final double s7 = 200;
-    final double s8 = 400;
-    final double s9 = 200;
-    final double s10 = 200;
-
-    return [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10];
-  }
-
-  /// Returns total animation timeline duration
-  static Duration getTotalDuration(GiftTier tier, {int targetCount = 1}) {
-    final weights = getStageWeights(tier, targetCount: targetCount);
-    final totalMs = weights.reduce((a, b) => a + b);
-    return Duration(milliseconds: totalMs.toInt());
+    switch (tier) {
+      case GiftTier.tier1:
+        // 0-150ms entry | 150-900ms main (750ms) | 900-1200ms exit (300ms)
+        return [75, 75, 375, 375, 50, 100, 50, 50, 25, 25];
+      case GiftTier.tier2:
+        // 0-200ms entry | 200-1400ms main (1200ms) | 1400-1800ms exit (400ms)
+        return [100, 100, 600, 600, 60, 140, 60, 60, 40, 40];
+      case GiftTier.tier3:
+        // 0-300ms entry | 300-2000ms main (1700ms) | 2000-2500ms exit (500ms)
+        return [150, 150, 850, 850, 80, 180, 80, 80, 40, 40];
+      case GiftTier.tier4:
+        // 0-400ms entry | 400-2900ms main (2500ms) | 2900-3500ms exit (600ms)
+        return [200, 200, 1250, 1250, 100, 200, 100, 100, 50, 50];
+      case GiftTier.tier5:
+        // 0-500ms entry | 500-4000ms main (3500ms) | 4000-5000ms exit (1000ms)
+        return [250, 250, 1750, 1750, 150, 350, 150, 150, 100, 100];
+    }
   }
 
   /// Calculates exact 10-Stage progress info for total progress value (0.0 to 1.0)

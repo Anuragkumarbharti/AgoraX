@@ -132,7 +132,8 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
 
     final matches = candidateMap.entries.where((e) {
       final uName = e.value.toLowerCase();
-      return _mentionQuery.isEmpty || uName.contains(_mentionQuery.toLowerCase());
+      return _mentionQuery.isEmpty ||
+          uName.contains(_mentionQuery.toLowerCase());
     }).toList();
 
     if (matches.isEmpty) return const SizedBox.shrink();
@@ -311,7 +312,8 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
               final tokens = AdaptiveSeatThemeEngine.resolve(bg,
                   isDarkMode: context.isDark);
 
-              final isMicActive = widget.isCurrentUserOnSeat && widget.isMicOn.value;
+              final isMicActive =
+                  widget.isCurrentUserOnSeat && widget.isMicOn.value;
 
               return Row(
                 children: [
@@ -399,15 +401,17 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                             duration: const Duration(milliseconds: 100),
                             transitionBuilder: (child, anim) => ScaleTransition(
                               scale: anim,
-                              child: FadeTransition(opacity: anim, child: child),
+                              child:
+                                  FadeTransition(opacity: anim, child: child),
                             ),
                             child: (isExpanded ||
                                     widget.chatInputController.text.isNotEmpty)
                                 ? GestureDetector(
                                     key: const ValueKey('send_btn'),
                                     onTap: () {
-                                      final text =
-                                          widget.chatInputController.text.trim();
+                                      final text = widget
+                                          .chatInputController.text
+                                          .trim();
                                       if (text.isNotEmpty) {
                                         controller.sendRoomBroadcastMessage(
                                             widget.roomId, text);
@@ -444,7 +448,8 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                       // 1. Up-Arrow Seat Application / Request Button (Circle)
                       GestureDetector(
                         onTap: () {
-                          Get.dialog(SeatApplicationsDialog(roomId: widget.roomId));
+                          Get.dialog(
+                              SeatApplicationsDialog(roomId: widget.roomId));
                         },
                         child: Container(
                           width: 38,
@@ -495,7 +500,9 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                             boxShadow: tokens.seatBoxShadows,
                           ),
                           child: Icon(
-                            isMicActive ? Icons.mic_rounded : Icons.mic_off_rounded,
+                            isMicActive
+                                ? Icons.mic_rounded
+                                : Icons.mic_off_rounded,
                             color: isMicActive
                                 ? Colors.greenAccent
                                 : Colors.redAccent,
@@ -512,7 +519,8 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                           clipBehavior: Clip.none,
                           children: [
                             GestureDetector(
-                              onTap: () => widget.onShowRoomOptionsMenuSheet(context),
+                              onTap: () =>
+                                  widget.onShowRoomOptionsMenuSheet(context),
                               child: Container(
                                 width: 38,
                                 height: 38,
@@ -583,7 +591,8 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFFF2D55).withOpacity(0.35),
+                                color:
+                                    const Color(0xFFFF2D55).withOpacity(0.35),
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               ),

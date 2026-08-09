@@ -390,17 +390,90 @@ class GiftMetadataRegistry {
     ),
   };
 
+  static final GiftAnimationMetadata genericGiftMetadata = const GiftAnimationMetadata(
+    giftId: 'f1000000-0000-0000-0000-000000000000',
+    giftName: 'Gift',
+    giftIcon: '🎁',
+    currency: 'gold',
+    price: 1,
+    tier: GiftTier.tier1,
+    flightPath: FlightPathType.bounce,
+    seatEffect: SeatEffectType.glow,
+    showcaseType: ShowcaseAnimationType.genericGlow,
+    chatEffect: ChatEffectType.sparkles,
+    screenCoverage: 0.25,
+    duration: Duration(milliseconds: 1800),
+    roomAnimation: 'generic.json',
+    chatAnimation: 'generic_chat.lottie',
+    themeColor: Colors.amber,
+  );
+
   static Map<String, GiftAnimationMetadata> get registry => _registry;
 
+  static String _normalize(String input) {
+    return input.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
   static GiftAnimationMetadata getMetadata(String giftIdOrName) {
+    if (giftIdOrName.isEmpty || giftIdOrName == 'gift_default' || giftIdOrName == 'gift') {
+      return genericGiftMetadata;
+    }
+
+    // 1. Direct UUID or key lookup
     if (_registry.containsKey(giftIdOrName)) {
       return _registry[giftIdOrName]!;
     }
 
-    final match = _registry.values.firstWhere(
-      (m) => m.giftName.toLowerCase() == giftIdOrName.toLowerCase(),
-      orElse: () => _registry.values.first,
-    );
-    return match;
+    final normalizedInput = _normalize(giftIdOrName);
+
+    // 2. Normalized Gift Name or ID match
+    for (final meta in _registry.values) {
+      if (_normalize(meta.giftId) == normalizedInput ||
+          _normalize(meta.giftName) == normalizedInput) {
+        return meta;
+      }
+    }
+
+    // 3. Known Aliases mapping
+    if (normalizedInput.contains('rose')) return _registry['f1000001-0000-0000-0000-000000000001']!;
+    if (normalizedInput.contains('heart') && !normalizedInput.contains('letter')) return _registry['f1000001-0000-0000-0000-000000000002']!;
+    if (normalizedInput.contains('coffee')) return _registry['f1000001-0000-0000-0000-000000000003']!;
+    if (normalizedInput.contains('sakura')) return _registry['f1000001-0000-0000-0000-000000000004']!;
+    if (normalizedInput.contains('star') && !normalizedInput.contains('lucky')) return _registry['f1000001-0000-0000-0000-000000000005']!;
+    if (normalizedInput.contains('luckystar')) return _registry['f1000001-0000-0000-0000-000000000005']!;
+    if (normalizedInput.contains('chocolate')) return _registry['f1000001-0000-0000-0000-000000000006']!;
+    if (normalizedInput.contains('balloon')) return _registry['f1000001-0000-0000-0000-000000000007']!;
+    if (normalizedInput.contains('birthday') || normalizedInput.contains('bday')) return _registry['f1000002-0000-0000-0000-000000000002']!;
+    if (normalizedInput.contains('cake')) return _registry['f1000001-0000-0000-0000-000000000008']!;
+    if (normalizedInput.contains('butterfly')) return _registry['f1000001-0000-0000-0000-000000000009']!;
+    if (normalizedInput.contains('letter') || normalizedInput.contains('loveletter')) return _registry['f1000001-0000-0000-0000-000000000010']!;
+    if (normalizedInput.contains('box') || normalizedInput.contains('giftbox')) return _registry['f1000001-0000-0000-0000-000000000011']!;
+    if (normalizedInput.contains('teddy')) return _registry['f1000001-0000-0000-0000-000000000012']!;
+    if (normalizedInput.contains('clover')) return _registry['f1000001-0000-0000-0000-000000000013']!;
+    if (normalizedInput.contains('moon')) return _registry['f1000001-0000-0000-0000-000000000014']!;
+    if (normalizedInput.contains('sun')) return _registry['f1000001-0000-0000-0000-000000000015']!;
+    if (normalizedInput.contains('bouquet')) return _registry['f1000002-0000-0000-0000-000000000001']!;
+    if (normalizedInput.contains('ring')) return _registry['f1000002-0000-0000-0000-000000000003']!;
+    if (normalizedInput.contains('crown')) return _registry['f1000002-0000-0000-0000-000000000004']!;
+    if (normalizedInput.contains('mic')) return _registry['f1000002-0000-0000-0000-000000000005']!;
+    if (normalizedInput.contains('trophy')) return _registry['f1000002-0000-0000-0000-000000000006']!;
+    if (normalizedInput.contains('diamond') && !normalizedInput.contains('ring')) return _registry['f1000002-0000-0000-0000-000000000007']!;
+    if (normalizedInput.contains('firework')) return _registry['f1000003-0000-0000-0000-000000000001']!;
+    if (normalizedInput.contains('car')) return _registry['f1000003-0000-0000-0000-000000000002']!;
+    if (normalizedInput.contains('rocket')) return _registry['f1000003-0000-0000-0000-000000000003']!;
+    if (normalizedInput.contains('jet') || normalizedInput.contains('plane')) return _registry['f1000003-0000-0000-0000-000000000004']!;
+    if (normalizedInput.contains('treasure') || normalizedInput.contains('chest')) return _registry['f1000003-0000-0000-0000-000000000005']!;
+    if (normalizedInput.contains('dragon')) return _registry['f1000004-0000-0000-0000-000000000001']!;
+    if (normalizedInput.contains('phoenix')) return _registry['f1000004-0000-0000-0000-000000000002']!;
+    if (normalizedInput.contains('galaxy') || normalizedInput.contains('portal')) return _registry['f1000004-0000-0000-0000-000000000003']!;
+    if (normalizedInput.contains('castle')) return _registry['f1000004-0000-0000-0000-000000000004']!;
+    if (normalizedInput.contains('emperor')) return _registry['f1000005-0000-0000-0000-000000000001']!;
+    if (normalizedInput.contains('planet')) return _registry['f1000005-0000-0000-0000-000000000002']!;
+    if (normalizedInput.contains('tree')) return _registry['f1000005-0000-0000-0000-000000000003']!;
+    if (normalizedInput.contains('cosmos')) return _registry['f1000005-0000-0000-0000-000000000004']!;
+
+    // 4. Fallback to generic metadata (NEVER Rose!)
+    debugPrint('[GiftMetadataRegistry] Warning: Could not find gift metadata for "$giftIdOrName". Using generic fallback.');
+    return genericGiftMetadata;
   }
 }

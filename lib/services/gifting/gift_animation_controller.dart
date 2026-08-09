@@ -80,16 +80,31 @@ class GiftAnimationController extends GetxController {
       _processedEventIds.remove(_processedEventIds.first);
     }
 
-    final String giftId =
-        payload['gift_id'] ?? payload['giftId'] ?? 'gift_default';
+    final String rawGiftId =
+        (payload['gift_id'] ?? payload['giftId'] ?? '').toString().trim();
+    final String rawGiftName =
+        (payload['gift_name'] ?? payload['giftName'] ?? payload['name'] ?? '').toString().trim();
+
+    final String lookupKey = (rawGiftId.isNotEmpty &&
+            rawGiftId != 'gift_default' &&
+            rawGiftId != 'gift')
+        ? rawGiftId
+        : (rawGiftName.isNotEmpty ? rawGiftName : 'Gift');
+
+    final meta = GiftMetadataRegistry.getMetadata(lookupKey);
+
+    final String giftId = (rawGiftId.isNotEmpty && rawGiftId != 'gift_default')
+        ? rawGiftId
+        : meta.giftId;
     final String giftName =
-        payload['gift_name'] ?? payload['giftName'] ?? 'Gift';
+        (rawGiftName.isNotEmpty && rawGiftName.toLowerCase() != 'gift')
+            ? rawGiftName
+            : meta.giftName;
+
     final String rawIcon = payload['gift_icon'] ??
         payload['giftIcon'] ??
         payload['icon'] ??
         '';
-    final meta = GiftMetadataRegistry.getMetadata(
-        giftId.isNotEmpty ? giftId : giftName);
     final String giftIcon = rawIcon.isNotEmpty ? rawIcon : meta.giftIcon;
 
     final String senderId = payload['sender_id'] ??

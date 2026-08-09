@@ -49,14 +49,21 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
         if (animId.isNotEmpty && _processedEventIds.contains(animId)) continue;
         if (animId.isNotEmpty) _processedEventIds.add(animId);
 
-        final sender = (newAnim['senderName'] ?? '').toString();
-        final gift = (newAnim['name'] ?? newAnim['giftId'] ?? '').toString();
+        final sender = _norm(newAnim['senderName']);
+        final giftId = _norm(newAnim['giftId']);
+        final giftName = _norm(newAnim['name']);
 
         final existingIndex = _currentAnims.indexWhere((p) {
-          final pSender = (p['senderName'] ?? '').toString();
-          final pGift = (p['name'] ?? p['giftId'] ?? '').toString();
+          final pSender = _norm(p['senderName']);
+          final pGiftId = _norm(p['giftId']);
+          final pGiftName = _norm(p['name']);
+
+          final isSenderMatch = pSender == sender;
+          final isGiftMatch = (pGiftId.isNotEmpty && pGiftId == giftId) ||
+              (pGiftName.isNotEmpty && pGiftName == giftName);
+
           final pTime = p['_addedAt'] as int? ?? now;
-          return pSender == sender && pGift == gift && (now - pTime).abs() < 3000;
+          return isSenderMatch && isGiftMatch && (now - pTime).abs() < 4000;
         });
 
         if (existingIndex != -1) {
@@ -90,6 +97,8 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
     });
   }
 
+  String _norm(dynamic val) => (val ?? '').toString().trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
   void _addEventFromPayload(GiftAnimationEventPayload evt) {
     if (_processedEventIds.contains(evt.id)) return;
     _processedEventIds.add(evt.id);
@@ -97,10 +106,19 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     final existingIndex = _currentAnims.indexWhere((p) {
-      final pSender = (p['senderName'] ?? '').toString();
-      final pGift = (p['name'] ?? p['giftId'] ?? '').toString();
+      final pSender = _norm(p['senderName']);
+      final pGiftId = _norm(p['giftId']);
+      final pGiftName = _norm(p['name']);
+      final evtSender = _norm(evt.senderName);
+      final evtGiftId = _norm(evt.giftId);
+      final evtGiftName = _norm(evt.giftName);
+
+      final isSenderMatch = pSender == evtSender;
+      final isGiftMatch = (pGiftId.isNotEmpty && pGiftId == evtGiftId) ||
+          (pGiftName.isNotEmpty && pGiftName == evtGiftName);
+
       final pTime = p['_addedAt'] as int? ?? now;
-      return pSender == evt.senderName && pGift == evt.giftName && (now - pTime).abs() < 3000;
+      return isSenderMatch && isGiftMatch && (now - pTime).abs() < 4000;
     });
 
     final roomId = RoomController.to.activeRoomId ?? '';
@@ -145,6 +163,7 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
         'icon': evt.giftIcon,
         'price': evt.price,
         'currency': evt.currency,
+        'tier': evt.tier.index + 1,
         'senderName': evt.senderName,
         'senderAvatar': evt.senderAvatar,
         'start': startPos,
@@ -155,6 +174,13 @@ class _GiftingAnimationOverlayState extends State<GiftingAnimationOverlay> {
         'targets': targets,
         'count': evt.count,
         '_addedAt': now,
+      });
+
+      // Sort current active animations by Tier ascending so higher-tier gifts draw on top
+      _currentAnims.sort((a, b) {
+        final tierA = (a['tier'] as int?) ?? 1;
+        final tierB = (b['tier'] as int?) ?? 1;
+        return tierA.compareTo(tierB);
       });
     });
   }

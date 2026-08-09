@@ -160,7 +160,12 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
     _firstFrameLogged = false;
     _hasTriggeredImpact = false;
     _isCompleted = false;
-    _metadata = GiftMetadataRegistry.getMetadata(event.giftId.isNotEmpty ? event.giftId : event.giftName);
+    final lookupKey = (event.giftId.isNotEmpty &&
+            event.giftId != 'gift_default' &&
+            event.giftId != 'gift')
+        ? event.giftId
+        : (event.giftName.isNotEmpty ? event.giftName : 'Gift');
+    _metadata = GiftMetadataRegistry.getMetadata(lookupKey);
 
     final targetCount = (event.targetOffsets != null && event.targetOffsets!.isNotEmpty)
         ? event.targetOffsets!.length
@@ -224,7 +229,10 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   Widget _buildGiftVisual({required double size, Color? themeColor}) {
     final meta = _metadata;
     final event = widget.event!;
-    final primaryAssetPath = meta?.resolvedGifAssetPath ?? 'assets/GIFTS_SHOWCCASE/${event.giftName.toUpperCase().replaceAll(' ', '_')}.gif';
+    final primaryAssetPath = meta?.resolvedGifAssetPath ??
+        'assets/GIFTS_SHOWCCASE/${event.giftName.toUpperCase().replaceAll(' ', '_')}.gif';
+
+    final effectiveColor = themeColor ?? meta?.themeColor ?? Colors.amber;
 
     return SizedBox(
       width: size,
@@ -235,30 +243,43 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
         height: size,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
-          // Secondary fallback to ROSE.gif if specific gift GIF is not added yet
-          return Image.asset(
-            'assets/GIFTS_SHOWCCASE/ROSE.gif',
-            width: size,
-            height: size,
-            fit: BoxFit.contain,
-            errorBuilder: (context, err, st) {
-              // Final fallback to high-res icon
-              return Center(
-                child: Text(
-                  event.giftIcon,
-                  style: TextStyle(
-                    fontSize: size * 0.65,
-                    shadows: [
-                      Shadow(
-                        color: (themeColor ?? Colors.amber).withOpacity(0.9),
-                        blurRadius: 24,
-                      ),
-                      const Shadow(color: Colors.black87, blurRadius: 14),
-                    ],
-                  ),
+          // Never fallback to Rose or another gift's GIF asset!
+          // Render the gift's OWN high-res icon with a glowing 3D theme-colored particle radial backdrop.
+          return Center(
+            child: Container(
+              width: size * 0.90,
+              height: size * 0.90,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    effectiveColor.withOpacity(0.35),
+                    effectiveColor.withOpacity(0.08),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.2, 0.6, 1.0],
                 ),
-              );
-            },
+              ),
+              child: Text(
+                event.giftIcon,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: size * 0.60,
+                  height: 1.0,
+                  shadows: [
+                    Shadow(
+                      color: effectiveColor.withOpacity(0.95),
+                      blurRadius: 28,
+                    ),
+                    Shadow(
+                      color: Colors.black.withOpacity(0.85),
+                      blurRadius: 16,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
         },
       ),
@@ -336,15 +357,16 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           }
 
           // ── ROOM MODE: Dynamic Tier Showcase Dimensions Matrix ──
+          // Tier 1 = 25% | Tier 2 = 40% | Tier 3 = 60% | Tier 4 = 80% | Tier 5 = 100%
           final double baseShowcaseSize = meta.tier == GiftTier.tier5
               ? media.width * 1.00 // Tier 5: 100% Full Screen
               : meta.tier == GiftTier.tier4
-                  ? media.width * 0.85 // Tier 4: 85% Screen Width
+                  ? media.width * 0.80 // Tier 4: 80% Screen Width
                   : meta.tier == GiftTier.tier3
-                      ? media.width * 0.65 // Tier 3: 65% Screen Width
+                      ? media.width * 0.60 // Tier 3: 60% Screen Width
                       : meta.tier == GiftTier.tier2
-                          ? media.width * 0.45 // Tier 2: 45% Screen Width
-                          : media.width * 0.25; // Tier 1: 25% (20% - 30%) Screen Width
+                          ? media.width * 0.40 // Tier 2: 40% Screen Width
+                          : media.width * 0.25; // Tier 1: 25% Screen Width
 
           // ── STAGE 1 & 2: Trigger from Seat -> Zoom Out from Seat ──
           if (currentStage == AnimationStage.stage1Trigger ||
@@ -371,6 +393,7 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                         showcaseType: meta.showcaseType,
                         themeColor: meta.themeColor,
                         stage: currentStage,
+                        showcaseSize: baseShowcaseSize,
                       ),
                     ),
                   ),
@@ -388,32 +411,7 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _buildGiftVisual(size: currentVisualSize * 0.70, themeColor: meta.themeColor),
-                              if (meta.tier != GiftTier.tier1 && meta.tier != GiftTier.tier2) ...[
-                                const SizedBox(height: 2),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.85),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: meta.themeColor, width: 1.2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: meta.themeColor.withOpacity(0.40),
-                                        blurRadius: 8,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    '${event.senderName} sent ${event.giftName} x${event.count} to ${event.receiverName}',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              _buildGiftVisual(size: currentVisualSize * 0.85, themeColor: meta.themeColor),
                             ],
                           ),
                         ),
@@ -428,20 +426,36 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           // ── STAGE 3 & 4: Center Screen Showcase & Mid Animation Effects ──
           if (currentStage == AnimationStage.stage3CenterShowcase ||
               currentStage == AnimationStage.stage4MidEffects) {
-            final floatY = sin(progress * pi * 4) * 14.0;
-            final rotationAngle = sin(progress * pi * 2) * 0.12;
+            final floatY = sin(progress * pi * 4) * 12.0;
+            final rotationAngle = sin(progress * pi * 2) * 0.08;
 
-            // Enlarge pulse for Center Showcase
-            final showcaseScale = meta.tier == GiftTier.tier2
-                ? 1.0 + sin(localP * pi) * 0.25 // Smooth pulse
-                : 1.0 + sin(localP * pi) * 0.10;
+            final showcaseScale = meta.tier == GiftTier.tier5
+                ? 1.0 + sin(localP * pi) * 0.05 // Smooth cinematic float
+                : meta.tier == GiftTier.tier4
+                    ? 1.0 + sin(localP * pi) * 0.10
+                    : 1.0 + sin(localP * pi) * 0.15;
+
+            // Tier-specific Quantity Text Styling Matrix
+            final double qtyFontSize = meta.tier == GiftTier.tier1 || meta.tier == GiftTier.tier2
+                ? 16.0
+                : meta.tier == GiftTier.tier3
+                    ? 18.0
+                    : meta.tier == GiftTier.tier4
+                        ? 20.0
+                        : 22.0;
 
             return IgnorePointer(
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // Fullscreen Cinematic Grand Entrance Atmosphere for Tier 4 & Tier 5
-                  if (meta.tier == GiftTier.tier4 || meta.tier == GiftTier.tier5)
+                  // Full-Screen Cinematic Overlay for Tier 5 (Temporarily hides room UI behind showcase)
+                  if (meta.tier == GiftTier.tier5)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.92),
+                      ),
+                    )
+                  else if (meta.tier == GiftTier.tier4)
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
@@ -449,14 +463,15 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                             center: Alignment.center,
                             radius: 1.0,
                             colors: [
-                              meta.themeColor.withOpacity(0.45),
-                              Colors.black.withOpacity(0.85),
+                              meta.themeColor.withOpacity(0.40),
+                              Colors.black.withOpacity(0.70),
                             ],
                           ),
                         ),
                       ),
                     ),
-                  // Atmospheric Smoke Clouds, Energy Particles, Fireworks & Radial Rays
+
+                  // Atmospheric Particles & Energy Effects
                   Positioned.fill(
                     child: CustomPaint(
                       painter: GiftParticlePainter(
@@ -466,15 +481,17 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                         showcaseType: meta.showcaseType,
                         themeColor: meta.themeColor,
                         stage: currentStage,
+                        showcaseSize: baseShowcaseSize,
                       ),
                     ),
                   ),
+
                   Positioned(
                     left: centerStage.dx - (baseShowcaseSize / 2),
-                    top: centerStage.dy - (baseShowcaseSize / 2) + floatY - 20,
+                    top: centerStage.dy - (baseShowcaseSize / 2) + floatY - 15,
                     child: SizedBox(
                       width: baseShowcaseSize,
-                      height: baseShowcaseSize * 1.8,
+                      height: baseShowcaseSize * 1.4,
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Transform.scale(
@@ -485,55 +502,57 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                               mainAxisSize: MainAxisSize.min,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // ⚡ Top Animated Showcase Combo Counter Badge (×1, ×2, ×3...)
-                                AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-                                  child: Container(
-                                    key: ValueKey('showcase_count_${event.count}'),
+                                // 🌟 Main Hero Gift Visual (Unclipped floating presentation)
+                                Stack(
+                                  alignment: Alignment.center,
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    _buildGiftVisual(
+                                      size: baseShowcaseSize * 0.85,
+                                      themeColor: meta.themeColor,
+                                    ),
+                                    // ⚡ Tier-based Small Quantity Indicator at Bottom Center of Gift
+                                    Positioned(
+                                      bottom: 4,
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 200),
+                                        transitionBuilder: (child, anim) =>
+                                            ScaleTransition(scale: anim, child: child),
+                                        child: Text(
+                                          '×${event.count}',
+                                          key: ValueKey('showcase_count_${event.count}'),
+                                          style: GoogleFonts.outfit(
+                                            color: Colors.white,
+                                            fontSize: qtyFontSize,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: -0.5,
+                                            shadows: [
+                                              Shadow(
+                                                color: Colors.black.withOpacity(0.95),
+                                                blurRadius: 10,
+                                              ),
+                                              Shadow(
+                                                color: meta.themeColor.withOpacity(0.90),
+                                                blurRadius: 6,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (meta.tier == GiftTier.tier4 || meta.tier == GiftTier.tier5) ...[
+                                  const SizedBox(height: 8),
+                                  Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFFF59E0B).withOpacity(0.6),
-                                          blurRadius: 12,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Text(
-                                      '×${event.count}',
-                                      style: GoogleFonts.outfit(
-                                        color: Colors.white,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                _buildGiftVisual(size: baseShowcaseSize * 0.60, themeColor: meta.themeColor),
-                                if (meta.tier != GiftTier.tier1 && meta.tier != GiftTier.tier2) ...[
-                                  const SizedBox(height: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.85),
+                                      color: Colors.black.withOpacity(0.80),
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: meta.themeColor, width: 1.5),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: meta.themeColor.withOpacity(0.50),
-                                          blurRadius: 12,
-                                        ),
-                                      ],
+                                      border: Border.all(color: meta.themeColor.withOpacity(0.8), width: 1.0),
                                     ),
                                     child: Text(
-                                      '${event.senderName} sent ${event.giftName} x${event.count} to ${event.receiverName}',
+                                      '${event.senderName} sent ${event.giftName} to ${event.receiverName}',
                                       style: GoogleFonts.poppins(
                                         color: Colors.white,
                                         fontSize: 11,
@@ -717,6 +736,7 @@ class GiftParticlePainter extends CustomPainter {
   final ShowcaseAnimationType showcaseType;
   final Color themeColor;
   final AnimationStage stage;
+  final double showcaseSize;
 
   GiftParticlePainter({
     required this.center,
@@ -725,6 +745,7 @@ class GiftParticlePainter extends CustomPainter {
     required this.showcaseType,
     required this.themeColor,
     required this.stage,
+    this.showcaseSize = 280.0,
   });
 
   @override
@@ -738,13 +759,13 @@ class GiftParticlePainter extends CustomPainter {
 
       for (int i = 0; i < 8; i++) {
         final angle = (i * (2 * pi / 8)) + (progress * pi);
-        final dist = 40.0 + sin(progress * pi * 3 + i) * 20.0;
+        final dist = (showcaseSize * 0.20) + sin(progress * pi * 3 + i) * 20.0;
         final cx = center.dx + cos(angle) * dist;
         final cy = center.dy + sin(angle) * dist;
 
         final smokeAlpha = (0.35 + 0.15 * sin(progress * pi * 4 + i)).clamp(0.0, 0.55);
 
-        final r1 = 45.0 + (i * 6.0);
+        final r1 = (showcaseSize * 0.22) + (i * 6.0);
         smokePaint.shader = RadialGradient(
           colors: [
             Colors.white.withOpacity(smokeAlpha * 0.45),
@@ -753,7 +774,7 @@ class GiftParticlePainter extends CustomPainter {
         ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r1));
         canvas.drawCircle(Offset(cx, cy), r1, smokePaint);
 
-        const r2 = 35.0;
+        final r2 = showcaseSize * 0.18;
         smokePaint.shader = RadialGradient(
           colors: [
             themeColor.withOpacity(smokeAlpha * 0.50),
@@ -768,19 +789,20 @@ class GiftParticlePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5;
 
+      final minRayLen = showcaseSize * 0.45;
       for (int r = 0; r < 12; r++) {
         final rayAngle = (r * (2 * pi / 12)) + (progress * pi * 2);
-        final rayLen = 90.0 + sin(progress * pi * 6 + r) * 30.0;
-        final rayStart = Offset(center.dx + cos(rayAngle) * 30, center.dy + sin(rayAngle) * 30);
+        final rayLen = minRayLen + sin(progress * pi * 6 + r) * 30.0;
+        final rayStart = Offset(center.dx + cos(rayAngle) * (showcaseSize * 0.15), center.dy + sin(rayAngle) * (showcaseSize * 0.15));
         final rayEnd = Offset(center.dx + cos(rayAngle) * rayLen, center.dy + sin(rayAngle) * rayLen);
 
-        final rayAlpha = (0.6 - (rayLen / 150.0)).clamp(0.1, 0.6);
+        final rayAlpha = (0.6 - (rayLen / (showcaseSize * 0.8))).clamp(0.1, 0.6);
         rayPaint.color = themeColor.withOpacity(rayAlpha);
         canvas.drawLine(rayStart, rayEnd, rayPaint);
       }
 
-      // 3. Central Glowing Aura Ring (GPU Shader Gradient)
-      final auraRadius = 70.0 + sin(progress * pi * 4) * 15.0;
+      // 3. Central Glowing Golden Aura Ring (GPU Shader Gradient)
+      final auraRadius = (showcaseSize * 0.42) + sin(progress * pi * 4) * 12.0;
       final auraPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4.0;

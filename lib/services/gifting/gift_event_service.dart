@@ -22,13 +22,26 @@ class GiftEventService extends GetxController {
 
   /// Normalizes incoming or outgoing gift event payload to ensure schema compatibility
   Map<String, dynamic> normalizePayload(Map<String, dynamic> raw) {
-    final String giftId =
-        (raw['giftId'] ?? raw['gift_id'] ?? 'gift_default').toString();
+    final String rawGiftId =
+        (raw['giftId'] ?? raw['gift_id'] ?? '').toString().trim();
+    final String rawGiftName =
+        (raw['giftName'] ?? raw['gift_name'] ?? raw['name'] ?? '').toString().trim();
+
+    final String lookupKey = (rawGiftId.isNotEmpty &&
+            rawGiftId != 'gift_default' &&
+            rawGiftId != 'gift')
+        ? rawGiftId
+        : (rawGiftName.isNotEmpty ? rawGiftName : 'Gift');
+
+    final meta = GiftMetadataRegistry.getMetadata(lookupKey);
+
+    final String giftId = (rawGiftId.isNotEmpty && rawGiftId != 'gift_default')
+        ? rawGiftId
+        : meta.giftId;
     final String giftName =
-        (raw['giftName'] ?? raw['gift_name'] ?? raw['name'] ?? 'Gift')
-            .toString();
-    final meta =
-        GiftMetadataRegistry.getMetadata(giftId.isNotEmpty ? giftId : giftName);
+        (rawGiftName.isNotEmpty && rawGiftName.toLowerCase() != 'gift')
+            ? rawGiftName
+            : meta.giftName;
 
     final String rawIcon =
         (raw['giftIcon'] ?? raw['gift_icon'] ?? raw['icon'] ?? '').toString();
@@ -230,7 +243,6 @@ class GiftEventService extends GetxController {
         }
 
         if (seats != null) {
-          final List<int> seatIndices = List<int>.from(normalized['receiverSeats'] ?? []);
           final List<String> receiverIds = List<String>.from(normalized['receiverIds'] ?? []);
           final Set<int> targetPositions = <int>{};
 
