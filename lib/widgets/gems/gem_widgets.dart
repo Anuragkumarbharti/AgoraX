@@ -63,12 +63,6 @@ class _GemIconState extends State<GemIcon> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final effectiveSize = widget.size ?? widget.presetSize.value;
-    final defaultColors = widget.gradientColors ??
-        const [
-          Color(0xFF00F2FE), // Vivid Cyan
-          Color(0xFF4FACFE), // Diamond Blue
-          Color(0xFF00C6FF), // Deep Blue Gem
-        ];
     final defaultGlow = widget.glowColor ?? const Color(0xFF00F2FE).withOpacity(0.45);
 
     Widget iconWidget = Text(

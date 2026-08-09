@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/gift/gift_animation_metadata.dart';
 import '../../services/gifting/gift_pipeline_manager.dart';
 import '../../services/gifting/animation_timeline.dart';
+import '../gems/gem_widgets.dart';
 
 class GiftRequestEvent {
   final String giftId;
@@ -631,7 +632,14 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
             if (widget.onImpact != null) widget.onImpact!();
           }
 
-          final pointsAdd = meta.tier == GiftTier.tier2 ? '+1000' : '+100';
+          final unitPrice = (widget.event?.price != null && widget.event!.price > 0)
+              ? widget.event!.price
+              : (meta.price > 0 ? meta.price : 10);
+          final giftCount = (widget.event?.count != null && widget.event!.count > 0)
+              ? widget.event!.count
+              : 1;
+          final totalGems = unitPrice * giftCount;
+          final pointsAdd = '+$totalGems';
 
           return IgnorePointer(
             child: Stack(
@@ -672,7 +680,7 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                               ),
                             ),
                           ),
-                          // Receiver Seat Impact Gift Absorption & Points Popup
+                          // Receiver Seat Impact Gift Absorption & Gems Badge Popup
                           Positioned(
                             left: targetPos.dx - 50,
                             top: targetPos.dy - 50,
@@ -686,9 +694,9 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                                   children: [
                                     _buildGiftVisual(size: 44, themeColor: meta.themeColor),
                                     const SizedBox(height: 2),
-                                    // +Points Badge Popup
+                                    // +Gems Badge Popup
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
                                           colors: [
@@ -701,13 +709,25 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                                           BoxShadow(color: Colors.black54, blurRadius: 4),
                                         ],
                                       ),
-                                      child: Text(
-                                        '🎁 $pointsAdd',
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          const GemIcon(
+                                            size: 12.5,
+                                            showGlow: false,
+                                            animated: false,
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            pointsAdd,
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.white,
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
