@@ -17,6 +17,10 @@ ADD COLUMN IF NOT EXISTS first_vip_purchase_completed boolean DEFAULT false,
 ADD COLUMN IF NOT EXISTS first_novel_purchase_completed boolean DEFAULT false,
 ADD COLUMN IF NOT EXISTS signup_reward_claimed boolean DEFAULT false;
 
+-- Drop legacy table constraints to allow Coins, Gold Coins, Signup Reward, etc.
+ALTER TABLE public.wallet_transactions DROP CONSTRAINT IF EXISTS wallet_transactions_type_check;
+ALTER TABLE public.wallet_transactions DROP CONSTRAINT IF EXISTS wallet_transactions_currency_check;
+
 -- 2. Store Configurations Table
 CREATE TABLE IF NOT EXISTS public.store_configurations (
   key text PRIMARY KEY,
@@ -28,13 +32,13 @@ CREATE TABLE IF NOT EXISTS public.store_configurations (
 INSERT INTO public.store_configurations (key, config, updated_at)
 VALUES
   ('recharge_packages', '[
-    {"id": "coins_99", "name": "Starter Pack", "price": 99, "base_coins": 49, "bonus_coins": 5, "tag": "Popular"},
-    {"id": "coins_199", "name": "Basic Pack", "price": 199, "base_coins": 99, "bonus_coins": 15, "tag": null},
-    {"id": "coins_499", "name": "Silver Pack", "price": 499, "base_coins": 249, "bonus_coins": 50, "tag": "Best Value"},
-    {"id": "coins_999", "name": "Gold Pack", "price": 999, "base_coins": 499, "bonus_coins": 125, "tag": "Popular"},
-    {"id": "coins_1999", "name": "Diamond Pack", "price": 1999, "base_coins": 999, "bonus_coins": 300, "tag": "Mega Bonus"},
-    {"id": "coins_4999", "name": "Elite Pack", "price": 4999, "base_coins": 2499, "bonus_coins": 1000, "tag": "Pro Choice"},
-    {"id": "coins_9999", "name": "Legend Pack", "price": 9999, "base_coins": 4999, "bonus_coins": 2500, "tag": "Crown Value"}
+    {"id": "coins_99", "name": "Starter Pack", "price": 99, "base_coins": 50, "bonus_coins": 5, "tag": "Popular"},
+    {"id": "coins_199", "name": "Basic Pack", "price": 199, "base_coins": 100, "bonus_coins": 15, "tag": null},
+    {"id": "coins_499", "name": "Silver Pack", "price": 499, "base_coins": 250, "bonus_coins": 50, "tag": "Best Value"},
+    {"id": "coins_999", "name": "Gold Pack", "price": 999, "base_coins": 500, "bonus_coins": 125, "tag": "Popular"},
+    {"id": "coins_1999", "name": "Diamond Pack", "price": 1999, "base_coins": 1000, "bonus_coins": 199, "tag": "Mega Bonus"},
+    {"id": "coins_4999", "name": "Elite Pack", "price": 4999, "base_coins": 2500, "bonus_coins": 399, "tag": "Pro Choice"},
+    {"id": "coins_9999", "name": "Legend Pack", "price": 9999, "base_coins": 5000, "bonus_coins": 599, "tag": "Crown Value"}
   ]'::jsonb, now()),
 
   ('first_purchase_config', '{
@@ -119,7 +123,7 @@ BEGIN
 
   -- Ledger Log
   INSERT INTO public.wallet_transactions (wallet_id, amount, currency, type, status, details)
-  VALUES (v_caller_id, v_reward_coins, 'Gold Coins', 'Signup Reward', 'Completed', 'First Account Creation Reward');
+  VALUES (v_caller_id, v_reward_coins, 'Coins', 'Reward', 'Completed', 'First Account Creation Reward');
 
   -- Mark claimed
   UPDATE public.profiles
@@ -206,16 +210,16 @@ BEGIN
 
   -- ── CATEGORY 1: COINS (RECHARGE) ──────────────────────────────────────────
   IF p_category = 'Coins' THEN
-    -- STRICT CONVERSION RULE: Base Coins = floor(p_final_amount / 2)
-    v_base_coins := FLOOR(p_final_amount / 2.0)::integer;
+    -- CONVERSION RULE: Base Coins = floor((p_final_amount + 1) / 2) for round values (50, 100, 250, 500, etc.)
+    v_base_coins := FLOOR((p_final_amount + 1.0) / 2.0)::integer;
     
     -- Recharge Package Bonus Coins (Tiered structure)
     IF p_final_amount >= 9999 THEN
-      v_recharge_bonus := 2500;
+      v_recharge_bonus := 599;
     ELSIF p_final_amount >= 4999 THEN
-      v_recharge_bonus := 1000;
+      v_recharge_bonus := 399;
     ELSIF p_final_amount >= 1999 THEN
-      v_recharge_bonus := 300;
+      v_recharge_bonus := 199;
     ELSIF p_final_amount >= 999 THEN
       v_recharge_bonus := 125;
     ELSIF p_final_amount >= 499 THEN

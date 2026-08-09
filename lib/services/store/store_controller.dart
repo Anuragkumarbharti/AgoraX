@@ -147,20 +147,27 @@ class StoreController extends GetxController with WidgetsBindingObserver {
   ];
 
   // Admin Configuration & Controls
+  final RxDouble priceModifier = 1.0.obs;
+  final RxBool isFlashSaleActive = false.obs;
+  final RxDouble flashSaleDiscount = 0.35.obs;
+  final RxList<String> disabledProducts = <String>[].obs;
+  final RxDouble totalRevenue = 0.0.obs;
+  final RxInt totalSalesCount = 0.obs;
+
   final RxBool firstPurchaseCompleted = false.obs;
   final RxBool firstVipPurchaseCompleted = false.obs;
   final RxBool firstNovelPurchaseCompleted = false.obs;
   final RxBool signupRewardClaimed = false.obs;
 
-  // Standard Coin Packs with ₹1 lower attractive pricing and strict floor(INR / 2) conversion
+  // Standard Coin Packs with ₹1 lower attractive pricing and full round coin values (50, 100, 250, 500, 1000, 2500, 5000)
   final List<CoinPack> coinPacks = [
-    CoinPack(id: 'coins_99', name: 'Starter Pack', coins: 49, bonusCoins: 5, price: 99, tag: 'Popular'),
-    CoinPack(id: 'coins_199', name: 'Basic Pack', coins: 99, bonusCoins: 15, price: 199),
-    CoinPack(id: 'coins_499', name: 'Silver Pack', coins: 249, bonusCoins: 50, price: 499, tag: 'Best Value'),
-    CoinPack(id: 'coins_999', name: 'Gold Pack', coins: 499, bonusCoins: 125, price: 999, tag: 'Popular'),
-    CoinPack(id: 'coins_1999', name: 'Diamond Pack', coins: 999, bonusCoins: 300, price: 1999, tag: 'Mega Bonus'),
-    CoinPack(id: 'coins_4999', name: 'Elite Pack', coins: 2499, bonusCoins: 1000, price: 4999, tag: 'Pro Choice'),
-    CoinPack(id: 'coins_9999', name: 'Legend Pack', coins: 4999, bonusCoins: 2500, price: 9999, tag: 'Crown Value', isSpecial: true),
+    CoinPack(id: 'coins_99', name: 'Starter Pack', coins: 50, bonusCoins: 5, price: 99, tag: 'Popular'),
+    CoinPack(id: 'coins_199', name: 'Basic Pack', coins: 100, bonusCoins: 15, price: 199),
+    CoinPack(id: 'coins_499', name: 'Silver Pack', coins: 250, bonusCoins: 50, price: 499, tag: 'Best Value'),
+    CoinPack(id: 'coins_999', name: 'Gold Pack', coins: 500, bonusCoins: 125, price: 999, tag: 'Popular'),
+    CoinPack(id: 'coins_1999', name: 'Diamond Pack', coins: 1000, bonusCoins: 199, price: 1999, tag: 'Mega Bonus'),
+    CoinPack(id: 'coins_4999', name: 'Elite Pack', coins: 2500, bonusCoins: 399, price: 4999, tag: 'Pro Choice'),
+    CoinPack(id: 'coins_9999', name: 'Legend Pack', coins: 5000, bonusCoins: 599, price: 9999, tag: 'Crown Value', isSpecial: true),
   ];
 
   @override
@@ -224,13 +231,13 @@ class StoreController extends GetxController with WidgetsBindingObserver {
 
       final walletData = await Supabase.instance.client
           .from('wallets')
-          .select('coins_balance, gold_coins, silver_coins_balance, silver_coins, withdrawable_balance')
+          .select('coins_balance, gold_coins, silver_coins, withdrawable_balance')
           .eq('id', canonicalId)
           .maybeSingle();
 
       if (walletData != null) {
         final int fetchedCoins = (walletData['coins_balance'] ?? walletData['gold_coins'] ?? 0) as int;
-        final int fetchedSilver = (walletData['silver_coins_balance'] ?? walletData['silver_coins'] ?? 0) as int;
+        final int fetchedSilver = (walletData['silver_coins'] ?? 0) as int;
         final double fetchedIncome = ((walletData['withdrawable_balance'] ?? 0.0) as num).toDouble();
 
         coinsBalance.value = fetchedCoins;

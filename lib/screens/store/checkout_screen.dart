@@ -598,10 +598,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: context.primaryColor,
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                     onPressed: () {
                       final ok = _storeCtrl.applyCoupon(_couponCtrl.text);
@@ -615,14 +616,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       } else {
                         Get.snackbar('Invalid Coupon ⚠️',
                             'Check the coupon code and try again.',
-                            backgroundColor: Color(0xFFEF4444).withOpacity(0.9),
+                            backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
                             colorText: Colors.white,
                             snackPosition: SnackPosition.BOTTOM);
                       }
                     },
                     child: Text('Apply',
                         style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold, fontSize: 12)),
+                            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ],
               ),
@@ -899,19 +900,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     bool anonymous,
     DateTime? date,
   ) {
+    final discount = basePrice * _storeCtrl.activeCouponDiscount.value;
+    final payAmount = basePrice - discount;
+
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: 52,
       child: ElevatedButton.icon(
-        icon: Icon(Icons.security_rounded, size: 18),
+        icon: const Icon(Icons.security_rounded, size: 18, color: Colors.white),
         style: ElevatedButton.styleFrom(
           backgroundColor: context.primaryColor,
+          foregroundColor: Colors.white,
+          elevation: 2,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         onPressed: () async {
-          final discount = basePrice * _storeCtrl.activeCouponDiscount.value;
-          final finalAmount = basePrice - discount;
+          final finalAmount = payAmount;
 
           if (_selectedPurchaseMethod == 'Gold') {
             int goldPrice = (finalAmount * 0.50).round();
@@ -1006,7 +1011,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               'Purchase Failed',
               'Purchase failed. Please try again.',
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Color(0xFFEF4444),
+              backgroundColor: const Color(0xFFEF4444),
               colorText: Colors.white,
             );
             return;
@@ -1050,7 +1055,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               'Purchase Failed',
               'Purchase failed. Please try again.',
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Color(0xFFEF4444),
+              backgroundColor: const Color(0xFFEF4444),
               colorText: Colors.white,
             );
           }
@@ -1058,8 +1063,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         label: Text(
           _selectedPurchaseMethod == 'Gold'
               ? 'PURCHASE WITH GOLD 🪙'
-              : 'SECURE CHECKOUT (INR) 🔒',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+              : 'PAY ₹${payAmount.toStringAsFixed(2)} NOW 🔒',
+          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
         ),
       ),
     );
