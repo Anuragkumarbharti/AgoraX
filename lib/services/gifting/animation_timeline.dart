@@ -50,47 +50,44 @@ class StageProgress {
 /// 9. Update Points & Total
 /// 10. Animation Complete
 class AnimationTimeline {
-  /// Returns total animation timeline duration matching exact tier timing rules:
-  /// Tier 1: 1.2s (1200ms)
-  /// Tier 2: 1.8s (1800ms)
-  /// Tier 3: 2.5s (2500ms)
-  /// Tier 4: 3.5s (3500ms)
-  /// Tier 5: 5.0s (5000ms)
+  /// 3-Part Modular 60 FPS Timeline Engine:
+  /// Part 1: COME (Seat ➔ Center Showcase) = Uniform 500ms (30 frames at 60 FPS across ALL Tiers)
+  /// Part 2: SHOWCASE (Center Screen Animation) = Tier-based (900ms, 1440ms, 2040ms, 3000ms, 4200ms)
+  /// Part 3: GO (Center Showcase ➔ Receiver Seat) = Uniform 600ms (36 frames at 60 FPS across ALL Tiers) + 150ms Impact Badge
   static Duration getTotalDuration(GiftTier tier, {int targetCount = 1}) {
     switch (tier) {
       case GiftTier.tier1:
-        return const Duration(milliseconds: 1200);
+        return const Duration(milliseconds: 2150);
       case GiftTier.tier2:
-        return const Duration(milliseconds: 1800);
+        return const Duration(milliseconds: 2690);
       case GiftTier.tier3:
-        return const Duration(milliseconds: 2500);
+        return const Duration(milliseconds: 3290);
       case GiftTier.tier4:
-        return const Duration(milliseconds: 3500);
+        return const Duration(milliseconds: 4250);
       case GiftTier.tier5:
-        return const Duration(milliseconds: 5000);
+        return const Duration(milliseconds: 5450);
     }
   }
 
-  /// Calculates stage durations array matching exact stage timeline flow
+  /// Calculates stage durations array for the 60 FPS 3-Part Pipeline:
+  /// Part 1 (COME: 500ms = 250+250) | Part 2 (SHOWCASE: Tier-based) | Part 3 (GO: 600ms = 150+330+120) | Impact: 150ms
   static List<double> getStageWeights(GiftTier tier, {int targetCount = 1}) {
-    final double totalMs = getTotalDuration(tier, targetCount: targetCount).inMilliseconds.toDouble();
-
     switch (tier) {
       case GiftTier.tier1:
-        // 0-150ms entry | 150-900ms main (750ms) | 900-1200ms exit (300ms)
-        return [75, 75, 375, 375, 50, 100, 50, 50, 25, 25];
+        // COME: 500ms (250, 250) | SHOWCASE: 900ms (450, 450) | GO: 600ms (150, 330, 120) | IMPACT: 150ms (75, 38, 37)
+        return [250, 250, 450, 450, 150, 330, 120, 75, 38, 37];
       case GiftTier.tier2:
-        // 0-200ms entry | 200-1400ms main (1200ms) | 1400-1800ms exit (400ms)
-        return [100, 100, 600, 600, 60, 140, 60, 60, 40, 40];
+        // COME: 500ms (250, 250) | SHOWCASE: 1440ms (720, 720) | GO: 600ms (150, 330, 120) | IMPACT: 150ms (75, 38, 37)
+        return [250, 250, 720, 720, 150, 330, 120, 75, 38, 37];
       case GiftTier.tier3:
-        // 0-300ms entry | 300-2000ms main (1700ms) | 2000-2500ms exit (500ms)
-        return [150, 150, 850, 850, 80, 180, 80, 80, 40, 40];
+        // COME: 500ms (250, 250) | SHOWCASE: 2040ms (1020, 1020) | GO: 600ms (150, 330, 120) | IMPACT: 150ms (75, 38, 37)
+        return [250, 250, 1020, 1020, 150, 330, 120, 75, 38, 37];
       case GiftTier.tier4:
-        // 0-400ms entry | 400-2900ms main (2500ms) | 2900-3500ms exit (600ms)
-        return [200, 200, 1250, 1250, 100, 200, 100, 100, 50, 50];
+        // COME: 500ms (250, 250) | SHOWCASE: 3000ms (1500, 1500) | GO: 600ms (150, 330, 120) | IMPACT: 150ms (75, 38, 37)
+        return [250, 250, 1500, 1500, 150, 330, 120, 75, 38, 37];
       case GiftTier.tier5:
-        // 0-500ms entry | 500-4000ms main (3500ms) | 4000-5000ms exit (1000ms)
-        return [250, 250, 1750, 1750, 150, 350, 150, 150, 100, 100];
+        // COME: 500ms (250, 250) | SHOWCASE: 4200ms (2100, 2100) | GO: 600ms (150, 330, 120) | IMPACT: 150ms (75, 38, 37)
+        return [250, 250, 2100, 2100, 150, 330, 120, 75, 38, 37];
     }
   }
 
