@@ -1,9 +1,12 @@
 // lib/widgets/gifting/creania_gift_animation_engine.dart
 
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/gift/gift_animation_metadata.dart';
+import '../../services/gifting/gift_animation_controller.dart';
 import '../../services/gifting/gift_pipeline_manager.dart';
 import '../../services/gifting/animation_timeline.dart';
 import '../gems/gem_widgets.dart';
@@ -72,15 +75,23 @@ class CreaniaGiftAnimationEngine extends StatefulWidget {
   final VoidCallback? onCompleted;
   final VoidCallback? onImpact;
 
+  /// StarMaker-style live combo counter notifier.
+  /// When this bumps (×1→×2→×3), the showcase counter updates in-place
+  /// with a bounce animation — NO animation restart.
+  /// If null, falls back to event.count (static display).
+  final ValueNotifier<int>? comboCountNotifier;
+
   const CreaniaGiftAnimationEngine({
     Key? key,
     this.event,
     this.onCompleted,
     this.onImpact,
+    this.comboCountNotifier,
   }) : super(key: key);
 
   @override
-  State<CreaniaGiftAnimationEngine> createState() => _CreaniaGiftAnimationEngineState();
+  State<CreaniaGiftAnimationEngine> createState() =>
+      _CreaniaGiftAnimationEngineState();
 }
 
 class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
@@ -95,6 +106,30 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
   // causing a single-frame blank render that Flutter interprets as animation end.
   bool _hasStarted = false;
   bool _isCompleted = false;
+
+  // ── StarMaker Combo Counter ────────────────────────────────────────────────
+  /// Current display count for the ×N badge in Stage 3/4 showcase.
+  /// Updated reactively via comboCountNotifier without restarting animation.
+  int _comboCount = 1;
+
+  // ── Showcase Hold & Accumulate ────────────────────────────────────────────
+  /// Grace timer: waits 800ms after the last gift merge before resuming.
+  /// Reset on every new gift. Fires → controller.forward() to continue Stage 5+.
+  Timer? _comboGraceTimer;
+
+  /// Returns true if the animation is currently frozen in Stage 3 or Stage 4
+  /// (center showcase). Used to decide whether to pause on a new gift.
+  bool _isCurrentlyInShowcase() {
+    if (_metadata == null || _isCompleted) return false;
+    final targets = widget.event?.targetOffsets ?? [];
+    final info = AnimationTimeline.getTenStageInfo(
+      _controller.value,
+      _metadata!.tier,
+      targetCount: targets.isEmpty ? 1 : targets.length,
+    );
+    return info.stage == AnimationStage.stage3CenterShowcase ||
+        info.stage == AnimationStage.stage4MidEffects;
+  }
 
   // ── Diagnostic timing fields (remove after root cause is confirmed) ──
   int _forwardCallCount = 0;
@@ -111,6 +146,16 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
       duration: const Duration(seconds: 5),
     );
 
+    // ── StarMaker Combo Counter listener ─────────────────────────────────
+    // Initialize from the notifier's current value (may already be >1 if
+    // the same gift was sent in quick succession before widget was built).
+    if (widget.comboCountNotifier != null) {
+      _comboCount = widget.comboCountNotifier!.value;
+      widget.comboCountNotifier!.addListener(_onComboCountChanged);
+    } else {
+      _comboCount = widget.event?.count ?? 1;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       debugPrint('[GIFT] FIRST FRAME | gift=${widget.event?.giftName}');
     });
@@ -126,12 +171,17 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
         debugPrint('╔══════════════════════════════════════════════════════╗');
         debugPrint('[GIFT_TIMING] EFFECT END TIMESTAMP   : $endMs ms');
         debugPrint('[GIFT_TIMING] CONFIGURED DURATION    : ${configuredMs}ms');
-        debugPrint('[GIFT_TIMING] TOTAL ACTUAL PLAYBACK  : ${totalPlaybackMs}ms');
-        debugPrint('[GIFT_TIMING] SPEED RATIO            : ${speedRatio}x (1.0 = correct)');
-        debugPrint('[GIFT_TIMING] FINAL CONTROLLER VALUE : ${_controller.value}');
-        debugPrint('[GIFT_TIMING] FINAL STATUS           : ${_controller.status}');
+        debugPrint(
+            '[GIFT_TIMING] TOTAL ACTUAL PLAYBACK  : ${totalPlaybackMs}ms');
+        debugPrint(
+            '[GIFT_TIMING] SPEED RATIO            : ${speedRatio}x (1.0 = correct)');
+        debugPrint(
+            '[GIFT_TIMING] FINAL CONTROLLER VALUE : ${_controller.value}');
+        debugPrint(
+            '[GIFT_TIMING] FINAL STATUS           : ${_controller.status}');
         debugPrint('[GIFT_TIMING] FORWARD CALLS TOTAL    : $_forwardCallCount');
-        debugPrint('[GIFT_TIMING] GIFT                   : ${widget.event?.giftName}');
+        debugPrint(
+            '[GIFT_TIMING] GIFT                   : ${widget.event?.giftName}');
         debugPrint('╚══════════════════════════════════════════════════════╝');
         _isCompleted = true;
         if (mounted && widget.onCompleted != null) widget.onCompleted!();
@@ -149,7 +199,8 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
     super.didUpdateWidget(oldWidget);
     if (widget.event != null && oldWidget.event != null) {
       if (widget.event != oldWidget.event) {
-        debugPrint('[GIFT] WIDGET REBUILD (Updated Payload) | gift=${widget.event?.giftName}');
+        debugPrint(
+            '[GIFT] WIDGET REBUILD (Updated Payload) | gift=${widget.event?.giftName}');
         _startAnimation(widget.event!);
       }
     }
@@ -168,31 +219,40 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
         : (event.giftName.isNotEmpty ? event.giftName : 'Gift');
     _metadata = GiftMetadataRegistry.getMetadata(lookupKey);
 
-    final targetCount = (event.targetOffsets != null && event.targetOffsets!.isNotEmpty)
-        ? event.targetOffsets!.length
-        : 1;
+    final targetCount =
+        (event.targetOffsets != null && event.targetOffsets!.isNotEmpty)
+            ? event.targetOffsets!.length
+            : 1;
 
-    final duration = AnimationTimeline.getTotalDuration(_metadata!.tier, targetCount: targetCount);
+    final duration = AnimationTimeline.getTotalDuration(_metadata!.tier,
+        targetCount: targetCount);
 
     debugPrint('╔══════════════════════════════════════════════════════╗');
     debugPrint('[GIFT_TIMING] EFFECT START TIMESTAMP : $_startTimestampMs ms');
-    debugPrint('[GIFT_TIMING] CONFIGURED DURATION    : ${duration.inMilliseconds}ms');
-    debugPrint('[GIFT_TIMING] CTRL DURATION BEFORE   : ${_controller.duration?.inMilliseconds}ms');
+    debugPrint(
+        '[GIFT_TIMING] CONFIGURED DURATION    : ${duration.inMilliseconds}ms');
+    debugPrint(
+        '[GIFT_TIMING] CTRL DURATION BEFORE   : ${_controller.duration?.inMilliseconds}ms');
     debugPrint('[GIFT_TIMING] CTRL VALUE BEFORE RESET: ${_controller.value}');
     debugPrint('[GIFT_TIMING] CTRL STATUS BEFORE     : ${_controller.status}');
-    debugPrint('[GIFT_TIMING] FORWARD CALL COUNT     : $_forwardCallCount (should be 1)');
-    debugPrint('[GIFT_TIMING] GIFT                   : ${event.giftName} | tier: ${_metadata?.tier}');
+    debugPrint(
+        '[GIFT_TIMING] FORWARD CALL COUNT     : $_forwardCallCount (should be 1)');
+    debugPrint(
+        '[GIFT_TIMING] GIFT                   : ${event.giftName} | tier: ${_metadata?.tier}');
 
     _controller.duration = duration;
-    debugPrint('[GIFT_TIMING] CTRL DURATION AFTER SET: ${_controller.duration?.inMilliseconds}ms');
+    debugPrint(
+        '[GIFT_TIMING] CTRL DURATION AFTER SET: ${_controller.duration?.inMilliseconds}ms');
 
     _initParticles();
     // Mark started BEFORE reset+forward so no parent rebuild can blank us mid-transition.
     _hasStarted = true;
     _controller.reset();
-    debugPrint('[GIFT_TIMING] VALUE AFTER RESET       : ${_controller.value} | status: ${_controller.status}');
+    debugPrint(
+        '[GIFT_TIMING] VALUE AFTER RESET       : ${_controller.value} | status: ${_controller.status}');
     _controller.forward();
-    debugPrint('[GIFT_TIMING] VALUE AFTER FORWARD     : ${_controller.value} | status: ${_controller.status} | isAnimating: ${_controller.isAnimating}');
+    debugPrint(
+        '[GIFT_TIMING] VALUE AFTER FORWARD     : ${_controller.value} | status: ${_controller.status} | isAnimating: ${_controller.isAnimating}');
     debugPrint('╚══════════════════════════════════════════════════════╝');
   }
 
@@ -217,11 +277,67 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
     }
   }
 
+  /// Called when the external combo notifier increments (StarMaker merge).
+  ///
+  /// Showcase Hold & Accumulate logic:
+  ///   1. Update ×N counter display (setState)
+  ///   2. If currently in Stage 3/4 → PAUSE animation (controller.stop())
+  ///   3. Cancel any previous grace timer, start fresh 800ms timer
+  ///   4. If 800ms expires with no new gift → RESUME (controller.forward())
+  ///   5. If another gift arrives before 800ms → reset timer (keep paused)
+  ///
+  /// NOTE: All state mutations are deferred via addPostFrameCallback to avoid
+  /// the "setState() called during build" crash that occurs when the
+  /// ValueNotifier fires while an Obx ancestor is mid-rebuild.
+  void _onComboCountChanged() {
+    if (!mounted) return;
+    // Snapshot the new count before the async gap
+    final newCount = widget.comboCountNotifier!.value;
+
+    // Defer to post-frame so we're never inside a build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isCompleted) return;
+
+      setState(() {
+        _comboCount = newCount;
+      });
+
+      if (_isCurrentlyInShowcase()) {
+        // ── PAUSE at current showcase frame ──
+        _controller.stop();
+        debugPrint(
+          '[GiftCombo] SHOWCASE PAUSED at ×$_comboCount — waiting for more gifts…',
+        );
+
+        // ── Reset 800ms grace timer ──
+        _comboGraceTimer?.cancel();
+        _comboGraceTimer = Timer(const Duration(milliseconds: 800), () {
+          if (!mounted || _isCompleted) return;
+          debugPrint(
+            '[GiftCombo] Grace window expired (800ms) → RESUMING animation (×$_comboCount final)',
+          );
+          // Resume from wherever we paused — plays Stage 5-10 naturally
+          _controller.forward();
+        });
+      } else {
+        debugPrint(
+          '[GiftCombo] Counter bumped to ×$_comboCount (not in showcase, no pause)',
+        );
+      }
+    });
+  }
+
+
   @override
   void dispose() {
+    // Cancel grace timer so it can't fire after widget is destroyed
+    _comboGraceTimer?.cancel();
+    _comboGraceTimer = null;
+    widget.comboCountNotifier?.removeListener(_onComboCountChanged);
     final progress = (_controller.value * 100).toStringAsFixed(1);
     debugPrint('[GIFT] WIDGET DISPOSE | gift=${widget.event?.giftName}');
-    debugPrint('[GIFT] CONTROLLER DISPOSE | gift=${widget.event?.giftName} | Progress: $progress%');
+    debugPrint(
+        '[GIFT] CONTROLLER DISPOSE | gift=${widget.event?.giftName} | Progress: $progress%');
     _controller.dispose();
     ParticlePoolManager().releaseAll();
     super.dispose();
@@ -301,9 +417,10 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
         ? event.startOffset
         : Offset(media.width * 0.20, media.height * 0.75);
     final centerStage = Offset(media.width / 2, media.height * 0.40);
-    final rawTargets = (event.targetOffsets != null && event.targetOffsets!.isNotEmpty)
-        ? event.targetOffsets!
-        : [event.targetOffset];
+    final rawTargets =
+        (event.targetOffsets != null && event.targetOffsets!.isNotEmpty)
+            ? event.targetOffsets!
+            : [event.targetOffset];
 
     // Fallback off-seat / unseated targets to top of screen exit Offset(width/2, -100)
     final targets = rawTargets.map((t) {
@@ -326,21 +443,28 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           if (!_firstFrameLogged) {
             _firstFrameLogged = true;
             _firstFrameTimestampMs = DateTime.now().millisecondsSinceEpoch;
-            final elapsedSinceStart = _firstFrameTimestampMs! - (_startTimestampMs ?? _firstFrameTimestampMs!);
-            debugPrint('[GIFT_TIMING] FIRST FRAME TIMESTAMP  : $_firstFrameTimestampMs ms');
-            debugPrint('[GIFT_TIMING] ELAPSED SINCE START     : ${elapsedSinceStart}ms');
-            debugPrint('[GIFT_TIMING] CTRL VALUE AT 1ST FRAME : ${_controller.value}');
-            debugPrint('[GIFT_TIMING] CTRL STATUS AT 1ST FRAME: ${_controller.status}');
+            final elapsedSinceStart = _firstFrameTimestampMs! -
+                (_startTimestampMs ?? _firstFrameTimestampMs!);
+            debugPrint(
+                '[GIFT_TIMING] FIRST FRAME TIMESTAMP  : $_firstFrameTimestampMs ms');
+            debugPrint(
+                '[GIFT_TIMING] ELAPSED SINCE START     : ${elapsedSinceStart}ms');
+            debugPrint(
+                '[GIFT_TIMING] CTRL VALUE AT 1ST FRAME : ${_controller.value}');
+            debugPrint(
+                '[GIFT_TIMING] CTRL STATUS AT 1ST FRAME: ${_controller.status}');
           }
 
           final progress = _controller.value;
-          final tenInfo = AnimationTimeline.getTenStageInfo(progress, meta.tier, targetCount: targets.length);
+          final tenInfo = AnimationTimeline.getTenStageInfo(progress, meta.tier,
+              targetCount: targets.length);
           final currentStage = tenInfo.stage;
           final localP = tenInfo.localProgress;
 
           // ── CHAT MODE ──
           if (event.mode == GiftAnimationMode.chat) {
-            final pos = Offset.lerp(startPos, event.targetOffset, Curves.easeOut.transform(progress))!;
+            final pos = Offset.lerp(startPos, event.targetOffset,
+                Curves.easeOut.transform(progress))!;
             return IgnorePointer(
               child: Stack(
                 children: [
@@ -349,7 +473,8 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                     top: pos.dy - 20,
                     child: Transform.scale(
                       scale: 0.8 + sin(progress * pi) * 0.5,
-                      child: Text(event.giftIcon, style: const TextStyle(fontSize: 32)),
+                      child: Text(event.giftIcon,
+                          style: const TextStyle(fontSize: 32)),
                     ),
                   ),
                 ],
@@ -372,13 +497,19 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           // ── STAGE 1 & 2: Trigger from Seat -> Zoom Out from Seat ──
           if (currentStage == AnimationStage.stage1Trigger ||
               currentStage == AnimationStage.stage2ZoomOut) {
+            // Gate: showcase NOT visible yet — close merge window
+            if (Get.isRegistered<GiftAnimationController>()) {
+              GiftAnimationController.to.setShowcasePhase(false);
+            }
+
             final isTrigger = currentStage == AnimationStage.stage1Trigger;
             final p = isTrigger ? localP * 0.5 : 0.5 + (localP * 0.5);
             final easeP = Curves.easeOutBack.transform(p);
             final currentPos = Offset.lerp(startPos, centerStage, easeP)!;
 
             // Start size equals mic seat size (60px) -> scales up to baseShowcaseSize
-            final currentVisualSize = 60.0 + (easeP * (baseShowcaseSize - 60.0));
+            final currentVisualSize =
+                60.0 + (easeP * (baseShowcaseSize - 60.0));
             final opacity = (p * 2.5).clamp(0.0, 1.0);
 
             return IgnorePointer(
@@ -412,7 +543,9 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _buildGiftVisual(size: currentVisualSize * 0.85, themeColor: meta.themeColor),
+                              _buildGiftVisual(
+                                  size: currentVisualSize * 0.85,
+                                  themeColor: meta.themeColor),
                             ],
                           ),
                         ),
@@ -427,6 +560,11 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           // ── STAGE 3 & 4: Center Screen Showcase & Mid Animation Effects ──
           if (currentStage == AnimationStage.stage3CenterShowcase ||
               currentStage == AnimationStage.stage4MidEffects) {
+            // Gate: showcase IS visible — open merge window
+            if (Get.isRegistered<GiftAnimationController>()) {
+              GiftAnimationController.to.setShowcasePhase(true);
+            }
+
             final floatY = sin(progress * pi * 4) * 12.0;
             final rotationAngle = sin(progress * pi * 2) * 0.08;
 
@@ -437,13 +575,14 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                     : 1.0 + sin(localP * pi) * 0.15;
 
             // Tier-specific Quantity Text Styling Matrix
-            final double qtyFontSize = meta.tier == GiftTier.tier1 || meta.tier == GiftTier.tier2
-                ? 16.0
-                : meta.tier == GiftTier.tier3
-                    ? 18.0
-                    : meta.tier == GiftTier.tier4
-                        ? 20.0
-                        : 22.0;
+            final double qtyFontSize =
+                meta.tier == GiftTier.tier1 || meta.tier == GiftTier.tier2
+                    ? 16.0
+                    : meta.tier == GiftTier.tier3
+                        ? 18.0
+                        : meta.tier == GiftTier.tier4
+                            ? 20.0
+                            : 22.0;
 
             return IgnorePointer(
               child: Stack(
@@ -512,16 +651,26 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                                       size: baseShowcaseSize * 0.85,
                                       themeColor: meta.themeColor,
                                     ),
-                                    // ⚡ Tier-based Small Quantity Indicator at Bottom Center of Gift
+                                    // ⚡ StarMaker Combo Counter — bumps ×1→×2→×3 in-place
                                     Positioned(
                                       bottom: 4,
                                       child: AnimatedSwitcher(
-                                        duration: const Duration(milliseconds: 200),
+                                        duration:
+                                            const Duration(milliseconds: 200),
                                         transitionBuilder: (child, anim) =>
-                                            ScaleTransition(scale: anim, child: child),
+                                            ScaleTransition(
+                                                scale: CurvedAnimation(
+                                                  parent: anim,
+                                                  curve: Curves.elasticOut,
+                                                ),
+                                                child: child),
+                                        // _comboCount is updated via setState()
+                                        // from _onComboCountChanged() listener.
+                                        // ValueKey triggers bounce on increment.
                                         child: Text(
-                                          '×${event.count}',
-                                          key: ValueKey('showcase_count_${event.count}'),
+                                          '×$_comboCount',
+                                          key: ValueKey(
+                                              'showcase_count_$_comboCount'),
                                           style: GoogleFonts.outfit(
                                             color: Colors.white,
                                             fontSize: qtyFontSize,
@@ -529,11 +678,13 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                                             letterSpacing: -0.5,
                                             shadows: [
                                               Shadow(
-                                                color: Colors.black.withOpacity(0.95),
+                                                color: Colors.black
+                                                    .withOpacity(0.95),
                                                 blurRadius: 10,
                                               ),
                                               Shadow(
-                                                color: meta.themeColor.withOpacity(0.90),
+                                                color: meta.themeColor
+                                                    .withOpacity(0.90),
                                                 blurRadius: 6,
                                               ),
                                             ],
@@ -543,14 +694,19 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                                     ),
                                   ],
                                 ),
-                                if (meta.tier == GiftTier.tier4 || meta.tier == GiftTier.tier5) ...[
+                                if (meta.tier == GiftTier.tier4 ||
+                                    meta.tier == GiftTier.tier5) ...[
                                   const SizedBox(height: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: Colors.black.withOpacity(0.80),
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: meta.themeColor.withOpacity(0.8), width: 1.0),
+                                      border: Border.all(
+                                          color:
+                                              meta.themeColor.withOpacity(0.8),
+                                          width: 1.0),
                                     ),
                                     child: Text(
                                       '${event.senderName} sent ${event.giftName} to ${event.receiverName}',
@@ -577,6 +733,11 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           // ── STAGE 5 & 6: Split & Move to Receiver Seats (Shrinking to Mic Seat Size) ──
           if (currentStage == AnimationStage.stage5ZoomIn ||
               currentStage == AnimationStage.stage6MoveToReceiver) {
+            // Gate: showcase done — close merge window
+            if (Get.isRegistered<GiftAnimationController>()) {
+              GiftAnimationController.to.setShowcasePhase(false);
+            }
+
             final isZoomIn = currentStage == AnimationStage.stage5ZoomIn;
             final moveP = isZoomIn ? 0.0 : Curves.easeInCubic.transform(localP);
 
@@ -589,13 +750,17 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                       builder: (context) {
                         final targetPos = targets[i];
                         // Quadratic Bezier curve calculation: Control point offset gives smooth natural curve
-                        final curveOffset = Offset(sin(moveP * pi) * 60, -sin(moveP * pi) * 80);
-                        final linearPos = Offset.lerp(centerStage, targetPos, moveP)!;
+                        final curveOffset =
+                            Offset(sin(moveP * pi) * 60, -sin(moveP * pi) * 80);
+                        final linearPos =
+                            Offset.lerp(centerStage, targetPos, moveP)!;
                         final bezierPos = linearPos + curveOffset;
 
                         // Smoothly shrink down from baseShowcaseSize to Mic Seat size (60px) as it approaches receiver seat
-                        final currentSize = baseShowcaseSize - (moveP * (baseShowcaseSize - 60.0));
-                        final flyOpacity = (1.0 - (moveP * 0.15)).clamp(0.0, 1.0);
+                        final currentSize = baseShowcaseSize -
+                            (moveP * (baseShowcaseSize - 60.0));
+                        final flyOpacity =
+                            (1.0 - (moveP * 0.15)).clamp(0.0, 1.0);
 
                         return Positioned(
                           left: bezierPos.dx - (currentSize / 2),
@@ -605,7 +770,9 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                             height: currentSize,
                             child: Opacity(
                               opacity: flyOpacity,
-                              child: _buildGiftVisual(size: currentSize * 0.70, themeColor: meta.themeColor),
+                              child: _buildGiftVisual(
+                                  size: currentSize * 0.70,
+                                  themeColor: meta.themeColor),
                             ),
                           ),
                         );
@@ -618,26 +785,34 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
           }
 
           // ── STAGE 7, 8, 9, 10: Reach Receiver, Impact Halo Burst & Points ──
+          // Gate: past showcase — close merge window
+          if (Get.isRegistered<GiftAnimationController>()) {
+            GiftAnimationController.to.setShowcasePhase(false);
+          }
+
           final impactP = (currentStage == AnimationStage.stage7ReachReceiver)
               ? localP * 0.5
               : 0.5 + (localP * 0.5);
 
-          final isArrived = currentStage == AnimationStage.stage7ReachReceiver ||
-              currentStage == AnimationStage.stage8ImpactAnimation ||
-              currentStage == AnimationStage.stage9UpdatePoints ||
-              currentStage == AnimationStage.stage10Finish;
+          final isArrived =
+              currentStage == AnimationStage.stage7ReachReceiver ||
+                  currentStage == AnimationStage.stage8ImpactAnimation ||
+                  currentStage == AnimationStage.stage9UpdatePoints ||
+                  currentStage == AnimationStage.stage10Finish;
 
           if (isArrived && !_hasTriggeredImpact) {
             _hasTriggeredImpact = true;
             if (widget.onImpact != null) widget.onImpact!();
           }
 
-          final unitPrice = (widget.event?.price != null && widget.event!.price > 0)
-              ? widget.event!.price
-              : (meta.price > 0 ? meta.price : 10);
-          final giftCount = (widget.event?.count != null && widget.event!.count > 0)
-              ? widget.event!.count
-              : 1;
+          final unitPrice =
+              (widget.event?.price != null && widget.event!.price > 0)
+                  ? widget.event!.price
+                  : (meta.price > 0 ? meta.price : 10);
+          final giftCount =
+              (widget.event?.count != null && widget.event!.count > 0)
+                  ? widget.event!.count
+                  : 1;
           final totalGems = unitPrice * giftCount;
           final pointsAdd = '+$totalGems';
 
@@ -667,10 +842,12 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                                 child: Container(
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: meta.themeColor, width: 3),
+                                    border: Border.all(
+                                        color: meta.themeColor, width: 3),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: meta.themeColor.withOpacity(0.85),
+                                        color:
+                                            meta.themeColor.withOpacity(0.85),
                                         blurRadius: 20 * haloScale,
                                         spreadRadius: 4,
                                       ),
@@ -692,11 +869,13 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    _buildGiftVisual(size: 44, themeColor: meta.themeColor),
+                                    _buildGiftVisual(
+                                        size: 44, themeColor: meta.themeColor),
                                     const SizedBox(height: 2),
                                     // +Gems Badge Popup
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 7, vertical: 2),
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
                                           colors: [
@@ -706,12 +885,15 @@ class _CreaniaGiftAnimationEngineState extends State<CreaniaGiftAnimationEngine>
                                         ),
                                         borderRadius: BorderRadius.circular(10),
                                         boxShadow: const [
-                                          BoxShadow(color: Colors.black54, blurRadius: 4),
+                                          BoxShadow(
+                                              color: Colors.black54,
+                                              blurRadius: 4),
                                         ],
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
                                           const GemIcon(
                                             size: 12.5,
@@ -783,7 +965,8 @@ class GiftParticlePainter extends CustomPainter {
         final cx = center.dx + cos(angle) * dist;
         final cy = center.dy + sin(angle) * dist;
 
-        final smokeAlpha = (0.35 + 0.15 * sin(progress * pi * 4 + i)).clamp(0.0, 0.55);
+        final smokeAlpha =
+            (0.35 + 0.15 * sin(progress * pi * 4 + i)).clamp(0.0, 0.55);
 
         final r1 = (showcaseSize * 0.22) + (i * 6.0);
         smokePaint.shader = RadialGradient(
@@ -800,7 +983,8 @@ class GiftParticlePainter extends CustomPainter {
             themeColor.withOpacity(smokeAlpha * 0.50),
             themeColor.withOpacity(0.0),
           ],
-        ).createShader(Rect.fromCircle(center: Offset(cx + 10, cy - 10), radius: r2));
+        ).createShader(
+            Rect.fromCircle(center: Offset(cx + 10, cy - 10), radius: r2));
         canvas.drawCircle(Offset(cx + 10, cy - 10), r2, smokePaint);
       }
 
@@ -813,10 +997,14 @@ class GiftParticlePainter extends CustomPainter {
       for (int r = 0; r < 12; r++) {
         final rayAngle = (r * (2 * pi / 12)) + (progress * pi * 2);
         final rayLen = minRayLen + sin(progress * pi * 6 + r) * 30.0;
-        final rayStart = Offset(center.dx + cos(rayAngle) * (showcaseSize * 0.15), center.dy + sin(rayAngle) * (showcaseSize * 0.15));
-        final rayEnd = Offset(center.dx + cos(rayAngle) * rayLen, center.dy + sin(rayAngle) * rayLen);
+        final rayStart = Offset(
+            center.dx + cos(rayAngle) * (showcaseSize * 0.15),
+            center.dy + sin(rayAngle) * (showcaseSize * 0.15));
+        final rayEnd = Offset(center.dx + cos(rayAngle) * rayLen,
+            center.dy + sin(rayAngle) * rayLen);
 
-        final rayAlpha = (0.6 - (rayLen / (showcaseSize * 0.8))).clamp(0.1, 0.6);
+        final rayAlpha =
+            (0.6 - (rayLen / (showcaseSize * 0.8))).clamp(0.1, 0.6);
         rayPaint.color = themeColor.withOpacity(rayAlpha);
         canvas.drawLine(rayStart, rayEnd, rayPaint);
       }
@@ -847,13 +1035,15 @@ class GiftParticlePainter extends CustomPainter {
       final px = center.dx + p.vx * progress;
       final py = center.dy + p.vy * progress;
 
-      canvas.drawCircle(Offset(px, py), p.size * (1.0 - lifeProgress * 0.4), paint);
+      canvas.drawCircle(
+          Offset(px, py), p.size * (1.0 - lifeProgress * 0.4), paint);
     }
   }
 
   @override
   bool shouldRepaint(covariant GiftParticlePainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.center != center || oldDelegate.stage != stage;
+    return oldDelegate.progress != progress ||
+        oldDelegate.center != center ||
+        oldDelegate.stage != stage;
   }
 }
-

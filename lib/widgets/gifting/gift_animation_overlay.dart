@@ -1,7 +1,9 @@
 // lib/widgets/gift_animation_overlay.dart
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../models/gift/gift_animation_metadata.dart';
+import '../../services/gifting/gift_animation_controller.dart';
 import './creania_gift_animation_engine.dart';
 
 class GiftAnimationEvent {
@@ -72,9 +74,16 @@ class GiftAnimationOverlayWidget extends StatelessWidget {
       count: e.count,
     );
 
+    // Pass the live combo count notifier so the engine's ×N counter
+    // updates in-place (StarMaker-style) without restarting the animation.
+    final comboNotifier = Get.isRegistered<GiftAnimationController>()
+        ? GiftAnimationController.to.activeComboCount
+        : null;
+
     return CreaniaGiftAnimationEngine(
       event: reqEvent,
       onCompleted: onFinished,
+      comboCountNotifier: comboNotifier,
     );
   }
 }

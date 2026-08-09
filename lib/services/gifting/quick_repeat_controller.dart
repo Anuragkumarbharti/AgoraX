@@ -348,7 +348,10 @@ class QuickRepeatController extends GetxController {
           _hasRepeated = true;
         }
 
-        _startGlobalTimer();
+        // NOTE: _startGlobalTimer() is intentionally NOT called here.
+        // The global 10s timer is a strict once-started countdown from
+        // activateQuickRepeat(). Resetting it on every tap would incorrectly
+        // extend the QR window beyond the intended 10s lifetime.
         _resetInactivityTimer();
         _triggerTapPulse();
 
