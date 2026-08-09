@@ -147,23 +147,20 @@ class StoreController extends GetxController with WidgetsBindingObserver {
   ];
 
   // Admin Configuration & Controls
-  final RxDouble priceModifier = 1.0.obs;
-  final RxBool isFlashSaleActive = false.obs;
-  final RxDouble flashSaleDiscount = 0.35.obs;
-  final RxList<String> disabledProducts = <String>[].obs;
-  final RxDouble totalRevenue = 0.0.obs;
-  final RxInt totalSalesCount = 0.obs;
+  final RxBool firstPurchaseCompleted = false.obs;
+  final RxBool firstVipPurchaseCompleted = false.obs;
+  final RxBool firstNovelPurchaseCompleted = false.obs;
+  final RxBool signupRewardClaimed = false.obs;
 
-  // Standard Coin Packs
+  // Standard Coin Packs with ₹1 lower attractive pricing and strict floor(INR / 2) conversion
   final List<CoinPack> coinPacks = [
-    CoinPack(id: 'coins_starter', name: 'Starter Pack', coins: 50, bonusCoins: 0, price: 100, tag: 'Limited Offer'),
-    CoinPack(id: 'coins_basic', name: 'Basic Pack', coins: 100, bonusCoins: 1, price: 200),
-    CoinPack(id: 'coins_silver', name: 'Silver Pack', coins: 250, bonusCoins: 5, price: 500, tag: 'Popular'),
-    CoinPack(id: 'coins_gold', name: 'Gold Pack', coins: 500, bonusCoins: 15, price: 1000),
-    CoinPack(id: 'coins_diamond', name: 'Diamond Pack', coins: 2500, bonusCoins: 100, price: 5000, tag: 'Best Value'),
-    CoinPack(id: 'coins_elite', name: 'Elite Pack', coins: 5000, bonusCoins: 225, price: 10000),
-    CoinPack(id: 'coins_legend', name: 'Legend Pack', coins: 10000, bonusCoins: 480, price: 20000, tag: 'Limited Offer', isSpecial: true),
-    CoinPack(id: 'coins_royal', name: 'Royal Pack', coins: 50000, bonusCoins: 2500, price: 100000, tag: 'Crown Value', isSpecial: true),
+    CoinPack(id: 'coins_99', name: 'Starter Pack', coins: 49, bonusCoins: 5, price: 99, tag: 'Popular'),
+    CoinPack(id: 'coins_199', name: 'Basic Pack', coins: 99, bonusCoins: 15, price: 199),
+    CoinPack(id: 'coins_499', name: 'Silver Pack', coins: 249, bonusCoins: 50, price: 499, tag: 'Best Value'),
+    CoinPack(id: 'coins_999', name: 'Gold Pack', coins: 499, bonusCoins: 125, price: 999, tag: 'Popular'),
+    CoinPack(id: 'coins_1999', name: 'Diamond Pack', coins: 999, bonusCoins: 300, price: 1999, tag: 'Mega Bonus'),
+    CoinPack(id: 'coins_4999', name: 'Elite Pack', coins: 2499, bonusCoins: 1000, price: 4999, tag: 'Pro Choice'),
+    CoinPack(id: 'coins_9999', name: 'Legend Pack', coins: 4999, bonusCoins: 2500, price: 9999, tag: 'Crown Value', isSpecial: true),
   ];
 
   @override
@@ -195,7 +192,7 @@ class StoreController extends GetxController with WidgetsBindingObserver {
     super.onClose();
   }
 
-  /// Server-authoritative fetch for wallet balance from Supabase database
+  /// Server-authoritative fetch for wallet balance and offer entitlement status
   Future<void> syncWithDatabase({bool force = false}) async {
     final now = DateTime.now();
     if (!force && now.difference(_lastSyncTime) < _syncDebounceDuration) return;
@@ -207,6 +204,23 @@ class StoreController extends GetxController with WidgetsBindingObserver {
       
       final canonicalId = await UserProfileCacheManager.getOrFetchCanonicalId();
       if (canonicalId.isEmpty) return;
+
+      final profileData = await Supabase.instance.client
+          .from('profiles')
+          .select('first_purchase_completed, first_vip_purchase_completed, first_novel_purchase_completed, signup_reward_claimed')
+          .eq('id', canonicalId)
+          .maybeSingle();
+
+      if (profileData != null) {
+        firstPurchaseCompleted.value = profileData['first_purchase_completed'] == true;
+        firstVipPurchaseCompleted.value = profileData['first_vip_purchase_completed'] == true;
+        firstNovelPurchaseCompleted.value = profileData['first_novel_purchase_completed'] == true;
+        signupRewardClaimed.value = profileData['signup_reward_claimed'] == true;
+
+        if (!signupRewardClaimed.value) {
+          claimSignupReward();
+        }
+      }
 
       final walletData = await Supabase.instance.client
           .from('wallets')
@@ -226,6 +240,26 @@ class StoreController extends GetxController with WidgetsBindingObserver {
       }
     } catch (e) {
       debugPrint('[StoreController] Balance sync error: $e');
+    }
+  }
+
+  /// Idempotent Signup Reward Claim (First Account Creation Reward)
+  Future<void> claimSignupReward() async {
+    try {
+      final client = Supabase.instance.client;
+      final uid = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
+      if (uid.isEmpty) return;
+
+      final res = await client.rpc('claim_signup_reward_rpc', params: {'p_user_id': uid});
+      if (res != null && res is Map<String, dynamic>) {
+        if (res['success'] == true && res['already_claimed'] != true) {
+          signupRewardClaimed.value = true;
+          await syncWithDatabase(force: true);
+          debugPrint('[StoreController] Signup reward credited successfully: ${res['coins_added']} Coins');
+        }
+      }
+    } catch (e) {
+      debugPrint('[StoreController] claimSignupReward error: $e');
     }
   }
 

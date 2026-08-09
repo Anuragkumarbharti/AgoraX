@@ -130,37 +130,83 @@ class CoinStoreScreen extends StatelessWidget {
   }
 
   Widget _buildTopOffersBanner(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: context.orangeToGoldGradient,
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          const Text('🔥', style: TextStyle(fontSize: 32)),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'FIRST PURCHASE BONUS!',
-                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Get double bonus coins on packs above ₹799.',
-                  style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.9), fontSize: 10),
-                ),
-              ],
+    final StoreController storeCtrl = Get.find<StoreController>();
+
+    return Obx(() {
+      final isFirstPurchaseAvailable = !storeCtrl.firstPurchaseCompleted.value;
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: isFirstPurchaseAvailable
+              ? const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFFEC4899), Color(0xFFFFD700)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : context.orangeToGoldGradient,
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: isFirstPurchaseAvailable
+                  ? const Color(0xFFEC4899).withOpacity(0.25)
+                  : const Color(0xFFFFD700).withOpacity(0.2),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Text(isFirstPurchaseAvailable ? '🎁' : '🔥', style: const TextStyle(fontSize: 34)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        isFirstPurchaseAvailable ? 'FIRST PURCHASE OFFER' : 'RECHARGE BONUS ACTIVE',
+                        style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                      ),
+                      if (isFirstPurchaseAvailable) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'SPECIAL',
+                            style: GoogleFonts.poppins(color: Colors.black, fontSize: 7.5, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isFirstPurchaseAvailable
+                        ? '+50 Bonus Coins + VIP Trial + Royal Frame + Showcase Badge'
+                        : 'Get extra bonus coins on all coin recharge packages!',
+                    style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.95), fontSize: 10.5, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isFirstPurchaseAvailable ? 'Only for your first purchase' : 'Rate: ₹2 = 1 Coin (Strict backend conversion)',
+                    style: GoogleFonts.poppins(color: isFirstPurchaseAvailable ? Colors.amberAccent : Colors.white.withOpacity(0.8), fontSize: 9.5, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildCoinPackCard(BuildContext context, CoinPack pack) {

@@ -585,18 +585,41 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
   Widget _buildDurationSelector({required bool isVip}) {
     final currentDuration = isVip ? _vipDuration : _novelDuration;
     final options = ['30 Days', '90 Days', '1 Year'];
+    final Map<String, String> bonusDaysLabel = {
+      '30 Days': '+3 Days Extra',
+      '90 Days': '+10 Days Extra',
+      '1 Year': '+30 Days Extra',
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'CHOOSE MEMBERSHIP DURATION',
-          style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'CHOOSE MEMBERSHIP DURATION',
+              style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '🎁 Extra Bonus Days Included',
+                style: GoogleFonts.poppins(color: const Color(0xFF10B981), fontSize: 8.5, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Row(
           children: options.map((opt) {
             final isSel = currentDuration == opt;
+            final extraText = bonusDaysLabel[opt] ?? '';
+
             return Expanded(
               child: GestureDetector(
                 onTap: () {
@@ -609,8 +632,8 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                   });
                 },
                 child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 4),
-                  padding: EdgeInsets.symmetric(vertical: 12),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: isSel ? context.primaryColor : context.secondaryBackgroundColor,
                     borderRadius: BorderRadius.circular(12),
@@ -618,11 +641,19 @@ class _VipNovelStoreTabState extends State<VipNovelStoreTab> with SingleTickerPr
                       color: isSel ? context.primaryColor : context.borderColor,
                     ),
                   ),
-                  child: Center(
-                    child: Text(
-                      opt,
-                      style: GoogleFonts.poppins(color: isSel ? Colors.white : context.textSecondary, fontSize: 11.5, fontWeight: FontWeight.bold),
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        opt,
+                        style: GoogleFonts.poppins(color: isSel ? Colors.white : context.textSecondary, fontSize: 11.5, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        extraText,
+                        style: GoogleFonts.poppins(color: isSel ? Colors.amberAccent : const Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ),
                 ),
               ),
