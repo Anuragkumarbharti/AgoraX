@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import 'package:creania/core/theme.dart';
 import '../../services/store/store_controller.dart';
@@ -32,7 +33,7 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.backgroundColor,
+      backgroundColor: context.scaffoldBackgroundColor,
       body: Stack(
         children: [
           SafeArea(
