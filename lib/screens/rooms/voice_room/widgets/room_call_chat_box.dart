@@ -105,76 +105,10 @@ class _RoomCallChatBoxState extends State<RoomCallChatBox> {
     );
   }
 
-  void _showContextMenuForMessage(RoomChatMessage message) {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF141724),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border.all(color: Colors.white.withOpacity(0.12)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // 1. Mention Option
-            ListTile(
-              leading: const Icon(Icons.alternate_email_rounded,
-                  color: Color(0xFFA78BFA)),
-              title: Text(
-                'Mention ${message.senderName}',
-                style: GoogleFonts.poppins(
-                    color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                'Add @${message.senderName} to chat field',
-                style: GoogleFonts.poppins(
-                    color: Colors.white60, fontSize: 11),
-              ),
-              onTap: () {
-                Get.back();
-                RoomController.to.mentionUserInRoomChat(message.senderName);
-              },
-            ),
-            // 2. Copy Text Option
-            ListTile(
-              leading: const Icon(Icons.copy_rounded, color: Colors.cyanAccent),
-              title: Text(
-                'Copy Message',
-                style: GoogleFonts.poppins(
-                    color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                'Copy message text to clipboard',
-                style: GoogleFonts.poppins(
-                    color: Colors.white60, fontSize: 11),
-              ),
-              onTap: () {
-                Get.back();
-                Clipboard.setData(ClipboardData(text: message.text));
-                Get.snackbar(
-                  'Copied 📋',
-                  'Message text copied to clipboard',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.black.withOpacity(0.85),
-                  colorText: Colors.white,
-                  duration: const Duration(seconds: 2),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+  void _triggerDirectMention(RoomChatMessage message) {
+    if (message.senderName.isEmpty) return;
+    HapticFeedback.lightImpact();
+    RoomController.to.mentionUserInRoomChat(message.senderName);
   }
 
   @override
@@ -575,7 +509,7 @@ class _RoomCallChatBoxState extends State<RoomCallChatBox> {
             leftSide,
             Expanded(
               child: GestureDetector(
-                onLongPress: () => _showContextMenuForMessage(message),
+                onLongPress: () => _triggerDirectMention(message),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 280),
                   curve: Curves.easeInOutCubic,
