@@ -75,36 +75,36 @@ class ArenaEventFormatter {
   static String formatCanonicalSeatLabel(int seatIndex) {
     if (seatIndex == 0) return 'Host Seat';
     if (seatIndex == 1) return 'Co-Host Seat';
-    if (seatIndex >= 2 && seatIndex <= 9) return 'Seat #${seatIndex - 1}';
-    return 'Seat #$seatIndex';
+    if (seatIndex >= 2 && seatIndex <= 9) return 'Seat ${seatIndex - 1}';
+    return 'Seat $seatIndex';
   }
 
   static String formatSeatTakeMessage(String username, int seatIndex) {
-    if (seatIndex == 0) return '👑 $username took Host Seat';
-    if (seatIndex == 1) return '🎙️ $username took Co-Host Seat';
+    if (seatIndex == 0) return '$username took Host Seat';
+    if (seatIndex == 1) return '$username took Co-Host Seat';
     final seatNum = seatIndex >= 2 && seatIndex <= 9 ? seatIndex - 1 : seatIndex;
-    return '🪑 $username took Seat #$seatNum';
+    return '$username took Seat $seatNum';
   }
 
   static String formatSeatLeaveMessage(String username, int seatIndex) {
-    if (seatIndex == 0) return '🚪 $username left Host Seat';
-    if (seatIndex == 1) return '🚪 $username left Co-Host Seat';
+    if (seatIndex == 0) return '$username left Host Seat';
+    if (seatIndex == 1) return '$username left Co-Host Seat';
     final seatNum = seatIndex >= 2 && seatIndex <= 9 ? seatIndex - 1 : seatIndex;
-    return '🚪 $username left Seat #$seatNum';
+    return '$username left Seat $seatNum';
   }
 
   static String formatSeatMoveMessage(String username, int fromSeatIndex, int toSeatIndex) {
     final fromLabel = formatCanonicalSeatLabel(fromSeatIndex);
     final toLabel = formatCanonicalSeatLabel(toSeatIndex);
-    return '🪑 $username moved from $fromLabel to $toLabel';
+    return '$username moved from $fromLabel to $toLabel';
   }
 
   static String formatRoomEnterMessage(String username) {
-    return '👋 $username entered the Arena';
+    return '$username has entered the room';
   }
 
   static String formatRoomLeaveMessage(String username) {
-    return '👋 $username left the Arena';
+    return '$username left the room';
   }
 
   static String formatLuckyCoinWinMessage(String username, int amount) {

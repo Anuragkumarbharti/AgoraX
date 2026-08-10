@@ -243,8 +243,55 @@ class RoomChatController extends GetxController {
       senderAvatar: senderAvatar,
       messageType: messageType,
       activityKey: activityKey,
+      eventType: activityKey,
+      id: eventId.isNotEmpty ? eventId : null,
     );
     return true;
+  }
+
+  /// Adds exactly ONE room entry system message per user session: "[Username] has entered the room".
+  bool addRoomEntrySystemMessage(String roomId, String userId, String userName) {
+    if (roomId.isEmpty || userId.isEmpty) return false;
+    final eventId = 'entry_${roomId}_$userId';
+    final text = '$userName has entered the room';
+    return addSystemActivityWithDeduplication(
+      roomId: roomId,
+      eventId: eventId,
+      text: text,
+      senderId: userId,
+      senderName: userName,
+      messageType: 'activity',
+      activityKey: 'room_join',
+    );
+  }
+
+  /// Adds exactly ONE seat action system message for confirmed seat events:
+  /// "[Username] took Seat 3" or "[Username] left Seat 3".
+  bool addSeatActionSystemMessage({
+    required String roomId,
+    required String userId,
+    required String userName,
+    required String action, // 'take' or 'leave'
+    required int seatIndex,
+    String? customSeatName,
+  }) {
+    if (roomId.isEmpty || userId.isEmpty) return false;
+    final seatLabel = customSeatName ?? 'Seat ${seatIndex + 1}';
+    final text = action == 'take'
+        ? '$userName took $seatLabel'
+        : '$userName left $seatLabel';
+    final eventId = 'seat_${action}_${roomId}_${seatIndex}_${userId}_${DateTime.now().millisecondsSinceEpoch ~/ 3000}';
+    final eventType = action == 'take' ? 'seat_taken' : 'seat_left';
+
+    return addSystemActivityWithDeduplication(
+      roomId: roomId,
+      eventId: eventId,
+      text: text,
+      senderId: userId,
+      senderName: userName,
+      messageType: 'activity',
+      activityKey: eventType,
+    );
   }
 
   bool addLuckyGiftMessage(String roomId, Map<String, dynamic> luckyResult) {
@@ -277,18 +324,6 @@ class RoomChatController extends GetxController {
 
       // 1. Add Chat Box Message with deduplication
       initializeChatForRoom(roomId);
-      final msg = RoomChatMessage(
-        id: eventId,
-        senderId: 'system_lucky',
-        senderName: 'Lucky Draw 🎰',
-        text: canonicalLuckyMsg,
-        timestamp: DateTime.now(),
-        isSystem: true,
-        messageType: 'activity',
-        eventType: eventType,
-        roleTag: tier,
-      );
-      
       if (!addSystemActivityWithDeduplication(
         roomId: roomId,
         eventId: eventId,
@@ -319,9 +354,12 @@ class RoomChatController extends GetxController {
     String? senderAvatar,
     String? messageType = 'activity',
     String? activityKey,
+    String? eventType,
+    String? id,
   }) {
     initializeChatForRoom(roomId);
     final msg = RoomChatMessage(
+      id: id,
       senderId: senderId ?? 'system',
       senderName: senderName ?? 'System',
       text: text,
@@ -330,6 +368,7 @@ class RoomChatController extends GetxController {
       isSystem: true,
       messageType: messageType ?? 'activity',
       roleTag: activityKey,
+      eventType: eventType ?? activityKey,
     );
     addChatMessage(roomId, msg);
   }

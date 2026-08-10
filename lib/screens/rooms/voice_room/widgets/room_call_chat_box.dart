@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:collection/collection.dart';
 
 import '../../../../core/theme.dart';
 import '../../../../models/chat/chat_model.dart';
@@ -10,7 +12,7 @@ import '../../../../services/voice/voice_controller.dart';
 import '../dialogs/mini_profile_dialog.dart';
 import '../../../../widgets/common/optimized_image.dart';
 
-class RoomCallChatBox extends StatelessWidget {
+class RoomCallChatBox extends StatefulWidget {
   final String roomId;
   final ScrollController chatScrollController;
   final String Function(String) getUserDp;
@@ -23,36 +25,255 @@ class RoomCallChatBox extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<RoomCallChatBox> createState() => _RoomCallChatBoxState();
+}
+
+class _RoomCallChatBoxState extends State<RoomCallChatBox> {
+  bool _isAtBottom = true;
+  int _unreadCount = 0;
+  int _previousMessageCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.chatScrollController.addListener(_onScrollListener);
+  }
+
+  @override
+  void dispose() {
+    widget.chatScrollController.removeListener(_onScrollListener);
+    super.dispose();
+  }
+
+  void _onScrollListener() {
+    if (!widget.chatScrollController.hasClients) return;
+    final position = widget.chatScrollController.position;
+    final isAtBottomNow = position.pixels >= (position.maxScrollExtent - 40);
+
+    if (isAtBottomNow != _isAtBottom) {
+      setState(() {
+        _isAtBottom = isAtBottomNow;
+        if (_isAtBottom) {
+          _unreadCount = 0;
+        }
+      });
+    }
+  }
+
+  void _scrollToBottom({bool animate = true}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!widget.chatScrollController.hasClients) return;
+      final maxExtent = widget.chatScrollController.position.maxScrollExtent;
+      if (animate) {
+        widget.chatScrollController.animateTo(
+          maxExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        widget.chatScrollController.jumpTo(maxExtent);
+      }
+      if (mounted) {
+        setState(() {
+          _unreadCount = 0;
+          _isAtBottom = true;
+        });
+      }
+    });
+  }
+
+  void _showMiniProfile(String targetUserId, String targetUserName, {String role = 'Guest'}) {
+    final controller = RoomController.to;
+    final occupiedSeats = (controller.roomSeatsInfo[widget.roomId] ?? [])
+        .where((s) => s['userId'] != null)
+        .length;
+    final room = controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+    final isHost = room?.hostId == RoomController.currentUserId ||
+        room?.founderId == RoomController.currentUserId;
+
+    Get.dialog(
+      MiniProfileDialog(
+        roomId: widget.roomId,
+        callerUserId: RoomController.currentUserId,
+        targetUserId: targetUserId,
+        targetUserName: targetUserName,
+        role: role,
+        seatIndex: -1,
+        isHost: isHost,
+        occupiedSeatsCount: occupiedSeats,
+      ),
+    );
+  }
+
+  void _showContextMenuForMessage(RoomChatMessage message) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF141724),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: Colors.white.withOpacity(0.12)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // 1. Mention Option
+            ListTile(
+              leading: const Icon(Icons.alternate_email_rounded,
+                  color: Color(0xFFA78BFA)),
+              title: Text(
+                'Mention ${message.senderName}',
+                style: GoogleFonts.poppins(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                'Add @${message.senderName} to chat field',
+                style: GoogleFonts.poppins(
+                    color: Colors.white60, fontSize: 11),
+              ),
+              onTap: () {
+                Get.back();
+                RoomController.to.mentionUserInRoomChat(message.senderName);
+              },
+            ),
+            // 2. Copy Text Option
+            ListTile(
+              leading: const Icon(Icons.copy_rounded, color: Colors.cyanAccent),
+              title: Text(
+                'Copy Message',
+                style: GoogleFonts.poppins(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                'Copy message text to clipboard',
+                style: GoogleFonts.poppins(
+                    color: Colors.white60, fontSize: 11),
+              ),
+              onTap: () {
+                Get.back();
+                Clipboard.setData(ClipboardData(text: message.text));
+                Get.snackbar(
+                  'Copied 📋',
+                  'Message text copied to clipboard',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.black.withOpacity(0.85),
+                  colorText: Colors.white,
+                  duration: const Duration(seconds: 2),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final RoomController controller = RoomController.to;
 
-    return Obx(() {
-      final chatsMap = controller.roomChats;
-      final _ = chatsMap.length; // Force GetX to observe roomChats map changes
-      final messages = chatsMap[roomId] ?? <RoomChatMessage>[];
-      return ListView.builder(
-        controller: chatScrollController,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 64),
-        itemCount: messages.length,
-        itemBuilder: (context, index) {
-          final msg = messages[index];
-          bool isConsecutive = false;
-          if (index > 0) {
-            final prevMsg = messages[index - 1];
-            if (msg.senderId == prevMsg.senderId &&
-                !msg.isSystem &&
-                msg.messageType != 'activity' &&
-                !prevMsg.isSystem &&
-                prevMsg.messageType != 'activity' &&
-                msg.timestamp.difference(prevMsg.timestamp).inMinutes < 3) {
-              isConsecutive = true;
-            }
+    return Stack(
+      children: [
+        Obx(() {
+          final chatsMap = controller.roomChats;
+          final _ = chatsMap.length; // Force GetX observation
+          final messages = chatsMap[widget.roomId] ?? <RoomChatMessage>[];
+
+          // Handle auto-scroll or unread count update when messages change
+          if (messages.length > _previousMessageCount) {
+            final isNewFromMe = messages.isNotEmpty &&
+                messages.last.senderId == RoomController.currentUserId;
+
+            _previousMessageCount = messages.length;
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_isAtBottom || isNewFromMe) {
+                _scrollToBottom(animate: true);
+              } else {
+                setState(() {
+                  _unreadCount += 1;
+                });
+              }
+            });
           }
-          return buildCustomChatMessage(context, msg,
-              isConsecutive: isConsecutive);
-        },
-      );
-    });
+
+          return ListView.builder(
+            controller: widget.chatScrollController,
+            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            itemCount: messages.length,
+            itemBuilder: (context, index) {
+              final msg = messages[index];
+              bool isConsecutive = false;
+              if (index > 0) {
+                final prevMsg = messages[index - 1];
+                if (msg.senderId == prevMsg.senderId &&
+                    !msg.isSystem &&
+                    msg.messageType != 'activity' &&
+                    !prevMsg.isSystem &&
+                    prevMsg.messageType != 'activity' &&
+                    msg.timestamp.difference(prevMsg.timestamp).inMinutes < 3) {
+                  isConsecutive = true;
+                }
+              }
+              return buildCustomChatMessage(context, msg,
+                  isConsecutive: isConsecutive);
+            },
+          );
+        }),
+
+        // New Messages Indicator Pill Button
+        if (!_isAtBottom && _unreadCount > 0)
+          Positioned(
+            bottom: 12,
+            right: 16,
+            child: GestureDetector(
+              onTap: () => _scrollToBottom(animate: true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.purpleAccent.withOpacity(0.4),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    )
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.arrow_downward_rounded,
+                        color: Colors.white, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$_unreadCount new message${_unreadCount > 1 ? 's' : ''}',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   Widget buildCustomChatMessage(BuildContext context, RoomChatMessage message,
@@ -66,40 +287,23 @@ class RoomCallChatBox extends StatelessWidget {
     final isActivity = message.messageType == 'activity';
 
     if (isSystem || isActivity) {
-      Color eventColor = const Color(0xFF2196F3);
       IconData icon = Icons.notifications_rounded;
-
       final type = message.eventType ?? '';
       bool isJackpot = type == 'lucky_jackpot';
       bool isLuckyWin = type == 'lucky_win' || isJackpot;
 
       if (type == 'room_join') {
-        eventColor = const Color(0xFF34C759);
         icon = Icons.login_rounded;
       } else if (type == 'room_leave') {
-        eventColor = const Color(0xFFFF3B30);
         icon = Icons.logout_rounded;
       } else if (type.startsWith('seat_')) {
-        eventColor = const Color(0xFF007AFF);
         icon = Icons.chair_rounded;
       } else if (type == 'gift_sent') {
-        eventColor = const Color(0xFFAF52DE);
         icon = Icons.card_giftcard_rounded;
       } else if (isJackpot) {
-        eventColor = const Color(0xFFF59E0B);
         icon = Icons.diamond_rounded;
       } else if (isLuckyWin) {
-        eventColor = const Color(0xFF8B5CF6);
         icon = Icons.casino_rounded;
-      } else if (type == 'achievement') {
-        eventColor = const Color(0xFFFFCC00);
-        icon = Icons.emoji_events_rounded;
-      } else if (type == 'room_level_up') {
-        eventColor = const Color(0xFFFF9500);
-        icon = Icons.trending_up_rounded;
-      } else if (type == 'room_banner_changed') {
-        eventColor = const Color(0xFFFF2D55);
-        icon = Icons.image_rounded;
       }
 
       final timestampStr =
@@ -107,63 +311,71 @@ class RoomCallChatBox extends StatelessWidget {
 
       return Align(
         alignment: Alignment.centerLeft,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeInOutCubic,
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: tokens.chatBoxFillColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isJackpot ? const Color(0xFFF59E0B) : tokens.chatBoxBorderColor,
-              width: isJackpot ? 1.2 : 0.8,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: (isJackpot ? const Color(0xFFF59E0B) : tokens.iconColor)
-                      .withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: isJackpot ? const Color(0xFFF59E0B) : tokens.iconColor,
-                  size: 13,
-                ),
+        child: GestureDetector(
+          onLongPress: () => _showContextMenuForMessage(message),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeInOutCubic,
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: tokens.chatBoxFillColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isJackpot ? const Color(0xFFF59E0B) : tokens.chatBoxBorderColor,
+                width: isJackpot ? 1.2 : 0.8,
               ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: AnimatedDefaultTextStyle(
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: (isJackpot ? const Color(0xFFF59E0B) : tokens.iconColor)
+                        .withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isJackpot ? const Color(0xFFF59E0B) : tokens.iconColor,
+                    size: 13,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: GestureDetector(
+                    onTap: message.senderId != 'system' && message.senderId.isNotEmpty
+                        ? () => _showMiniProfile(message.senderId, message.senderName)
+                        : null,
+                    child: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeInOutCubic,
+                      style: GoogleFonts.poppins(
+                        color: tokens.primaryTextColor,
+                        fontSize: 10.5,
+                        fontWeight: isJackpot ? FontWeight.w700 : FontWeight.w600,
+                      ),
+                      child: Text(message.text),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 280),
                   curve: Curves.easeInOutCubic,
                   style: GoogleFonts.poppins(
-                    color: tokens.primaryTextColor,
-                    fontSize: 10.5,
-                    fontWeight: isJackpot ? FontWeight.w700 : FontWeight.w600,
+                    color: isJackpot
+                        ? (context.isDark ? const Color(0xFFF59E0B) : const Color(0xFFB45309))
+                        : tokens.secondaryTextColor,
+                    fontSize: 7.5,
+                    fontWeight: FontWeight.w500,
                   ),
-                  child: Text(message.text),
+                  child: Text(timestampStr),
                 ),
-              ),
-              const SizedBox(width: 8),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOutCubic,
-                style: GoogleFonts.poppins(
-                  color: isJackpot
-                      ? (context.isDark ? const Color(0xFFF59E0B) : const Color(0xFFB45309))
-                      : tokens.secondaryTextColor,
-                  fontSize: 7.5,
-                  fontWeight: FontWeight.w500,
-                ),
-                child: Text(timestampStr),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
@@ -172,7 +384,7 @@ class RoomCallChatBox extends StatelessWidget {
     final timestampStr =
         '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
-    final seatsList = controller.roomSeatsInfo[roomId] ?? [];
+    final seatsList = controller.roomSeatsInfo[widget.roomId] ?? [];
     final senderSeat =
         seatsList.firstWhereOrNull((s) => s['userId'] == message.senderId);
     final bool isSpeaking =
@@ -184,28 +396,7 @@ class RoomCallChatBox extends StatelessWidget {
     } else {
       leftSide = GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () {
-          final occupiedSeats = (controller.roomSeatsInfo[roomId] ?? [])
-              .where((s) => s['userId'] != null)
-              .length;
-          Get.dialog(
-            MiniProfileDialog(
-              roomId: roomId,
-              callerUserId: RoomController.currentUserId,
-              targetUserId: message.senderId,
-              targetUserName: message.senderName,
-              role: message.senderRole ?? 'Guest',
-              seatIndex: -1,
-              isHost: (() {
-                final room =
-                    controller.rooms.firstWhereOrNull((r) => r.id == roomId);
-                return room?.hostId == RoomController.currentUserId ||
-                    room?.founderId == RoomController.currentUserId;
-              })(),
-              occupiedSeatsCount: occupiedSeats,
-            ),
-          );
-        },
+        onTap: () => _showMiniProfile(message.senderId, message.senderName, role: message.senderRole ?? 'Guest'),
         child: Container(
           margin: const EdgeInsets.only(right: 8),
           width: 36,
@@ -321,7 +512,7 @@ class RoomCallChatBox extends StatelessWidget {
           GestureDetector(
             onTap: () {
               controller.sendRoomReactionBroadcast(
-                  roomId, message.id, reactionType);
+                  widget.roomId, message.id, reactionType);
             },
             child: Container(
               margin: const EdgeInsets.only(right: 6),
@@ -384,51 +575,7 @@ class RoomCallChatBox extends StatelessWidget {
             leftSide,
             Expanded(
               child: GestureDetector(
-                onLongPress: () {
-                  Get.bottomSheet(
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF141724),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                        border: Border.all(color: Colors.white.withOpacity(0.12)),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.white24,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ListTile(
-                            leading: const Icon(Icons.alternate_email_rounded,
-                                color: Color(0xFFA78BFA)),
-                            title: Text(
-                              'Mention ${message.senderName}',
-                              style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text(
-                              'Add @${message.senderName} to chat field',
-                              style: GoogleFonts.poppins(
-                                  color: Colors.white60, fontSize: 11),
-                            ),
-                            onTap: () {
-                              Get.back();
-                              controller.mentionUserInRoomChat(message.senderName);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                onLongPress: () => _showContextMenuForMessage(message),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 280),
                   curve: Curves.easeInOutCubic,
@@ -466,32 +613,11 @@ class RoomCallChatBox extends StatelessWidget {
                             Flexible(
                               child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
-                                onTap: () {
-                                  final occupiedSeats =
-                                      (controller.roomSeatsInfo[roomId] ?? [])
-                                          .where((s) => s['userId'] != null)
-                                          .length;
-                                  Get.dialog(
-                                    MiniProfileDialog(
-                                      roomId: roomId,
-                                      callerUserId: RoomController.currentUserId,
-                                      targetUserId: message.senderId,
-                                      targetUserName: message.senderName,
-                                      role: message.senderRole ?? 'Guest',
-                                      seatIndex: -1,
-                                      isHost: (() {
-                                        final room = controller.rooms
-                                            .firstWhereOrNull(
-                                                (r) => r.id == roomId);
-                                        return room?.hostId ==
-                                                RoomController.currentUserId ||
-                                            room?.founderId ==
-                                                RoomController.currentUserId;
-                                      })(),
-                                      occupiedSeatsCount: occupiedSeats,
-                                    ),
-                                  );
-                                },
+                                onTap: () => _showMiniProfile(
+                                  message.senderId,
+                                  message.senderName,
+                                  role: message.senderRole ?? 'Guest',
+                                ),
                                 child: AnimatedDefaultTextStyle(
                                   duration: const Duration(milliseconds: 280),
                                   curve: Curves.easeInOutCubic,
@@ -511,87 +637,87 @@ class RoomCallChatBox extends StatelessWidget {
                                   '@ Mentioned',
                                   const Color(0xFF8B5CF6).withOpacity(0.3),
                                   const Color(0xFFA78BFA)),
-                          if (message.senderLevel != null)
-                            buildBadge(
-                                'Lv.${message.senderLevel}',
-                                Colors.grey.withOpacity(0.24),
-                                Colors.amberAccent),
-                          if (message.nobleLabel != null &&
-                              message.nobleLabel!.isNotEmpty)
-                            buildBadge(
-                                message.nobleLabel!,
-                                const Color(0xFFFFD700).withOpacity(0.2),
-                                const Color(0xFFFFD700)),
-                          if (message.vipLabel != null &&
-                              message.vipLabel!.isNotEmpty)
-                            buildBadge(
-                                message.vipLabel!,
-                                Colors.pinkAccent.withOpacity(0.2),
-                                Colors.pinkAccent),
-                          if (message.senderRole != null)
-                            buildBadge(
-                                message.senderRole!,
-                                getRoleColor(message.senderRole)
-                                    .withOpacity(0.2),
-                                getRoleColor(message.senderRole)),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-                    RichText(
-                      text: TextSpan(
-                        children: _parseMentionsAndText(message.text, tokens),
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(child: buildReactions()),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                controller.sendRoomReactionBroadcast(
-                                    roomId, message.id, 'heart');
-                              },
-                              child: Icon(
-                                Icons.favorite_border_rounded,
-                                color: tokens.secondaryIconColor,
-                                size: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 280),
-                              curve: Curves.easeInOutCubic,
-                              style: GoogleFonts.poppins(
-                                color: tokens.secondaryTextColor,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              child: Text(timestampStr),
-                            ),
+                            if (message.senderLevel != null)
+                              buildBadge(
+                                  'Lv.${message.senderLevel}',
+                                  Colors.grey.withOpacity(0.24),
+                                  Colors.amberAccent),
+                            if (message.nobleLabel != null &&
+                                message.nobleLabel!.isNotEmpty)
+                              buildBadge(
+                                  message.nobleLabel!,
+                                  const Color(0xFFFFD700).withOpacity(0.2),
+                                  const Color(0xFFFFD700)),
+                            if (message.vipLabel != null &&
+                                message.vipLabel!.isNotEmpty)
+                              buildBadge(
+                                  message.vipLabel!,
+                                  Colors.pinkAccent.withOpacity(0.2),
+                                  Colors.pinkAccent),
+                            if (message.senderRole != null)
+                              buildBadge(
+                                  message.senderRole!,
+                                  getRoleColor(message.senderRole)
+                                      .withOpacity(0.2),
+                                  getRoleColor(message.senderRole)),
                           ],
                         ),
+                        const SizedBox(height: 6),
                       ],
-                    ),
-                  ],
+                      RichText(
+                        text: TextSpan(
+                          children: _parseMentionsAndText(message.text, tokens),
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(child: buildReactions()),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  controller.sendRoomReactionBroadcast(
+                                      widget.roomId, message.id, 'heart');
+                                },
+                                child: Icon(
+                                  Icons.favorite_border_rounded,
+                                  color: tokens.secondaryIconColor,
+                                  size: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 280),
+                                curve: Curves.easeInOutCubic,
+                                style: GoogleFonts.poppins(
+                                  color: tokens.secondaryTextColor,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                child: Text(timestampStr),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   List<InlineSpan> _parseMentionsAndText(
       String text, AdaptiveSeatThemeTokens tokens) {
     final List<InlineSpan> spans = [];
-    final RegExp exp = RegExp(r'(@[a-zA-Z0-9_\u00a1-\uffff]+)');
+    final RegExp exp = RegExp(r'(@[\w\.-]+)');
     final Iterable<RegExpMatch> matches = exp.allMatches(text);
 
     if (matches.isEmpty) {
@@ -622,13 +748,30 @@ class RoomCallChatBox extends StatelessWidget {
           ),
         );
       }
+      final String mentionToken = match.group(0) ?? '';
+      final String rawUsername = mentionToken.replaceFirst('@', '');
+
       spans.add(
-        TextSpan(
-          text: match.group(0),
-          style: GoogleFonts.poppins(
-            color: Colors.amberAccent,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: GestureDetector(
+            onTap: () {
+              final cachedUser = UserProfileCacheManager.rxCache.values
+                  .firstWhereOrNull((u) =>
+                      u.displayName.toLowerCase() == rawUsername.toLowerCase() ||
+                      u.username.toLowerCase() == rawUsername.toLowerCase());
+              if (cachedUser != null) {
+                _showMiniProfile(cachedUser.id, cachedUser.username);
+              }
+            },
+            child: Text(
+              mentionToken,
+              style: GoogleFonts.poppins(
+                color: Colors.amberAccent,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
       );
@@ -648,20 +791,5 @@ class RoomCallChatBox extends StatelessWidget {
       );
     }
     return spans;
-  }
-
-  static Widget buildDefaultAvatar(String name, Color color) {
-    return Container(
-      color: color.withOpacity(0.2),
-      alignment: Alignment.center,
-      child: Text(
-        name.isNotEmpty ? name[0].toUpperCase() : '?',
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
   }
 }

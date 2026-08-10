@@ -439,79 +439,78 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  if (!isExpanded) ...[
+                    const SizedBox(width: 6),
 
-                  // Full Room Menubar Buttons Row (Up-Arrow, Mic, Menu ≡ with badge, Gift)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 1. Up-Arrow Seat Application / Request Button (Circle)
-                      GestureDetector(
-                        onTap: () {
-                          Get.dialog(
-                              SeatApplicationsDialog(roomId: widget.roomId));
-                        },
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: tokens.chatBoxFillColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: tokens.chatBoxBorderColor,
-                              width: 1.2,
+                    // Full Room Menubar Buttons Row (Up-Arrow, Mic, Menu ≡ with badge, Gift)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 1. Up-Arrow Seat Application / Request Button (Circle)
+                        GestureDetector(
+                          onTap: () {
+                            Get.dialog(
+                                SeatApplicationsDialog(roomId: widget.roomId));
+                          },
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: tokens.chatBoxFillColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: tokens.chatBoxBorderColor,
+                                width: 1.2,
+                              ),
+                              boxShadow: tokens.seatBoxShadows,
                             ),
-                            boxShadow: tokens.seatBoxShadows,
-                          ),
-                          child: Icon(
-                            Icons.arrow_upward_rounded,
-                            color: tokens.chatBoxIconColor,
-                            size: 19,
+                            child: Icon(
+                              Icons.arrow_upward_rounded,
+                              color: tokens.chatBoxIconColor,
+                              size: 19,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 5),
+                        const SizedBox(width: 5),
 
-                      // 2. Stage Mic Button (Circle)
-                      GestureDetector(
-                        onTap: () {
-                          if (widget.isCurrentUserOnSeat) {
-                            widget.onToggleMic();
-                          } else {
-                            Get.snackbar(
-                              'Stage Mic 🎤',
-                              'Take a seat to unmute your mic.',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.black.withOpacity(0.85),
-                              colorText: Colors.white,
-                            );
-                          }
-                        },
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: tokens.chatBoxFillColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: tokens.chatBoxBorderColor,
-                              width: 1.2,
+                        // 2. Stage Mic Button (Circle)
+                        GestureDetector(
+                          onTap: () {
+                            if (widget.isCurrentUserOnSeat) {
+                              widget.onToggleMic();
+                            } else {
+                              Get.snackbar(
+                                'Stage Mic 🎤',
+                                'Take a seat to unmute your mic.',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.black.withOpacity(0.85),
+                                colorText: Colors.white,
+                              );
+                            }
+                          },
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: tokens.chatBoxFillColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: tokens.chatBoxBorderColor,
+                                width: 1.2,
+                              ),
+                              boxShadow: tokens.seatBoxShadows,
                             ),
-                            boxShadow: tokens.seatBoxShadows,
-                          ),
-                          child: Icon(
-                            isMicActive
-                                ? Icons.mic_rounded
-                                : Icons.mic_off_rounded,
-                            color: isMicActive
-                                ? Colors.greenAccent
-                                : Colors.redAccent,
-                            size: 19,
+                            child: Icon(
+                              isMicActive
+                                  ? Icons.mic_rounded
+                                  : Icons.mic_off_rounded,
+                              color: isMicActive
+                                  ? Colors.greenAccent
+                                  : Colors.redAccent,
+                              size: 19,
+                            ),
                           ),
                         ),
-                      ),
-
-                      if (!isExpanded) ...[
                         const SizedBox(width: 5),
 
                         // 3. Room Menubar / Options Sheet Button (≡ Circle with Red Badge)
@@ -566,47 +565,46 @@ class _RoomCallBottomControlsState extends State<RoomCallBottomControls> {
                             ),
                           ],
                         ),
-                      ],
+                        const SizedBox(width: 5),
 
-                      const SizedBox(width: 5),
-
-                      // 4. Send Gift Box Button (Circle)
-                      GestureDetector(
-                        onTap: () {
-                          Get.dialog(
-                            SendGiftDialog(
-                              roomId: widget.roomId,
-                              targetUserId: null,
-                              targetUserName: null,
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFF2D55), Color(0xFFAF52DE)],
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    const Color(0xFFFF2D55).withOpacity(0.35),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
+                        // 4. Send Gift Box Button (Circle)
+                        GestureDetector(
+                          onTap: () {
+                            Get.dialog(
+                              SendGiftDialog(
+                                roomId: widget.roomId,
+                                targetUserId: null,
+                                targetUserName: null,
                               ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.card_giftcard_rounded,
-                            color: Colors.white,
-                            size: 19,
+                            );
+                          },
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFF2D55), Color(0xFFAF52DE)],
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      const Color(0xFFFF2D55).withOpacity(0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.card_giftcard_rounded,
+                              color: Colors.white,
+                              size: 19,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
               );
             }),

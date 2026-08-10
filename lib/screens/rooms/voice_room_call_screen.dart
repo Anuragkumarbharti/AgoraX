@@ -565,6 +565,17 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       await RoomVoiceManager().toggleMic(true);
       _isMicOn.value = true;
 
+      if (Get.isRegistered<RoomChatController>()) {
+        RoomChatController.to.addSeatActionSystemMessage(
+          roomId: widget.roomId,
+          userId: widget.userId,
+          userName: widget.userName,
+          action: 'take',
+          seatIndex: seatIndex,
+          customSeatName: RoomSeatController.getSeatName(seatIndex),
+        );
+      }
+
       Get.snackbar(
         'Stage Joined 🎤',
         'You are now in ${RoomSeatController.getSeatName(seatIndex)}. Speak freely!',
@@ -591,6 +602,17 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       setState(() {
         _isCameraOn = false;
       });
+
+      if (Get.isRegistered<RoomChatController>()) {
+        RoomChatController.to.addSeatActionSystemMessage(
+          roomId: widget.roomId,
+          userId: widget.userId,
+          userName: widget.userName,
+          action: 'leave',
+          seatIndex: seatIndex,
+          customSeatName: RoomSeatController.getSeatName(seatIndex),
+        );
+      }
 
       Get.snackbar(
         'Left Stage 🚪',
@@ -668,6 +690,14 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   void onUserJoin(String userId, String userName,
       {int? vipLevel, int? novelLevel, String? entryEffect}) {
+    if (Get.isRegistered<RoomChatController>()) {
+      RoomChatController.to.addRoomEntrySystemMessage(
+        widget.roomId,
+        userId,
+        userName,
+      );
+    }
+
     final identity = PremiumIdentityController.getIdentity(
       userId,
       userName,
@@ -1055,8 +1085,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     debugPrint('[ROOM] rebuild');
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final isKeyboardOpen = bottomInset > 0;
-    final dynamicShift =
-        isKeyboardOpen ? (bottomInset * 0.42).clamp(0.0, 150.0) : 0.0;
+    final isChatFocused = isKeyboardOpen || _chatInputFocusNode.hasFocus;
 
     final layeredPipeline = RoomLayeredPipeline(
       // Layer 0: Static, Isolated Background Layer (Never rebuilds on UI/chat/seats events)
@@ -1066,75 +1095,99 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       layer4FloatingUI: Stack(
         children: [
           SafeArea(
-            child: Column(
-              children: [
-                Obx(() {
-                  final liveRoom = _controller.rooms
-                          .firstWhereOrNull((r) => r.id == widget.roomId) ??
-                      VoiceRoom.dummy();
-                  return RoomCallHeader(
-                    roomId: widget.roomId,
-                    roomName: widget.roomName,
-                    room: liveRoom,
-                    userId: widget.userId,
-                    getUserDp: _getUserDp,
-                    onLeaveRoom: _leaveRoom,
-                    onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
-                  );
-                }),
-                Expanded(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    transform: Matrix4.translationValues(0, -dynamicShift, 0),
+            bottom: false,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: bottomInset),
+              child: Column(
+                children: [
+                  Obx(() {
+                    final liveRoom = _controller.rooms
+                            .firstWhereOrNull((r) => r.id == widget.roomId) ??
+                        VoiceRoom.dummy();
+                    return RoomCallHeader(
+                      roomId: widget.roomId,
+                      roomName: widget.roomName,
+                      room: liveRoom,
+                      userId: widget.userId,
+                      getUserDp: _getUserDp,
+                      onLeaveRoom: _leaveRoom,
+                      onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
+                    );
+                  }),
+                  Expanded(
                     child: Column(
                       children: [
-                        const SizedBox(height: 8),
-                        RoomCallSeatGrid(
-                          roomId: widget.roomId,
-                          seatKeys: _seatKeys,
-                          onSeatClick: _handleSeatClick,
-                        ),
-                        const SizedBox(height: 8),
-                        Obx(() {
-                          final liveRoom = _controller.rooms.firstWhereOrNull(
-                                  (r) => r.id == widget.roomId) ??
-                              VoiceRoom.dummy();
-                          return RoomCallSpecialPanels(
-                            roomId: widget.roomId,
-                            room: liveRoom,
-                            userId: widget.userId,
-                            userName: widget.userName,
-                            debateRound: _debateRound,
-                            debateTimerSeconds: _debateTimerSeconds,
-                            isDebateTimerRunning: _isDebateTimerRunning,
-                            scoreCandidateA: _scoreCandidateA,
-                            scoreCandidateB: _scoreCandidateB,
-                            debateTimer: _debateTimer,
-                            quizVotes: _quizVotes,
-                            quizSelectedOption: _quizSelectedOption,
-                            quizVoted: _quizVoted,
-                            songQueue: _songQueue,
-                            pollVotes: _pollVotes,
-                            pollSelectedOption: _pollSelectedOption,
-                            pollVoted: _pollVoted,
-                            seats: _seats,
-                            glowController: _glowController,
-                            getUserDp: _getUserDp,
-                            onJoinSeat: _joinSeat,
-                            onShowLeaveSeatMenu: (idx) =>
-                                SeatActionSheets.showSelfSeatActions(
-                              context: context,
-                              roomId: widget.roomId,
-                              seatIndex: idx,
-                              isMicOn: _isMicOn.value,
-                              onToggleMic: _toggleMic,
-                              onLeaveSeat: _leaveSeat,
-                              seats: _seats,
+                        // StarMaker-style Smooth Upward Collapse/Expand Animation for Seats Stage & Panels
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 320),
+                          curve: Curves.fastOutSlowIn,
+                          alignment: Alignment.topCenter,
+                          child: ClipRect(
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeInOut,
+                              opacity: isChatFocused ? 0.0 : 1.0,
+                              child: isChatFocused
+                                  ? const SizedBox(width: double.infinity, height: 0)
+                                  : Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const SizedBox(height: 8),
+                                        RoomCallSeatGrid(
+                                          roomId: widget.roomId,
+                                          seatKeys: _seatKeys,
+                                          onSeatClick: _handleSeatClick,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Obx(() {
+                                          final liveRoom = _controller.rooms
+                                                  .firstWhereOrNull(
+                                                      (r) => r.id == widget.roomId) ??
+                                              VoiceRoom.dummy();
+                                          return RoomCallSpecialPanels(
+                                            roomId: widget.roomId,
+                                            room: liveRoom,
+                                            userId: widget.userId,
+                                            userName: widget.userName,
+                                            debateRound: _debateRound,
+                                            debateTimerSeconds: _debateTimerSeconds,
+                                            isDebateTimerRunning:
+                                                _isDebateTimerRunning,
+                                            scoreCandidateA: _scoreCandidateA,
+                                            scoreCandidateB: _scoreCandidateB,
+                                            debateTimer: _debateTimer,
+                                            quizVotes: _quizVotes,
+                                            quizSelectedOption:
+                                                _quizSelectedOption,
+                                            quizVoted: _quizVoted,
+                                            songQueue: _songQueue,
+                                            pollVotes: _pollVotes,
+                                            pollSelectedOption:
+                                                _pollSelectedOption,
+                                            pollVoted: _pollVoted,
+                                            seats: _seats,
+                                            glowController: _glowController,
+                                            getUserDp: _getUserDp,
+                                            onJoinSeat: _joinSeat,
+                                            onShowLeaveSeatMenu: (idx) =>
+                                                SeatActionSheets.showSelfSeatActions(
+                                              context: context,
+                                              roomId: widget.roomId,
+                                              seatIndex: idx,
+                                              isMicOn: _isMicOn.value,
+                                              onToggleMic: _toggleMic,
+                                              onLeaveSeat: _leaveSeat,
+                                              seats: _seats,
+                                            ),
+                                            onShowMiniProfileDialog:
+                                                _showMiniProfileDialog,
+                                          );
+                                        }),
+                                      ],
+                                    ),
                             ),
-                            onShowMiniProfileDialog: _showMiniProfileDialog,
-                          );
-                        }),
+                          ),
+                        ),
                         Expanded(
                           child: RoomCallChatBox(
                             roomId: widget.roomId,
@@ -1145,34 +1198,36 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
                       ],
                     ),
                   ),
-                ),
-              ],
+                  Obx(() {
+                    final _ = _controller.roomSeatsInfo[widget.roomId]?.length;
+                    return RoomCallBottomControls(
+                      roomId: widget.roomId,
+                      chatInputController: _chatInputController,
+                      chatInputFocusNode: _chatInputFocusNode,
+                      isMicOn: _isMicOn,
+                      isCurrentUserOnSeat: _isCurrentUserOnSeat(),
+                      onToggleMic: _toggleMic,
+                      onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
+                      onTriggerReaction: () => _triggerReaction('❤️'),
+                    );
+                  }),
+                ],
+              ),
             ),
-          ),
-          Positioned(
-            bottom: bottomInset,
-            left: 0,
-            right: 0,
-            child: Obx(() {
-              final _ = _controller.roomSeatsInfo[widget.roomId]?.length;
-              return RoomCallBottomControls(
-                roomId: widget.roomId,
-                chatInputController: _chatInputController,
-                chatInputFocusNode: _chatInputFocusNode,
-                isMicOn: _isMicOn,
-                isCurrentUserOnSeat: _isCurrentUserOnSeat(),
-                onToggleMic: _toggleMic,
-                onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
-                onTriggerReaction: () => _triggerReaction('❤️'),
-              );
-            }),
           ),
           Positioned(
             bottom: bottomInset + 96,
             right: 14,
-            child: QuickRepeatButtonWidget(
-              roomId: widget.roomId,
-              currentUserId: widget.userId,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: isChatFocused ? 0.0 : 1.0,
+              child: IgnorePointer(
+                ignoring: isChatFocused,
+                child: QuickRepeatButtonWidget(
+                  roomId: widget.roomId,
+                  currentUserId: widget.userId,
+                ),
+              ),
             ),
           ),
           Positioned.fill(
