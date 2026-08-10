@@ -8,6 +8,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../models/user/user_model.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_seat_controller.dart';
+import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/index.dart';
 import '../../../../utils/number_formatter.dart';
@@ -1088,99 +1090,191 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                     ),
                     const SizedBox(height: 16),
 
-                    // 8. Bottom Action Buttons Row (Sequence: 1. Message, 2. Gift, 3. Mention [LAST])
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6366F1),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                    // 8. Bottom Action Buttons Row (5 Actions Room Permission Matrix)
+                    Builder(
+                      builder: (context) {
+                        final room = Get.isRegistered<RoomController>()
+                            ? RoomController.to.rooms
+                                .firstWhereOrNull((r) => r.id == widget.roomId)
+                            : null;
+
+                        final String callerId = widget.callerUserId.isNotEmpty
+                            ? widget.callerUserId
+                            : (Supabase.instance.client.auth.currentUser?.id ?? '');
+                        final String targetId = widget.targetUserId;
+
+                        final bool isSelfClick =
+                            (callerId.isNotEmpty && callerId == targetId);
+
+                        final String callerRoleRaw =
+                            (room != null && Get.isRegistered<RoomController>())
+                                ? RoomController.to.getUserRole(room, callerId)
+                                : 'Audience';
+                        final String targetRoleRaw =
+                            (room != null && Get.isRegistered<RoomController>())
+                                ? RoomController.to.getUserRole(room, targetId)
+                                : 'Audience';
+
+                        final String callerRoleLower =
+                            callerRoleRaw.trim().toLowerCase();
+                        final String targetRoleLower =
+                            targetRoleRaw.trim().toLowerCase();
+
+                        final bool isCallerOwner =
+                            (room != null && callerId == room.hostId) ||
+                                callerRoleLower == 'owner' ||
+                                callerRoleLower == 'creator' ||
+                                callerRoleLower == 'founder';
+
+                        final bool isCallerCoOwner =
+                            callerRoleLower == 'co-owner' ||
+                                callerRoleLower == 'co-host' ||
+                                callerRoleLower == 'coowner' ||
+                                callerRoleLower == 'cohost';
+
+                        final bool isTargetOwner =
+                            (room != null && targetId == room.hostId) ||
+                                targetRoleLower == 'owner' ||
+                                targetRoleLower == 'creator' ||
+                                targetRoleLower == 'founder';
+
+                        final seatsList = (Get.isRegistered<RoomController>())
+                            ? (RoomController.to.roomSeatsInfo[widget.roomId] ??
+                                [])
+                            : [];
+                        final targetSeatIdx = seatsList
+                            .indexWhere((s) => s['userId'] == targetId);
+                        final bool isTargetOnSeat = targetSeatIdx != -1;
+
+                        bool canManageSeat = false;
+                        if (isTargetOnSeat) {
+                          if (isSelfClick) {
+                            canManageSeat = true;
+                          } else if (isCallerOwner) {
+                            canManageSeat = true;
+                          } else if (isCallerCoOwner && !isTargetOwner) {
+                            canManageSeat = true;
+                          }
+                        }
+
+                        final bool isMuted = (Get.isRegistered<RoomController>())
+                            ? (RoomController.to.mutedUsers[widget.roomId]
+                                    ?.contains(targetId) ??
+                                false)
+                            : false;
+
+                        return Row(
+                          children: [
+                            // 1. View Profile
+                            _buildCompactActionButton(
+                              icon: Icons.account_circle_rounded,
+                              label: 'Profile',
+                              color: const Color(0xFF6366F1),
+                              onTap: () => _navigateToProfile(u),
                             ),
-                            onPressed: () => _navigateToProfile(u),
-                            icon: const Icon(Icons.chat_bubble_outline_rounded,
-                                color: Colors.white, size: 16),
-                            label: Text(
-                              'Message',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            const SizedBox(width: 5),
+
+                            // 2. Send Gift
+                            _buildCompactActionButton(
+                              icon: Icons.card_giftcard_rounded,
+                              label: 'Gift',
+                              color: const Color(0xFFF59E0B),
+                              onTap: () {
+                                Get.back();
+                                Get.dialog(
+                                  SendGiftDialog(
+                                    roomId: widget.roomId,
+                                    occupiedSeatsCount: widget.occupiedSeatsCount,
+                                    targetUserId: widget.targetUserId,
+                                    targetUserName: uName,
+                                  ),
+                                );
+                              },
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFBBF24),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            const SizedBox(width: 5),
+
+                            // 3. Mention
+                            _buildCompactActionButton(
+                              icon: Icons.alternate_email_rounded,
+                              label: 'Mention',
+                              color: const Color(0xFF8B5CF6),
+                              onTap: () {
+                                Get.back();
+                                if (Get.isRegistered<RoomController>()) {
+                                  RoomController.to
+                                      .mentionUserInRoomChat(uName);
+                                }
+                              },
                             ),
-                            onPressed: () {
-                              Get.back();
-                              Get.dialog(
-                                SendGiftDialog(
-                                  roomId: widget.roomId,
-                                  occupiedSeatsCount: widget.occupiedSeatsCount,
-                                  targetUserId: widget.targetUserId,
-                                  targetUserName: uName,
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.card_giftcard_rounded,
-                                color: Colors.white, size: 16),
-                            label: Text(
-                              'Gift',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+
+                            if (canManageSeat) ...[
+                              const SizedBox(width: 5),
+                              // 4. Mute / Unmute
+                              _buildCompactActionButton(
+                                icon: isMuted
+                                    ? Icons.mic_off_rounded
+                                    : Icons.mic_rounded,
+                                label: isMuted ? 'Unmute' : 'Mute',
+                                color: isMuted
+                                    ? const Color(0xFFEF4444)
+                                    : const Color(0xFF10B981),
+                                onTap: () {
+                                  if (isSelfClick) {
+                                    if (Get.isRegistered<VoiceController>()) {
+                                      VoiceController.to.toggleMute();
+                                    }
+                                  } else if (Get.isRegistered<
+                                      RoomController>()) {
+                                    RoomController.to
+                                        .toggleMuteUser(widget.roomId, targetId);
+                                  }
+                                  Get.back();
+                                },
                               ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFC084FC),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                              const SizedBox(width: 5),
+
+                              // 5. Remove from Seat
+                              _buildCompactActionButton(
+                                icon: Icons.no_meeting_room_rounded,
+                                label: 'Remove',
+                                color: const Color(0xFFDC2626),
+                                onTap: () {
+                                  Get.back();
+                                  if (isSelfClick) {
+                                    if (Get.isRegistered<RoomSeatController>()) {
+                                      RoomSeatController.to.leaveRoomSeat(
+                                        widget.roomId,
+                                        targetSeatIdx,
+                                        onEmitActivity:
+                                            (_, __, ___, ____, _____) async {},
+                                        onRefreshProgression: () async {},
+                                        onRepairState: () async {},
+                                      );
+                                    }
+                                  } else {
+                                    if (Get.isRegistered<RoomSeatController>()) {
+                                      RoomSeatController.to.removeUserFromSeat(
+                                        widget.roomId,
+                                        targetSeatIdx,
+                                        targetId,
+                                        onEmitActivity:
+                                            (_, __, ___, ____) async {},
+                                      );
+                                    }
+                                  }
+                                  Get.snackbar(
+                                    'Seat Action 🚫',
+                                    isSelfClick
+                                        ? 'You left the seat.'
+                                        : '$uName was removed from seat.',
+                                    snackPosition: SnackPosition.BOTTOM,
+                                  );
+                                },
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            onPressed: () {
-                              Get.back();
-                              if (Get.isRegistered<RoomController>()) {
-                                RoomController.to.mentionUserInRoomChat(uName);
-                              }
-                            },
-                            icon: const Icon(Icons.alternate_email_rounded,
-                                color: Colors.white, size: 16),
-                            label: Text(
-                              'Mention',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                            ],
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -1189,6 +1283,42 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
           ),
         ),
       );
-    });
+  Widget _buildCompactActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 1.0),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 16),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  color: color,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
