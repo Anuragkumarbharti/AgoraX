@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/common/optimized_image.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../models/chat/chat_model.dart';
@@ -693,10 +694,11 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                       userId: conv.otherUserId,
                       username: conv.otherUserName,
                       size: 52,
-                      child: Image.network(
-                        UserProfileCacheManager.rxCache[conv.otherUserId]?.avatar ?? conv.otherUserAvatar,
+                      child: OptimizedImage(
+                        imageUrl: UserProfileCacheManager.rxCache[conv.otherUserId]?.avatar ?? conv.otherUserAvatar,
+                        preset: MediaSizePreset.xs,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white30),
+                        errorWidget: const Icon(Icons.person, color: Colors.white30),
                       ),
                     ),
                     if (conv.otherUserOnline)

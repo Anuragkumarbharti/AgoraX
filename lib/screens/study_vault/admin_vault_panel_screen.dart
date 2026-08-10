@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../../services/vault/study_vault_controller.dart';
 import '../../services/memberships/vip_controller.dart';
 import '../../services/memberships/novel_controller.dart';
@@ -213,7 +214,13 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(book.coverImage, width: 50, height: 75, fit: BoxFit.cover),
+                      child: OptimizedImage(
+                        imageUrl: book.coverImage,
+                        width: 50,
+                        height: 75,
+                        preset: MediaSizePreset.xs,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     SizedBox(width: 14),
                     Expanded(

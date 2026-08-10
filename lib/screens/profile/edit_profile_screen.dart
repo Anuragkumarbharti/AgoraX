@@ -13,6 +13,7 @@ import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/user/user_progress_sync_service.dart';
 import '../../services/storage/universal_image_optimizer.dart';
 import '../../services/storage/asset_cache_manager.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../../widgets/gems/gem_widgets.dart';
 import '../../widgets/profile/custom_image_editor.dart';
 
@@ -745,7 +746,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               image: _coverFile != null
                   ? DecorationImage(image: FileImage(_coverFile!), fit: BoxFit.cover)
                   : (_user.coverPhoto != null && _user.coverPhoto!.isNotEmpty)
-                      ? DecorationImage(image: NetworkImage(_user.coverPhoto!), fit: BoxFit.cover)
+                      ? DecorationImage(
+                          image: OptimizedImage.getOptimizedImageProvider(
+                            _user.coverPhoto!,
+                            preset: MediaSizePreset.lg,
+                          ),
+                          fit: BoxFit.cover,
+                        )
                       : null,
             ),
             child: _coverFile == null && (_user.coverPhoto == null || _user.coverPhoto!.isEmpty)
@@ -768,7 +775,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   backgroundImage: _avatarFile != null
                       ? FileImage(_avatarFile!) as ImageProvider<Object>
                       : (_user.avatar != null && _user.avatar!.isNotEmpty)
-                          ? NetworkImage(_user.avatar!) as ImageProvider<Object>
+                          ? OptimizedImage.getOptimizedImageProvider(
+                              _user.avatar!,
+                              preset: MediaSizePreset.md,
+                            )
                           : null,
                   child: _avatarFile == null && (_user.avatar == null || _user.avatar!.isEmpty)
                       ? Icon(Icons.person_rounded, size: 40, color: context.caption)

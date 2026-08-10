@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../screens/rooms/voice_room_call_screen.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../user/user_profile_cache_manager.dart';
 
 class RoomPipController extends GetxController {
@@ -81,12 +82,13 @@ class RoomPipController extends GetxController {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(27),
-                          child: Image.network(
-                            avatarUrl.isNotEmpty
+                          child: OptimizedImage(
+                            imageUrl: avatarUrl.isNotEmpty
                                 ? avatarUrl
                                 : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
+                            preset: MediaSizePreset.xs,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorWidget: Container(
                               color: Colors.pinkAccent,
                               child: const Icon(Icons.music_note,
                                   color: Colors.white, size: 24),

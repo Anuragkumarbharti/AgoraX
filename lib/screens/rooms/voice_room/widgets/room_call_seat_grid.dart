@@ -159,7 +159,11 @@ class RoomCallSeatGrid extends StatelessWidget {
                   isSpeaking: isSpeaking,
                   showBadges: false,
                   child: avatarUrl != null && avatarUrl.isNotEmpty
-                      ? Image.network(avatarUrl, fit: BoxFit.cover)
+                      ? OptimizedImage(
+                          imageUrl: avatarUrl,
+                          preset: MediaSizePreset.sm,
+                          fit: BoxFit.cover,
+                        )
                       : Container(
                           color: Theme.of(context).primaryColor.withOpacity(0.2),
                           child: Center(

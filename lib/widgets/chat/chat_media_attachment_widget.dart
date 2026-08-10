@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/theme.dart';
+import '../common/optimized_image.dart';
 import '../../models/chat/chat_model.dart';
 
 class ChatMediaAttachmentWidget extends StatefulWidget {
@@ -148,7 +149,7 @@ class _ChatMediaAttachmentWidgetState extends State<ChatMediaAttachmentWidget> {
             minScale: 0.5,
             maxScale: 4.0,
             child: imageUrl.startsWith('http')
-                ? Image.network(imageUrl, fit: BoxFit.contain)
+                ? OptimizedImage(imageUrl: imageUrl, preset: MediaSizePreset.original, fit: BoxFit.contain)
                 : Image.file(File(imageUrl), fit: BoxFit.contain),
           ),
         ),
@@ -229,12 +230,13 @@ class _ChatMediaAttachmentWidgetState extends State<ChatMediaAttachmentWidget> {
           child: Stack(
             children: [
               imgUrl.startsWith('http')
-                  ? Image.network(
-                      imgUrl,
+                  ? OptimizedImage(
+                      imageUrl: imgUrl,
+                      preset: MediaSizePreset.md,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
-                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_rounded, color: Colors.grey)),
+                      errorWidget: const Center(child: Icon(Icons.broken_image_rounded, color: Colors.grey)),
                     )
                   : Image.file(
                       File(imgUrl),

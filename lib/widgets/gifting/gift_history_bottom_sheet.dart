@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../common/optimized_image.dart';
 import '../../core/theme.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../gems/gem_widgets.dart';
@@ -158,7 +159,10 @@ class _GiftHistoryBottomSheetState extends State<GiftHistoryBottomSheet> {
                                 CircleAvatar(
                                   radius: 20,
                                   backgroundImage: otherAvatar != null && otherAvatar.isNotEmpty
-                                      ? CachedNetworkImageProvider(otherAvatar)
+                                      ? OptimizedImage.getOptimizedImageProvider(
+                                          otherAvatar,
+                                          preset: MediaSizePreset.xs,
+                                        )
                                       : null,
                                   child: otherAvatar == null || otherAvatar.isEmpty
                                       ? const Icon(Icons.person, size: 18, color: Colors.white30)

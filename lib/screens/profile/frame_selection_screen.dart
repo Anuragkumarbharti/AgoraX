@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../../services/user/customization_controller.dart';
 import '../../widgets/memberships/novel_avatar_decorator.dart';
 import '../../services/user/user_profile_cache_manager.dart';
@@ -122,7 +123,11 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen>
                     level: 1,
                     size: 136,
                     child: avatarUrl.isNotEmpty
-                        ? Image.network(avatarUrl, fit: BoxFit.cover)
+                        ? OptimizedImage(
+                            imageUrl: avatarUrl,
+                            preset: MediaSizePreset.md,
+                            fit: BoxFit.cover,
+                          )
                         : Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(

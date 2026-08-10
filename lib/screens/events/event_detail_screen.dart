@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../../models/community/event_model.dart';
 import '../../models/user/user_model.dart';
 import '../../services/community/event_controller.dart';
@@ -468,8 +469,9 @@ class _EventDetailScreenState extends State<EventDetailScreen>
         background: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(
-              widget.event.bannerUrl,
+            OptimizedImage(
+              imageUrl: widget.event.bannerUrl,
+              preset: MediaSizePreset.lg,
               fit: BoxFit.cover,
             ),
             Container(
@@ -1060,7 +1062,7 @@ class _EventDetailScreenState extends State<EventDetailScreen>
         child: Row(
           children: [
             ClipOval(
-              child: Image.network(w.avatarUrl, width: 32, height: 32, fit: BoxFit.cover),
+              child: OptimizedImage(imageUrl: w.avatarUrl, width: 32, height: 32, preset: MediaSizePreset.xs, fit: BoxFit.cover),
             ),
             SizedBox(width: 10),
             Expanded(

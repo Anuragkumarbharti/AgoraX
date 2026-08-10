@@ -309,11 +309,12 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
             errorBuilder: (_, __, ___) => MiniProfileBadges.buildTextTagFallback(label, tag),
           );
         } else {
-          imgWidget = Image.network(
-            imageUrl,
+          imgWidget = OptimizedImage(
+            imageUrl: imageUrl,
             height: 22,
+            preset: MediaSizePreset.xs,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => MiniProfileBadges.buildTextTagFallback(label, tag),
+            errorWidget: MiniProfileBadges.buildTextTagFallback(label, tag),
           );
         }
         return Tooltip(
@@ -577,7 +578,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                           child: CircleAvatar(
                             radius: 48,
                             backgroundImage: uAvatar.isNotEmpty
-                                ? CachedNetworkImageProvider(uAvatar)
+                                ? OptimizedImage.getOptimizedImageProvider(
+                                    uAvatar,
+                                    preset: MediaSizePreset.md,
+                                  )
                                 : null,
                             child: uAvatar.isEmpty
                                 ? const Icon(Icons.person,

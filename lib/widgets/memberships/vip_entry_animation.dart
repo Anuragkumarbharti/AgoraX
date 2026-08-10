@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
+import '../../services/memberships/entry_effect_manager.dart';
 import './vip_badge_widget.dart';
 
 // ============================================================
@@ -276,68 +277,30 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
   void _initVideo() async {
     if (!_isFullScreen) return;
 
-    VideoPlayerController? ctrl;
-    bool success = false;
-
-    // 1. Check pre-warmed VIP 2 video controller
-    try {
-      final prewarmed = VipVideoPreloader.consumePrewarmedCtrl();
-      if (prewarmed != null && prewarmed.value.isInitialized) {
-        ctrl = prewarmed;
-        success = true;
-        debugPrint("VIP Entry Effect: Used pre-warmed vip2.mov video controller.");
-      }
-    } catch (e) {
-      debugPrint("VIP Entry Effect: Error checking pre-warmed controller: $e");
-    }
-
-    // 2. Primary local asset source (assets/entryeffect/vip/vip2.mov)
-    if (!success && mounted) {
-      try {
-        ctrl = VideoPlayerController.asset(
-          'assets/entryeffect/vip/vip2.mov',
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-        );
-        await ctrl.initialize();
-        success = true;
-        debugPrint("VIP Entry Effect: Initialized local asset vip2.mov.");
-      } catch (e) {
-        debugPrint("VIP Entry Effect: Error initializing vip2.mov: $e");
-      }
-    }
-
-    // 3. Fallback to novel1.mp4 if vip2.mp4 fails
-    if (!success && mounted) {
-      try {
-        ctrl = VideoPlayerController.asset(
-          'assets/entryeffect/novel/novel1.mp4',
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-        );
-        await ctrl.initialize();
-        success = true;
-      } catch (e) {
-        debugPrint("VIP Entry Effect: Fallback video initialization error: $e");
-      }
-    }
+    final ctrl = await EntryEffectManager.instance.acquireVideoController(
+      'assets/entryeffect/vip/vip2.mov',
+    );
 
     if (mounted) {
-      if (success && ctrl != null) {
+      if (ctrl != null) {
         try {
-          ctrl.setVolume(0.0);
-          ctrl.setLooping(false);
+          _videoCtrl = ctrl;
           await ctrl.seekTo(Duration.zero);
           await ctrl.play();
-
-          setState(() {
-            _videoCtrl = ctrl;
-            _videoInitialized = true;
-          });
+          if (mounted) {
+            setState(() {
+              _videoInitialized = true;
+            });
+          }
         } catch (e) {
-          debugPrint("VIP Entry Effect: Error playing video: $e");
+          debugPrint('VIP Entry Effect play error: $e');
+          if (mounted) {
+            setState(() {
+              _videoInitialized = false;
+            });
+          }
         }
       }
-
-      // Start master timeline ONLY WHEN video is active and visible on screen
       _masterCtrl.reset();
       _masterCtrl.forward();
     }
@@ -346,8 +309,10 @@ class _VipEntryAnimationState extends State<VipEntryAnimation>
   @override
   void dispose() {
     debugPrint('[VIP_ENTRY] WIDGET DISPOSE | user=${widget.username}');
-    debugPrint('[VIP_ENTRY] CONTROLLER DISPOSE | slideCtrlVal=${_slideController.value} | masterCtrlVal=${_isFullScreen ? _masterCtrl.value : "N/A"}');
-    _videoCtrl?.dispose();
+    if (_videoCtrl != null) {
+      EntryEffectManager.instance.releaseVideoController(_videoCtrl);
+      _videoCtrl = null;
+    }
     if (_isFullScreen) {
       _masterCtrl.dispose();
     }

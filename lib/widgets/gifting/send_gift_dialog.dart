@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/store/store_controller.dart';
+import '../common/optimized_image.dart';
 import '../../services/vault/vault_controller.dart';
 import '../../services/gifting/gift_send_service.dart';
 import '../../services/gifting/arena_gift_recipient_manager.dart';
@@ -726,8 +727,10 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                                 radius: 15,
                                 backgroundImage: (entry.avatarUrl != null &&
                                         entry.avatarUrl!.isNotEmpty)
-                                    ? NetworkImage(entry.avatarUrl!)
-                                        as ImageProvider
+                                    ? OptimizedImage.getOptimizedImageProvider(
+                                        entry.avatarUrl!,
+                                        preset: MediaSizePreset.xs,
+                                      )
                                     : const AssetImage(
                                         'assets/images/placeholder.png'),
                                 // Owner badge: small crown overlay on avatar

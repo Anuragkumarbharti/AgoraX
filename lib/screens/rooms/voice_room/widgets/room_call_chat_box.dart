@@ -8,6 +8,7 @@ import '../../../../services/room/room_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../dialogs/mini_profile_dialog.dart';
+import '../../../../widgets/common/optimized_image.dart';
 
 class RoomCallChatBox extends StatelessWidget {
   final String roomId;
@@ -231,7 +232,10 @@ class RoomCallChatBox extends StatelessWidget {
                 radius: 18,
                 backgroundImage: message.senderAvatar != null &&
                         message.senderAvatar!.isNotEmpty
-                    ? NetworkImage(message.senderAvatar!)
+                    ? OptimizedImage.getOptimizedImageProvider(
+                        message.senderAvatar!,
+                        preset: MediaSizePreset.xs,
+                      )
                     : const AssetImage('assets/images/placeholder.png')
                         as ImageProvider,
               ),
@@ -243,10 +247,11 @@ class RoomCallChatBox extends StatelessWidget {
                   left: -4,
                   right: -4,
                   bottom: -4,
-                  child: Image.network(
-                    message.avatarFrame!,
+                  child: OptimizedImage(
+                    imageUrl: message.avatarFrame!,
+                    preset: MediaSizePreset.xs,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    errorWidget: const SizedBox.shrink(),
                   ),
                 ),
               Positioned(

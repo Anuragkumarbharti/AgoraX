@@ -25,22 +25,53 @@ class AdaptiveMediaManager extends GetxService {
     super.onClose();
   }
 
-  /// Returns valid public image URL safely
-  static String getAdaptiveImageUrl(String url, {int? targetWidth, int? quality}) {
+  /// Returns valid public image URL safely with Supabase WebP CDN transformation
+  static String getAdaptiveImageUrl(
+    String url, {
+    int? targetWidth,
+    int? targetHeight,
+    int? quality,
+    String format = 'webp',
+    String resize = 'cover',
+  }) {
     if (url.isEmpty) return url;
-    if (!url.contains('/storage/v1/object/public/')) return url;
 
-    final renderUrl = url.replaceAll('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-    final uri = Uri.parse(renderUrl);
-    final queryParams = Map<String, String>.from(uri.queryParameters);
+    // Handle Supabase Storage render transformation
+    if (url.contains('/storage/v1/object/public/')) {
+      final renderUrl = url.replaceAll('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+      final uri = Uri.parse(renderUrl);
+      final queryParams = Map<String, String>.from(uri.queryParameters);
 
-    if (targetWidth != null) {
-      queryParams['width'] = targetWidth.toString();
+      if (targetWidth != null && targetWidth > 0) {
+        queryParams['width'] = targetWidth.toString();
+      }
+      if (targetHeight != null && targetHeight > 0) {
+        queryParams['height'] = targetHeight.toString();
+      }
+      queryParams['format'] = format;
+      queryParams['quality'] = (quality ?? 80).clamp(30, 100).toString();
+      queryParams['resize'] = resize;
+
+      return uri.replace(queryParameters: queryParams).toString();
     }
-    queryParams['format'] = 'origin';
-    queryParams['quality'] = (quality ?? 80).toString();
 
-    return uri.replace(queryParameters: queryParams).toString();
+    // Handle Unsplash image dynamic sizing
+    if (url.contains('images.unsplash.com')) {
+      final uri = Uri.parse(url);
+      final queryParams = Map<String, String>.from(uri.queryParameters);
+      if (targetWidth != null && targetWidth > 0) {
+        queryParams['w'] = targetWidth.toString();
+      }
+      if (targetHeight != null && targetHeight > 0) {
+        queryParams['h'] = targetHeight.toString();
+      }
+      queryParams['fm'] = format;
+      queryParams['q'] = (quality ?? 80).clamp(30, 100).toString();
+      queryParams['fit'] = 'crop';
+      return uri.replace(queryParameters: queryParams).toString();
+    }
+
+    return url;
   }
 
   /// Adapt Zego Voice Engine audio bitrate & sample rate dynamically to active NetworkTier.

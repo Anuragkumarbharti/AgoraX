@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../../services/vault/study_vault_controller.dart';
 import '../../services/memberships/vip_controller.dart';
 import '../../models/vault/study_vault_model.dart';
@@ -428,7 +429,13 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.network(book.coverImage, width: 45, height: 60, fit: BoxFit.cover),
+                          child: OptimizedImage(
+                            imageUrl: book.coverImage,
+                            width: 45,
+                            height: 60,
+                            preset: MediaSizePreset.xs,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                         SizedBox(width: 12),
                         Expanded(
@@ -555,7 +562,10 @@ class _StudyVaultHomeScreenState extends State<StudyVaultHomeScreen> {
                       )
                     ],
                     image: DecorationImage(
-                      image: NetworkImage(book.coverImage),
+                      image: OptimizedImage.getOptimizedImageProvider(
+                        book.coverImage,
+                        preset: MediaSizePreset.md,
+                      ),
                       fit: BoxFit.cover,
                     ),
                   ),

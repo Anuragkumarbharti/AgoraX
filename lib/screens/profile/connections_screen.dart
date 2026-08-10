@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/common/optimized_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:creania/core/theme.dart';
 import '../../models/user/user_model.dart';
@@ -509,8 +510,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen>
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
                     child: user.avatar != null && user.avatar!.isNotEmpty
-                        ? CachedNetworkImage(
+                        ? OptimizedImage(
                             imageUrl: user.avatar!,
+                            preset: MediaSizePreset.xs,
                             fit: BoxFit.cover,
                           )
                         : Container(

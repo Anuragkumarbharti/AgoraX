@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/common/optimized_image.dart';
 import 'package:creania/core/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../models/room/room_model.dart';
@@ -926,7 +927,10 @@ class _RoomsScreenState extends State<RoomsScreen>
                                     roomAvatar != null &&
                                     roomAvatar.isNotEmpty
                                 ? DecorationImage(
-                                    image: NetworkImage(roomAvatar),
+                                    image: OptimizedImage.getOptimizedImageProvider(
+                                      roomAvatar,
+                                      preset: MediaSizePreset.sm,
+                                    ),
                                     fit: BoxFit.cover,
                                   )
                                 : null,
@@ -1258,14 +1262,14 @@ class _RoomsScreenState extends State<RoomsScreen>
                   const BorderRadius.vertical(top: Radius.circular(20)),
               child: (room.avatar != null && room.avatar!.isNotEmpty) ||
                       (room.banner != null && room.banner!.isNotEmpty)
-                  ? Image.network(
-                      (room.avatar != null && room.avatar!.isNotEmpty)
+                  ? OptimizedImage(
+                      imageUrl: (room.avatar != null && room.avatar!.isNotEmpty)
                           ? room.avatar!
                           : room.banner!,
                       height: 100,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildCardDefaultBanner(),
+                      errorWidget: _buildCardDefaultBanner(),
                     )
                   : _buildCardDefaultBanner(),
             ),
@@ -1278,7 +1282,7 @@ class _RoomsScreenState extends State<RoomsScreen>
                     radius: 24,
                     backgroundImage:
                         room.avatar != null && room.avatar!.isNotEmpty
-                            ? NetworkImage(room.avatar!)
+                            ? OptimizedImage.getOptimizedImageProvider(room.avatar!, preset: MediaSizePreset.sm)
                             : null,
                     backgroundColor: context.primaryColor.withOpacity(0.1),
                     child: room.avatar == null || room.avatar!.isEmpty
@@ -1568,11 +1572,11 @@ class _RoomsScreenState extends State<RoomsScreen>
               height: 60,
               color: Colors.grey[800],
               child: room.avatar != null
-                  ? CachedNetworkImage(
+                  ? OptimizedImage(
                       imageUrl: room.avatar!,
+                      preset: MediaSizePreset.sm,
                       fit: BoxFit.cover,
-                      errorWidget: (context, url, error) =>
-                          Icon(Icons.radio, color: context.caption),
+                      errorWidget: Icon(Icons.radio, color: context.caption),
                     )
                   : Icon(Icons.radio, color: context.caption),
             ),
@@ -2003,18 +2007,12 @@ class _RoomsScreenState extends State<RoomsScreen>
             // Cover Image
             (room.avatar != null && room.avatar!.isNotEmpty) ||
                     (room.banner != null && room.banner!.isNotEmpty)
-                ? CachedNetworkImage(
+                ? OptimizedImage(
                     imageUrl: (room.avatar != null && room.avatar!.isNotEmpty)
                         ? room.avatar!
                         : room.banner!,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: context.secondaryBackgroundColor,
-                      child: Center(
-                          child: CircularProgressIndicator(
-                              color: context.primaryColor, strokeWidth: 2)),
-                    ),
-                    errorWidget: (context, url, error) => Container(
+                    errorWidget: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Color(0xFF312E81), Color(0xFF1E1B4B)],
@@ -2258,7 +2256,10 @@ class _RoomsScreenState extends State<RoomsScreen>
                               child: CircleAvatar(
                                 radius: 10,
                                 backgroundImage: uAvatar.isNotEmpty
-                                    ? CachedNetworkImageProvider(uAvatar)
+                                    ? OptimizedImage.getOptimizedImageProvider(
+                                        uAvatar,
+                                        preset: MediaSizePreset.xs,
+                                      )
                                     : null,
                                 backgroundColor:
                                     context.primaryColor.withOpacity(0.1),

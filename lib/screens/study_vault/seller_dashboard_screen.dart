@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../../services/vault/study_vault_controller.dart';
 import '../../models/vault/study_vault_model.dart';
 import './upload_book_screen.dart';
@@ -614,7 +615,13 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.network(item.coverImage, width: 50, height: 70, fit: BoxFit.cover),
+                child: OptimizedImage(
+                  imageUrl: item.coverImage,
+                  width: 50,
+                  height: 70,
+                  preset: MediaSizePreset.xs,
+                  fit: BoxFit.cover,
+                ),
               ),
               SizedBox(width: 14),
               Expanded(

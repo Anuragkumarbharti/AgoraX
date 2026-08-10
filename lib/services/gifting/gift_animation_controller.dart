@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/gift/gift_animation_metadata.dart';
+import './gift_media_manager.dart';
 
 class GiftAnimationEventPayload {
   final String id;
@@ -244,6 +245,17 @@ class GiftAnimationController extends GetxController {
       count: count,
       timestamp: payload['timestamp'] ?? DateTime.now().millisecondsSinceEpoch,
     );
+
+    // Pre-warm asset in background via GiftMediaManager
+    if (giftIcon.isNotEmpty && !giftIcon.startsWith('assets/')) {
+      GiftMediaManager.instance.getOrFetchAnimationFile(giftIcon);
+    }
+
+    // Cap maximum active overlay events to 3 to avoid animation storms
+    if (activeEvents.length >= 3) {
+      activeEvents.removeAt(0);
+      debugPrint('[Gift] Queue overflow: Evicted oldest active overlay event to maintain smooth 60 FPS.');
+    }
 
     // Reset combo counter for this fresh animation
     _resetComboFor(eventPayload);

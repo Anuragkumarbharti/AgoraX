@@ -163,12 +163,13 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> {
               child: ClipOval(child: reactiveAvatarChild),
             ),
             IgnorePointer(
-              child: Image.network(
-                dynamicFrameUrl,
+              child: OptimizedImage(
+                imageUrl: dynamicFrameUrl,
                 width: frameSize,
                 height: frameSize,
+                preset: frameSize <= 64 ? MediaSizePreset.sm : MediaSizePreset.md,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorWidget: const SizedBox.shrink(),
               ),
             ),
           ],

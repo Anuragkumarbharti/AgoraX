@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../common/optimized_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
 import '../../models/user/user_model.dart';
@@ -173,12 +174,11 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
             height: 44,
             child: avatarUrl.isNotEmpty
                 ? (avatarUrl.startsWith('http')
-                    ? CachedNetworkImage(
+                    ? OptimizedImage(
                         imageUrl: avatarUrl,
+                        preset: MediaSizePreset.xs,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                            Container(color: context.secondaryBackgroundColor),
-                        errorWidget: (context, url, error) => _buildInitials(),
+                        errorWidget: _buildInitials(),
                       )
                     : (avatarUrl.startsWith('assets/')
                         ? Image.asset(
@@ -525,11 +525,12 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
           errorBuilder: (_, __, ___) => const SizedBox.shrink(),
         );
       } else {
-        return Image.network(
-          imageUrl,
+        return OptimizedImage(
+          imageUrl: imageUrl,
           height: 19,
+          preset: MediaSizePreset.xs,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          errorWidget: const SizedBox.shrink(),
         );
       }
     }

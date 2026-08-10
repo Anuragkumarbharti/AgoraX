@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../services/storage/asset_cache_manager.dart';
+export '../../services/storage/asset_cache_manager.dart' show ImageQuality, MediaSizePreset;
 
 class OptimizedImage extends StatelessWidget {
   const OptimizedImage({
     Key? key,
     required this.imageUrl,
+    this.preset,
     this.quality = ImageQuality.medium,
     this.fit = BoxFit.cover,
     this.width,
@@ -14,9 +16,11 @@ class OptimizedImage extends StatelessWidget {
     this.borderRadius,
     this.placeholder,
     this.errorWidget,
+    this.useShimmer = true,
   }) : super(key: key);
 
   final String imageUrl;
+  final MediaSizePreset? preset;
   final ImageQuality quality;
   final BoxFit fit;
   final double? width;
@@ -24,6 +28,36 @@ class OptimizedImage extends StatelessWidget {
   final BorderRadius? borderRadius;
   final Widget? placeholder;
   final Widget? errorWidget;
+  final bool useShimmer;
+
+  /// Helper method for widgets requiring an ImageProvider (DecorationImage, CircleAvatar, etc.)
+  static ImageProvider getOptimizedImageProvider(
+    String url, {
+    MediaSizePreset? preset,
+    ImageQuality quality = ImageQuality.medium,
+    double? width,
+    double? height,
+    double devicePixelRatio = 1.0,
+  }) {
+    if (url.isEmpty) {
+      return const AssetImage('assets/images/default_avatar.png');
+    }
+    if (url.startsWith('assets/')) {
+      return AssetImage(url);
+    }
+    final optimizedUrl = AssetCacheManager.getOptimizedUrl(
+      url,
+      quality,
+      preset: preset,
+      customWidth: width?.round(),
+      customHeight: height?.round(),
+      devicePixelRatio: devicePixelRatio,
+    );
+    return CachedNetworkImageProvider(
+      optimizedUrl,
+      cacheManager: CreaniaAssetCacheManager.instance,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +76,32 @@ class OptimizedImage extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) => errorWidget ?? _buildErrorWidget(),
       );
     } else {
-      final optimizedUrl = AssetCacheManager.getOptimizedUrl(imageUrl, quality);
+      final dpr = MediaQuery.of(context).devicePixelRatio;
+      final optimizedUrl = AssetCacheManager.getOptimizedUrl(
+        imageUrl,
+        quality,
+        preset: preset,
+        customWidth: width != null ? (width! * dpr * 1.25).round() : null,
+        customHeight: height != null ? (height! * dpr * 1.25).round() : null,
+        devicePixelRatio: dpr,
+      );
+
+      int? calculatedMemWidth;
+      int? calculatedMemHeight;
+      if (width != null && width! > 0 && width! < 2000) {
+        calculatedMemWidth = (width! * dpr * 1.25).round();
+      } else if (preset != null) {
+        calculatedMemWidth = AssetCacheManager.getDimensionForPreset(preset!, devicePixelRatio: dpr);
+      } else if (quality == ImageQuality.thumbnail) {
+        calculatedMemWidth = 150;
+      } else if (quality == ImageQuality.medium) {
+        calculatedMemWidth = 600;
+      }
+
+      if (height != null && height! > 0 && height! < 2000) {
+        calculatedMemHeight = (height! * dpr * 1.25).round();
+      }
+
       imageWidget = CachedNetworkImage(
         imageUrl: optimizedUrl,
         cacheManager: CreaniaAssetCacheManager.instance,
@@ -50,8 +109,9 @@ class OptimizedImage extends StatelessWidget {
         width: width,
         height: height,
         filterQuality: FilterQuality.medium,
-        memCacheWidth: quality == ImageQuality.thumbnail ? 150 : (quality == ImageQuality.medium ? 600 : null),
-        placeholder: (context, url) => placeholder ?? _buildShimmerPlaceholder(),
+        memCacheWidth: calculatedMemWidth,
+        memCacheHeight: calculatedMemHeight,
+        placeholder: (context, url) => placeholder ?? (useShimmer ? _buildShimmerPlaceholder() : const SizedBox()),
         errorWidget: (context, url, error) => errorWidget ?? _buildErrorWidget(),
       );
     }

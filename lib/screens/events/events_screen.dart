@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:creania/core/theme.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../../models/community/event_model.dart';
 import '../../services/community/event_controller.dart';
 import './event_detail_screen.dart';
@@ -219,10 +220,11 @@ class _EventsScreenState extends State<EventsScreen>
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               child: Stack(
                 children: [
-                  Image.network(
-                    event.bannerUrl,
+                  OptimizedImage(
+                    imageUrl: event.bannerUrl,
                     height: 130,
                     width: double.infinity,
+                    preset: MediaSizePreset.md,
                     fit: BoxFit.cover,
                   ),
                   Positioned.fill(

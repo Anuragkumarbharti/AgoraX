@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:creania/core/theme.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../../services/vault/study_vault_controller.dart';
 import '../../services/memberships/vip_controller.dart';
 import '../../services/store/store_controller.dart';
@@ -232,7 +233,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             // Blurred background cover
             Container(
               decoration: BoxDecoration(
-                image: DecorationImage(image: NetworkImage(book.coverImage), fit: BoxFit.cover),
+                image: DecorationImage(
+                  image: OptimizedImage.getOptimizedImageProvider(
+                    book.coverImage,
+                    preset: MediaSizePreset.md,
+                  ),
+                  fit: BoxFit.cover,
+                ),
               ),
               child: Container(color: Colors.black.withOpacity(0.7)),
             ),
@@ -245,7 +252,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 boxShadow: [
                   BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 12, spreadRadius: 2, offset: const Offset(0, 4))
                 ],
-                image: DecorationImage(image: NetworkImage(book.coverImage), fit: BoxFit.cover),
+                image: DecorationImage(
+                  image: OptimizedImage.getOptimizedImageProvider(
+                    book.coverImage,
+                    preset: MediaSizePreset.md,
+                  ),
+                  fit: BoxFit.cover,
+                ),
               ),
             )
           ],
@@ -535,7 +548,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  image: DecorationImage(image: NetworkImage(book.sellerAvatar), fit: BoxFit.cover),
+                  image: DecorationImage(
+                    image: OptimizedImage.getOptimizedImageProvider(
+                      book.sellerAvatar,
+                      preset: MediaSizePreset.xs,
+                    ),
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               SizedBox(width: 14),
@@ -604,7 +623,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                                 height: 28,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  image: DecorationImage(image: NetworkImage(rev.userAvatar), fit: BoxFit.cover),
+                                  image: DecorationImage(
+                                    image: OptimizedImage.getOptimizedImageProvider(
+                                      rev.userAvatar,
+                                      preset: MediaSizePreset.xs,
+                                    ),
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                               SizedBox(width: 10),

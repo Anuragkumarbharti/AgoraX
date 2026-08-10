@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme.dart';
+import '../../widgets/common/optimized_image.dart';
 import '../../models/room/room_model.dart';
 import '../../models/progression/room_progression_models.dart';
 import '../../services/room/room_controller.dart';
@@ -45,8 +46,9 @@ class RoomProfileScreen extends StatelessWidget {
                   children: [
                     // Banner Image
                     room.banner != null
-                        ? Image.network(
-                            room.banner!,
+                        ? OptimizedImage(
+                            imageUrl: room.banner!,
+                            preset: MediaSizePreset.lg,
                             fit: BoxFit.cover,
                           )
                         : Container(

@@ -10,14 +10,24 @@ import '../network/adaptive_media_manager.dart';
 
 enum ImageQuality { thumbnail, medium, original }
 
+/// Standard app-wide media size presets
+enum MediaSizePreset {
+  xs,       // 48px - Arena recipient, chat avatar
+  sm,       // 64px - Arena seat, gift icon, list avatar
+  md,       // 128px - Profile card, dialog header, post thumbnail
+  lg,       // 256px - Banner preview, cover thumbnail
+  xl,       // 512px - High-res avatar, header banner
+  original, // Unchanged full resolution
+}
+
 class CreaniaAssetCacheManager {
   static const String key = 'creania_asset_cache';
 
   static final CacheManager instance = CacheManager(
     Config(
       key,
-      stalePeriod: const Duration(days: 7),
-      maxNrOfCacheObjects: 500,
+      stalePeriod: const Duration(days: 90),
+      maxNrOfCacheObjects: 3000,
     ),
   );
 }
@@ -27,10 +37,71 @@ class AssetCacheManager {
   static bool _isPrefetching = false;
   static final Connectivity _connectivity = Connectivity();
 
-  /// Returns the valid public URL for loading images safely
-  static String getOptimizedUrl(String url, ImageQuality quality) {
-    if (url.isEmpty) return url;
-    return url;
+  /// Map MediaSizePreset to target physical pixel width
+  static int getDimensionForPreset(MediaSizePreset preset, {double devicePixelRatio = 1.0}) {
+    final scale = devicePixelRatio > 0 ? devicePixelRatio : 1.0;
+    int baseLogical;
+    switch (preset) {
+      case MediaSizePreset.xs:
+        baseLogical = 48;
+        break;
+      case MediaSizePreset.sm:
+        baseLogical = 64;
+        break;
+      case MediaSizePreset.md:
+        baseLogical = 128;
+        break;
+      case MediaSizePreset.lg:
+        baseLogical = 256;
+        break;
+      case MediaSizePreset.xl:
+        baseLogical = 512;
+        break;
+      case MediaSizePreset.original:
+        return 0; // 0 means original width
+    }
+    return (baseLogical * scale * 1.25).round();
+  }
+
+  /// Returns the valid public CDN URL transformed into optimized WebP format matching target preset
+  static String getOptimizedUrl(
+    String url,
+    ImageQuality quality, {
+    MediaSizePreset? preset,
+    int? customWidth,
+    int? customHeight,
+    double devicePixelRatio = 1.0,
+  }) {
+    if (url.isEmpty || url.startsWith('assets/') || url.startsWith('file://')) return url;
+
+    int? width = customWidth;
+    if (width == null || width <= 0) {
+      if (preset != null) {
+        width = getDimensionForPreset(preset, devicePixelRatio: devicePixelRatio);
+      } else {
+        switch (quality) {
+          case ImageQuality.thumbnail:
+            width = getDimensionForPreset(MediaSizePreset.sm, devicePixelRatio: devicePixelRatio);
+            break;
+          case ImageQuality.medium:
+            width = getDimensionForPreset(MediaSizePreset.md, devicePixelRatio: devicePixelRatio);
+            break;
+          case ImageQuality.original:
+            width = 0;
+            break;
+        }
+      }
+    }
+
+    if (width == 0) return url; // Full resolution requested
+
+    return AdaptiveMediaManager.getAdaptiveImageUrl(
+      url,
+      targetWidth: width,
+      targetHeight: customHeight,
+      format: 'webp',
+      quality: 80,
+    );
   }
 
   /// Remove a cached image file from disk and memory cache

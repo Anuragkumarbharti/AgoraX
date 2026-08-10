@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../../services/memberships/entry_effect_manager.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 // ============================================================
@@ -308,114 +309,34 @@ class _NovelEntryAnimationState extends State<NovelEntryAnimation>
     }
   }
 
-  void _initVideo() async {
-    if (!_isFullScreen) return;
-
-    // Render particle layer immediately on frame 0
-    _isLoading = false;
-    if (mounted) setState(() {});
-
-    VideoPlayerController? ctrl;
-    bool success = false;
-
-    // 1. Check pre-warmed local asset controller (Instant 0-10ms)
-    try {
-      final prewarmed = NovelVideoPreloader.consumePrewarmedCtrl();
-      if (prewarmed != null && prewarmed.value.isInitialized) {
-        ctrl = prewarmed;
-        success = true;
-        debugPrint("Novel 1 Entry Effect: Used pre-warmed asset controller.");
-      }
-    } catch (e) {
-      debugPrint("Novel 1 Entry Effect: Error checking pre-warmed controller: $e");
-    }
-
-    // 2. Primary source: Direct local asset (<50ms)
-    if (!success && mounted) {
-      try {
-        ctrl = VideoPlayerController.asset(
-          'assets/entryeffect/novel/novel1.mp4',
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-        );
-        await ctrl.initialize();
-        success = true;
-        debugPrint("Novel 1 Entry Effect: Initialized local asset novel1.mp4.");
-      } catch (e) {
-        debugPrint("Novel 1 Entry Effect: Error initializing local asset: $e");
-      }
-    }
-
-    // 3. Secondary source: Cached file fallback
-    if (!success && mounted) {
-      try {
-        File? cachedFile = NovelVideoPreloader.cachedFile;
-        if (cachedFile == null || !await cachedFile.exists()) {
-          try {
-            final fileInfo = await DefaultCacheManager()
-                .getFileFromCache(NovelVideoPreloader.videoUrl);
-            if (fileInfo != null && await fileInfo.file.exists()) {
-              cachedFile = fileInfo.file;
-            }
-          } catch (_) {}
-        }
-
-        if (cachedFile != null && await cachedFile.exists()) {
-          ctrl = VideoPlayerController.file(
-            cachedFile,
-            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-          );
-          await ctrl.initialize();
-          success = true;
-        }
-      } catch (e) {
-        debugPrint("Novel 1 Entry Effect: Error initializing cached file: $e");
-      }
-    }
-
-    // 4. Tertiary source: Network streaming fallback (with 3s timeout)
-    if (!success && mounted) {
-      try {
-        ctrl = VideoPlayerController.networkUrl(
-          Uri.parse(NovelVideoPreloader.videoUrl),
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-        );
-        await ctrl.initialize().timeout(const Duration(seconds: 3));
-        success = true;
-      } catch (e) {
-        debugPrint("Novel 1 Entry Effect: Error initializing network URL: $e");
-      }
-    }
+  Future<void> _initVideo() async {
+    final ctrl = await EntryEffectManager.instance.acquireVideoController(
+      'assets/entryeffect/novel/novel1.mp4',
+    );
 
     if (mounted) {
-      if (success && ctrl != null) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (ctrl != null) {
         try {
-          ctrl.setVolume(0.0);
-          ctrl.setLooping(false);
+          _videoCtrl = ctrl;
           await ctrl.seekTo(Duration.zero);
           await ctrl.play();
-
-          setState(() {
-            _videoCtrl = ctrl;
-            _videoInitialized = true;
-            _isLoading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _videoInitialized = true;
+            });
+          }
         } catch (e) {
-          debugPrint("Novel 1 Entry Effect: Error playing video: $e");
-          setState(() {
-            _videoInitialized = false;
-            _isLoading = false;
-          });
+          debugPrint('Novel Entry Effect play error: $e');
+          if (mounted) {
+            setState(() {
+              _videoInitialized = false;
+            });
+          }
         }
-      } else {
-        debugPrint(
-            "Novel 1 Entry Effect: All video sources failed. Falling back to particle animation.");
-        setState(() {
-          _videoInitialized = false;
-          _isLoading = false;
-        });
       }
-
-      // Start the master timeline ONLY WHEN video/visual is active and visible
       _masterCtrl.reset();
       _masterCtrl.forward();
       _particleCtrl.reset();
