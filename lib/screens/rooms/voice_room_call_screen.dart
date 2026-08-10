@@ -552,8 +552,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     if (!_controller.canOccupySeat(widget.roomId, seatIndex, widget.userId)) {
       RoomCenterNotificationOverlay.show(
         context,
-        title: 'Seat Restricted 🔒',
-        message: 'You do not have permission for this seat.',
+        title: 'Seat Reserved 🔒',
+        message: 'Host & Co-Host seats are reserved for room leaders.',
         icon: Icons.lock_outline_rounded,
       );
       return;
