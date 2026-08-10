@@ -445,7 +445,7 @@ class FCMNotificationService extends GetxService {
       await _supabase.from('notifications').insert({
         'user_id': targetUserId,
         'title': title,
-        'body': body,
+        'body': (body != null && body.isNotEmpty) ? body : title,
         'type': type,
         'event_id': eventId,
         'payload': payload ?? {},

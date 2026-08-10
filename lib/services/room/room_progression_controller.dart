@@ -193,6 +193,8 @@ class RoomProgressionController extends GetxController {
         'p_room_id': roomId,
         'p_vp': allowedVp,
         'p_source': source,
+        'p_user_id': UserProfileCacheManager.currentUserId,
+        'p_device_fingerprint': 'device_mobile',
       });
 
       if (resp != null && resp['success'] == true) {
