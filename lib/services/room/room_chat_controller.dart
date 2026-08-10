@@ -213,6 +213,7 @@ class RoomChatController extends GetxController {
 
   final Set<String> _processedLuckyTxIds = {};
   final Set<String> _processedEventIds = {};
+  final Map<String, int> _recentSystemMessageTimes = {};
 
   bool addSystemActivityWithDeduplication({
     required String roomId,
@@ -224,15 +225,34 @@ class RoomChatController extends GetxController {
     String? messageType = 'activity',
     String? activityKey,
   }) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final textKey = '${roomId}_${text.trim()}';
+
+    // 1. Deduplicate by eventId
     if (eventId.isNotEmpty) {
       if (_processedEventIds.contains(eventId)) {
         debugPrint('[RoomChatController] Blocked duplicate activity eventId: $eventId');
         return false;
       }
+    }
+
+    // 2. Deduplicate by text content within a 5-second window
+    final lastTime = _recentSystemMessageTimes[textKey];
+    if (lastTime != null && (now - lastTime) < 5000) {
+      debugPrint('[RoomChatController] Blocked duplicate activity text: $textKey');
+      return false;
+    }
+
+    if (eventId.isNotEmpty) {
       _processedEventIds.add(eventId);
       if (_processedEventIds.length > 1000) {
         _processedEventIds.clear();
       }
+    }
+
+    _recentSystemMessageTimes[textKey] = now;
+    if (_recentSystemMessageTimes.length > 500) {
+      _recentSystemMessageTimes.removeWhere((_, time) => (now - time) > 10000);
     }
 
     addSystemActivity(
@@ -276,11 +296,10 @@ class RoomChatController extends GetxController {
     String? customSeatName,
   }) {
     if (roomId.isEmpty || userId.isEmpty) return false;
-    final seatLabel = customSeatName ?? 'Seat ${seatIndex + 1}';
     final text = action == 'take'
-        ? '$userName took $seatLabel'
-        : '$userName left $seatLabel';
-    final eventId = 'seat_${action}_${roomId}_${seatIndex}_${userId}_${DateTime.now().millisecondsSinceEpoch ~/ 3000}';
+        ? ArenaEventFormatter.formatSeatTakeMessage(userName, seatIndex)
+        : ArenaEventFormatter.formatSeatLeaveMessage(userName, seatIndex);
+    final eventId = 'seat_${action}_${roomId}_${seatIndex}_$userId';
     final eventType = action == 'take' ? 'seat_taken' : 'seat_left';
 
     return addSystemActivityWithDeduplication(

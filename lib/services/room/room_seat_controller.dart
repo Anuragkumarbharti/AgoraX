@@ -18,27 +18,27 @@ class RoomSeatController extends GetxController {
   static String getSeatName(int seatIndex) {
     switch (seatIndex) {
       case 0:
-        return 'Host';
+        return 'Host Seat';
       case 1:
-        return 'Co Host';
+        return 'Co-Host Seat';
       case 2:
-        return 'No.1';
+        return 'Seat 1';
       case 3:
-        return 'No.2';
+        return 'Seat 2';
       case 4:
-        return 'No.3';
+        return 'Seat 3';
       case 5:
-        return 'No.4';
+        return 'Seat 4';
       case 6:
-        return 'No.5';
+        return 'Seat 5';
       case 7:
-        return 'No.6';
+        return 'Seat 6';
       case 8:
-        return 'No.7';
+        return 'Seat 7';
       case 9:
-        return 'No.8';
+        return 'Seat 8';
       default:
-        return 'No.${seatIndex - 1}';
+        return 'Seat ${seatIndex - 1}';
     }
   }
 
