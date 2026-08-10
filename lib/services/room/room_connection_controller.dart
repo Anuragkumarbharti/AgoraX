@@ -5,8 +5,10 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
 import '../../models/room/room_model.dart';
+import '../../models/room/room_activity_event.dart';
 import '../../models/user/user_model.dart';
 import '../user/user_profile_cache_manager.dart';
+
 import '../user/customization_controller.dart';
 import '../chat/chat_socket_service.dart';
 import 'room_chat_controller.dart';
@@ -570,17 +572,8 @@ class RoomConnectionController extends GetxController {
       final activeRoom = roomsList.firstWhereOrNull((r) => r.id == roomId);
       final isOwner = activeRoom?.hostId == currentUserId;
 
-      String greetingMsg = '👋 Welcome $uName! Enjoy your time in this arena.';
-      if (isOwner) {
-        greetingMsg = '🏠 Arena Owner $uName joined.';
-      } else if (nobleLevel > 0) {
-        greetingMsg = '👑 Noble $uName has arrived.';
-      } else if (vipLevel > 0) {
-        greetingMsg =
-            '💎 VIP $uName entered the arena. Give them a warm welcome!';
-      } else if (uLevel >= 50) {
-        greetingMsg = '🔥 Level $uLevel $uName entered the arena.';
-      }
+      final String canonicalGreetingMsg = ArenaEventFormatter.formatRoomEnterMessage(uName);
+      final String roomEnterEventId = 'evt_enter_${roomId}_${currentUserId}_${DateTime.now().millisecondsSinceEpoch}';
 
       String? equippedEntryEffect;
       try {
@@ -591,11 +584,12 @@ class RoomConnectionController extends GetxController {
 
       await RoomActivityController.to.emitRoomActivityEvent(
         roomId: roomId,
-        eventType: 'room_join',
+        eventType: ArenaEventTypes.roomEnter,
         userId: currentUserId,
         username: uName,
-        message: greetingMsg,
+        message: canonicalGreetingMsg,
         metadata: {
+          'event_id': roomEnterEventId,
           'level': uLevel,
           'vip_level': vipLevel,
           'noble_level': nobleLevel,
@@ -721,12 +715,17 @@ class RoomConnectionController extends GetxController {
       final uName = profile?.username ?? 'Creaniaa Student';
 
       if (Get.isRegistered<RoomActivityController>()) {
+        final String leaveMsg = ArenaEventFormatter.formatRoomLeaveMessage(uName);
+        final String leaveEventId = 'evt_leave_${roomId}_${currentUserId}_${DateTime.now().millisecondsSinceEpoch}';
         await RoomActivityController.to.emitRoomActivityEvent(
           roomId: roomId,
-          eventType: 'room_leave',
+          eventType: ArenaEventTypes.roomLeave,
           userId: currentUserId,
           username: uName,
-          message: '👋 $uName left the arena.',
+          message: leaveMsg,
+          metadata: {
+            'event_id': leaveEventId,
+          },
         );
       }
 

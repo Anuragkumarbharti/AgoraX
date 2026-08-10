@@ -437,7 +437,8 @@ class _ExplosionPainter extends CustomPainter {
       // 2. Dispersing sparkle particles
       final int sparkleCount = isMajor ? 20 : 12;
       final double maxRadius = isMajor ? 60.0 : 40.0;
-      final random = Random(target.dx.toInt());
+      final int seed = (target.dx.isNaN || target.dx.isInfinite) ? 42 : target.dx.toInt().abs();
+      final random = Random(seed);
 
       for (int i = 0; i < sparkleCount; i++) {
         final double angle = i * (2 * 3.14159 / sparkleCount);

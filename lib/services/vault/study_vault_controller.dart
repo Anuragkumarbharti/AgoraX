@@ -441,7 +441,8 @@ class StudyVaultController extends GetxController {
     final breakdown = calculatePriceBreakdown(book.sellingPrice, vipLevel: vipCtrl.vipLevel.value);
     
     // Proportional conversion: ₹100 = 50 Gold Coins.
-    int goldCoinsPrice = (breakdown['buyerPays']! * 0.50).round();
+    final double calcGold = (breakdown['buyerPays'] ?? 0.0) * 0.50;
+    int goldCoinsPrice = (calcGold.isNaN || calcGold.isInfinite) ? 0 : calcGold.round();
 
     if (storeCtrl.coinsBalance.value < goldCoinsPrice) {
       InsufficientBalanceSheet.show(

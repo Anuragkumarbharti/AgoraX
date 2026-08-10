@@ -282,6 +282,7 @@ class RoomProfileScreen extends StatelessWidget {
       if (val >= 1000000) return '${(val / 1000000).toStringAsFixed(1)}M';
       if (val >= 1000) {
         final double inK = val / 1000.0;
+        if (inK.isNaN || inK.isInfinite) return '0';
         return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
       }
       return '$val';
@@ -289,7 +290,8 @@ class RoomProfileScreen extends StatelessWidget {
 
     final String currentStr = formatVp(room.xp);
     final String targetStr = formatVp(xpNeeded);
-    final int percent = (xpProgress * 100).toInt();
+    final double safeProgress = xpProgress.isNaN || xpProgress.isInfinite ? 0.0 : xpProgress.clamp(0.0, 1.0);
+    final int percent = (safeProgress * 100).toInt();
 
     return Container(
       decoration: BoxDecoration(

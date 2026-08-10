@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:collection/collection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../models/room/room_activity_event.dart';
 import '../user/user_profile_cache_manager.dart';
 import 'room_realtime_controller.dart';
 import 'room_seat_controller.dart';
+
 
 class RoomChatMessage {
   final String id;
@@ -210,15 +212,48 @@ class RoomChatController extends GetxController {
   }
 
   final Set<String> _processedLuckyTxIds = {};
+  final Set<String> _processedEventIds = {};
+
+  bool addSystemActivityWithDeduplication({
+    required String roomId,
+    required String eventId,
+    required String text,
+    String? senderId = 'system',
+    String? senderName = 'System',
+    String? senderAvatar,
+    String? messageType = 'activity',
+    String? activityKey,
+  }) {
+    if (eventId.isNotEmpty) {
+      if (_processedEventIds.contains(eventId)) {
+        debugPrint('[RoomChatController] Blocked duplicate activity eventId: $eventId');
+        return false;
+      }
+      _processedEventIds.add(eventId);
+      if (_processedEventIds.length > 1000) {
+        _processedEventIds.clear();
+      }
+    }
+
+    addSystemActivity(
+      roomId,
+      text,
+      senderId: senderId,
+      senderName: senderName,
+      senderAvatar: senderAvatar,
+      messageType: messageType,
+      activityKey: activityKey,
+    );
+    return true;
+  }
 
   bool addLuckyGiftMessage(String roomId, Map<String, dynamic> luckyResult) {
     try {
       if (luckyResult['is_lucky_gift'] != true) return false;
       final int cashbackGold = ((luckyResult['cashback_gold'] ?? luckyResult['coins_back'] ?? 0) as num).toInt();
-      final String messageText = (luckyResult['message_text'] ?? '').toString();
 
       // Suppress 0 Coin Back messages completely
-      if (cashbackGold <= 0 || messageText.isEmpty) {
+      if (cashbackGold <= 0) {
         debugPrint('[RoomChatController] 0 Coin Back message suppressed.');
         return false;
       }
@@ -236,22 +271,35 @@ class RoomChatController extends GetxController {
       final String senderName = (luckyResult['sender_name'] ?? 'User').toString();
       final num multNum = luckyResult['multiplier'] ?? 0;
       final String tier = (luckyResult['tier'] ?? 'no_reward').toString();
-      final String eventType = tier == 'jackpot' ? 'lucky_jackpot' : 'lucky_win';
+      final String eventType = tier == 'jackpot' ? 'lucky_jackpot' : ArenaEventTypes.luckyCoinWon;
+      final String canonicalLuckyMsg = ArenaEventFormatter.formatLuckyCoinWinMessage(senderName, cashbackGold);
+      final String eventId = txId.isNotEmpty ? 'lucky-$txId' : 'lucky-${DateTime.now().microsecondsSinceEpoch}';
 
-      // 1. Add Chat Box Message for everyone in the room
+      // 1. Add Chat Box Message with deduplication
       initializeChatForRoom(roomId);
       final msg = RoomChatMessage(
-        id: txId.isNotEmpty ? 'lucky-$txId' : null,
+        id: eventId,
         senderId: 'system_lucky',
         senderName: 'Lucky Draw 🎰',
-        text: messageText,
+        text: canonicalLuckyMsg,
         timestamp: DateTime.now(),
         isSystem: true,
         messageType: 'activity',
         eventType: eventType,
         roleTag: tier,
       );
-      addChatMessage(roomId, msg);
+      
+      if (!addSystemActivityWithDeduplication(
+        roomId: roomId,
+        eventId: eventId,
+        text: canonicalLuckyMsg,
+        senderId: 'system_lucky',
+        senderName: 'Lucky Draw 🎰',
+        messageType: 'activity',
+        activityKey: eventType,
+      )) {
+        return false;
+      }
 
       // 2. Trigger Top Floating Notification Pill for everyone in the room
       activeSystemNotification.value = '🎰 $senderName won $cashbackGold Gold back (${multNum}×)!';

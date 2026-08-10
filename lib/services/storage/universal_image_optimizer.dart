@@ -141,12 +141,14 @@ class UniversalImageOptimizer {
     int targetH = originalH;
 
     if (originalW > maxDimension || originalH > maxDimension) {
-      if (originalW >= originalH) {
+      if (originalW >= originalH && originalW > 0) {
         targetW = maxDimension;
-        targetH = ((originalH * maxDimension) / originalW).round();
-      } else {
+        final double calcH = (originalH * maxDimension) / originalW;
+        targetH = (calcH.isNaN || calcH.isInfinite) ? maxDimension : calcH.round();
+      } else if (originalH > 0) {
         targetH = maxDimension;
-        targetW = ((originalW * maxDimension) / originalH).round();
+        final double calcW = (originalW * maxDimension) / originalH;
+        targetW = (calcW.isNaN || calcW.isInfinite) ? maxDimension : calcW.round();
       }
     }
 

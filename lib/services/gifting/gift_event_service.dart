@@ -236,7 +236,8 @@ class GiftEventService extends GetxController {
         singleReceiverGems = (normalized['gemsValue'] as num?)?.toInt() ?? 0;
         if (singleReceiverGems <= 0) {
           if (currency == 'silver') {
-            singleReceiverGems = (giftValue / 100).floor().clamp(1, 999999) * quantity;
+            final double calc = giftValue / 100.0;
+            singleReceiverGems = ((calc.isNaN || calc.isInfinite) ? 1 : calc.floor().clamp(1, 999999)) * quantity;
           } else {
             singleReceiverGems = giftValue * quantity;
           }

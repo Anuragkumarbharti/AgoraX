@@ -397,7 +397,7 @@ class _CustomYoutubePlayerState extends State<CustomYoutubePlayer> {
                         
                         // Watch Time Progress Info Text
                         Text(
-                          'Watched: ${(_maxPositionWatched / _maxDurationSeconds * 100).toInt()}% (90% required)',
+                          'Watched: ${_maxDurationSeconds > 0 ? ((_maxPositionWatched / _maxDurationSeconds * 100).clamp(0.0, 100.0)).toInt() : 0}% (90% required)',
                           style: TextStyle(
                             color: _watchRequirementMet ? context.accentOrange : Colors.white70,
                             fontSize: 10,

@@ -60,24 +60,28 @@ class RoomDualProgress {
 
   double get freeRatio {
     final limit = freeTaskLimit > 0 ? freeTaskLimit : FREE_TASK_LIMIT;
-    return (dailyFreeProgress / limit).clamp(0.0, 1.0);
+    final val = (dailyFreeProgress / limit).clamp(0.0, 1.0);
+    return val.isNaN || val.isInfinite ? 0.0 : val;
   }
 
   double get goldRatio {
     final limit = goldTarget > 0 ? goldTarget : (goldTaskLimit > 0 ? goldTaskLimit : GOLD_TASK_LIMIT);
     final points = dailyGoldProgress > 0 ? dailyGoldProgress : goldPoints;
-    return (points / limit).clamp(0.0, 1.0);
+    final val = (points / limit).clamp(0.0, 1.0);
+    return val.isNaN || val.isInfinite ? 0.0 : val;
   }
 
   double get normalRatio {
     final limit = normalTarget > 0 ? normalTarget : (freeTaskLimit > 0 ? freeTaskLimit : FREE_TASK_LIMIT);
     final points = dailyFreeProgress > 0 ? dailyFreeProgress : normalPoints;
-    return (points / limit).clamp(0.0, 1.0);
+    final val = (points / limit).clamp(0.0, 1.0);
+    return val.isNaN || val.isInfinite ? 0.0 : val;
   }
 
   double get totalTaskRatio {
     final target = totalTaskTarget > 0 ? totalTaskTarget : getRequiredTaskForLevel(roomLevel);
-    return (totalTask / target).clamp(0.0, 1.0);
+    final val = (totalTask / target).clamp(0.0, 1.0);
+    return val.isNaN || val.isInfinite ? 0.0 : val;
   }
 
   bool get isFreeLimitReached => dailyFreeProgress >= freeTaskLimit && freeTaskLimit > 0;
@@ -94,7 +98,8 @@ class RoomDualProgress {
 
   double get overallRatio {
     final limit = totalDailyLimit > 0 ? totalDailyLimit : (FREE_TASK_LIMIT + GOLD_TASK_LIMIT);
-    return (totalPoints / limit).clamp(0.0, 1.0);
+    final val = (totalPoints / limit).clamp(0.0, 1.0);
+    return val.isNaN || val.isInfinite ? 0.0 : val;
   }
 
   factory RoomDualProgress.fromJson(Map<String, dynamic> json) {

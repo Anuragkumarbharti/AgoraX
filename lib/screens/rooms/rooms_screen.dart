@@ -1330,13 +1330,15 @@ class _RoomsScreenState extends State<RoomsScreen>
                             final cfg = RoomLevelMatrixConfig.getForLevel(roomLvl);
                             final nextCfg = RoomLevelMatrixConfig.getForLevel(roomLvl + 1);
                             final targetVp = nextCfg.requiredVp > 0 ? nextCfg.requiredVp : 35500;
-                            final fillRatio = (room.xp / targetVp).clamp(0.0, 1.0);
-                            final percent = (fillRatio * 100).toInt();
+                            final double calcRatio = (room.xp / targetVp).clamp(0.0, 1.0);
+                            final double fillRatio = calcRatio.isNaN || calcRatio.isInfinite ? 0.0 : calcRatio;
+                            final int percent = (fillRatio * 100).toInt();
 
                             String formatVp(int val) {
                               if (val >= 1000000) return '${(val / 1000000).toStringAsFixed(1)}M';
                               if (val >= 1000) {
                                 final double inK = val / 1000.0;
+                                if (inK.isNaN || inK.isInfinite) return '0';
                                 return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
                               }
                               return '$val';

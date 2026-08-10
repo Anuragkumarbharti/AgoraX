@@ -2,9 +2,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../models/room/room_activity_event.dart';
 import '../user/user_profile_cache_manager.dart';
 import 'room_permission_controller.dart';
 import 'room_dual_progress_controller.dart';
+
 
 class RoomSeatController extends GetxController {
   static RoomSeatController get to => Get.find<RoomSeatController>();
@@ -89,6 +91,7 @@ class RoomSeatController extends GetxController {
 
     final seats = roomSeatsInfo[roomId];
     List<Map<String, dynamic>>? backupSeats;
+    int prevIdx = -1;
 
     try {
       if (seats != null) {
@@ -108,8 +111,7 @@ class RoomSeatController extends GetxController {
             ? updatedSeats[targetIdx]['seatSessionId'] as String?
             : null;
 
-        final prevIdx =
-            updatedSeats.indexWhere((s) => s['userId'] == currentUserId && s['seatIndex'] != seatIndex);
+        prevIdx = updatedSeats.indexWhere((s) => s['userId'] == currentUserId && s['seatIndex'] != seatIndex);
         if (prevIdx != -1) {
           updatedSeats[prevIdx] = {
             ...updatedSeats[prevIdx],
@@ -155,16 +157,25 @@ class RoomSeatController extends GetxController {
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creaniaa Student';
 
-      final seatName = getSeatName(seatIndex);
-      final seatJoinMsgs = [
-        '🎤 $uName took $seatName.',
-        '👑 $uName is now sitting on $seatName.',
-        '🎙️ $uName joined $seatName.'
-      ];
-      final message = seatJoinMsgs[Random().nextInt(seatJoinMsgs.length)];
+      String eventType;
+      String message;
+
+      if (prevIdx != -1) {
+        eventType = ArenaEventTypes.seatChanged;
+        message = ArenaEventFormatter.formatSeatMoveMessage(uName, prevIdx, seatIndex);
+      } else if (seatIndex == 0) {
+        eventType = ArenaEventTypes.hostSeatTaken;
+        message = ArenaEventFormatter.formatSeatTakeMessage(uName, seatIndex);
+      } else if (seatIndex == 1) {
+        eventType = ArenaEventTypes.cohostSeatTaken;
+        message = ArenaEventFormatter.formatSeatTakeMessage(uName, seatIndex);
+      } else {
+        eventType = ArenaEventTypes.seatTaken;
+        message = ArenaEventFormatter.formatSeatTakeMessage(uName, seatIndex);
+      }
 
       await onEmitActivity(
-        'seat_join',
+        eventType,
         currentUserId,
         seatIndex + 1,
         message,
@@ -239,16 +250,18 @@ class RoomSeatController extends GetxController {
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creaniaa Student';
 
-      final seatName = getSeatName(seatIndex);
-      final seatLeaveMsgs = [
-        '📤 $uName left $seatName.',
-        '🎤 $seatName is now available.',
-        '🚪 $uName left the microphone.'
-      ];
-      final message = seatLeaveMsgs[Random().nextInt(seatLeaveMsgs.length)];
+      String eventType;
+      if (seatIndex == 0) {
+        eventType = ArenaEventTypes.hostSeatLeft;
+      } else if (seatIndex == 1) {
+        eventType = ArenaEventTypes.cohostSeatLeft;
+      } else {
+        eventType = ArenaEventTypes.seatLeft;
+      }
+      final message = ArenaEventFormatter.formatSeatLeaveMessage(uName, seatIndex);
 
       await onEmitActivity(
-        'seat_leave',
+        eventType,
         currentUserId,
         seatIndex + 1,
         message,

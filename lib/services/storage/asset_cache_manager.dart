@@ -60,7 +60,8 @@ class AssetCacheManager {
       case MediaSizePreset.original:
         return 0; // 0 means original width
     }
-    return (baseLogical * scale * 1.25).round();
+    final calc = baseLogical * scale * 1.25;
+    return (calc.isNaN || calc.isInfinite) ? baseLogical : calc.round();
   }
 
   /// Returns the valid public CDN URL transformed into optimized WebP format matching target preset

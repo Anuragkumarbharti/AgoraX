@@ -39,7 +39,13 @@ class RoomActivityController extends GetxController {
     Map<String, dynamic>? metadata,
   }) async {
     try {
+      final String eventId = (metadata?['event_id'] ??
+              metadata?['eventId'] ??
+              'evt_${DateTime.now().microsecondsSinceEpoch}_${userId ?? "sys"}')
+          .toString();
+
       final payload = {
+        'event_id': eventId,
         'room_id': roomId,
         'event_type': eventType,
         'user_id': userId,
@@ -53,9 +59,10 @@ class RoomActivityController extends GetxController {
       };
 
       if (Get.isRegistered<RoomChatController>()) {
-        RoomChatController.to.addSystemActivity(
-          roomId,
-          message,
+        RoomChatController.to.addSystemActivityWithDeduplication(
+          roomId: roomId,
+          eventId: eventId,
+          text: message,
           senderId: userId ?? 'system',
           senderName: username ?? 'System',
           messageType: 'activity',
@@ -98,6 +105,11 @@ class RoomActivityController extends GetxController {
       final payload = roomActivityQueues[roomId]!.removeAt(0);
 
       try {
+        final String eventId = (payload['event_id'] ??
+                payload['eventId'] ??
+                payload['id'] ??
+                '')
+            .toString();
         final String eventType = payload['event_type'] ?? payload['eventType'] ?? '';
         final String messageText = payload['message'] ?? '';
         final String senderId = payload['user_id'] ?? payload['userId'] ?? 'system';
@@ -107,9 +119,10 @@ class RoomActivityController extends GetxController {
             : <String, dynamic>{};
 
         if (Get.isRegistered<RoomChatController>()) {
-          RoomChatController.to.addSystemActivity(
-            roomId,
-            messageText,
+          RoomChatController.to.addSystemActivityWithDeduplication(
+            roomId: roomId,
+            eventId: eventId,
+            text: messageText,
             senderId: senderId,
             senderName: senderName,
             messageType: 'activity',

@@ -527,7 +527,8 @@ class VipController extends GetxController {
             baseDate = expiryDate.value!;
           } else if (level > vipLevel.value) {
             final levelDiff = level - vipLevel.value;
-            final carryDays = (currentRemDays * math.pow(0.5, levelDiff)).round();
+            final double calcCarry = (currentRemDays * math.pow(0.5, levelDiff)).toDouble();
+            final int carryDays = (calcCarry.isNaN || calcCarry.isInfinite) ? 0 : calcCarry.round();
             baseDate = now.add(Duration(days: carryDays));
           }
         }

@@ -61,3 +61,18 @@ String _stripTrailingZero(String formattedNumber) {
   }
   return formattedNumber;
 }
+
+extension SafeNumToInt on num {
+  int safeToInt([int defaultValue = 0]) {
+    if (isNaN || isInfinite) return defaultValue;
+    return toInt();
+  }
+}
+
+extension SafeNullableNumToInt on num? {
+  int safeToInt([int defaultValue = 0]) {
+    if (this == null || this!.isNaN || this!.isInfinite) return defaultValue;
+    return this!.toInt();
+  }
+}
+

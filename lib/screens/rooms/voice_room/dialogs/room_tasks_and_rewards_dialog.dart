@@ -134,8 +134,9 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
 
       final int targetVp =
           nextConfig.requiredVp > 0 ? nextConfig.requiredVp : config.requiredVp;
-      final double fillRatio =
+      final double rawFillRatio =
           targetVp > 0 ? (currentVp / targetVp).clamp(0.0, 1.0) : 1.0;
+      final double fillRatio = rawFillRatio.isNaN || rawFillRatio.isInfinite ? 0.0 : rawFillRatio;
       final int percent = (fillRatio * 100).toInt();
 
       final int activeMemberCount = VoiceController.to.roomUsers.length;
@@ -203,13 +204,15 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
                 final dualProg = RoomDualProgressController.to.getDualProgress(widget.roomId);
                 final int totalTask = dualProg.totalTask;
                 final int totalTarget = dualProg.totalTaskTarget > 0 ? dualProg.totalTaskTarget : targetVp;
-                final double totalTaskRatio = (totalTask / totalTarget).clamp(0.0, 1.0);
+                final double rawTotalTaskRatio = (totalTask / totalTarget).clamp(0.0, 1.0);
+                final double totalTaskRatio = rawTotalTaskRatio.isNaN || rawTotalTaskRatio.isInfinite ? 0.0 : rawTotalTaskRatio;
                 final int totalPercent = (totalTaskRatio * 100).toInt();
 
                 String fmt(int val) {
                   if (val >= 1000000) return '${(val / 1000000).toStringAsFixed(1)}M';
                   if (val >= 1000) {
                     final double inK = val / 1000.0;
+                    if (inK.isNaN || inK.isInfinite) return '0';
                     return inK % 1 == 0 ? '${inK.toInt()}K' : '${inK.toStringAsFixed(1)}K';
                   }
                   return '$val';

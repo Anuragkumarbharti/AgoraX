@@ -49,8 +49,8 @@ class OptimizedImage extends StatelessWidget {
       url,
       quality,
       preset: preset,
-      customWidth: width?.round(),
-      customHeight: height?.round(),
+      customWidth: (width != null && width!.isFinite) ? width!.round() : null,
+      customHeight: (height != null && height!.isFinite) ? height!.round() : null,
       devicePixelRatio: devicePixelRatio,
     );
     return CachedNetworkImageProvider(
@@ -81,14 +81,14 @@ class OptimizedImage extends StatelessWidget {
         imageUrl,
         quality,
         preset: preset,
-        customWidth: width != null ? (width! * dpr * 1.25).round() : null,
-        customHeight: height != null ? (height! * dpr * 1.25).round() : null,
+        customWidth: (width != null && width!.isFinite) ? (width! * dpr * 1.25).round() : null,
+        customHeight: (height != null && height!.isFinite) ? (height! * dpr * 1.25).round() : null,
         devicePixelRatio: dpr,
       );
 
       int? calculatedMemWidth;
       int? calculatedMemHeight;
-      if (width != null && width! > 0 && width! < 2000) {
+      if (width != null && width!.isFinite && width! > 0 && width! < 2000) {
         calculatedMemWidth = (width! * dpr * 1.25).round();
       } else if (preset != null) {
         calculatedMemWidth = AssetCacheManager.getDimensionForPreset(preset!, devicePixelRatio: dpr);
@@ -98,7 +98,7 @@ class OptimizedImage extends StatelessWidget {
         calculatedMemWidth = 600;
       }
 
-      if (height != null && height! > 0 && height! < 2000) {
+      if (height != null && height!.isFinite && height! > 0 && height! < 2000) {
         calculatedMemHeight = (height! * dpr * 1.25).round();
       }
 

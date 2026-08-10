@@ -24,7 +24,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   void _showPriceBreakdownSheet() {
     final breakdown = _controller.calculatePriceBreakdown(widget.book.sellingPrice, vipLevel: _vipCtrl.vipLevel.value);
-    final goldCoinsPrice = (breakdown['buyerPays']! * 0.50).round();
+        final double calcGold = (breakdown['buyerPays'] ?? 0.0) * 0.50;
+        final goldCoinsPrice = (calcGold.isNaN || calcGold.isInfinite) ? 0 : calcGold.round();
 
     Get.bottomSheet(
       Container(
@@ -138,7 +139,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         final inWishlist = _controller.wishlistBookIds.contains(book.id);
 
         final breakdown = _controller.calculatePriceBreakdown(book.sellingPrice, vipLevel: _vipCtrl.vipLevel.value);
-        final goldCoinsPrice = (breakdown['buyerPays']! * 0.50).round();
+            final double calcGold = (breakdown['buyerPays'] ?? 0.0) * 0.50;
+        final goldCoinsPrice = (calcGold.isNaN || calcGold.isInfinite) ? 0 : calcGold.round();
 
         return Stack(
           children: [

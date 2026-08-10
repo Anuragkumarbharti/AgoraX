@@ -48,7 +48,8 @@ class _GiftHistoryBottomSheetState extends State<GiftHistoryBottomSheet> {
     } else if (itemId == '1-Star Gift' || itemId == '1-Gem Gift') {
       starsPerUnit = 1;
     } else {
-      starsPerUnit = (coinsValue / 10).clamp(1, 999999).toInt();
+      final double calc = coinsValue / 10.0;
+      starsPerUnit = (calc.isNaN || calc.isInfinite) ? 1 : calc.clamp(1.0, 999999.0).toInt();
     }
     return starsPerUnit * quantity;
   }

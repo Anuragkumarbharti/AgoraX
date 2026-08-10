@@ -806,14 +806,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     fallbackTimer.cancel();
     if (!mounted) return;
 
-    _controller.addSystemActivity(
-      widget.roomId,
-      '🟢 ${_currentEntranceUser.value} entered the arena.',
-      senderId: userId,
-      senderName: userName,
-      activityKey: 'room-enter',
-    );
-
     _entranceQueue.removeAt(0);
     _currentEntranceCompleter = null;
 
