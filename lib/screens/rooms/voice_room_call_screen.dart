@@ -27,6 +27,7 @@ import '../../services/gifting/gift_overlay_manager.dart';
 import '../../services/gifting/quick_repeat_controller.dart';
 import '../../widgets/gifting/quick_repeat_button_widget.dart';
 import '../../services/room/room_dual_progress_controller.dart';
+import '../../services/app_notification_service.dart';
 
 // Extracted Sub-Modules
 import 'voice_room/models/floating_reaction.dart';
@@ -40,6 +41,7 @@ import 'voice_room/widgets/room_call_bottom_controls.dart';
 import 'voice_room/widgets/room_call_special_panels.dart';
 import 'voice_room/widgets/room_call_banner_and_xp.dart';
 import 'voice_room/widgets/room_layered_pipeline.dart';
+import 'voice_room/widgets/room_center_notification_overlay.dart';
 import 'voice_room/dialogs/room_audio_settings_dialog.dart';
 import 'voice_room/dialogs/seat_applications_dialog.dart';
 import 'voice_room/dialogs/online_members_dialog.dart';
@@ -505,12 +507,10 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   Future<void> _toggleMic() async {
     if (!_isCurrentUserOnSeat()) {
-      Get.snackbar(
-        'Voice Locked 🔒',
-        'You are a listener. Tap any empty seat to join the stage and speak!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: context.warningColor.withOpacity(0.9),
-        colorText: Colors.white,
+      AppNotification.show(
+        title: 'Voice Locked 🔒',
+        message: 'Tap an empty seat to join the stage and speak.',
+        icon: Icons.mic_off_rounded,
       );
       return;
     }
@@ -528,8 +528,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         };
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to toggle microphone',
-          snackPosition: SnackPosition.BOTTOM);
+      debugPrint('Failed to toggle mic: $e');
     }
   }
 
@@ -549,13 +548,33 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       return;
     }
 
+    final isHostUser = Get.isRegistered<RoomPermissionController>()
+        ? RoomPermissionController.to.isHost(widget.roomId, widget.userId)
+        : false;
+
+    if (isHostUser && seatIndex > 0) {
+      AppNotification.show(
+        title: 'Host Seat Only 👑',
+        message: 'Host cannot take participant seats.',
+        icon: Icons.block_rounded,
+      );
+      return;
+    }
+
     if (!_controller.canOccupySeat(widget.roomId, seatIndex, widget.userId)) {
-      Get.snackbar(
-        'Seat Access Locked 🔒',
-        '${RoomSeatController.getSeatName(seatIndex)} is reserved for Room Host, Co-Owners, and Admins.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
-        colorText: Colors.white,
+      AppNotification.show(
+        title: 'Seat Restricted 🔒',
+        message: 'You do not have permission for this seat.',
+        icon: Icons.lock_outline_rounded,
+      );
+      return;
+    }
+
+    if (seat != null && seat['userId'] != null && seat['userId'] != widget.userId) {
+      AppNotification.show(
+        title: 'Seat Occupied 🪑',
+        message: 'This seat is already taken.',
+        icon: Icons.event_seat_rounded,
       );
       return;
     }
@@ -564,33 +583,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       await _controller.joinRoomSeat(widget.roomId, seatIndex);
       await RoomVoiceManager().toggleMic(true);
       _isMicOn.value = true;
-
-      if (Get.isRegistered<RoomChatController>()) {
-        RoomChatController.to.addSeatActionSystemMessage(
-          roomId: widget.roomId,
-          userId: widget.userId,
-          userName: widget.userName,
-          action: 'take',
-          seatIndex: seatIndex,
-          customSeatName: RoomSeatController.getSeatName(seatIndex),
-        );
-      }
-
-      Get.snackbar(
-        'Stage Joined 🎤',
-        'You are now in ${RoomSeatController.getSeatName(seatIndex)}. Speak freely!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: context.successColor.withOpacity(0.9),
-        colorText: Colors.white,
-      );
     } catch (e) {
-      Get.snackbar(
-        'Seat Access 🔒',
-        'Failed to join seat: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
-        colorText: Colors.white,
-      );
+      debugPrint('Failed to join seat: $e');
     }
   }
 
@@ -602,27 +596,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       setState(() {
         _isCameraOn = false;
       });
-
-      if (Get.isRegistered<RoomChatController>()) {
-        RoomChatController.to.addSeatActionSystemMessage(
-          roomId: widget.roomId,
-          userId: widget.userId,
-          userName: widget.userName,
-          action: 'leave',
-          seatIndex: seatIndex,
-          customSeatName: RoomSeatController.getSeatName(seatIndex),
-        );
-      }
-
-      Get.snackbar(
-        'Left Stage 🚪',
-        'You returned to the audience. Your microphone has been muted.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: context.warningColor.withOpacity(0.9),
-        colorText: Colors.white,
-      );
     } catch (e) {
-      Get.snackbar('Error', 'Failed to leave seat: $e');
+      debugPrint('Failed to leave seat: $e');
     }
   }
 
@@ -1092,7 +1067,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       layer0Background: RoomCallBannerAndXp.buildCustomBackground(),
 
       // Layer 4: Interactive Floating Room UI (Header, Seats, Panels, Chat, Controls)
-      layer4FloatingUI: Stack(
+      layer4FloatingUI: RoomCenterNotificationOverlay.wrap(
+        child: Stack(
         children: [
           SafeArea(
             bottom: false,

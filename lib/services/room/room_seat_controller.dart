@@ -48,6 +48,16 @@ class RoomSeatController extends GetxController {
 
   bool canOccupySeat(String roomId, int seatIndex, String userId) {
     if (seatIndex < 0 || seatIndex >= 10) return false;
+
+    final isHostUser = Get.isRegistered<RoomPermissionController>()
+        ? RoomPermissionController.to.isHost(roomId, userId)
+        : false;
+
+    // Rule: Host is strictly bound to Host seat (seatIndex 0) and cannot occupy normal participant seats (seatIndex > 0)
+    if (isHostUser && seatIndex > 0) {
+      return false;
+    }
+
     if (seatIndex == 0 || seatIndex == 1) {
       if (Get.isRegistered<RoomPermissionController>()) {
         final perm = RoomPermissionController.to;
@@ -79,13 +89,6 @@ class RoomSeatController extends GetxController {
     final currentUserId = UserProfileCacheManager.currentUserId;
 
     if (!canOccupySeat(roomId, seatIndex, currentUserId)) {
-      Get.snackbar(
-        'Seat Access Locked 🔒',
-        '${getSeatName(seatIndex)} is reserved for Room Host, Co-Owners, and Admins.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFEF4444).withOpacity(0.9),
-        colorText: Colors.white,
-      );
       return;
     }
 
