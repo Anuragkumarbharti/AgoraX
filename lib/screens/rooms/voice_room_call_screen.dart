@@ -507,7 +507,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
 
   Future<void> _toggleMic() async {
     if (!_isCurrentUserOnSeat()) {
-      AppNotification.show(
+      RoomCenterNotificationOverlay.show(
+        context,
         title: 'Voice Locked 🔒',
         message: 'Tap an empty seat to join the stage and speak.',
         icon: Icons.mic_off_rounded,
@@ -553,7 +554,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         : false;
 
     if (isHostUser && seatIndex > 0) {
-      AppNotification.show(
+      RoomCenterNotificationOverlay.show(
+        context,
         title: 'Host Seat Only 👑',
         message: 'Host cannot take participant seats.',
         icon: Icons.block_rounded,
@@ -562,7 +564,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
 
     if (!_controller.canOccupySeat(widget.roomId, seatIndex, widget.userId)) {
-      AppNotification.show(
+      RoomCenterNotificationOverlay.show(
+        context,
         title: 'Seat Restricted 🔒',
         message: 'You do not have permission for this seat.',
         icon: Icons.lock_outline_rounded,
@@ -571,7 +574,8 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
     }
 
     if (seat != null && seat['userId'] != null && seat['userId'] != widget.userId) {
-      AppNotification.show(
+      RoomCenterNotificationOverlay.show(
+        context,
         title: 'Seat Occupied 🪑',
         message: 'This seat is already taken.',
         icon: Icons.event_seat_rounded,
@@ -1223,6 +1227,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
           ),
         ],
       ),
+    ),
 
       // Layer 5: Dedicated Stable Gift Layer (STABLE KEY - Never destroyed on parent rebuilds)
       layer5Gifts: GiftingAnimationOverlay(
