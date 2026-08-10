@@ -2,14 +2,14 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:zego_express_engine/zego_express_engine.dart' hide Text;
+import 'package:zego_express_engine/zego_express_engine.dart';
 
 import '../../../../models/room/room_model.dart';
 import '../../../../services/room/room_controller.dart';
-import '../../../../services/room/room_seat_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
-import '../../../../widgets/index.dart';
+import '../../../../widgets/user_tags/user_badge_widgets.dart';
+import '../../../../widgets/profile/custom_avatar_frame.dart';
 import 'mini_profile_dialog.dart';
 
 class OnlineMembersDialog extends StatelessWidget {
@@ -169,8 +169,6 @@ class OnlineMembersDialog extends StatelessWidget {
                           RoomController.to.roomSeatsInfo[roomId] ?? [];
                       final seatIndex =
                           seatsList.indexWhere((s) => s['userId'] == u.userID);
-                      final seatText =
-                          seatIndex != -1 ? RoomSeatController.getSeatName(seatIndex) : null;
                       final isSpeaking = seatIndex != -1 &&
                           seatsList[seatIndex]['isSpeaking'] == true;
 
@@ -181,40 +179,6 @@ class OnlineMembersDialog extends StatelessWidget {
                                 UserProfileCacheManager.getCachedUser(u.userID);
                         final name = profile?.username ?? u.userName;
                         final avatarUrl = profile?.avatar ?? '';
-                        final level = profile?.level ?? 1;
-                        final nobleLevel = profile?.novelLevel ?? 0;
-                        final vipLevel = profile?.vipLevel ?? 0;
-
-                        // Determine distinct role tag color & label
-                        Color roleBgColor;
-                        Color roleTextColor;
-                        String roleLabel;
-
-                        if (u.userID == room.hostId || role == 'Creator' || role == 'Owner' || role == 'Founder') {
-                          roleBgColor = const Color(0xFFFFD700).withOpacity(0.9);
-                          roleTextColor = Colors.black87;
-                          roleLabel = '👑 Owner';
-                        } else if (role == 'Co-owner' || role == 'Co-Owner' || role == 'Co Owner') {
-                          roleBgColor = const Color(0xFF9C27B0);
-                          roleTextColor = Colors.white;
-                          roleLabel = '💎 Co Owner';
-                        } else if (role == 'Admin' || role == 'Moderator') {
-                          roleBgColor = const Color(0xFF2563EB);
-                          roleTextColor = Colors.white;
-                          roleLabel = '🛡 Admin';
-                        } else if (role == 'Host' || seatText == 'Host') {
-                          roleBgColor = const Color(0xFFEF4444);
-                          roleTextColor = Colors.white;
-                          roleLabel = '🎤 Host';
-                        } else if (seatText != null) {
-                          roleBgColor = Colors.cyan;
-                          roleTextColor = Colors.black87;
-                          roleLabel = '🎙️ $seatText';
-                        } else {
-                          roleBgColor = Colors.blueGrey.withOpacity(0.5);
-                          roleTextColor = Colors.white70;
-                          roleLabel = '👤 Audience';
-                        }
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
@@ -280,85 +244,12 @@ class OnlineMembersDialog extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Wrap(
-                                      spacing: 4,
-                                      runSpacing: 4,
-                                      children: [
-                                        // Level Tag
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 4, vertical: 1),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                Colors.amber.withOpacity(0.2),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            'Lv $level',
-                                            style: GoogleFonts.poppins(
-                                                color: Colors.amber,
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                        if (nobleLevel > 0)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 4, vertical: 1),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  Colors.cyan.withOpacity(0.2),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              'Novel $nobleLevel',
-                                              style: GoogleFonts.poppins(
-                                                  color: Colors.cyanAccent,
-                                                  fontSize: 8,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        if (vipLevel > 0)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 4, vertical: 1),
-                                            decoration: BoxDecoration(
-                                              color: Colors.purple
-                                                  .withOpacity(0.2),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              'VIP $vipLevel',
-                                              style: GoogleFonts.poppins(
-                                                  color: Colors.purpleAccent,
-                                                  fontSize: 8,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        // Role Tag
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 1.5),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                roleBgColor.withOpacity(0.85),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            roleLabel,
-                                            style: GoogleFonts.poppins(
-                                              color: roleTextColor,
-                                              fontSize: 8,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    UserBadgeRow(
+                                       user: profile,
+                                       roomRole: role,
+                                       showRoleTag: true,
+                                       maxWidth: 240,
+                                     ),
                                   ],
                                 ),
                               ),

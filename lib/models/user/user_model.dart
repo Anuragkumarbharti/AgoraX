@@ -127,13 +127,13 @@ class User {
       twitter: json['twitter'],
       interests: List<String>.from(json['interests'] ?? []),
       communities: List<String>.from(json['communities'] ?? []),
-      followers: json['followers_count'] ?? json['followers'] ?? 0,
-      following: json['following_count'] ?? json['following'] ?? 0,
+      followers: int.tryParse(json['followers_count']?.toString() ?? json['followers']?.toString() ?? '0') ?? 0,
+      following: int.tryParse(json['following_count']?.toString() ?? json['following']?.toString() ?? '0') ?? 0,
       isVerified: json['verified'] ?? json['isVerified'] ?? false,
       isPremium: json['isPremium'] ?? false,
       reputation: json['reputation'] ?? 0,
       sid: generatedSid,
-      level: json['level'] ?? 1,
+      level: int.tryParse(json['level']?.toString() ?? '1') ?? 1,
       xp: json['xp'] ?? json['experience'] ?? 0,
       totalXp: json['totalXp'] ?? 1000,
       totalPosts: json['totalPosts'] ?? 0,
@@ -152,12 +152,12 @@ class User {
               : null),
       silverCoins: json['silverCoins'] ?? json['coins'] ?? 0,
       learningStreak: json['learningStreak'] ?? 0,
-      vipLevel: json['vip_level'] ?? json['vipLevel'] ?? 0,
-      novelLevel: json['novel_level'] ?? json['novelLevel'] ?? 0,
+      vipLevel: int.tryParse(json['vip_level']?.toString() ?? json['vipLevel']?.toString() ?? '0') ?? 0,
+      novelLevel: int.tryParse(json['novel_level']?.toString() ?? json['novelLevel']?.toString() ?? '0') ?? 0,
       careerLevel: json['career_level'] ?? json['careerLevel'] ?? 1,
       avatarFrame: json['avatar_frame'] ?? json['avatarFrame'] ?? 'Normal',
       diamonds: json['diamonds'] ?? 0,
-      friendsCount: json['friends_count'] ?? json['friendsCount'] ?? 0,
+      friendsCount: int.tryParse(json['friends_count']?.toString() ?? json['friendsCount']?.toString() ?? '0') ?? 0,
       roomsJoined: json['rooms_joined'] ?? json['roomsJoined'] ?? 0,
       eventsJoined: json['events_joined'] ?? json['eventsJoined'] ?? 0,
       onlineStatus: json['online_status'] ?? json['onlineStatus'] ?? false,
@@ -179,10 +179,8 @@ class User {
       lastVerificationDate: json['last_verification_date'] != null
           ? DateTime.tryParse(json['last_verification_date'].toString())
           : null,
-      totalStarsReceived:
-          json['total_stars_received'] ?? json['totalStarsReceived'] ?? 0,
-      totalStarsGifted:
-          json['total_stars_gifted'] ?? json['totalStarsGifted'] ?? 0,
+      totalStarsReceived: int.tryParse(json['total_stars_received']?.toString() ?? json['totalStarsReceived']?.toString() ?? json['gifts_received']?.toString() ?? '0') ?? 0,
+      totalStarsGifted: int.tryParse(json['total_stars_gifted']?.toString() ?? json['totalStarsGifted']?.toString() ?? json['gifts_sent']?.toString() ?? '0') ?? 0,
       vipExpiry: json['vip_expiry'] != null
           ? DateTime.tryParse(json['vip_expiry'].toString())
           : null,

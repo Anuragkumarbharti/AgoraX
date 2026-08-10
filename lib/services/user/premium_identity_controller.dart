@@ -7,6 +7,7 @@ import '../memberships/novel_controller.dart';
 import '../progression/career_progression_controller.dart';
 import '../../widgets/memberships/vip_badge_widget.dart';
 import '../../widgets/memberships/novel_badge_widget.dart';
+import 'user_badge_asset_registry.dart';
 
 class UserVerification {
   final String title;
@@ -533,19 +534,7 @@ class PremiumIdentity {
 }
 
 String? getOfficialCommunityTagAssetPath(String tagLabel) {
-  final clean = tagLabel.trim().toLowerCase();
-  if (clean == 'connect' || clean == 'cannect' || clean.contains('connect') || clean.contains('cannect')) {
-    return 'assets/identity_tags/officialcomunity_tags/cannect.png';
-  } else if (clean == 'campus' || clean.contains('campus')) {
-    return 'assets/identity_tags/officialcomunity_tags/campus.png';
-  } else if (clean == 'arenax' || clean == 'arena x' || clean.contains('arenax') || clean.contains('arena x') || clean.contains('gamers')) {
-    return 'assets/identity_tags/officialcomunity_tags/arenax.png';
-  } else if (clean == 'studio' || clean.contains('studio') || clean.contains('creators')) {
-    return 'assets/identity_tags/officialcomunity_tags/studio.png';
-  } else if (clean == 'origin' || clean.contains('origin') || clean.contains('creania official') || clean.contains('creaniaa official') || clean == 'official' || clean.contains('official')) {
-    return 'assets/identity_tags/officialcomunity_tags/origin.png';
-  }
-  return null;
+  return UserBadgeAssetRegistry.getCommunityTagAssetPath(tagLabel);
 }
 
 class PremiumIdentityController extends GetxController {

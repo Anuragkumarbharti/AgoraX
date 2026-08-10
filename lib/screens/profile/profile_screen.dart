@@ -35,6 +35,8 @@ import '../../services/vault/study_vault_controller.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/user/user_progress_sync_service.dart';
 import '../../services/chat/chat_controller.dart';
+import '../../services/user/user_badge_asset_registry.dart';
+import '../../widgets/user_tags/user_badge_widgets.dart';
 import '../store/store_home_screen.dart';
 import '../study_vault/study_vault_home_screen.dart';
 import '../vault/creania_vault_home_screen.dart';
@@ -850,8 +852,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                           AssetCacheManager.getOptimizedUrl(
                               rawCover, ImageQuality.medium);
 
-                      final double screenHeight = MediaQuery.of(context).size.height;
-                      final double dynamicHeaderHeight = screenHeight * 0.50 + 15.0;
+                      final double screenHeight =
+                          MediaQuery.of(context).size.height;
+                      final double dynamicHeaderHeight =
+                          screenHeight * 0.50 + 15.0;
 
                       return ClipPath(
                         clipper: ProfileHeaderCurveClipper(),
@@ -968,15 +972,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                                               ? 112
                                               : 96,
                                           defaultVipLevel: liveUser.vipLevel,
-                                          defaultNovelLevel: liveUser.novelLevel,
+                                          defaultNovelLevel:
+                                              liveUser.novelLevel,
                                           showBadges: false,
                                           child: CircleAvatar(
                                             radius: 48,
                                             backgroundColor:
                                                 const Color(0xFF11131C),
                                             child: OptimizedImage(
-                                              imageUrl: (liveUser.avatar != null &&
-                                                      liveUser.avatar!.isNotEmpty &&
+                                              imageUrl: (liveUser.avatar !=
+                                                          null &&
+                                                      liveUser
+                                                          .avatar!.isNotEmpty &&
                                                       !liveUser.avatar!.contains(
                                                           'lh3.googleusercontent.com'))
                                                   ? liveUser.avatar!
@@ -999,7 +1006,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                               color: Colors.green,
                                               shape: BoxShape.circle,
                                               border: Border.all(
-                                                  color: const Color(0xFF11131C),
+                                                  color:
+                                                      const Color(0xFF11131C),
                                                   width: 2),
                                             ),
                                           ),
@@ -1010,8 +1018,10 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                                     // First Row: Username (Bold, Primary Focus, 18 px)
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Flexible(
@@ -1026,8 +1036,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                               letterSpacing: -0.4,
                                               shadows: [
                                                 Shadow(
-                                                  color:
-                                                      Colors.black.withOpacity(0.3),
+                                                  color: Colors.black
+                                                      .withOpacity(0.3),
                                                   blurRadius: 6,
                                                   offset: const Offset(0, 2),
                                                 )
@@ -1069,22 +1079,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       onTap: () {
                                         Clipboard.setData(
                                             ClipboardData(text: liveUser.sid));
-                                        Get.snackbar(
-                                            'Copied', 'ID copied to clipboard.');
+                                        Get.snackbar('Copied',
+                                            'ID copied to clipboard.');
                                       },
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 12, vertical: 5),
                                         decoration: BoxDecoration(
-                                          color:
-                                              context.surfaceColor.withOpacity(0.9),
-                                          borderRadius: BorderRadius.circular(20),
+                                          color: context.surfaceColor
+                                              .withOpacity(0.9),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                           border: Border.all(
                                               color: context.borderColor,
                                               width: 1.0),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.04),
+                                              color: Colors.black
+                                                  .withOpacity(0.04),
                                               blurRadius: 6,
                                               offset: const Offset(0, 2),
                                             )
@@ -1114,22 +1126,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     const SizedBox(height: 6),
 
                                     // Third Row: Identity Tag Bar (5 tags in 1 row, max width 320)
-                                    ConstrainedBox(
-                                      constraints:
-                                          const BoxConstraints(maxWidth: 320),
-                                      child: Wrap(
-                                        alignment: WrapAlignment.center,
-                                        spacing: 6,
-                                        runSpacing: 6,
-                                        children: buildTagLightsWidget(
-                                            generateDynamicTagLights(liveUser),
-                                            context),
-                                      ),
+                                    UserBadgeRow(
+                                      user: liveUser,
+                                      showRoleTag: false,
+                                      maxWidth: 320,
                                     ),
-                                    const SizedBox(height: 6),
-
-                                    // Fourth Row: Official Status Tag (Automatic priority role/verified tag)
-                                    buildOfficialStatusRow(liveUser, context),
                                     const SizedBox(height: 6),
 
                                     // Fifth Row: Badge Showcase (with mockup container styling)
@@ -2246,59 +2247,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildSingleStatusBadge(String label, {required bool isRole}) {
-    Gradient gradient;
-    Color borderColor;
-    IconData icon;
-
-    if (!isRole) {
-      // Verified Tag
-      gradient = const LinearGradient(
-        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-      );
-      borderColor = const Color(0xFF3B82F6).withOpacity(0.5);
-      icon = Icons.verified_user_rounded;
-    } else {
-      // Role Tag
-      gradient = const LinearGradient(
-        colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
-      );
-      borderColor = const Color(0xFF8B5CF6).withOpacity(0.5);
-      icon = Icons.shield_rounded;
-    }
-
-    return Container(
-      height: 19,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        gradient: gradient,
-        border: Border.all(color: borderColor, width: 1.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          )
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white, size: 10),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
-      ),
-    );
+    return OfficialTagWidget(label: label, isRole: isRole);
   }
 
   Widget buildBadgesShowcaseWidget(

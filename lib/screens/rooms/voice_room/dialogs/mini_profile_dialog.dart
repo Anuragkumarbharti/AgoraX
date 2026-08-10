@@ -16,6 +16,8 @@ import '../../../profile/profile_screen.dart';
 import '../widgets/breathing_indicators.dart';
 import 'mini_profile_sheets.dart';
 import 'mini_profile_badges.dart';
+import '../../../../widgets/memberships/vip_badge_widget.dart';
+import '../../../../widgets/memberships/novel_badge_widget.dart';
 
 class MiniProfileDialog extends StatefulWidget {
   final String roomId;
@@ -52,6 +54,12 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
   late Animation<double> _fadeAnimation;
   final RoomController _controller = RoomController.to;
 
+  final RxDouble monthlyReceivedGifts = 0.0.obs;
+  final RxDouble monthlyContribution = 0.0.obs;
+  final RxDouble totalGiftsReceived = 0.0.obs;
+  final RxInt contributorsCount = 0.obs;
+  late final Worker _giftWorker;
+
   @override
   void initState() {
     super.initState();
@@ -65,20 +73,126 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
         CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
     _resolveProfile();
+
+    _giftWorker = ever(UserProfileCacheManager.giftTransactionsTrigger, (_) {
+      _resolveProfile();
+    });
   }
 
   @override
   void dispose() {
+    _giftWorker.dispose();
     _animController.dispose();
     super.dispose();
   }
 
-  void _resolveProfile() {
-    UserProfileCacheManager.fetchUserProfile(widget.targetUserId).then((u) {
+  void _resolveProfile() async {
+    final targetId = widget.targetUserId;
+    if (targetId.isEmpty) return;
+
+    try {
+      final u = await UserProfileCacheManager.fetchUserProfile(targetId, forceRefresh: true);
+
+      final followerRes = await Supabase.instance.client
+          .from('connections')
+          .select('follower_id')
+          .eq('following_id', targetId);
+      final int actualFollowers = (followerRes as List).length;
+
+      final followingRes = await Supabase.instance.client
+          .from('connections')
+          .select('following_id')
+          .eq('follower_id', targetId);
+      final int actualFollowing = (followingRes as List).length;
+
+      final friendsRes = await Supabase.instance.client
+          .from('connections')
+          .select('follower_id')
+          .eq('follower_id', targetId)
+          .eq('status', 'friends');
+      final int actualFriends = (friendsRes as List).length;
+
+      double actualReceived = 0.0;
+      double actualMonthlyReceived = 0.0;
+      double actualMonthlySent = 0.0;
+      int contributors = actualFollowers;
+
+      try {
+        final rpcStats = await Supabase.instance.client
+            .rpc('get_user_gift_stats_v2', params: {'p_user_id': targetId});
+        if (rpcStats != null && rpcStats is Map) {
+          actualMonthlyReceived = (rpcStats['monthly_received'] as num?)?.toDouble() ?? 0.0;
+          actualMonthlySent = (rpcStats['monthly_sent'] as num?)?.toDouble() ?? 0.0;
+        }
+      } catch (_) {}
+
+      try {
+        final giftData = await Supabase.instance.client
+            .from('gift_transactions')
+            .select('stars_value, sender_id')
+            .eq('receiver_id', targetId);
+        if (giftData != null) {
+          final Set<String> uniqueSenders = {};
+          for (final item in giftData as List<dynamic>) {
+            actualReceived += (item['stars_value'] as num?)?.toDouble() ?? 0.0;
+            final sId = item['sender_id'] as String?;
+            if (sId != null && sId.isNotEmpty) uniqueSenders.add(sId);
+          }
+          if (uniqueSenders.isNotEmpty) contributors = uniqueSenders.length;
+        }
+      } catch (_) {}
+
+      monthlyReceivedGifts.value = actualMonthlyReceived > 0 ? actualMonthlyReceived : actualReceived;
+      monthlyContribution.value = actualMonthlySent;
+      totalGiftsReceived.value = actualReceived > 0 ? actualReceived : u.totalStarsReceived.toDouble();
+      contributorsCount.value = contributors;
+
+      final updatedUser = u.copyWith(
+        followers: actualFollowers,
+        following: actualFollowing,
+        friendsCount: actualFriends,
+        totalStarsReceived: actualReceived.toInt() > 0 ? actualReceived.toInt() : u.totalStarsReceived,
+      );
+
+      UserProfileCacheManager.rxCache[targetId] = updatedUser;
+
       if (mounted) {
         setState(() {});
       }
-    });
+    } catch (e) {
+      debugPrint('[MiniProfileDialog] _resolveProfile error: $e');
+    }
+  }
+
+  void _navigateToProfile(User? u) {
+    Get.back();
+    final currentUid = Supabase.instance.client.auth.currentUser?.id;
+    final isMe = widget.targetUserId == widget.callerUserId ||
+        (currentUid != null && widget.targetUserId == currentUid);
+    if (isMe) {
+      Get.to(() => const ProfileScreen());
+    } else {
+      final uName = u?.username ?? widget.targetUserName;
+      final uAvatar = u?.avatar ?? _getUserDp(widget.targetUserId);
+      Get.to(() => ProfileScreen(
+          visitorUser: u ??
+              User(
+                id: widget.targetUserId,
+                username: uName.toLowerCase().replaceAll(' ', '_'),
+                email: '${widget.targetUserId}@example.com',
+                displayName: uName,
+                avatar: uAvatar,
+                followers: 0,
+                following: 0,
+                isVerified: widget.role == 'Owner' || widget.role == 'Co-owner',
+                isPremium: false,
+                level: 1,
+                interests: const [],
+                communities: const [],
+                reputation: 100,
+                sid: widget.targetUserId.hashCode.abs().toString(),
+              )));
+    }
   }
 
   String _getUserDp(String userId) {
@@ -91,20 +205,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     }
     final u = UserProfileCacheManager.getCachedUser(userId);
     if (u != null && u.avatar != null && u.avatar!.isNotEmpty) return u.avatar!;
-
-    if (userId == 'uid_anurag_101') {
-      return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
-    } else if (userId == 'user_co_1' || userId.contains('priya')) {
-      return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150';
-    } else if (userId == 'user_adm_1' || userId.contains('vikram')) {
-      return 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150';
-    } else if (userId == 'user_perf_1' || userId.contains('rahul')) {
-      return 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150';
-    } else if (userId == 'user_star_1' || userId.contains('siddharth')) {
-      return 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150';
-    } else {
-      return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
-    }
+    return '';
   }
 
   String _getNumericId(String userId) {
@@ -115,27 +216,166 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     return formatCompactNumber(value);
   }
 
-  Widget _buildOverlappingAvatarsDialog(List<String> imageUrls) {
-    return SizedBox(
-      height: 16,
-      width: 40,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: List.generate(imageUrls.length, (index) {
-          return Positioned(
-            left: index * 8.0,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.black, width: 0.8),
-              ),
-              child: CircleAvatar(
-                radius: 6,
-                backgroundImage: NetworkImage(imageUrls[index]),
-              ),
+  Widget _buildLightStatCol({
+    required IconData icon,
+    required Color iconColor,
+    required String value,
+    required String label,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: iconColor, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF111827),
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF6B7280),
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLightGiftStatRow(String label, String value, {required Color valColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF6B7280),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            color: valColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDynamicRoleTag(String roomRole, String targetRole, User? user) {
+    String? roleName;
+
+    for (final r in [roomRole, targetRole]) {
+      final l = r.trim().toLowerCase();
+      if (l == 'owner' ||
+          l == 'host' ||
+          l == 'co-owner' ||
+          l == 'co-host' ||
+          l == 'admin' ||
+          l == 'moderator') {
+        roleName = r.trim();
+        break;
+      }
+    }
+
+    if (roleName == null && user?.rTags.isNotEmpty == true) {
+      roleName = MiniProfileBadges.getHighestRTag(user!.rTags);
+    }
+
+    if (roleName == null || roleName.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final lowerRole = roleName.toLowerCase();
+    if (lowerRole == 'speaker' ||
+        lowerRole == 'listener' ||
+        lowerRole == 'audience' ||
+        lowerRole == 'member' ||
+        lowerRole == 'user') {
+      return const SizedBox.shrink();
+    }
+
+    IconData iconData = Icons.shield_rounded;
+    List<Color> gradientColors = [
+      const Color(0xFF7C3AED),
+      const Color(0xFF6D28D9),
+    ];
+    Color accentColor = const Color(0xFFA78BFA);
+
+    if (lowerRole == 'owner' || lowerRole == 'host' || lowerRole == 'founder') {
+      iconData = Icons.workspace_premium_rounded;
+      gradientColors = [
+        const Color(0xFFD97706),
+        const Color(0xFFB45309),
+      ];
+      accentColor = const Color(0xFFFBBF24);
+    } else if (lowerRole == 'co-owner' || lowerRole == 'co-host') {
+      iconData = Icons.shield_rounded;
+      gradientColors = [
+        const Color(0xFF7C3AED),
+        const Color(0xFF6D28D9),
+      ];
+      accentColor = const Color(0xFFA78BFA);
+    } else if (lowerRole == 'admin' || lowerRole == 'moderator') {
+      iconData = Icons.star_rounded;
+      gradientColors = [
+        const Color(0xFF2563EB),
+        const Color(0xFF1D4ED8),
+      ];
+      accentColor = const Color(0xFF60A5FA);
+    } else if (lowerRole == 'creator' || lowerRole == 'developer') {
+      iconData = Icons.code_rounded;
+      gradientColors = [
+        const Color(0xFFEC4899),
+        const Color(0xFFBE185D),
+      ];
+      accentColor = const Color(0xFFF472B6);
+    }
+
+    return Container(
+      height: 19,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: accentColor.withOpacity(0.5), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.25),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(iconData, color: accentColor, size: 11),
+          const SizedBox(width: 4),
+          Text(
+            roleName,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
             ),
-          );
-        }),
+          ),
+        ],
       ),
     );
   }
@@ -161,70 +401,119 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
   List<Map<String, dynamic>> generateDynamicTagLights(
       User? user, int fallbackVip, int fallbackNovel, int fallbackLevel) {
     final List<Map<String, dynamic>> tags = [];
-    if (user == null || user.tagSystem == null) {
-      return tags;
+
+    // 1. Level Tag (Realtime from user.level)
+    final int level = (user != null && user.level > 0)
+        ? user.level
+        : (fallbackLevel > 0 ? fallbackLevel : 1);
+    tags.add({
+      'label': 'Lv.$level',
+      'color': const Color(0xFF3B82F6),
+      'gradient': const LinearGradient(
+        colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      'icon': '⚡',
+      'type': 'id_level',
+    });
+
+    // 2. Community Tag (Realtime from user.communities if user belongs to one)
+    if (user != null && user.communities.isNotEmpty) {
+      for (final comm in user.communities) {
+        if (comm.trim().isNotEmpty) {
+          tags.add({
+            'label': comm.trim(),
+            'color': const Color(0xFFEC4899),
+            'gradient': const LinearGradient(
+              colors: [Color(0xFFF472B6), Color(0xFFEC4899)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            'icon': '❤️',
+            'type': 'community',
+          });
+        }
+      }
     }
 
-    for (var t in user.tagSystem!.identityTagBar) {
-      final label = t.value;
-      final type = t.type;
-      Color color = const Color(0xFFBEC2FF);
-      Gradient? gradient;
-
-      if (type == 'id_level') {
-        color = const Color(0xFF3B82F6);
-        gradient = const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+    // 3. VIP Tag (ONLY if user.vipLevel > 0!)
+    final int vip = (user != null && user.vipLevel > 0) ? user.vipLevel : fallbackVip;
+    if (vip > 0) {
+      tags.add({
+        'label': 'VIP $vip',
+        'color': const Color(0xFFEF4444),
+        'gradient': const LinearGradient(
+          colors: [Color(0xFFDC2626), Color(0xFF991B1B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-        );
-      } else if (type == 'community') {
-        color = t.color != null
-            ? Color(int.parse(t.color!.replaceAll('#', '0xFF')))
-            : const Color(0xFFEC4899);
-        if (t.color == null) {
+        ),
+        'icon': '⭐',
+        'type': 'vip',
+      });
+    }
+
+    // 4. Novel Tag (ONLY if user.novelLevel > 0!)
+    final int novel = (user != null && user.novelLevel > 0) ? user.novelLevel : fallbackNovel;
+    if (novel > 0) {
+      tags.add({
+        'label': 'Novel $novel',
+        'color': const Color(0xFFD97706),
+        'gradient': const LinearGradient(
+          colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        'icon': '📖',
+        'type': 'noble',
+      });
+    }
+
+    // 5. Custom identity tags from user tag system (if defined)
+    if (user != null && user.tagSystem != null) {
+      for (var t in user.tagSystem!.identityTagBar) {
+        final label = t.value;
+        final type = t.type;
+        final cleanL = label.toLowerCase();
+        if (cleanL.startsWith('lv') || cleanL.startsWith('vip') || cleanL.startsWith('novel')) {
+          continue;
+        }
+
+        Color color = const Color(0xFFBEC2FF);
+        Gradient? gradient;
+
+        if (type == 'community') {
+          color = t.color != null
+              ? Color(int.parse(t.color!.replaceAll('#', '0xFF')))
+              : const Color(0xFFEC4899);
           gradient = const LinearGradient(
             colors: [Color(0xFFF472B6), Color(0xFFEC4899)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
+        } else if (type == 'special') {
+          color = const Color(0xFF8B5CF6);
+          gradient = const LinearGradient(
+            colors: [Color(0xFFA78BFA), Color(0xFF7C3AED)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
         }
-      } else if (type == 'vip') {
-        color = const Color(0xFF3B82F6);
-        gradient = const LinearGradient(
-          colors: [Color(0xFF60A5FA), Color(0xFF2563EB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      } else if (type == 'noble') {
-        color = const Color(0xFFD97706);
-        gradient = const LinearGradient(
-          colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      } else if (type == 'special') {
-        color = const Color(0xFF8B5CF6);
-        gradient = const LinearGradient(
-          colors: [Color(0xFFA78BFA), Color(0xFF7C3AED)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      }
 
-      tags.add({
-        'label': label,
-        'color': color,
-        'gradient': gradient,
-        'imageUrl': t.imageUrl,
-        'customColor': t.color,
-        'border': t.border,
-        'glow': t.glow,
-        'animation': t.animation,
-        'effects': t.effects,
-        'icon': t.icon,
-        'type': type,
-      });
+        tags.add({
+          'label': label,
+          'color': color,
+          'gradient': gradient,
+          'imageUrl': t.imageUrl,
+          'customColor': t.color,
+          'border': t.border,
+          'glow': t.glow,
+          'animation': t.animation,
+          'effects': t.effects,
+          'icon': t.icon ?? '🏷️',
+          'type': type,
+        });
+      }
     }
 
     return tags;
@@ -258,60 +547,32 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
 
     final List<Widget> widgets = displayTags.map((tag) {
       final label = tag['label'] as String;
-      final imageUrl = tag['imageUrl'] as String?;
       final type = tag['type'] as String?;
-
-      String? localAsset;
-      final String cleanLabel = label.trim().toLowerCase();
-      final String cleanUrl = (imageUrl ?? '').trim().toLowerCase();
-      final String cleanType = (type ?? '').trim().toLowerCase();
-
-      if (cleanUrl.contains('vip') ||
-          cleanUrl.contains('id_level') ||
-          cleanType.contains('vip') ||
-          cleanType.contains('id_level') ||
-          cleanLabel.startsWith('vip') ||
-          cleanLabel.startsWith('v1') ||
-          cleanLabel.startsWith('v2') ||
-          cleanLabel.startsWith('l1') ||
-          cleanLabel.startsWith('l2') ||
-          cleanLabel.startsWith('lv')) {
-        return const SizedBox.shrink();
+      if (type == 'vip') {
+        final level = int.tryParse(label.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        return VipBadgeWidget(level: level, fontSize: 10);
+      }
+      if (type == 'noble') {
+        final level = int.tryParse(label.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        return NovelBadgeWidget(level: level, fontSize: 10);
       }
 
-      final String? officialCommAsset =
-          getOfficialCommunityTagAssetPath(cleanLabel) ??
-              getOfficialCommunityTagAssetPath(cleanUrl) ??
-              getOfficialCommunityTagAssetPath(cleanType);
-      if (officialCommAsset != null) {
-        localAsset = officialCommAsset;
-      }
-
-      if (localAsset != null) {
-        return Tooltip(
-          message: 'Identity Tag: $label',
-          child: Image.asset(
-            localAsset,
-            height: 19,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => MiniProfileBadges.buildTextTagFallback(label, tag),
-          ),
-        );
-      }
+      final imageUrl = tag['imageUrl'] as String?;
+      final String? iconStr = tag['icon'] as String?;
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
         Widget imgWidget;
         if (imageUrl.startsWith('asset://')) {
           imgWidget = Image.asset(
             imageUrl.replaceAll('asset://', ''),
-            height: 22,
+            height: 19,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => MiniProfileBadges.buildTextTagFallback(label, tag),
           );
         } else {
           imgWidget = OptimizedImage(
             imageUrl: imageUrl,
-            height: 22,
+            height: 19,
             preset: MediaSizePreset.xs,
             fit: BoxFit.contain,
             errorWidget: MiniProfileBadges.buildTextTagFallback(label, tag),
@@ -323,101 +584,46 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
         );
       }
 
-      final color = tag['color'] as Color;
+      final color = tag['color'] as Color? ?? const Color(0xFF3B82F6);
       final gradient = tag['gradient'] as Gradient?;
-      final String? glow = tag['glow'] as String?;
-      final String? borderType = tag['border'] as String?;
-      final String? animation = tag['animation'] as String?;
-      final String? icon = tag['icon'] as String?;
 
-      Color bg = color.withOpacity(0.12);
-      Color borderCol = color.withOpacity(0.4);
-      Color textCol = color;
+      Color borderCol = color.withOpacity(0.5);
+      Color textCol = Colors.white;
 
-      if (gradient != null) {
-        borderCol = color;
-        textCol = Colors.white;
-      }
-
-      List<BoxShadow> shadows = [
-        BoxShadow(
-          color: borderCol.withOpacity(0.1),
-          blurRadius: 4,
-          offset: const Offset(0, 1),
-        )
-      ];
-
-      if (glow == 'gold') {
-        shadows.add(BoxShadow(
-            color: const Color(0xFFF59E0B).withOpacity(0.4),
-            blurRadius: 6,
-            spreadRadius: 1));
-      } else if (glow == 'silver') {
-        shadows.add(BoxShadow(
-            color: const Color(0xFFE2E8F0).withOpacity(0.4),
-            blurRadius: 5,
-            spreadRadius: 1));
-      } else if (glow == 'neon') {
-        shadows.add(BoxShadow(
-            color: const Color(0xFF818CF8).withOpacity(0.5),
-            blurRadius: 8,
-            spreadRadius: 1.5));
-      }
-
-      BoxBorder borderStyle = Border.all(color: borderCol, width: 1.0);
-      if (borderType == 'gold_glow') {
-        borderStyle = Border.all(color: const Color(0xFFF59E0B), width: 1.2);
-      } else if (borderType == 'silver_glow') {
-        borderStyle = Border.all(color: const Color(0xFFE2E8F0), width: 1.0);
-      } else if (borderType == 'rainbow_neon') {
-        borderStyle = Border.all(color: const Color(0xFF818CF8), width: 1.5);
-      }
-
-      Widget tagContent = Container(
-        height: 22,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+      return Container(
+        height: 19,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
           gradient: gradient,
-          color: gradient == null ? bg : null,
-          border: borderStyle,
-          boxShadow: shadows,
+          color: gradient == null ? color.withOpacity(0.2) : null,
+          border: Border.all(color: borderCol, width: 0.8),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.25),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            )
+          ],
         ),
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Text(icon, style: const TextStyle(fontSize: 10)),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                label,
-                style: GoogleFonts.poppins(
-                  color: textCol,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                ),
-              ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (iconStr != null && iconStr.isNotEmpty) ...[
+              Text(iconStr, style: const TextStyle(fontSize: 9.5)),
+              const SizedBox(width: 3),
             ],
-          ),
-        ),
-      );
-
-      if (animation == 'breathing') {
-        tagContent = BreathingWidget(child: tagContent);
-      } else if (animation == 'rotating') {
-        tagContent = PulseWidget(child: tagContent);
-      }
-
-      return Tooltip(
-        message: 'Identity Tag: $label',
-        child: GestureDetector(
-          onTap: () {
-            Get.snackbar('Tag Info', 'Details page for $label tag.');
-          },
-          child: tagContent,
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                color: textCol,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
         ),
       );
     }).toList();
@@ -425,20 +631,22 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     if (hasOverflow) {
       widgets.add(
         Container(
-          margin: const EdgeInsets.only(left: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          height: 19,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(999),
             border:
                 Border.all(color: Colors.white.withOpacity(0.2), width: 0.8),
           ),
-          child: Text(
-            '+$overflowCount',
-            style: GoogleFonts.poppins(
-              color: Colors.white70,
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
+          child: Center(
+            child: Text(
+              '+$overflowCount',
+              style: GoogleFonts.poppins(
+                color: Colors.white70,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -488,10 +696,6 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
       final int uLevel = u?.level ?? 25;
       final int vipLevel = u?.vipLevel ?? 0;
       final int novelLevel = u?.novelLevel ?? 0;
-      final bool isVIP = vipLevel > 0 ||
-          widget.targetUserId == 'uid_anurag_101' ||
-          widget.role == 'Owner' ||
-          widget.role == 'Co-owner';
 
       return BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
@@ -504,24 +708,20 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
               elevation: 0,
               insetPadding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
-                width: 320,
+                width: 330,
                 decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAFC),
                   borderRadius: BorderRadius.circular(24),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF1E1C2E).withOpacity(0.85),
-                      const Color(0xFF0F0E17).withOpacity(0.95),
-                    ],
-                  ),
                   border: Border.all(
-                      color: Colors.white.withOpacity(0.08), width: 1.2),
+                    color: const Color(0xFFF3F4F6),
+                    width: 1.2,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF8B5CF6).withOpacity(0.2),
-                      blurRadius: 20,
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 24,
                       spreadRadius: 2,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -529,104 +729,162 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Top Bar (Bookmark/Flag and Three Dot Menu)
+                    // Top Bar (Bookmark/Flag and Three Dot Menu in Light Circles)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.bookmark_border_rounded,
-                              color: Colors.white70),
-                          onPressed: () => MiniProfileSheets.showReportUserSheet(context, uName),
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(Icons.bookmark_border_rounded,
+                                color: Color(0xFF111827), size: 18),
+                            onPressed: () => MiniProfileSheets.showReportUserSheet(context, uName),
+                          ),
                         ),
                         if (showThreeDotMenu)
-                          IconButton(
-                            icon: const Icon(Icons.more_vert_rounded,
-                                color: Colors.white70),
-                            onPressed: () => MiniProfileSheets.showThreeDotMenuSheet(
-                              context: context,
-                              roomId: widget.roomId,
-                              callerUserId: widget.callerUserId,
-                              targetUserId: widget.targetUserId,
-                              controller: _controller,
-                              onStateChanged: () => setState(() {}),
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.04),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.more_horiz_rounded,
+                                  color: Color(0xFF111827), size: 18),
+                              onPressed: () => MiniProfileSheets.showThreeDotMenuSheet(
+                                context: context,
+                                roomId: widget.roomId,
+                                callerUserId: widget.callerUserId,
+                                targetUserId: widget.targetUserId,
+                                controller: _controller,
+                                onStateChanged: () => setState(() {}),
+                              ),
                             ),
                           )
                         else
-                          const SizedBox(width: 48, height: 48),
+                          const SizedBox(width: 36, height: 36),
                       ],
                     ),
                     const SizedBox(height: 12),
 
                     // 1. Centered Avatar Stack
-                    Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.none,
-                      children: [
-                        CustomAvatarFrame(
-                          userId: widget.targetUserId,
-                          username: uName,
-                          size: (vipLevel > 0 ||
-                                  novelLevel > 0 ||
-                                  (u?.avatarFrame != null &&
-                                      u!.avatarFrame!.isNotEmpty &&
-                                      u.avatarFrame != 'none' &&
-                                      u.avatarFrame != 'normal'))
-                              ? 112
-                              : 96,
-                          defaultVipLevel: vipLevel,
-                          defaultNovelLevel: novelLevel,
-                          child: CircleAvatar(
-                            radius: 48,
-                            backgroundImage: uAvatar.isNotEmpty
-                                ? OptimizedImage.getOptimizedImageProvider(
-                                    uAvatar,
-                                    preset: MediaSizePreset.md,
-                                  )
-                                : null,
-                            child: uAvatar.isEmpty
-                                ? const Icon(Icons.person,
-                                    size: 36, color: Colors.white54)
-                                : null,
-                          ),
+                    GestureDetector(
+                      onTap: () => _navigateToProfile(u),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: [
+                            CustomAvatarFrame(
+                              userId: widget.targetUserId,
+                              username: uName,
+                              size: (vipLevel > 0 ||
+                                      novelLevel > 0 ||
+                                      (u?.avatarFrame != null &&
+                                          u!.avatarFrame!.isNotEmpty &&
+                                          u.avatarFrame != 'none' &&
+                                          u.avatarFrame != 'normal'))
+                                  ? 112
+                                  : 96,
+                              defaultVipLevel: vipLevel,
+                              defaultNovelLevel: novelLevel,
+                              child: CircleAvatar(
+                                radius: 48,
+                                backgroundImage: uAvatar.isNotEmpty
+                                    ? OptimizedImage.getOptimizedImageProvider(
+                                        uAvatar,
+                                        preset: MediaSizePreset.md,
+                                      )
+                                    : null,
+                                child: uAvatar.isEmpty
+                                    ? const Icon(Icons.person,
+                                        size: 36, color: Colors.black38)
+                                    : null,
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 2,
+                              right: 2,
+                              child: Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        Positioned(
-                          bottom: 2,
-                          right: 2,
-                          child: const PulsingOnlineIndicator(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // 2. Username (Clickable to open profile)
+                    GestureDetector(
+                      onTap: () => _navigateToProfile(u),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              uName,
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF111827),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              u?.gender == 'female'
+                                  ? Icons.female_rounded
+                                  : Icons.male_rounded,
+                              color: u?.gender == 'female'
+                                  ? const Color(0xFFEC4899)
+                                  : const Color(0xFF3B82F6),
+                              size: 16,
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 6),
 
-                    // 2. Username (Bold, primary focus, 18 px)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          uName,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.4,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          u?.gender == 'female'
-                              ? Icons.female_rounded
-                              : Icons.male_rounded,
-                          color: u?.gender == 'female'
-                              ? const Color(0xFFF472B6)
-                              : const Color(0xFF60A5FA),
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
+                    // 3. ROLE TAG (Placed RIGHT BELOW Username, BEFORE ID Pill)
+                    MiniProfileBadges.buildSingleRoleTag(widget.role, targetRole, u),
+                    if (widget.role.isNotEmpty ||
+                        (targetRole != null && targetRole.isNotEmpty) ||
+                        (u?.rTags.isNotEmpty == true))
+                      const SizedBox(height: 6),
 
-                    // 3. User ID (ID Pill)
+                    // 4. User ID (ID Pill)
                     GestureDetector(
                       onTap: () {
                         Clipboard.setData(ClipboardData(text: numericId));
@@ -634,12 +892,12 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                            horizontal: 12, vertical: 5),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.03),
+                          color: const Color(0xFFF9FAFB),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: Colors.white.withOpacity(0.08),
+                              color: const Color(0xFFE5E7EB),
                               width: 1.0),
                         ),
                         child: Row(
@@ -649,7 +907,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                             Text(
                               'ID: $numericId',
                               style: GoogleFonts.poppins(
-                                color: Colors.white70,
+                                color: const Color(0xFF6B7280),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -657,437 +915,267 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                             const SizedBox(width: 4),
                             const Icon(
                               Icons.content_copy_rounded,
-                              color: Colors.white54,
-                              size: 11,
+                              color: Color(0xFF9CA3AF),
+                              size: 12,
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 10),
 
-                    // 4. Identity Tags (Wrap, centered, max width 320)
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 320),
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: buildTagLightsWidget(
-                            generateDynamicTagLights(
-                                u, vipLevel, novelLevel, uLevel),
-                            context),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
+                    // 5. IDENTITY TAGS ROW (Right below ID Pill - horizontal side-by-side row: Level, VIP, Novel, Community)
+                    Builder(
+                      builder: (context) {
+                        final identityTags = MiniProfileBadges.buildIdentityTagWidgets(u);
+                        final officialBadges = MiniProfileBadges.buildOfficialStatusBadges(u);
+                        final allTags = [...officialBadges, ...identityTags];
+                        if (allTags.isEmpty) return const SizedBox.shrink();
 
-                    // 4.5. ROLE SHIELD (Feature 16: Displays current room role & active tenure)
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.amber.shade900.withOpacity(0.3),
-                            Colors.purple.shade900.withOpacity(0.3),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.amber.withOpacity(0.5), width: 1),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🛡️ Role Shield:', style: TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.role.isNotEmpty ? widget.role : 'Audience',
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 320),
+                            child: Wrap(
+                              alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: allTags,
+                            ),
                           ),
-                          const SizedBox(width: 6),
-                          const Text('• Since 04 Aug 2026', style: TextStyle(color: Colors.white60, fontSize: 9)),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 6),
 
-                    // 5. Official Status Tag
-                    MiniProfileBadges.buildOfficialStatusRow(u, context),
-                    const SizedBox(height: 6),
 
-                    // 6. Showcase Badges
-                    MiniProfileBadges.buildBadgesShowcaseWidget(
-                        u?.showcasedBadges ?? [], context),
-                    const SizedBox(height: 6),
 
-                    // Bio
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        u?.bio ??
-                            'Crafting intuitive digital experiences. Passionate about minimalist design and front...',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white70,
-                          fontSize: 11,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    const Divider(color: Colors.white10, height: 1),
-                    const SizedBox(height: 12),
-
-                    // Stats Row (Followers, Following, Gifts, Contribute)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        MiniProfileBadges.buildStatColumn(_formatStatValue(u?.followers ?? 1240),
-                            'Followers'),
-                        MiniProfileBadges.buildStatColumn(
-                            _formatStatValue(u?.following ?? 380), 'Following'),
-                        if (isMe) ...[
-                          MiniProfileBadges.buildStatColumn('89', 'Friends'),
-                          MiniProfileBadges.buildStatColumn('123.5K', 'Gifts'),
-                        ] else ...[
-                          MiniProfileBadges.buildStatColumn('123.5K', 'Gifts'),
-                          MiniProfileBadges.buildStatColumn('450K', 'Contribute'),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Gift Stats Section (Dialog Compact Version)
+                    // 6. Stats Card Container (Followers, Following, Friends, Gifts - REAL DATA)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.03),
-                        borderRadius: BorderRadius.circular(16),
-                        border:
-                            Border.all(color: Colors.white.withOpacity(0.05)),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFF3F4F6)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _buildLightStatCol(
+                              icon: Icons.groups_rounded,
+                              iconColor: const Color(0xFFA855F7),
+                              value: _formatStatValue(u?.followers ?? 0),
+                              label: 'Followers',
+                            ),
+                          ),
+                          Container(width: 1, height: 32, color: const Color(0xFFF3F4F6)),
+                          Expanded(
+                            child: _buildLightStatCol(
+                              icon: Icons.person_add_rounded,
+                              iconColor: const Color(0xFF3B82F6),
+                              value: _formatStatValue(u?.following ?? 0),
+                              label: 'Following',
+                            ),
+                          ),
+                          Container(width: 1, height: 32, color: const Color(0xFFF3F4F6)),
+                          Expanded(
+                            child: _buildLightStatCol(
+                              icon: Icons.people_alt_rounded,
+                              iconColor: const Color(0xFF10B981),
+                              value: _formatStatValue(isMe ? (u?.friendsCount ?? 0) : (u?.friendsCount ?? 0)),
+                              label: 'Friends',
+                            ),
+                          ),
+                          Container(width: 1, height: 32, color: const Color(0xFFF3F4F6)),
+                          Expanded(
+                            child: _buildLightStatCol(
+                              icon: Icons.card_giftcard_rounded,
+                              iconColor: const Color(0xFFEC4899),
+                              value: _formatStatValue(totalGiftsReceived.value.toInt() > 0 ? totalGiftsReceived.value.toInt() : (u?.totalStarsReceived ?? 0)),
+                              label: 'Gifts',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // 7. Gift Stats Card Section (REAL DATA)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFF3F4F6)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.featured_play_list_rounded,
-                                  color: Color(0xFFFBBF24), size: 14),
+                              const Icon(Icons.card_giftcard_rounded,
+                                  color: Color(0xFFF59E0B), size: 16),
                               const SizedBox(width: 6),
                               Text(
                                 'Gift Stats',
                                 style: GoogleFonts.poppins(
-                                  color: Colors.white,
+                                  color: const Color(0xFF111827),
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 11,
+                                  fontSize: 14,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Monthly received gifts',
-                                style: GoogleFonts.poppins(
-                                    color: Colors.white70, fontSize: 11),
-                              ),
-                              Text(
-                                '12.5K',
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFFFBBF24),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: 12),
+                          _buildLightGiftStatRow(
+                            'Monthly received gifts',
+                            _formatStatValue(monthlyReceivedGifts.value.toInt() > 0
+                                ? monthlyReceivedGifts.value.toInt()
+                                : (u?.totalStarsReceived ?? 0)),
+                            valColor: const Color(0xFFF97316),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'monthly contribute',
-                                style: GoogleFonts.poppins(
-                                    color: Colors.white70, fontSize: 11),
-                              ),
-                              Text(
-                                '450K',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                            ],
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Divider(color: Color(0xFFF3F4F6), height: 1),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Gifts',
-                                style: GoogleFonts.poppins(
-                                    color: Colors.white70, fontSize: 11),
-                              ),
-                              Row(
-                                children: [
-                                  _buildOverlappingAvatarsDialog([
-                                    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80',
-                                    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
-                                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
-                                    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
-                                  ]),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '123.5K',
-                                    style: GoogleFonts.poppins(
-                                      color: const Color(0xFF8B5CFF),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12.5,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  const Icon(Icons.chevron_right_rounded,
-                                      color: Colors.white30, size: 14),
-                                ],
-                              ),
-                            ],
+                          _buildLightGiftStatRow(
+                            'Monthly contribute',
+                            _formatStatValue(monthlyContribution.value.toInt() > 0
+                                ? monthlyContribution.value.toInt()
+                                : (u?.totalStarsGifted ?? 0)),
+                            valColor: const Color(0xFF111827),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Contributors',
-                                style: GoogleFonts.poppins(
-                                    color: Colors.white70, fontSize: 11),
-                              ),
-                              Row(
-                                children: [
-                                  _buildOverlappingAvatarsDialog([
-                                    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80',
-                                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80',
-                                    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80',
-                                    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80',
-                                  ]),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '842k',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12.5,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  const Icon(Icons.chevron_right_rounded,
-                                      color: Colors.white30, size: 14),
-                                ],
-                              ),
-                            ],
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Divider(color: Color(0xFFF3F4F6), height: 1),
+                          ),
+                          _buildLightGiftStatRow(
+                            'Gifts',
+                            _formatStatValue(totalGiftsReceived.value.toInt() > 0
+                                ? totalGiftsReceived.value.toInt()
+                                : (u?.totalStarsReceived ?? 0)),
+                            valColor: const Color(0xFF8B5CF6),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Divider(color: Color(0xFFF3F4F6), height: 1),
+                          ),
+                          _buildLightGiftStatRow(
+                            'Contributors',
+                            _formatStatValue(contributorsCount.value > 0
+                                ? contributorsCount.value
+                                : (u?.followers ?? 0)),
+                            valColor: const Color(0xFF111827),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
 
-                    // Bottom Buttons
+                    // 8. Bottom Action Buttons Row (Sequence: 1. Message, 2. Gift, 3. Mention [LAST])
                     Row(
                       children: [
                         Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF5865F2), Color(0xFF4752C4)],
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
                               ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              onPressed: () {
-                                Get.back();
-                                final currentUid = Supabase
-                                    .instance.client.auth.currentUser?.id;
-                                Get.to(() => ProfileScreen(
-                                    visitorUser: u ??
-                                        User(
-                                          id: widget.targetUserId,
-                                          username: uName
-                                              .toLowerCase()
-                                              .replaceAll(' ', '_'),
-                                          email:
-                                              '${widget.targetUserId}@example.com',
-                                          displayName: uName,
-                                          avatar: uAvatar,
-                                          followers: 1240,
-                                          following: 380,
-                                          isVerified: isVIP,
-                                          isPremium: isVIP,
-                                          level: uLevel,
-                                          interests: const [],
-                                          communities: const [],
-                                          reputation: 100,
-                                          sid: widget.targetUserId.hashCode
-                                              .abs()
-                                              .toString(),
-                                        )));
-                              },
-                              icon: const Icon(
-                                  Icons.chat_bubble_outline_rounded,
-                                  color: Colors.white,
-                                  size: 14),
-                              label: Text(
-                                'Message',
-                                style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold),
+                            onPressed: () => _navigateToProfile(u),
+                            icon: const Icon(Icons.chat_bubble_outline_rounded,
+                                color: Colors.white, size: 16),
+                            label: Text(
+                              'Message',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.white.withOpacity(0.06),
-                              border: Border.all(
-                                  color: Colors.white.withOpacity(0.12)),
-                            ),
-                            child: TextButton(
-                              style: TextButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFBBF24),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                              onPressed: () {
-                                Get.back();
-                                final currentUid = Supabase
-                                    .instance.client.auth.currentUser?.id;
-                                final isMe = widget.targetUserId ==
-                                        widget.callerUserId ||
-                                    (currentUid != null &&
-                                        widget.targetUserId == currentUid);
-                                if (isMe) {
-                                  Get.to(() => const ProfileScreen());
-                                } else {
-                                  Get.to(() => ProfileScreen(
-                                      visitorUser: u ??
-                                          User(
-                                            id: widget.targetUserId,
-                                            username: uName
-                                                .toLowerCase()
-                                                .replaceAll(' ', '_'),
-                                            email:
-                                                '${widget.targetUserId}@example.com',
-                                            displayName: uName,
-                                            avatar: uAvatar,
-                                            followers: 1240,
-                                            following: 380,
-                                            isVerified: isVIP,
-                                            isPremium: isVIP,
-                                            level: uLevel,
-                                            interests: const [],
-                                            communities: const [],
-                                            reputation: 100,
-                                            sid: widget.targetUserId.hashCode
-                                                .abs()
-                                                .toString(),
-                                          )));
-                                }
-                              },
-                              child: Text(
-                                'View Profile',
-                                style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold),
-                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: const Color(0xFF8B5CF6).withOpacity(0.18),
-                              border: Border.all(
-                                  color: const Color(0xFF8B5CF6).withOpacity(0.35)),
-                            ),
-                            child: TextButton.icon(
-                              style: TextButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              onPressed: () {
-                                Get.back();
-                                if (Get.isRegistered<RoomController>()) {
-                                  RoomController.to.mentionUserInRoomChat(uName);
-                                }
-                              },
-                              icon: const Icon(Icons.alternate_email_rounded,
-                                  color: Color(0xFFA78BFA), size: 14),
-                              label: Text(
-                                'Mention',
-                                style: GoogleFonts.poppins(
-                                    color: const Color(0xFFA78BFA),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: const Color(0xFFFBBF24).withOpacity(0.15),
-                              border: Border.all(
-                                  color:
-                                      const Color(0xFFFBBF24).withOpacity(0.3)),
-                            ),
-                            child: TextButton.icon(
-                              style: TextButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              onPressed: () {
-                                Get.back();
-                                Get.dialog(SendGiftDialog(
+                            onPressed: () {
+                              Get.back();
+                              Get.dialog(
+                                SendGiftDialog(
                                   roomId: widget.roomId,
                                   occupiedSeatsCount: widget.occupiedSeatsCount,
                                   targetUserId: widget.targetUserId,
                                   targetUserName: uName,
-                                ));
-                              },
-                              icon: const Icon(Icons.card_giftcard_rounded,
-                                  color: Color(0xFFFBBF24), size: 14),
-                              label: Text(
-                                'Gift',
-                                style: GoogleFonts.poppins(
-                                    color: const Color(0xFFFBBF24),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.card_giftcard_rounded,
+                                color: Colors.white, size: 16),
+                            label: Text(
+                              'Gift',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFC084FC),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () {
+                              Get.back();
+                              if (Get.isRegistered<RoomController>()) {
+                                RoomController.to.mentionUserInRoomChat(uName);
+                              }
+                            },
+                            icon: const Icon(Icons.alternate_email_rounded,
+                                color: Colors.white, size: 16),
+                            label: Text(
+                              'Mention',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),

@@ -20,6 +20,7 @@ import '../../services/user/customization_controller.dart';
 import '../../services/user/premium_identity_controller.dart';
 import './custom_avatar_frame.dart';
 import './premium_name_widget.dart';
+import '../user_tags/user_badge_widgets.dart';
 import '../../utils/number_formatter.dart';
 import '../../models/index.dart';
 
@@ -708,74 +709,10 @@ class _MiniProfileWidgetState extends State<MiniProfileWidget> {
   }
 
   Widget _buildBadgesRowForVariant(PremiumIdentity identity) {
-    final List<Widget> list = [];
-    final double fs = 8.0;
-
-    final tagSystem = _user.tagSystem;
-    if (tagSystem != null) {
-      // 1. Official status
-      final status = tagSystem.officialStatus;
-      if (status.roleTag != null && status.roleTag!.isNotEmpty) {
-        list.add(_tagItem(
-          label: status.roleTag!,
-          icon: '🛡️',
-          bgColor: const Color(0xFF7C3AED).withOpacity(0.12),
-          borderColor: const Color(0xFF8B5CF6).withOpacity(0.6),
-          textColor: const Color(0xFFC084FC),
-        ));
-      } else if (status.verifiedTag != null && status.verifiedTag!.isNotEmpty) {
-        list.add(_tagItem(
-          label: status.verifiedTag!,
-          icon: '✓',
-          bgColor: const Color(0xFF2563EB).withOpacity(0.12),
-          borderColor: const Color(0xFF3B82F6).withOpacity(0.6),
-          textColor: const Color(0xFF60A5FA),
-        ));
-      }
-
-      // 2. Identity Tag Bar
-      for (var t in tagSystem.identityTagBar) {
-        final label = t.value;
-        final type = t.type;
-        Color color = const Color(0xFFBEC2FF);
-        String icon = '🏷️';
-
-        if (type == 'id_level') {
-          color = const Color(0xFF60A5FA);
-          icon = '⭐';
-        } else if (type == 'community') {
-          color = const Color(0xFFF472B6);
-          icon = '💖';
-        } else if (type == 'vip') {
-          color = const Color(0xFF60A5FA);
-          icon = '💎';
-        } else if (type == 'noble') {
-          color = const Color(0xFFF59E0B);
-          icon = '👑';
-        } else if (type == 'special') {
-          color = const Color(0xFFA78BFA);
-          icon = '✨';
-        }
-
-        list.add(_tagItem(
-          label: label,
-          icon: icon,
-          bgColor: color.withOpacity(0.12),
-          borderColor: color.withOpacity(0.6),
-          textColor: color,
-          imageUrl: t.imageUrl,
-          type: type,
-        ));
-      }
-    }
-
-    final limited = list.length > 8 ? list.sublist(0, 8) : list;
-
-    return Wrap(
-      spacing: 3,
-      runSpacing: 3,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: limited,
+    return UserBadgeRow(
+      user: _user,
+      showRoleTag: true,
+      maxWidth: 320,
     );
   }
 

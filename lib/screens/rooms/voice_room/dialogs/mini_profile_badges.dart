@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../models/user/user_model.dart';
 import '../../../../services/user/customization_controller.dart';
+import '../../../../widgets/user_tags/user_badge_widgets.dart';
 
 class MiniProfileBadges {
   static Widget buildTextTagFallback(String label, Map<String, dynamic> tag) {
@@ -80,25 +81,225 @@ class MiniProfileBadges {
     return null;
   }
 
-  static Widget buildOfficialStatusRow(User? user, BuildContext context) {
-    if (user == null) return const SizedBox.shrink();
+  /// Single centralized method to render the unified tag deck (Role Tag + Official Status + Identity Tags)
+  static Widget buildUserTagDeck({
+    required User? user,
+    String? roomRole,
+    String? targetRole,
+    BuildContext? context,
+    double maxWidth = 320,
+  }) {
+    return UserBadgeRow(
+      user: user,
+      roomRole: roomRole,
+      targetRole: targetRole,
+      showRoleTag: true,
+      maxWidth: maxWidth,
+    );
+  }
+
+  static Widget buildSingleRoleTag(
+      String? roomRole, String? targetRole, User? user) {
+    String? roleName;
+
+    for (final r in [roomRole, targetRole]) {
+      if (r == null || r.trim().isEmpty) continue;
+      final l = r.trim().toLowerCase();
+      if (l == 'owner' ||
+          l == 'host' ||
+          l == 'co-owner' ||
+          l == 'co-host' ||
+          l == 'admin' ||
+          l == 'moderator' ||
+          l == 'founder' ||
+          l == 'creator' ||
+          l == 'developer') {
+        roleName = r.trim();
+        break;
+      }
+    }
+
+    if (roleName == null && user?.rTags.isNotEmpty == true) {
+      roleName = getHighestRTag(user!.rTags);
+    }
+
+    return UserRoleTag(role: roleName);
+  }
+
+  static List<Widget> buildOfficialStatusBadges(User? user) {
+    if (user == null) return [];
     final status = user.tagSystem?.officialStatus;
 
-    if (status == null) {
-      return const SizedBox.shrink();
+    String? verifiedTag = status?.verifiedTag;
+    String? roleTag = status?.roleTag;
+
+    if ((verifiedTag == null || verifiedTag.isEmpty) && user.isVerified) {
+      verifiedTag = 'Verified';
+    }
+
+    final highestRTag = getHighestRTag(user.rTags);
+    if ((roleTag == null || roleTag.isEmpty) && highestRTag != null) {
+      roleTag = highestRTag;
     }
 
     final List<Widget> widgets = [];
+    if (verifiedTag != null && verifiedTag.isNotEmpty) {
+      widgets.add(buildSingleStatusBadge(verifiedTag, isRole: false));
+    }
+    if (roleTag != null && roleTag.isNotEmpty) {
+      widgets.add(buildSingleStatusBadge(roleTag, isRole: true));
+    }
+    return widgets;
+  }
 
-    if (status.verifiedTag != null && status.verifiedTag!.isNotEmpty) {
-      widgets.add(buildSingleStatusBadge(status.verifiedTag!, isRole: false));
+  static List<Widget> buildIdentityTagWidgets(User? user) {
+    if (user == null) return [];
+
+    final List<Widget> widgets = [];
+
+    // 1. Level Tag
+    final int level = user.level > 0 ? user.level : 1;
+    widgets.add(LevelTagWidget(level: level));
+
+    // 2. VIP Tag
+    final int vipLvl =
+        user.vipLevel > 0 ? user.vipLevel : (user.isPremium ? 2 : 0);
+    if (vipLvl > 0) {
+      widgets.add(VipTagWidget(level: vipLvl));
     }
 
-    if (status.roleTag != null && status.roleTag!.isNotEmpty) {
-      if (widgets.isNotEmpty) widgets.add(const SizedBox(width: 8));
-      widgets.add(buildSingleStatusBadge(status.roleTag!, isRole: true));
+    // 3. Novel Tag
+    final int novelLvl =
+        user.novelLevel > 0 ? user.novelLevel : (user.isPremium ? 1 : 0);
+    if (novelLvl > 0) {
+      widgets.add(NovelTagWidget(level: novelLvl));
     }
 
+    // 4. Community & Custom Identity Tags (Deduplicated)
+    final addedLabels = <String>{};
+
+    if (user.communities.isNotEmpty) {
+      for (final comm in user.communities) {
+        final cleanL = comm.trim();
+        if (cleanL.isNotEmpty && addedLabels.add(cleanL.toLowerCase())) {
+          widgets.add(IdentityTagWidget(label: cleanL, type: 'community'));
+        }
+      }
+    }
+
+    if (user.tagSystem != null) {
+      for (var t in user.tagSystem!.identityTagBar) {
+        final label = t.value.trim();
+        final cleanL = label.toLowerCase();
+        if (cleanL.startsWith('lv') ||
+            cleanL.startsWith('vip') ||
+            cleanL.startsWith('novel')) {
+          continue;
+        }
+
+        if (addedLabels.add(cleanL)) {
+          widgets.add(
+            IdentityTagWidget(
+              label: label,
+              type: t.type,
+              imageUrl: t.imageUrl,
+            ),
+          );
+        }
+      }
+    }
+
+    if (addedLabels.isEmpty) {
+      widgets.add(const IdentityTagWidget(label: 'CREANIAA', type: 'community'));
+    }
+
+    return widgets;
+  }
+
+  static Widget _buildLevelPill(int level) {
+    return Container(
+      height: 19,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(
+            color: const Color(0xFF3B82F6).withOpacity(0.5), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF3B82F6).withOpacity(0.25),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text('⚡', style: TextStyle(fontSize: 9.5)),
+          const SizedBox(width: 3),
+          Text(
+            'Lv.$level',
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildCommunityPill(String comm) {
+    return Container(
+      height: 19,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF472B6), Color(0xFFEC4899)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(
+            color: const Color(0xFFEC4899).withOpacity(0.5), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFEC4899).withOpacity(0.25),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text('❤️', style: TextStyle(fontSize: 9.5)),
+          const SizedBox(width: 3),
+          Text(
+            comm,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget buildOfficialStatusRow(User? user, BuildContext context) {
+    final widgets = buildOfficialStatusBadges(user);
     if (widgets.isEmpty) return const SizedBox.shrink();
 
     return Row(
@@ -108,59 +309,7 @@ class MiniProfileBadges {
   }
 
   static Widget buildSingleStatusBadge(String label, {required bool isRole}) {
-    Gradient gradient;
-    Color borderColor;
-    IconData icon;
-
-    if (!isRole) {
-      // Verified Tag
-      gradient = const LinearGradient(
-        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-      );
-      borderColor = const Color(0xFF3B82F6).withOpacity(0.5);
-      icon = Icons.verified_user_rounded;
-    } else {
-      // Role Tag
-      gradient = const LinearGradient(
-        colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
-      );
-      borderColor = const Color(0xFF8B5CF6).withOpacity(0.5);
-      icon = Icons.shield_rounded;
-    }
-
-    return Container(
-      height: 30,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        gradient: gradient,
-        border: Border.all(color: borderColor, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white, size: 13),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
-      ),
-    );
+    return OfficialTagWidget(label: label, isRole: isRole);
   }
 
   static Widget buildBadgesShowcaseWidget(

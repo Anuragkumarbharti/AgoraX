@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../models/room/room_governance_model.dart';
+import '../../../../../widgets/user_tags/user_badge_widgets.dart';
 
 class RolePriorityBadgeWidget extends StatelessWidget {
   final String role;
@@ -27,55 +27,12 @@ class RolePriorityBadgeWidget extends StatelessWidget {
 
     // 1. Primary Room Role (Creator/Owner > Co-Owner > Admin > Host)
     if (role.isNotEmpty && role.toLowerCase() != 'listener' && role.toLowerCase() != 'visitor') {
-      final color = RolePriorityEngine.getRoleBadgeColor(role);
-      final icon = RolePriorityEngine.getRoleBadgeIcon(role);
-      badges.add(
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color, width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(icon, style: TextStyle(fontSize: fontSize)),
-              const SizedBox(width: 4),
-              Text(
-                role,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                  fontSize: fontSize,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      badges.add(UserRoleTag(role: role, fontSize: fontSize));
     }
 
     // 2. Verified Badge
     if (isVerified) {
-      badges.add(
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blueAccent, width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('✔️', style: TextStyle(fontSize: fontSize)),
-              const SizedBox(width: 2),
-              Text('Verified', style: TextStyle(color: Colors.blueAccent, fontSize: fontSize, fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
-      );
+      badges.add(OfficialTagWidget(label: 'Verified', isRole: false, fontSize: fontSize));
     }
 
     // 3. Family Tag

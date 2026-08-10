@@ -115,6 +115,11 @@ flutter:
     - assets/backgroundroom/
     - assets/identity_tags/
     - assets/identity_tags/officialcomunity_tags/
+    - assets/identity_tags/ID_LEVAL/
+    - assets/identity_tags/NOVEL/
+    - assets/identity_tags/OFFICIAL_TAG/
+    - assets/identity_tags/ROLL_TAG/
+    - assets/identity_tags/VIP/
     - assets/avtarframes/novel/
     - assets/avtarframes/vip/
     - assets/avtarframes/events/

@@ -6,10 +6,12 @@ import 'package:collection/collection.dart';
 
 import '../../../../core/theme.dart';
 import '../../../../models/chat/chat_model.dart';
+import '../../../../models/user/user_model.dart';
 import '../../../../services/room/room_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../dialogs/mini_profile_dialog.dart';
+import '../dialogs/mini_profile_badges.dart';
 import '../../../../widgets/common/optimized_image.dart';
 
 class RoomCallChatBox extends StatefulWidget {
@@ -499,6 +501,32 @@ class _RoomCallChatBoxState extends State<RoomCallChatBox> {
     final currentUserName = currentUser?.username ?? currentUser?.displayName ?? '';
     final bool isMentionedForMe = message.isMentionedForUser(currentUid, currentUserName);
 
+    final senderUser = UserProfileCacheManager.getCachedUser(message.senderId) ??
+        User(
+          id: message.senderId,
+          username: message.senderName,
+          email: '',
+          displayName: message.senderName,
+          avatar: message.senderAvatar,
+          level: message.senderLevel is int
+              ? message.senderLevel as int
+              : int.tryParse(message.senderLevel?.toString() ?? '1') ?? 1,
+          vipLevel: int.tryParse(
+                  message.vipLabel?.replaceAll(RegExp(r'[^0-9]'), '') ?? '0') ??
+              0,
+          novelLevel: int.tryParse(
+                  message.nobleLabel?.replaceAll(RegExp(r'[^0-9]'), '') ?? '0') ??
+              0,
+          interests: const [],
+          communities: const [],
+          followers: 0,
+          following: 0,
+          isVerified: false,
+          isPremium: false,
+          reputation: 0,
+          sid: message.senderId.hashCode.abs().toString(),
+        );
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -541,59 +569,40 @@ class _RoomCallChatBoxState extends State<RoomCallChatBox> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (!isConsecutive) ...[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 6,
+                          runSpacing: 4,
                           children: [
-                            Flexible(
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => _showMiniProfile(
-                                  message.senderId,
-                                  message.senderName,
-                                  role: message.senderRole ?? 'Guest',
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _showMiniProfile(
+                                message.senderId,
+                                message.senderName,
+                                role: message.senderRole ?? 'Guest',
+                              ),
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 280),
+                                curve: Curves.easeInOutCubic,
+                                style: GoogleFonts.poppins(
+                                  color: tokens.primaryTextColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                child: AnimatedDefaultTextStyle(
-                                  duration: const Duration(milliseconds: 280),
-                                  curve: Curves.easeInOutCubic,
-                                  style: GoogleFonts.poppins(
-                                    color: tokens.primaryTextColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  child: Text(message.senderName),
-                                ),
+                                overflow: TextOverflow.ellipsis,
+                                child: Text(message.senderName),
                               ),
                             ),
-                            const SizedBox(width: 6),
                             if (isMentionedForMe)
                               buildBadge(
                                   '@ Mentioned',
                                   const Color(0xFF8B5CF6).withOpacity(0.3),
                                   const Color(0xFFA78BFA)),
-                            if (message.senderLevel != null)
-                              buildBadge(
-                                  'Lv.${message.senderLevel}',
-                                  Colors.grey.withOpacity(0.24),
-                                  Colors.amberAccent),
-                            if (message.nobleLabel != null &&
-                                message.nobleLabel!.isNotEmpty)
-                              buildBadge(
-                                  message.nobleLabel!,
-                                  const Color(0xFFFFD700).withOpacity(0.2),
-                                  const Color(0xFFFFD700)),
-                            if (message.vipLabel != null &&
-                                message.vipLabel!.isNotEmpty)
-                              buildBadge(
-                                  message.vipLabel!,
-                                  Colors.pinkAccent.withOpacity(0.2),
-                                  Colors.pinkAccent),
-                            if (message.senderRole != null)
-                              buildBadge(
-                                  message.senderRole!,
-                                  getRoleColor(message.senderRole)
-                                      .withOpacity(0.2),
-                                  getRoleColor(message.senderRole)),
+                            MiniProfileBadges.buildUserTagDeck(
+                              user: senderUser,
+                              roomRole: message.senderRole,
+                              context: context,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
