@@ -246,7 +246,7 @@ class _RoomCallChatBoxState extends State<RoomCallChatBox> {
       return Align(
         alignment: Alignment.centerLeft,
         child: GestureDetector(
-          onLongPress: () => _showContextMenuForMessage(message),
+          onLongPress: () => _triggerDirectMention(message),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 280),
             curve: Curves.easeInOutCubic,
