@@ -7,9 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../models/user/user_model.dart';
-import '../../../../models/room/room_model.dart';
 import '../../../../services/room/room_controller.dart';
-import '../../../../services/room/room_seat_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/index.dart';
 import '../../../../utils/number_formatter.dart';
@@ -18,6 +16,8 @@ import '../../../profile/profile_screen.dart';
 import '../widgets/breathing_indicators.dart';
 import 'mini_profile_sheets.dart';
 import 'mini_profile_badges.dart';
+import '../../../../widgets/memberships/vip_badge_widget.dart';
+import '../../../../widgets/memberships/novel_badge_widget.dart';
 
 class MiniProfileDialog extends StatefulWidget {
   final String roomId;
@@ -29,8 +29,6 @@ class MiniProfileDialog extends StatefulWidget {
   final bool isHost;
   final int occupiedSeatsCount;
   final VoidCallback? onMoveToAudience;
-  final VoidCallback? onToggleMic;
-  final Function(int)? onLeaveSeat;
 
   const MiniProfileDialog({
     Key? key,
@@ -43,8 +41,6 @@ class MiniProfileDialog extends StatefulWidget {
     required this.isHost,
     required this.occupiedSeatsCount,
     this.onMoveToAudience,
-    this.onToggleMic,
-    this.onLeaveSeat,
   }) : super(key: key);
 
   @override
@@ -95,7 +91,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     if (targetId.isEmpty) return;
 
     try {
-      final u = await UserProfileCacheManager.fetchUserProfile(targetId, forceRefresh: true);
+      final u = await UserProfileCacheManager.fetchUserProfile(targetId,
+          forceRefresh: true);
 
       final followerRes = await Supabase.instance.client
           .from('connections')
@@ -125,8 +122,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
         final rpcStats = await Supabase.instance.client
             .rpc('get_user_gift_stats_v2', params: {'p_user_id': targetId});
         if (rpcStats != null && rpcStats is Map) {
-          actualMonthlyReceived = (rpcStats['monthly_received'] as num?)?.toDouble() ?? 0.0;
-          actualMonthlySent = (rpcStats['monthly_sent'] as num?)?.toDouble() ?? 0.0;
+          actualMonthlyReceived =
+              (rpcStats['monthly_received'] as num?)?.toDouble() ?? 0.0;
+          actualMonthlySent =
+              (rpcStats['monthly_sent'] as num?)?.toDouble() ?? 0.0;
         }
       } catch (_) {}
 
@@ -146,16 +145,20 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
         }
       } catch (_) {}
 
-      monthlyReceivedGifts.value = actualMonthlyReceived > 0 ? actualMonthlyReceived : actualReceived;
+      monthlyReceivedGifts.value =
+          actualMonthlyReceived > 0 ? actualMonthlyReceived : actualReceived;
       monthlyContribution.value = actualMonthlySent;
-      totalGiftsReceived.value = actualReceived > 0 ? actualReceived : u.totalStarsReceived.toDouble();
+      totalGiftsReceived.value =
+          actualReceived > 0 ? actualReceived : u.totalStarsReceived.toDouble();
       contributorsCount.value = contributors;
 
       final updatedUser = u.copyWith(
         followers: actualFollowers,
         following: actualFollowing,
         friendsCount: actualFriends,
-        totalStarsReceived: actualReceived.toInt() > 0 ? actualReceived.toInt() : u.totalStarsReceived,
+        totalStarsReceived: actualReceived.toInt() > 0
+            ? actualReceived.toInt()
+            : u.totalStarsReceived,
       );
 
       UserProfileCacheManager.rxCache[targetId] = updatedUser;
@@ -252,7 +255,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     );
   }
 
-  Widget _buildLightGiftStatRow(String label, String value, {required Color valColor}) {
+  Widget _buildLightGiftStatRow(String label, String value,
+      {required Color valColor}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -442,7 +446,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     }
 
     // 3. VIP Tag (ONLY if user.vipLevel > 0!)
-    final int vip = (user != null && user.vipLevel > 0) ? user.vipLevel : fallbackVip;
+    final int vip =
+        (user != null && user.vipLevel > 0) ? user.vipLevel : fallbackVip;
     if (vip > 0) {
       tags.add({
         'label': 'VIP $vip',
@@ -458,7 +463,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     }
 
     // 4. Novel Tag (ONLY if user.novelLevel > 0!)
-    final int novel = (user != null && user.novelLevel > 0) ? user.novelLevel : fallbackNovel;
+    final int novel =
+        (user != null && user.novelLevel > 0) ? user.novelLevel : fallbackNovel;
     if (novel > 0) {
       tags.add({
         'label': 'Novel $novel',
@@ -479,7 +485,9 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
         final label = t.value;
         final type = t.type;
         final cleanL = label.toLowerCase();
-        if (cleanL.startsWith('lv') || cleanL.startsWith('vip') || cleanL.startsWith('novel')) {
+        if (cleanL.startsWith('lv') ||
+            cleanL.startsWith('vip') ||
+            cleanL.startsWith('novel')) {
           continue;
         }
 
@@ -553,11 +561,13 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
       final label = tag['label'] as String;
       final type = tag['type'] as String?;
       if (type == 'vip') {
-        final level = int.tryParse(label.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        final level =
+            int.tryParse(label.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
         return VipBadgeWidget(level: level, fontSize: 10);
       }
       if (type == 'noble') {
-        final level = int.tryParse(label.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+        final level =
+            int.tryParse(label.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
         return NovelBadgeWidget(level: level, fontSize: 10);
       }
 
@@ -571,7 +581,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
             imageUrl.replaceAll('asset://', ''),
             height: 19,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => MiniProfileBadges.buildTextTagFallback(label, tag),
+            errorBuilder: (_, __, ___) =>
+                MiniProfileBadges.buildTextTagFallback(label, tag),
           );
         } else {
           imgWidget = OptimizedImage(
@@ -754,7 +765,9 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                             padding: EdgeInsets.zero,
                             icon: const Icon(Icons.bookmark_border_rounded,
                                 color: Color(0xFF111827), size: 18),
-                            onPressed: () => MiniProfileSheets.showReportUserSheet(context, uName),
+                            onPressed: () =>
+                                MiniProfileSheets.showReportUserSheet(
+                                    context, uName),
                           ),
                         ),
                         if (showThreeDotMenu)
@@ -775,7 +788,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                               padding: EdgeInsets.zero,
                               icon: const Icon(Icons.more_horiz_rounded,
                                   color: Color(0xFF111827), size: 18),
-                              onPressed: () => MiniProfileSheets.showThreeDotMenuSheet(
+                              onPressed: () =>
+                                  MiniProfileSheets.showThreeDotMenuSheet(
                                 context: context,
                                 roomId: widget.roomId,
                                 callerUserId: widget.callerUserId,
@@ -836,7 +850,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF10B981),
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
                                 ),
                               ),
                             ),
@@ -882,7 +897,8 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                     const SizedBox(height: 6),
 
                     // 3. ROLE TAG (Placed RIGHT BELOW Username, BEFORE ID Pill)
-                    MiniProfileBadges.buildSingleRoleTag(widget.role, targetRole, u),
+                    MiniProfileBadges.buildSingleRoleTag(
+                        widget.role, targetRole, u),
                     if (widget.role.isNotEmpty ||
                         (targetRole != null && targetRole.isNotEmpty) ||
                         (u?.rTags.isNotEmpty == true))
@@ -901,8 +917,7 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                           color: const Color(0xFFF9FAFB),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: const Color(0xFFE5E7EB),
-                              width: 1.0),
+                              color: const Color(0xFFE5E7EB), width: 1.0),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -931,8 +946,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                     // 5. IDENTITY TAGS ROW (Right below ID Pill - horizontal side-by-side row: Level, VIP, Novel, Community)
                     Builder(
                       builder: (context) {
-                        final identityTags = MiniProfileBadges.buildIdentityTagWidgets(u);
-                        final officialBadges = MiniProfileBadges.buildOfficialStatusBadges(u);
+                        final identityTags =
+                            MiniProfileBadges.buildIdentityTagWidgets(u);
+                        final officialBadges =
+                            MiniProfileBadges.buildOfficialStatusBadges(u);
                         final allTags = [...officialBadges, ...identityTags];
                         if (allTags.isEmpty) return const SizedBox.shrink();
 
@@ -952,12 +969,11 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                       },
                     ),
 
-
-
                     // 6. Stats Card Container (Followers, Following, Friends, Gifts - REAL DATA)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14, horizontal: 4),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -980,7 +996,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                               label: 'Followers',
                             ),
                           ),
-                          Container(width: 1, height: 32, color: const Color(0xFFF3F4F6)),
+                          Container(
+                              width: 1,
+                              height: 32,
+                              color: const Color(0xFFF3F4F6)),
                           Expanded(
                             child: _buildLightStatCol(
                               icon: Icons.person_add_rounded,
@@ -989,21 +1008,32 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                               label: 'Following',
                             ),
                           ),
-                          Container(width: 1, height: 32, color: const Color(0xFFF3F4F6)),
+                          Container(
+                              width: 1,
+                              height: 32,
+                              color: const Color(0xFFF3F4F6)),
                           Expanded(
                             child: _buildLightStatCol(
                               icon: Icons.people_alt_rounded,
                               iconColor: const Color(0xFF10B981),
-                              value: _formatStatValue(isMe ? (u?.friendsCount ?? 0) : (u?.friendsCount ?? 0)),
+                              value: _formatStatValue(isMe
+                                  ? (u?.friendsCount ?? 0)
+                                  : (u?.friendsCount ?? 0)),
                               label: 'Friends',
                             ),
                           ),
-                          Container(width: 1, height: 32, color: const Color(0xFFF3F4F6)),
+                          Container(
+                              width: 1,
+                              height: 32,
+                              color: const Color(0xFFF3F4F6)),
                           Expanded(
                             child: _buildLightStatCol(
                               icon: Icons.card_giftcard_rounded,
                               iconColor: const Color(0xFFEC4899),
-                              value: _formatStatValue(totalGiftsReceived.value.toInt() > 0 ? totalGiftsReceived.value.toInt() : (u?.totalStarsReceived ?? 0)),
+                              value: _formatStatValue(
+                                  totalGiftsReceived.value.toInt() > 0
+                                      ? totalGiftsReceived.value.toInt()
+                                      : (u?.totalStarsReceived ?? 0)),
                               label: 'Gifts',
                             ),
                           ),
@@ -1049,9 +1079,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                           const SizedBox(height: 12),
                           _buildLightGiftStatRow(
                             'Monthly received gifts',
-                            _formatStatValue(monthlyReceivedGifts.value.toInt() > 0
-                                ? monthlyReceivedGifts.value.toInt()
-                                : (u?.totalStarsReceived ?? 0)),
+                            _formatStatValue(
+                                monthlyReceivedGifts.value.toInt() > 0
+                                    ? monthlyReceivedGifts.value.toInt()
+                                    : (u?.totalStarsReceived ?? 0)),
                             valColor: const Color(0xFFF97316),
                           ),
                           const Padding(
@@ -1060,9 +1091,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                           ),
                           _buildLightGiftStatRow(
                             'Monthly contribute',
-                            _formatStatValue(monthlyContribution.value.toInt() > 0
-                                ? monthlyContribution.value.toInt()
-                                : (u?.totalStarsGifted ?? 0)),
+                            _formatStatValue(
+                                monthlyContribution.value.toInt() > 0
+                                    ? monthlyContribution.value.toInt()
+                                    : (u?.totalStarsGifted ?? 0)),
                             valColor: const Color(0xFF111827),
                           ),
                           const Padding(
@@ -1071,9 +1103,10 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                           ),
                           _buildLightGiftStatRow(
                             'Gifts',
-                            _formatStatValue(totalGiftsReceived.value.toInt() > 0
-                                ? totalGiftsReceived.value.toInt()
-                                : (u?.totalStarsReceived ?? 0)),
+                            _formatStatValue(
+                                totalGiftsReceived.value.toInt() > 0
+                                    ? totalGiftsReceived.value.toInt()
+                                    : (u?.totalStarsReceived ?? 0)),
                             valColor: const Color(0xFF8B5CF6),
                           ),
                           const Padding(
@@ -1092,8 +1125,100 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
                     ),
                     const SizedBox(height: 16),
 
-                    // 8. Action Buttons Section (Light Theme UI)
-                    _buildActionButtonsSection(u, uName),
+                    // 8. Bottom Action Buttons Row (Sequence: 1. Message, 2. Gift, 3. Mention [LAST])
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () => _navigateToProfile(u),
+                            icon: const Icon(Icons.chat_bubble_outline_rounded,
+                                color: Colors.white, size: 16),
+                            label: Text(
+                              'Message',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFBBF24),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () {
+                              Get.back();
+                              Get.dialog(
+                                SendGiftDialog(
+                                  roomId: widget.roomId,
+                                  occupiedSeatsCount: widget.occupiedSeatsCount,
+                                  targetUserId: widget.targetUserId,
+                                  targetUserName: uName,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.card_giftcard_rounded,
+                                color: Colors.white, size: 16),
+                            label: Text(
+                              'Gift',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFC084FC),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () {
+                              Get.back();
+                              if (Get.isRegistered<RoomController>()) {
+                                RoomController.to.mentionUserInRoomChat(uName);
+                              }
+                            },
+                            icon: const Icon(Icons.alternate_email_rounded,
+                                color: Colors.white, size: 16),
+                            label: Text(
+                              'Mention',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -1102,282 +1227,5 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
         ),
       );
     });
-  }
-
-  Widget _buildActionButtonsSection(User? u, String uName) {
-    final bool isSelf = widget.callerUserId == widget.targetUserId;
-    final bool isTargetOnSeat = widget.seatIndex >= 0;
-
-    final liveRoom = Get.isRegistered<RoomController>()
-        ? RoomController.to.rooms.firstWhereOrNull((r) => r.id == widget.roomId)
-        : null;
-    final String callerRole = Get.isRegistered<RoomController>()
-        ? RoomController.to.getUserRole(liveRoom ?? VoiceRoom.dummy(), widget.callerUserId)
-        : 'Guest';
-    final String callerRoleLower = callerRole.toLowerCase();
-
-    final bool isCallerOwner = widget.isHost ||
-        callerRoleLower == 'owner' ||
-        callerRoleLower == 'founder' ||
-        callerRoleLower == 'creator' ||
-        (liveRoom?.hostId == widget.callerUserId);
-
-    final bool isCallerCoOwner = callerRoleLower == 'co-owner' ||
-        callerRoleLower == 'co-host' ||
-        callerRoleLower == 'coowner' ||
-        callerRoleLower == 'cohost';
-
-    final String targetRoleLower = widget.role.toLowerCase();
-    final bool isTargetOwner = targetRoleLower == 'owner' ||
-        targetRoleLower == 'founder' ||
-        targetRoleLower == 'creator' ||
-        (liveRoom?.hostId == widget.targetUserId);
-
-    bool canMute = false;
-    bool canRemoveFromSeat = false;
-
-    if (isSelf && isTargetOnSeat) {
-      canMute = true;
-      canRemoveFromSeat = true;
-    } else if (isTargetOnSeat) {
-      if (isCallerOwner) {
-        canMute = true;
-        canRemoveFromSeat = true;
-      } else if (isCallerCoOwner) {
-        if (!isTargetOwner) {
-          canMute = true;
-          canRemoveFromSeat = true;
-        }
-      }
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Row 1: Primary Non-Management Actions (Always Visible)
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                onPressed: () => _navigateToProfile(u),
-                icon: const Icon(Icons.person_rounded,
-                    color: Colors.white, size: 16),
-                label: Text(
-                  'Profile',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF59E0B),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                onPressed: () {
-                  Get.back();
-                  Get.dialog(
-                    SendGiftDialog(
-                      roomId: widget.roomId,
-                      occupiedSeatsCount: widget.occupiedSeatsCount,
-                      targetUserId: widget.targetUserId,
-                      targetUserName: uName,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.card_giftcard_rounded,
-                    color: Colors.white, size: 16),
-                label: Text(
-                  'Gift',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                onPressed: () {
-                  Get.back();
-                  if (Get.isRegistered<RoomController>()) {
-                    RoomController.to.mentionUserInRoomChat(uName);
-                  }
-                },
-                icon: const Icon(Icons.alternate_email_rounded,
-                    color: Colors.white, size: 16),
-                label: Text(
-                  'Mention',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        // Row 2: Management / Self Seat Actions (When Permitted)
-        if (canMute || canRemoveFromSeat) ...[
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              if (canMute)
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF06B6D4),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onPressed: () {
-                      Get.back();
-                      if (isSelf) {
-                        if (widget.onToggleMic != null) {
-                          widget.onToggleMic!();
-                        }
-                      } else {
-                        Get.snackbar(
-                          'Seat Mute',
-                          'Muted audio for seat user $uName.',
-                          snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: const Color(0xFF06B6D4).withOpacity(0.9),
-                          colorText: Colors.white,
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.mic_off_rounded,
-                        color: Colors.white, size: 16),
-                    label: Text(
-                      isSelf ? 'Mute Mic' : 'Mute / Unmute',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              if (canMute && canRemoveFromSeat) const SizedBox(width: 8),
-              if (canRemoveFromSeat)
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEF4444),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onPressed: () {
-                      Get.back();
-                      if (isSelf) {
-                        if (widget.onMoveToAudience != null) {
-                          widget.onMoveToAudience!();
-                        } else if (widget.onLeaveSeat != null) {
-                          widget.onLeaveSeat!(widget.seatIndex);
-                        } else if (Get.isRegistered<RoomSeatController>()) {
-                          RoomSeatController.to.leaveRoomSeat(
-                            widget.roomId,
-                            widget.seatIndex,
-                            onEmitActivity: (_, __, ___, ____, _____) async {},
-                            onRefreshProgression: () async {},
-                            onRepairState: () async {},
-                          );
-                        }
-                      } else {
-                        if (Get.isRegistered<RoomSeatController>()) {
-                          RoomSeatController.to.removeUserFromSeat(
-                            widget.roomId,
-                            widget.seatIndex,
-                            widget.targetUserId,
-                            onEmitActivity: (_, __, ___, ____) async {},
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.remove_circle_outline_rounded,
-                        color: Colors.white, size: 16),
-                    label: Text(
-                      isSelf ? 'Leave Seat' : 'Remove Seat',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-
-        // Row 3: Cancel Button (Light Theme UI)
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton.icon(
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFF3F4F6),
-              foregroundColor: const Color(0xFF4B5563),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: const BorderSide(color: Color(0xFFE5E7EB)),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 11),
-            ),
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.close_rounded,
-                color: Color(0xFF6B7280), size: 16),
-            label: Text(
-              'Cancel',
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF374151),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }

@@ -926,7 +926,25 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       final userName = seat['name'] as String? ?? 'User';
       final role = seat['role'] as String? ?? 'Guest';
 
-      _showMiniProfileDialog(userId, userName, role, seatIndex);
+      SeatActionSheets.showOccupiedSeatActions(
+        context: context,
+        roomId: widget.roomId,
+        seatIndex: seatIndex,
+        targetUserId: userId,
+        targetUserName: userName,
+        targetRole: role,
+        callerUserId: widget.userId,
+        isHost: _controller.rooms
+                .firstWhereOrNull((r) => r.id == widget.roomId)
+                ?.hostId ==
+            widget.userId,
+        isMicOn: _isMicOn.value,
+        onToggleMic: _toggleMic,
+        onLeaveSeat: _leaveSeat,
+        onViewProfile: (uid, name, r, idx) =>
+            _showMiniProfileDialog(uid, name, r, idx),
+        seats: _seats,
+      );
     } else {
       if (isLocked) {
         final callerRole = _controller.getUserRole(
@@ -996,8 +1014,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         seatIndex: seatIndex,
         isHost: isHost,
         occupiedSeatsCount: occupiedSeats,
-        onToggleMic: _toggleMic,
-        onLeaveSeat: _leaveSeat,
       ),
     );
   }
