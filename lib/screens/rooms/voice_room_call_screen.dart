@@ -27,7 +27,7 @@ import '../../services/gifting/gift_overlay_manager.dart';
 import '../../services/gifting/quick_repeat_controller.dart';
 import '../../widgets/gifting/quick_repeat_button_widget.dart';
 import '../../services/room/room_dual_progress_controller.dart';
-import '../../services/app_notification_service.dart';
+import '../../services/room/room_permission_controller.dart';
 
 // Extracted Sub-Modules
 import 'voice_room/models/floating_reaction.dart';
@@ -545,20 +545,6 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
         onToggleMic: _toggleMic,
         onLeaveSeat: _leaveSeat,
         seats: _seats,
-      );
-      return;
-    }
-
-    final isHostUser = Get.isRegistered<RoomPermissionController>()
-        ? RoomPermissionController.to.isHost(widget.roomId, widget.userId)
-        : false;
-
-    if (isHostUser && seatIndex > 0) {
-      RoomCenterNotificationOverlay.show(
-        context,
-        title: 'Host Seat Only 👑',
-        message: 'Host cannot take participant seats.',
-        icon: Icons.block_rounded,
       );
       return;
     }
