@@ -4,6 +4,7 @@ enum PostType {
   text,
   photo,
   video,
+  reel,
   audio,
   pdf,
   question,
@@ -19,6 +20,8 @@ enum PostType {
         return 'photo';
       case PostType.video:
         return 'video';
+      case PostType.reel:
+        return 'reel';
       case PostType.audio:
         return 'audio';
       case PostType.pdf:
@@ -42,6 +45,10 @@ enum PostType {
         return PostType.photo;
       case 'video':
         return PostType.video;
+      case 'reel':
+      case 'reels':
+      case 'short':
+        return PostType.reel;
       case 'audio':
         return PostType.audio;
       case 'pdf':
@@ -72,6 +79,8 @@ enum PostType {
         return 'Photo';
       case PostType.video:
         return 'Video';
+      case PostType.reel:
+        return 'Reel';
       case PostType.audio:
         return 'Audio';
       case PostType.pdf:
@@ -95,6 +104,8 @@ enum PostType {
         return '🖼️';
       case PostType.video:
         return '🎥';
+      case PostType.reel:
+        return '🎬';
       case PostType.audio:
         return '🎵';
       case PostType.pdf:
@@ -118,6 +129,8 @@ enum PostType {
         return Icons.photo_library_rounded;
       case PostType.video:
         return Icons.videocam_rounded;
+      case PostType.reel:
+        return Icons.movie_creation_rounded;
       case PostType.audio:
         return Icons.graphic_eq_rounded;
       case PostType.pdf:
@@ -141,6 +154,8 @@ enum PostType {
         return const Color(0xFFEC4899);
       case PostType.video:
         return const Color(0xFFEF4444);
+      case PostType.reel:
+        return const Color(0xFFFF0050);
       case PostType.audio:
         return const Color(0xFF8B5CF6);
       case PostType.pdf:

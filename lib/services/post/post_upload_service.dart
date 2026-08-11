@@ -26,6 +26,44 @@ class PostUploadService extends GetxController {
 
   final Rx<UploadProgressState> uploadState = UploadProgressState().obs;
 
+  RxBool get isUploading => RxBool(uploadState.value.isUploading);
+
+  Future<bool> uploadPost({
+    required PostType postType,
+    required String caption,
+    String? title,
+    String? contextText,
+    String? explanation,
+    String? linkUrl,
+    String visibility = 'public',
+    bool commentsEnabled = true,
+    bool sharesEnabled = true,
+    String? communityId,
+    File? mediaFile,
+    File? coverFile,
+    String? audioTrackId,
+    List<String> hashtags = const [],
+    List<String> mentions = const [],
+    String mcqQuestion = '',
+    List<String> mcqOptions = const [],
+    int mcqCorrectIndex = 0,
+    int mcqXpReward = 10,
+    String pollQuestion = '',
+    List<String> pollOptions = const [],
+    int pollDurationHours = 24,
+  }) async {
+    return createPost(
+      postType: postType,
+      caption: caption,
+      communityId: communityId,
+      visibility: visibility,
+      commentsEnabled: commentsEnabled,
+      sharesEnabled: sharesEnabled,
+      mediaFile: mediaFile,
+      coverFile: coverFile,
+    );
+  }
+
   /// Main background upload method
   Future<bool> createPost({
     required PostType postType,

@@ -125,20 +125,21 @@ class AppTheme {
   static const Color darkTextTertiary = darkCaption;
   static final Color darkGlass = darkGlassSurface;
 
-  // ── Fallbacks / Legacy static fields to ensure backward compatibility ──
-  static const Color primaryColor = lightPrimary;
-  static const Color secondaryColor = lightPrimary;
-  static const Color accentColor = lightAccentPurple;
-  static const Color bgDark = lightBg;
-  static const Color bgLight = lightSecBg;
-  static const Color cardBg = lightSurface;
-  static const Color borderColor = lightBorder;
-  static const Color textPrimary = lightTextPrimary;
-  static const Color textSecondary = lightTextSecondary;
-  static const Color textTertiary = lightCaption;
-  static const Color errorColor = lightError;
-  static const Color successColor = lightSuccess;
-  static const Color warningColor = lightWarning;
+  static const Color backgroundColor = darkBg;
+  static const Color surfaceColor = darkSurface;
+  static const Color cardBg = darkCardBg;
+  static const Color primaryColor = darkPrimary;
+  static const Color secondaryColor = darkPrimary;
+  static const Color accentColor = darkAccentPurple;
+  static const Color bgDark = darkBg;
+  static const Color bgLight = darkSecBg;
+  static const Color borderColor = darkBorder;
+  static const Color textPrimary = darkTextPrimary;
+  static const Color textSecondary = darkTextSecondary;
+  static const Color textTertiary = darkCaption;
+  static const Color errorColor = darkError;
+  static const Color successColor = darkSuccess;
+  static const Color warningColor = darkWarning;
 
   // ThemeData lightTheme
   static ThemeData lightTheme = ThemeData(

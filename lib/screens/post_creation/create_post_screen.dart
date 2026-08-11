@@ -4,18 +4,26 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/theme.dart';
-import '../../models/community/post_model.dart';
 import '../../models/community/post_type.dart';
+import '../../models/discovery/audio_track_model.dart';
+import '../../models/discovery/hashtag_model.dart';
 import '../../services/post/post_upload_service.dart';
+import '../../services/discovery/discovery_service.dart';
+import '../../services/discovery/caption_parser_service.dart';
+import '../../services/discovery/draft_post_service.dart';
+import '../../widgets/post_creation/music_picker_sheet.dart';
+import 'post_preview_screen.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final PostType initialType;
   final String? initialCommunityId;
+  final AudioTrack? initialAudioTrack;
 
   const CreatePostScreen({
     Key? key,
     this.initialType = PostType.text,
     this.initialCommunityId,
+    this.initialAudioTrack,
   }) : super(key: key);
 
   @override
@@ -36,10 +44,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   bool _sharesEnabled = true;
   String? _selectedCommunityId;
 
-  // Media state
+  // Media & Music
   File? _pickedMediaFile;
   File? _pickedCoverFile;
   List<File> _pickedImages = [];
+  AudioTrack? _attachedAudioTrack;
   String _pdfName = '';
   int _pdfSize = 0;
 
@@ -62,31 +71,152 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   ];
   int _pollDurationHours = 24;
 
+  // Discovery & Parsing Services
   final PostUploadService _uploadService = Get.put(PostUploadService());
+  final DiscoveryService _discoveryService = Get.put(DiscoveryService());
+
+  // Hashtag & Mention Autocomplete state
+  bool _showTagPopup = false;
+  bool _showMentionPopup = false;
+  String _autocompleteQuery = '';
+  List<String> _smartSuggestedTags = [];
 
   @override
   void initState() {
     super.initState();
     _selectedType = widget.initialType;
     _selectedCommunityId = widget.initialCommunityId;
+    _attachedAudioTrack = widget.initialAudioTrack;
+
+    _captionCtrl.addListener(_onCaptionChanged);
+    _checkDraft();
   }
 
   @override
   void dispose() {
+    _captionCtrl.removeListener(_onCaptionChanged);
     _captionCtrl.dispose();
     _titleCtrl.dispose();
     _contextCtrl.dispose();
     _explanationCtrl.dispose();
     _linkCtrl.dispose();
     _mcqQuestionCtrl.dispose();
-    for (var c in _mcqOptionCtrls) {
-      c.dispose();
-    }
+    for (var c in _mcqOptionCtrls) { c.dispose(); }
     _pollQuestionCtrl.dispose();
-    for (var c in _pollOptionCtrls) {
-      c.dispose();
-    }
+    for (var c in _pollOptionCtrls) { c.dispose(); }
     super.dispose();
+  }
+
+  Future<void> _checkDraft() async {
+    final draft = await DraftPostService.getDraft();
+    if (draft != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Unfinished post draft found.'),
+          backgroundColor: AppTheme.primaryColor,
+          action: SnackBarAction(
+            label: 'Restore',
+            textColor: Colors.white,
+            onPressed: () {
+              setState(() {
+                _captionCtrl.text = draft['caption'] ?? '';
+                _titleCtrl.text = draft['title'] ?? '';
+              });
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  void _onCaptionChanged() {
+    final text = _captionCtrl.text;
+    final parseResult = CaptionParserService.parseCaption(text);
+
+    // Save local draft
+    DraftPostService.saveDraft({
+      'caption': text,
+      'title': _titleCtrl.text,
+      'post_type': _selectedType.name,
+    });
+
+    setState(() {
+      _smartSuggestedTags = parseResult.suggestedTags;
+    });
+
+    // Detect # or @ trigger at cursor
+    final selection = _captionCtrl.selection;
+    if (selection.baseOffset >= 0 && selection.isCollapsed) {
+      final cursor = selection.baseOffset;
+      final textBefore = text.substring(0, cursor);
+      final words = textBefore.split(RegExp(r'\s+'));
+      final lastWord = words.isNotEmpty ? words.last : '';
+
+      if (lastWord.startsWith('#') && lastWord.length > 1) {
+        final query = lastWord.substring(1);
+        _discoveryService.fetchHashtagSuggestions(query);
+        setState(() {
+          _showTagPopup = true;
+          _showMentionPopup = false;
+          _autocompleteQuery = query;
+        });
+      } else if (lastWord.startsWith('@') && lastWord.length > 1) {
+        final query = lastWord.substring(1);
+        _discoveryService.fetchMentionSuggestions(query);
+        setState(() {
+          _showMentionPopup = true;
+          _showTagPopup = false;
+          _autocompleteQuery = query;
+        });
+      } else {
+        setState(() {
+          _showTagPopup = false;
+          _showMentionPopup = false;
+        });
+      }
+    }
+  }
+
+  void _insertHashtag(String tag) {
+    final clean = tag.startsWith('#') ? tag : '#$tag';
+    final text = _captionCtrl.text;
+    final parseResult = CaptionParserService.parseCaption(text);
+
+    if (parseResult.hashtags.length >= CaptionParserService.maxHashtags) {
+      Get.snackbar('Limit Reached', 'Maximum 10 hashtags allowed per post.',
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+      return;
+    }
+
+    _captionCtrl.text = '$text $clean ';
+    _captionCtrl.selection = TextSelection.fromPosition(TextPosition(offset: _captionCtrl.text.length));
+    setState(() {
+      _showTagPopup = false;
+    });
+  }
+
+  void _insertMention(String username) {
+    final text = _captionCtrl.text;
+    _captionCtrl.text = '$text @$username ';
+    _captionCtrl.selection = TextSelection.fromPosition(TextPosition(offset: _captionCtrl.text.length));
+    setState(() {
+      _showMentionPopup = false;
+    });
+  }
+
+  Future<void> _openMusicPicker() async {
+    final track = await showModalBottomSheet<AudioTrack>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => MusicPickerSheet(selectedTrack: _attachedAudioTrack),
+    );
+
+    if (track != null) {
+      setState(() {
+        _attachedAudioTrack = track;
+      });
+    }
   }
 
   Future<void> _pickImage() async {
@@ -110,739 +240,364 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
-  Future<void> _handlePublish() async {
-    final captionText = _captionCtrl.text.trim();
-
-    if (_selectedType == PostType.text && captionText.isEmpty) {
-      Get.snackbar('Empty Post', 'Please enter some text for your post.',
-          snackPosition: SnackPosition.BOTTOM);
-      return;
+  Future<void> _pickPdf() async {
+    final picker = ImagePicker();
+    final file = await picker.pickMedia();
+    if (file != null) {
+      setState(() {
+        _pickedMediaFile = File(file.path);
+        _pdfName = file.name;
+        _pdfSize = 1024;
+      });
     }
+  }
 
-    McqData? mcqData;
-    if (_selectedType == PostType.mcq) {
-      if (_mcqQuestionCtrl.text.trim().isEmpty) {
-        Get.snackbar('Missing Question', 'Please enter your quiz question.',
-            snackPosition: SnackPosition.BOTTOM);
-        return;
-      }
-      final options = _mcqOptionCtrls.asMap().entries.map((e) {
-        return McqOption(
-          id: 'opt_${e.key}',
-          text: e.value.text.trim().isEmpty ? 'Option ${e.key + 1}' : e.value.text.trim(),
-          isCorrect: e.key == _mcqCorrectIndex,
-        );
-      }).toList();
+  Future<void> _handlePublishSubmit() async {
+    final text = _captionCtrl.text.trim();
+    final parseResult = CaptionParserService.parseCaption(text);
 
-      mcqData = McqData(
-        question: _mcqQuestionCtrl.text.trim(),
-        options: options,
-        explanation: _explanationCtrl.text.trim(),
-        xpReward: _mcqXpReward,
-      );
-    }
-
-    PollData? pollData;
-    if (_selectedType == PostType.poll) {
-      if (_pollQuestionCtrl.text.trim().isEmpty) {
-        Get.snackbar('Missing Question', 'Please enter your poll question.',
-            snackPosition: SnackPosition.BOTTOM);
-        return;
-      }
-      final options = _pollOptionCtrls.asMap().entries.map((e) {
-        return PollOption(
-          id: 'opt_${e.key}',
-          text: e.value.text.trim().isEmpty ? 'Option ${e.key + 1}' : e.value.text.trim(),
-        );
-      }).toList();
-
-      pollData = PollData(
-        question: _pollQuestionCtrl.text.trim(),
-        options: options,
-        durationHours: _pollDurationHours,
-      );
-    }
-
-    QuestionData? questionData;
     if (_selectedType == PostType.question) {
-      if (_captionCtrl.text.trim().isEmpty) {
-        Get.snackbar('Missing Question', 'Please enter your question.',
-            snackPosition: SnackPosition.BOTTOM);
-        return;
+      final questionText = _titleCtrl.text.isNotEmpty ? _titleCtrl.text : text;
+      final dupCheck = await _discoveryService.checkDuplicateQuestion(questionText);
+      if (dupCheck['is_duplicate_suspected'] == true) {
+        final bool proceed = await _showDuplicateQuestionWarning(dupCheck['similar_questions']);
+        if (!proceed) return;
       }
-      questionData = QuestionData(
-        question: _captionCtrl.text.trim(),
-        context: _contextCtrl.text.trim(),
-      );
     }
 
-    final success = await _uploadService.createPost(
+    // Process upload
+    final success = await _uploadService.uploadPost(
       postType: _selectedType,
-      caption: captionText.isNotEmpty ? captionText : (_titleCtrl.text.isNotEmpty ? _titleCtrl.text : 'New ${_selectedType.displayName} Post'),
-      communityId: _selectedCommunityId,
+      caption: text,
+      title: _titleCtrl.text,
+      contextText: _contextCtrl.text,
+      explanation: _explanationCtrl.text,
+      linkUrl: _linkCtrl.text,
       visibility: _visibility,
       commentsEnabled: _commentsEnabled,
       sharesEnabled: _sharesEnabled,
+      communityId: _selectedCommunityId,
       mediaFile: _pickedMediaFile,
       coverFile: _pickedCoverFile,
-      mcqData: mcqData,
-      pollData: pollData,
-      questionData: questionData,
+      audioTrackId: _attachedAudioTrack?.id,
+      hashtags: parseResult.hashtags,
+      mentions: parseResult.mentions,
+      mcqQuestion: _mcqQuestionCtrl.text,
+      mcqOptions: _mcqOptionCtrls.map((c) => c.text).toList(),
+      mcqCorrectIndex: _mcqCorrectIndex,
+      mcqXpReward: _mcqXpReward,
+      pollQuestion: _pollQuestionCtrl.text,
+      pollOptions: _pollOptionCtrls.map((c) => c.text).toList(),
+      pollDurationHours: _pollDurationHours,
     );
 
     if (success) {
-      Get.back();
+      await DraftPostService.clearDraft();
+      Get.back(result: true);
     }
+  }
+
+  Future<bool> _showDuplicateQuestionWarning(List<dynamic> similarQuestions) async {
+    return (await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            title: Text('Similar Questions Found', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Other students have asked similar questions:', style: GoogleFonts.inter(color: Colors.white70, fontSize: 13)),
+                const SizedBox(height: 10),
+                ...similarQuestions.take(3).map((q) => Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: AppTheme.surfaceColor, borderRadius: BorderRadius.circular(8)),
+                      child: Text('• ${q['question']}', style: GoogleFonts.inter(color: Colors.white, fontSize: 12)),
+                    )),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Edit Question')),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+                child: const Text('Post Anyway'),
+              ),
+            ],
+          ),
+        )) ??
+        false;
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final parseResult = CaptionParserService.parseCaption(_captionCtrl.text);
 
     return Scaffold(
-      backgroundColor: context.scaffoldBackgroundColor,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        backgroundColor: context.scaffoldBackgroundColor.withOpacity(0.85),
+        backgroundColor: AppTheme.surfaceColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.close_rounded, color: context.textPrimary),
+          icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          'Create Post',
-          style: GoogleFonts.outfit(
-            color: context.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+        title: Text('Create Post', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
-          // Visibility Selector Pill
-          _buildVisibilityPill(context),
-          const SizedBox(width: 8),
-
-          // Settings Cog Button
-          IconButton(
-            icon: Icon(Icons.settings_outlined, color: context.textPrimary, size: 20),
-            onPressed: () => _showSettingsDialog(context),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Upload Progress Bar if active
-            Obx(() {
-              final state = _uploadService.uploadState.value;
-              if (!state.isUploading) return const SizedBox.shrink();
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: context.primaryColor.withOpacity(0.15),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(context.primaryColor),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        state.statusText,
-                        style: GoogleFonts.poppins(
-                          color: context.primaryColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '${(state.progress * 100).round()}%',
-                      style: GoogleFonts.outfit(
-                        color: context.primaryColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-
-            // Horizontal Post Type Selector Tabs
-            _buildTypeSelectorTabs(context),
-            const Divider(height: 1, thickness: 0.5),
-
-            // Active Type Editor Body
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Caption / Description Field (Common to all)
-                    if (_selectedType != PostType.mcq && _selectedType != PostType.poll) ...[
-                      TextField(
-                        controller: _captionCtrl,
-                        maxLines: _selectedType == PostType.text ? 6 : 3,
-                        style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: _getHintForType(_selectedType),
-                          hintStyle: GoogleFonts.poppins(color: context.caption, fontSize: 14),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Contextual Editor View
-                    _buildTypeSpecificEditor(context),
-                  ],
-                ),
-              ),
-            ),
-
-            // Bottom Publish Action Bar
-            _buildBottomActionBar(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVisibilityPill(BuildContext context) {
-    return PopupMenuButton<String>(
-      onSelected: (val) => setState(() => _visibility = val),
-      itemBuilder: (_) => [
-        const PopupMenuItem(value: 'public', child: Text('🌐 Public')),
-        const PopupMenuItem(value: 'followers', child: Text('👥 Followers')),
-        const PopupMenuItem(value: 'private', child: Text('🔒 Only Me')),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: context.primaryColor.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: context.primaryColor.withOpacity(0.3)),
-        ),
-        child: Row(
-          children: [
-            Text(
-              _visibility == 'public'
-                  ? '🌐 Public'
-                  : (_visibility == 'followers' ? '👥 Followers' : '🔒 Private'),
-              style: GoogleFonts.poppins(
-                color: context.primaryColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Icon(Icons.arrow_drop_down, color: context.primaryColor, size: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTypeSelectorTabs(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: PostType.values.length,
-        itemBuilder: (context, idx) {
-          final type = PostType.values[idx];
-          final isSelected = type == _selectedType;
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              selected: isSelected,
-              onSelected: (_) => setState(() => _selectedType = type),
-              avatar: Text(type.emoji, style: const TextStyle(fontSize: 12)),
-              label: Text(
-                type.displayName,
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? Colors.white : context.textPrimary,
-                ),
-              ),
-              selectedColor: type.color,
-              backgroundColor: isDark ? const Color(0xFF1F1F2E) : Colors.grey.shade200,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTypeSpecificEditor(BuildContext context) {
-    switch (_selectedType) {
-      case PostType.photo:
-        return _buildPhotoEditor(context);
-      case PostType.video:
-        return _buildVideoEditor(context);
-      case PostType.audio:
-        return _buildAudioEditor(context);
-      case PostType.pdf:
-        return _buildPdfEditor(context);
-      case PostType.question:
-        return _buildQuestionEditor(context);
-      case PostType.mcq:
-        return _buildMcqEditor(context);
-      case PostType.poll:
-        return _buildPollEditor(context);
-      case PostType.link:
-        return _buildLinkEditor(context);
-      case PostType.text:
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Widget _buildPhotoEditor(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_pickedMediaFile != null) ...[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              children: [
-                Image.file(_pickedMediaFile!, height: 220, width: double.infinity, fit: BoxFit.cover),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.black54,
-                    child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 18),
-                      onPressed: () => setState(() => _pickedMediaFile = null),
-                    ),
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PostPreviewScreen(
+                    postType: _selectedType,
+                    caption: _captionCtrl.text,
+                    title: _titleCtrl.text,
+                    mediaFile: _pickedMediaFile,
+                    audioTrack: _attachedAudioTrack,
+                    mcqOptions: _mcqOptionCtrls.map((c) => c.text).toList(),
+                    mcqCorrectIndex: _mcqCorrectIndex,
+                    pollOptions: _pollOptionCtrls.map((c) => c.text).toList(),
+                    onPublish: _handlePublishSubmit,
                   ),
                 ),
+              );
+            },
+            child: Text('Preview', style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 8),
+          Obx(() => ElevatedButton(
+                onPressed: _uploadService.isUploading.value ? null : _handlePublishSubmit,
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                child: _uploadService.isUploading.value
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text('Post', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+              )),
+          const SizedBox(width: 12),
+        ],
+      ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Post Type Selector Tabs
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      PostType.text,
+                      PostType.photo,
+                      PostType.video,
+                      PostType.reel,
+                      PostType.audio,
+                      PostType.question,
+                      PostType.mcq,
+                      PostType.poll,
+                      PostType.pdf,
+                    ].map((type) {
+                      final isSelected = _selectedType == type;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(type.name.toUpperCase()),
+                          selected: isSelected,
+                          onSelected: (val) {
+                            if (val) setState(() => _selectedType = type);
+                          },
+                          selectedColor: AppTheme.primaryColor,
+                          backgroundColor: AppTheme.surfaceColor,
+                          labelStyle: GoogleFonts.inter(
+                            color: isSelected ? Colors.white : Colors.white60,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Main Caption Editor
+                TextField(
+                  controller: _captionCtrl,
+                  maxLines: 5,
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+                  decoration: InputDecoration(
+                    hintText: 'What is on your mind? Use #hashtags or @mentions',
+                    hintStyle: GoogleFonts.inter(color: Colors.white38),
+                    border: InputBorder.none,
+                  ),
+                ),
+
+                // Hashtag counter & Smart Suggestions
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Hashtags: ${parseResult.hashtags.length} / 10',
+                      style: GoogleFonts.inter(
+                        color: parseResult.exceedsHashtagLimit ? Colors.redAccent : Colors.white38,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _openMusicPicker,
+                      icon: const Icon(Icons.music_note, color: AppTheme.primaryColor, size: 18),
+                      label: Text(_attachedAudioTrack != null ? 'Music Attached' : 'Add Music', style: GoogleFonts.inter(color: AppTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+
+                // Attached Audio Strip if selected
+                if (_attachedAudioTrack != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.audiotrack, color: AppTheme.primaryColor, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${_attachedAudioTrack!.title} - ${_attachedAudioTrack!.artist}',
+                            style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+                          onPressed: () => setState(() => _attachedAudioTrack = null),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Smart Recommended Tags Chips
+                if (_smartSuggestedTags.isNotEmpty) ...[
+                  Text('Suggested Hashtags:', style: GoogleFonts.inter(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    children: _smartSuggestedTags.map((tag) {
+                      return ActionChip(
+                        label: Text(tag, style: GoogleFonts.inter(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                        backgroundColor: AppTheme.surfaceColor,
+                        onPressed: () => _insertHashtag(tag),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                // Dynamic Media Pickers
+                if (_selectedType == PostType.photo)
+                  ElevatedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.image),
+                    label: Text(_pickedMediaFile != null ? 'Image Selected' : 'Select Photo'),
+                  ),
+
+                if (_selectedType == PostType.video || _selectedType == PostType.reel)
+                  ElevatedButton.icon(
+                    onPressed: _pickVideo,
+                    icon: const Icon(Icons.videocam),
+                    label: Text(_pickedMediaFile != null ? 'Video Selected' : 'Select Video / Reel'),
+                  ),
+
+                if (_selectedType == PostType.pdf)
+                  ElevatedButton.icon(
+                    onPressed: _pickPdf,
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: Text(_pdfName.isNotEmpty ? _pdfName : 'Select PDF Document'),
+                  ),
+
+                const SizedBox(height: 20),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-        ],
-        OutlinedButton.icon(
-          onPressed: _pickImage,
-          icon: Icon(Icons.add_photo_alternate_rounded, color: context.primaryColor),
-          label: Text(
-            _pickedMediaFile == null ? 'Select Photo(s)' : 'Change Photo',
-            style: GoogleFonts.poppins(color: context.primaryColor, fontWeight: FontWeight.w600),
-          ),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: context.primaryColor.withOpacity(0.5)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildVideoEditor(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_pickedMediaFile != null) ...[
-          Container(
-            height: 160,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.video_collection_rounded, color: context.primaryColor, size: 40),
-                  const SizedBox(height: 8),
-                  Text(
-                    _pickedMediaFile!.path.split('/').last,
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        OutlinedButton.icon(
-          onPressed: _pickVideo,
-          icon: Icon(Icons.video_library_rounded, color: PostType.video.color),
-          label: Text(
-            _pickedMediaFile == null ? 'Select Video' : 'Change Video',
-            style: GoogleFonts.poppins(color: PostType.video.color, fontWeight: FontWeight.w600),
-          ),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: PostType.video.color.withOpacity(0.5)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAudioEditor(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: _titleCtrl,
-          style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: 'Audio Title / Episode Name...',
-            hintStyle: GoogleFonts.poppins(color: context.caption, fontSize: 14),
-            filled: true,
-            fillColor: context.secondaryBackgroundColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: _pickImage,
-          icon: Icon(Icons.audiotrack_rounded, color: PostType.audio.color),
-          label: Text(
-            _pickedMediaFile == null ? 'Upload Audio File' : 'Audio File Selected ✓',
-            style: GoogleFonts.poppins(color: PostType.audio.color, fontWeight: FontWeight.w600),
-          ),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: PostType.audio.color.withOpacity(0.5)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPdfEditor(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: PostType.pdf.color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: PostType.pdf.color.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.picture_as_pdf_rounded, color: PostType.pdf.color, size: 36),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _pdfName.isNotEmpty ? _pdfName : 'Academic_Notes_2026.pdf',
-                      style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+          // Autocomplete Tag Popup Overlay
+          if (_showTagPopup)
+            Positioned(
+              left: 16,
+              right: 16,
+              top: 180,
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(12),
+                color: AppTheme.cardBg,
+                child: Obx(() {
+                  final tags = _discoveryService.hashtagSuggestions;
+                  return Container(
+                    constraints: const BoxConstraints(maxHeight: 180),
+                    decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: tags.length,
+                      itemBuilder: (context, index) {
+                        final t = tags[index];
+                        return ListTile(
+                          title: Text(t.name, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          subtitle: Text('${t.usageCount} posts', style: GoogleFonts.inter(color: Colors.white38, fontSize: 11)),
+                          onTap: () => _insertHashtag(t.name),
+                        );
+                      },
                     ),
-                    Text(
-                      '1st Page Preview Auto-Generated',
-                      style: GoogleFonts.poppins(color: context.caption, fontSize: 11),
+                  );
+                }),
+              ),
+            ),
+
+          // Autocomplete Mention Popup Overlay
+          if (_showMentionPopup)
+            Positioned(
+              left: 16,
+              right: 16,
+              top: 180,
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(12),
+                color: AppTheme.cardBg,
+                child: Obx(() {
+                  final users = _discoveryService.mentionSuggestions;
+                  return Container(
+                    constraints: const BoxConstraints(maxHeight: 180),
+                    decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: users.length,
+                      itemBuilder: (context, index) {
+                        final u = users[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            radius: 14,
+                            backgroundImage: u['avatar_url'].isNotEmpty ? NetworkImage(u['avatar_url']) : null,
+                            child: u['avatar_url'].isEmpty ? const Icon(Icons.person, size: 14) : null,
+                          ),
+                          title: Text('@${u['username']}', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          subtitle: Text(u['display_name'] ?? '', style: GoogleFonts.inter(color: Colors.white38, fontSize: 11)),
+                          onTap: () => _insertMention(u['username']),
+                        );
+                      },
                     ),
-                  ],
-                ),
+                  );
+                }),
               ),
-              ElevatedButton(
-                onPressed: _pickImage,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: PostType.pdf.color,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('Browse', style: TextStyle(color: Colors.white, fontSize: 12)),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestionEditor(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: _contextCtrl,
-          maxLines: 3,
-          style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
-          decoration: InputDecoration(
-            hintText: 'Additional context or code snippet (optional)...',
-            hintStyle: GoogleFonts.poppins(color: context.caption, fontSize: 13),
-            filled: true,
-            fillColor: context.secondaryBackgroundColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMcqEditor(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'QUESTION',
-          style: GoogleFonts.outfit(color: PostType.mcq.color, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.1),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _mcqQuestionCtrl,
-          maxLines: 2,
-          style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: 'Enter quiz question...',
-            hintStyle: GoogleFonts.poppins(color: context.caption, fontSize: 14),
-            filled: true,
-            fillColor: context.secondaryBackgroundColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'OPTIONS (Select the correct answer)',
-          style: GoogleFonts.outfit(color: context.caption, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.1),
-        ),
-        const SizedBox(height: 8),
-
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _mcqOptionCtrls.length,
-          itemBuilder: (context, idx) {
-            final isCorrect = idx == _mcqCorrectIndex;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Radio<int>(
-                    value: idx,
-                    groupValue: _mcqCorrectIndex,
-                    activeColor: PostType.mcq.color,
-                    onChanged: (val) => setState(() => _mcqCorrectIndex = val!),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _mcqOptionCtrls[idx],
-                      style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Option ${String.fromCharCode(65 + idx)}',
-                        filled: true,
-                        fillColor: isCorrect ? PostType.mcq.color.withOpacity(0.12) : context.secondaryBackgroundColor,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-
-        const SizedBox(height: 12),
-        TextField(
-          controller: _explanationCtrl,
-          maxLines: 2,
-          style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12),
-          decoration: InputDecoration(
-            hintText: 'Explanation (revealed after user answers)...',
-            hintStyle: GoogleFonts.poppins(color: context.caption, fontSize: 12),
-            filled: true,
-            fillColor: context.secondaryBackgroundColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPollEditor(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'POLL QUESTION',
-          style: GoogleFonts.outfit(color: PostType.poll.color, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.1),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _pollQuestionCtrl,
-          maxLines: 2,
-          style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: 'Ask your question...',
-            hintStyle: GoogleFonts.poppins(color: context.caption, fontSize: 14),
-            filled: true,
-            fillColor: context.secondaryBackgroundColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _pollOptionCtrls.length,
-          itemBuilder: (context, idx) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: TextField(
-                controller: _pollOptionCtrls[idx],
-                style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
-                decoration: InputDecoration(
-                  hintText: 'Choice ${idx + 1}',
-                  filled: true,
-                  fillColor: context.secondaryBackgroundColor,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                ),
-              ),
-            );
-          },
-        ),
-
-        if (_pollOptionCtrls.length < 6)
-          TextButton.icon(
-            onPressed: () => setState(() => _pollOptionCtrls.add(TextEditingController())),
-            icon: Icon(Icons.add_rounded, color: PostType.poll.color, size: 18),
-            label: Text('Add Option', style: GoogleFonts.poppins(color: PostType.poll.color, fontSize: 12)),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildLinkEditor(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: _linkCtrl,
-          style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
-          decoration: InputDecoration(
-            hintText: 'Paste web URL (https://...)',
-            hintStyle: GoogleFonts.poppins(color: context.caption, fontSize: 13),
-            prefixIcon: Icon(Icons.link_rounded, color: PostType.link.color),
-            filled: true,
-            fillColor: context.secondaryBackgroundColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomActionBar(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF13131A) : Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, -4)),
+            ),
         ],
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(Icons.local_offer_outlined, color: context.caption, size: 20),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.alternate_email_rounded, color: context.caption, size: 20),
-            onPressed: () {},
-          ),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: _handlePublish,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: context.primaryColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: Text(
-              'Publish',
-              style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getHintForType(PostType type) {
-    switch (type) {
-      case PostType.photo:
-        return 'Write a caption for your photo...';
-      case PostType.video:
-        return 'Write a caption for your video...';
-      case PostType.audio:
-        return 'Write audio description...';
-      case PostType.pdf:
-        return 'Describe this document...';
-      case PostType.question:
-        return 'Ask your question here...';
-      case PostType.link:
-        return 'Say something about this link...';
-      case PostType.text:
-      default:
-        return "What's on your mind?";
-    }
-  }
-
-  void _showSettingsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: context.dialogBackgroundColor,
-          title: Text('Post Settings', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SwitchListTile(
-                title: Text('Allow Comments', style: GoogleFonts.poppins(fontSize: 13)),
-                value: _commentsEnabled,
-                activeColor: context.primaryColor,
-                onChanged: (val) {
-                  setDialogState(() => _commentsEnabled = val);
-                  setState(() => _commentsEnabled = val);
-                },
-              ),
-              SwitchListTile(
-                title: Text('Allow Shares', style: GoogleFonts.poppins(fontSize: 13)),
-                value: _sharesEnabled,
-                activeColor: context.primaryColor,
-                onChanged: (val) {
-                  setDialogState(() => _sharesEnabled = val);
-                  setState(() => _sharesEnabled = val);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Done'),
-            ),
-          ],
-        ),
       ),
     );
   }

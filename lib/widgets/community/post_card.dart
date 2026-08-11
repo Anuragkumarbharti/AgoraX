@@ -6,7 +6,10 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/theme.dart';
 import '../../models/community/post_model.dart';
 import '../../models/community/post_type.dart';
+import '../../models/discovery/unified_content_model.dart';
+import '../../models/discovery/audio_track_model.dart';
 import '../../services/post/post_repository.dart';
+import '../../services/discovery/discovery_service.dart';
 import '../common/optimized_image.dart';
 
 // Specialized Type Feed Cards
@@ -21,13 +24,17 @@ import 'feed_link_widget.dart';
 import 'post_attachments_widget.dart';
 
 class PostCard extends StatefulWidget {
-  final Post post;
+  final dynamic post; // Post or UnifiedContentItem
   final VoidCallback? onTap;
+  final Function(String tag)? onHashtagTap;
+  final Function(AudioTrack? audioTrack)? onAudioTap;
 
   const PostCard({
     Key? key,
     required this.post,
     this.onTap,
+    this.onHashtagTap,
+    this.onAudioTap,
   }) : super(key: key);
 
   @override
@@ -41,15 +48,41 @@ class _PostCardState extends State<PostCard> {
   late int _comments;
   late int _shares;
 
+  final DiscoveryService _discoveryService = Get.put(DiscoveryService());
+
   @override
   void initState() {
     super.initState();
-    _isLiked = widget.post.isLiked;
-    _likes = widget.post.likes;
-    _isBookmarked = widget.post.isBookmarked;
-    _comments = widget.post.comments;
-    _shares = widget.post.shares;
+    final p = widget.post;
+    if (p is UnifiedContentItem) {
+      _isLiked = p.isLiked;
+      _likes = p.likes;
+      _isBookmarked = p.isSaved;
+      _comments = p.comments;
+      _shares = p.shares;
+    } else if (p is Post) {
+      _isLiked = p.isLiked;
+      _likes = p.likes;
+      _isBookmarked = p.isBookmarked;
+      _comments = p.comments;
+      _shares = p.shares;
+    } else {
+      _isLiked = false;
+      _likes = 0;
+      _isBookmarked = false;
+      _comments = 0;
+      _shares = 0;
+    }
   }
+
+  String get _postId => widget.post.id?.toString() ?? '';
+  String get _creatorId => widget.post.userId?.toString() ?? '';
+  String get _caption => widget.post.caption?.toString() ?? '';
+  String get _authorUsername => (widget.post is UnifiedContentItem) ? widget.post.authorName : (widget.post.authorUsername ?? 'Creania User');
+  String get _authorAvatarUrl => (widget.post is UnifiedContentItem) ? widget.post.authorAvatarUrl : (widget.post.authorAvatarUrl ?? '');
+  PostType get _postType => (widget.post is UnifiedContentItem) ? widget.post.postType : (widget.post is Post ? widget.post.postType : PostType.text);
+  DateTime get _createdAt => widget.post.createdAt ?? DateTime.now();
+  AudioTrack? get _audioTrack => (widget.post is UnifiedContentItem) ? widget.post.audioTrack : null;
 
   Future<void> _handleLike() async {
     final prevLiked = _isLiked;
@@ -57,8 +90,7 @@ class _PostCardState extends State<PostCard> {
       _isLiked = !_isLiked;
       _likes = _isLiked ? _likes + 1 : _likes - 1;
     });
-
-    await PostRepository.toggleLike(widget.post.id, prevLiked);
+    await PostRepository.toggleLike(_postId, prevLiked);
   }
 
   Future<void> _handleBookmark() async {
@@ -67,6 +99,7 @@ class _PostCardState extends State<PostCard> {
       _isBookmarked = !_isBookmarked;
     });
 
+    _discoveryService.toggleSavePost(_postId, prevBookmarked);
     Get.snackbar(
       _isBookmarked ? 'Bookmarked 📚' : 'Bookmark Removed 🗑️',
       _isBookmarked ? 'Post added to your saved posts.' : 'Post removed from saved posts.',
@@ -75,93 +108,20 @@ class _PostCardState extends State<PostCard> {
       colorText: Colors.white,
       duration: const Duration(seconds: 1),
     );
-
-    await PostRepository.toggleBookmark(widget.post.id, prevBookmarked);
-  }
-
-  void _handleComment() {
-    final TextEditingController controller = TextEditingController();
-    Get.dialog(
-      Dialog(
-        backgroundColor: context.dialogBackgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'ADD COMMENT',
-                    style: GoogleFonts.outfit(
-                      color: context.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close_rounded, color: context.caption, size: 18),
-                    onPressed: () => Get.back(),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                maxLines: 3,
-                style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
-                decoration: InputDecoration(
-                  hintText: 'Write your comment...',
-                  hintStyle: GoogleFonts.poppins(color: context.caption, fontSize: 13),
-                  filled: true,
-                  fillColor: context.secondaryBackgroundColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (controller.text.trim().isNotEmpty) {
-                      setState(() {
-                        _comments++;
-                      });
-                      Get.back();
-                      Get.snackbar(
-                        'Comment Added',
-                        'Your response was posted.',
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: const Color(0xFF10B981),
-                        colorText: Colors.white,
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text('Post Comment'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   void _handleShare() {
-    Share.share('Check out this post on Creania!\n${widget.post.caption}');
+    Share.share('Check out this post on Creania!\n$_caption');
+  }
+
+  void _handleNotInterested() {
+    _discoveryService.submitFeedFeedback(postId: _postId, creatorId: _creatorId, feedbackType: 'not_interested');
+    Get.snackbar('Not Interested', 'We will show fewer posts like this.', snackPosition: SnackPosition.BOTTOM);
+  }
+
+  void _handleMuteCreator() {
+    _discoveryService.submitFeedFeedback(postId: _postId, creatorId: _creatorId, feedbackType: 'mute_creator');
+    Get.snackbar('Creator Muted', 'Posts from $_authorUsername will be hidden.', snackPosition: SnackPosition.BOTTOM);
   }
 
   void _handleReport() {
@@ -175,14 +135,8 @@ class _PostCardState extends State<PostCard> {
           TextButton(
             onPressed: () async {
               Get.back();
-              await PostRepository.reportPost(widget.post.id, 'Inappropriate content');
-              Get.snackbar(
-                'Report Submitted',
-                'Thank you for keeping Creania safe.',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: context.primaryColor,
-                colorText: Colors.white,
-              );
+              await _discoveryService.submitFeedFeedback(postId: _postId, creatorId: _creatorId, feedbackType: 'report', reason: 'Spam/Inappropriate');
+              Get.snackbar('Report Submitted', 'Thank you for keeping Creania safe.', snackPosition: SnackPosition.BOTTOM);
             },
             child: const Text('Report', style: TextStyle(color: Colors.red)),
           ),
@@ -194,8 +148,7 @@ class _PostCardState extends State<PostCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final post = widget.post;
-    final formattedTime = DateFormat.yMMMd().add_jm().format(post.createdAt);
+    final formattedTime = DateFormat.yMMMd().add_jm().format(_createdAt);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -220,15 +173,14 @@ class _PostCardState extends State<PostCard> {
           // Author Header Bar
           Row(
             children: [
-              // Avatar
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: SizedBox(
                   width: 40,
                   height: 40,
-                  child: (post.authorAvatarUrl != null && post.authorAvatarUrl!.isNotEmpty)
+                  child: _authorAvatarUrl.isNotEmpty
                       ? OptimizedImage(
-                          imageUrl: post.authorAvatarUrl!,
+                          imageUrl: _authorAvatarUrl,
                           quality: ImageQuality.thumbnail,
                           fit: BoxFit.cover,
                         )
@@ -240,7 +192,6 @@ class _PostCardState extends State<PostCard> {
               ),
               const SizedBox(width: 10),
 
-              // Username & Time
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,7 +199,7 @@ class _PostCardState extends State<PostCard> {
                     Row(
                       children: [
                         Text(
-                          post.authorUsername ?? 'Creania User',
+                          _authorUsername,
                           style: GoogleFonts.poppins(
                             color: context.textPrimary,
                             fontSize: 13,
@@ -256,17 +207,16 @@ class _PostCardState extends State<PostCard> {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        // Post Type Chip
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: post.postType.color.withOpacity(0.15),
+                            color: _postType.color.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            '${post.postType.emoji} ${post.postType.displayName}',
+                            '${_postType.emoji} ${_postType.displayName}',
                             style: TextStyle(
-                              color: post.postType.color,
+                              color: _postType.color,
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
                             ),
@@ -286,19 +236,20 @@ class _PostCardState extends State<PostCard> {
                 ),
               ),
 
-              // Options Menu Popup
+              // Options Menu
               PopupMenuButton<String>(
                 onSelected: (val) {
                   if (val == 'bookmark') _handleBookmark();
                   if (val == 'share') _handleShare();
+                  if (val == 'not_interested') _handleNotInterested();
+                  if (val == 'mute') _handleMuteCreator();
                   if (val == 'report') _handleReport();
                 },
                 itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'bookmark',
-                    child: Text(_isBookmarked ? '🔖 Remove Bookmark' : '🔖 Save Post'),
-                  ),
+                  PopupMenuItem(value: 'bookmark', child: Text(_isBookmarked ? '🔖 Remove Bookmark' : '🔖 Save Post')),
                   const PopupMenuItem(value: 'share', child: Text('🔗 Share Post')),
+                  const PopupMenuItem(value: 'not_interested', child: Text('👎 Not Interested')),
+                  PopupMenuItem(value: 'mute', child: Text('🔇 Mute @$_authorUsername')),
                   const PopupMenuItem(value: 'report', child: Text('🚩 Report Post', style: TextStyle(color: Colors.red))),
                 ],
                 child: Icon(Icons.more_horiz_rounded, color: context.caption, size: 20),
@@ -307,21 +258,46 @@ class _PostCardState extends State<PostCard> {
           ),
           const SizedBox(height: 10),
 
-          // Caption Text (if present and not duplicated in special card)
-          if (post.caption.isNotEmpty && post.postType != PostType.mcq && post.postType != PostType.poll && post.postType != PostType.question) ...[
-            Text(
-              post.caption,
-              style: GoogleFonts.poppins(
-                color: context.textPrimary,
-                fontSize: 13,
-                height: 1.4,
+          // Caption Text with Clickable Tags
+          if (_caption.isNotEmpty && _postType != PostType.mcq && _postType != PostType.poll && _postType != PostType.question) ...[
+            RichText(
+              text: TextSpan(
+                children: _buildInteractiveCaptionSpans(_caption),
               ),
             ),
             const SizedBox(height: 10),
           ],
 
-          // Type-Specific Optimized Feed Widget
-          _buildSpecializedFeedContent(context, post),
+          // Attached Audio Pill if present
+          if (_audioTrack != null) ...[
+            GestureDetector(
+              onTap: () => widget.onAudioTap?.call(_audioTrack),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.music_note, color: AppTheme.primaryColor, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${_audioTrack!.title} • ${_audioTrack!.artist}',
+                      style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+
+          // Type-Specific Content
+          if (widget.post is Post)
+            _buildSpecializedFeedContent(context, widget.post as Post),
 
           const SizedBox(height: 12),
 
@@ -329,7 +305,6 @@ class _PostCardState extends State<PostCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Like
               InkWell(
                 onTap: _handleLike,
                 borderRadius: BorderRadius.circular(20),
@@ -343,22 +318,14 @@ class _PostCardState extends State<PostCard> {
                         size: 18,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        '$_likes',
-                        style: GoogleFonts.poppins(
-                          color: _isLiked ? Colors.redAccent : context.caption,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text('$_likes', style: GoogleFonts.poppins(color: _isLiked ? Colors.redAccent : context.caption, fontSize: 12)),
                     ],
                   ),
                 ),
               ),
 
-              // Comment
               InkWell(
-                onTap: _handleComment,
+                onTap: () {},
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -366,20 +333,12 @@ class _PostCardState extends State<PostCard> {
                     children: [
                       Icon(Icons.chat_bubble_outline_rounded, color: context.caption, size: 18),
                       const SizedBox(width: 4),
-                      Text(
-                        '$_comments',
-                        style: GoogleFonts.poppins(
-                          color: context.caption,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text('$_comments', style: GoogleFonts.poppins(color: context.caption, fontSize: 12)),
                     ],
                   ),
                 ),
               ),
 
-              // Share
               InkWell(
                 onTap: _handleShare,
                 borderRadius: BorderRadius.circular(20),
@@ -389,29 +348,15 @@ class _PostCardState extends State<PostCard> {
                     children: [
                       Icon(Icons.share_outlined, color: context.caption, size: 18),
                       const SizedBox(width: 4),
-                      Text(
-                        '$_shares',
-                        style: GoogleFonts.poppins(
-                          color: context.caption,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text('$_shares', style: GoogleFonts.poppins(color: context.caption, fontSize: 12)),
                     ],
                   ),
                 ),
               ),
 
-              // Bookmark
               IconButton(
-                icon: Icon(
-                  _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                  color: _isBookmarked ? const Color(0xFF8B5CF6) : context.caption,
-                  size: 20,
-                ),
+                icon: Icon(_isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: _isBookmarked ? context.primaryColor : context.caption, size: 20),
                 onPressed: _handleBookmark,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
               ),
             ],
           ),
@@ -420,33 +365,50 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
+  List<TextSpan> _buildInteractiveCaptionSpans(String text) {
+    final List<TextSpan> spans = [];
+    final words = text.split(RegExp(r'(\s+)'));
+
+    for (var word in words) {
+      if (word.startsWith('#')) {
+        spans.add(
+          TextSpan(
+            text: word,
+            style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+        );
+      } else if (word.startsWith('@')) {
+        spans.add(
+          TextSpan(
+            text: word,
+            style: GoogleFonts.inter(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+        );
+      } else {
+        spans.add(
+          TextSpan(
+            text: word,
+            style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
+          ),
+        );
+      }
+    }
+    return spans;
+  }
+
   Widget _buildSpecializedFeedContent(BuildContext context, Post post) {
     switch (post.postType) {
-      case PostType.photo:
-        return FeedPhotoWidget(post: post);
+      case PostType.photo: return FeedPhotoWidget(post: post);
       case PostType.video:
-        return FeedVideoWidget(post: post);
-      case PostType.audio:
-        return FeedAudioWidget(post: post);
-      case PostType.pdf:
-        return FeedPdfWidget(post: post);
-      case PostType.question:
-        return FeedQuestionWidget(post: post, onAnswerTap: _handleComment);
-      case PostType.mcq:
-        return FeedMcqWidget(post: post);
-      case PostType.poll:
-        return FeedPollWidget(post: post);
-      case PostType.link:
-        return FeedLinkWidget(post: post);
-      case PostType.text:
+      case PostType.reel: return FeedVideoWidget(post: post);
+      case PostType.audio: return FeedAudioWidget(post: post);
+      case PostType.pdf: return FeedPdfWidget(post: post);
+      case PostType.question: return FeedQuestionWidget(post: post);
+      case PostType.mcq: return FeedMcqWidget(post: post);
+      case PostType.poll: return FeedPollWidget(post: post);
+      case PostType.link: return FeedLinkWidget(post: post);
       default:
-        // Legacy multi-attachment fallback if images/videos/pdfs arrays exist
-        if ((post.images != null && post.images!.isNotEmpty) ||
-            (post.videos != null && post.videos!.isNotEmpty) ||
-            (post.pdfs != null && post.pdfs!.isNotEmpty)) {
-          return PostAttachmentsWidget(post: post);
-        }
-        return const SizedBox.shrink();
+        return PostAttachmentsWidget(post: post);
     }
   }
 }
