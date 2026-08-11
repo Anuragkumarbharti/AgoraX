@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,6 +24,12 @@ import '../study_vault/study_vault_home_screen.dart';
 import '../study_vault/book_details_screen.dart';
 import '../notifications/notification_history_screen.dart';
 import '../../services/storage/fcm_notification_service.dart';
+import '../../widgets/post_creation/create_post_bottom_sheet.dart';
+import '../../services/post/post_repository.dart';
+import '../feed/popular_questions_screen.dart';
+import '../feed/recent_posts_screen.dart';
+import '../feed/new_posts_screen.dart';
+import '../reels/reels_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -32,8 +39,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late ScrollController _scrollController;
-  final ValueNotifier<bool> _showFloatingButton = ValueNotifier(true);
+  final ScrollController _scrollController = ScrollController();
+  final ValueNotifier<bool> _showFloatingButton = ValueNotifier<bool>(true);
   final EventController _eventController = Get.find<EventController>();
   final CommunityController _communityCtrl = Get.find<CommunityController>();
   List<Post> _posts = [];
@@ -42,11 +49,19 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(() {
-      _showFloatingButton.value = _scrollController.offset < 100;
-    });
     _fetchRecentPosts();
+    _scrollController.addListener(() {
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (_showFloatingButton.value) {
+          _showFloatingButton.value = false;
+        }
+      } else {
+        if (!_showFloatingButton.value) {
+          _showFloatingButton.value = true;
+        }
+      }
+    });
   }
 
   @override
@@ -58,21 +73,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchRecentPosts() async {
     try {
-      final response = await Supabase.instance.client
-          .from('posts')
-          .select('*, profiles!posts_user_id_fkey(username, avatar_url)')
-          .order('created_at', ascending: false)
-          .limit(20);
-
-      if (response != null) {
-        final List<dynamic> list = response as List<dynamic>;
-        setState(() {
-          _posts = list
-              .map((item) => Post.fromJson(item as Map<String, dynamic>))
-              .toList();
-          _isLoadingPosts = false;
-        });
-      }
+      final fetched = await PostRepository.fetchFeedPosts(limit: 20);
+      setState(() {
+        _posts = fetched;
+        _isLoadingPosts = false;
+      });
     } catch (e) {
       debugPrint('Error fetching posts: $e');
       setState(() => _isLoadingPosts = false);
@@ -80,118 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _createNewPost() {
-    final TextEditingController contentCtrl = TextEditingController();
-    Get.dialog(
-      Builder(builder: (context) {
-        return Dialog(
-          backgroundColor: context.dialogBackgroundColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'CREATE NEW POST',
-                  style: GoogleFonts.outfit(
-                    color: context.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: contentCtrl,
-                  maxLines: 4,
-                  style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: "What's on your mind?",
-                    hintStyle:
-                        GoogleFonts.poppins(color: context.placeholder, fontSize: 13),
-                    filled: true,
-                    fillColor: context.elevatedSurfaceColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: context.borderColor),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: Text('Cancel',
-                          style: GoogleFonts.poppins(color: context.caption)),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final text = contentCtrl.text.trim();
-                        if (text.isEmpty) return;
-
-                        Get.back();
-
-                        // Show uploading dialog
-                        Get.dialog(
-                          Center(
-                              child: CircularProgressIndicator(
-                                  color: context.primaryColor)),
-                          barrierDismissible: false,
-                        );
-
-                        try {
-                          final currentUser =
-                              Supabase.instance.client.auth.currentUser;
-                          if (currentUser == null)
-                            throw Exception('Not logged in');
-
-                          final postId =
-                              'post_${DateTime.now().millisecondsSinceEpoch}';
-
-                          // Insert post
-                          await Supabase.instance.client.from('posts').insert({
-                            'id': postId,
-                            'user_id': currentUser.id,
-                            'content': text,
-                            'likes': 0,
-                            'comments': 0,
-                            'shares': 0,
-                          });
-
-                          // Reload posts
-                          await _fetchRecentPosts();
-
-                          Get.back(); // close loader
-                          Get.snackbar(
-                            'Post Shared! 🎉',
-                            'Your post was shared successfully.',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: const Color(0xFF10B981),
-                            colorText: Colors.white,
-                          );
-                        } catch (e) {
-                          Get.back(); // close loader
-                          Get.snackbar('Error ⚠️', 'Failed to share post: $e');
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: context.primaryColor),
-                      child: Text('Post',
-                          style:
-                              GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
-    );
+    CreatePostBottomSheet.show(context, communityId: null);
   }
 
   void _showNotifications() async {
@@ -266,6 +160,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               );
             }),
+            IconButton(
+              icon: const Icon(Icons.movie_creation_outlined),
+              tooltip: 'Reels',
+              onPressed: () => Get.to(
+                () => const ReelsScreen(),
+                transition: Transition.rightToLeft,
+                duration: const Duration(milliseconds: 300),
+              ),
+            ),
             IconButton(
               icon: const Icon(Icons.emoji_events_outlined),
               onPressed: () => Get.to(
@@ -447,7 +350,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 32),
 
                   // Popular Questions
-                  _buildSectionHeader(context, 'Popular Questions'),
+                  _buildSectionHeader(
+                    context,
+                    'Popular Questions',
+                    onViewAll: () => Get.to(() => const PopularQuestionsScreen()),
+                  ),
                   const SizedBox(height: 12),
                   ListView.builder(
                     shrinkWrap: true,
@@ -462,8 +369,60 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 32),
 
+                  // Reels / Short Videos Preview Section
+                  _buildSectionHeader(
+                    context,
+                    'Reels & Short Videos',
+                    onViewAll: () => Get.to(() => const ReelsScreen()),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 160,
+                    child: InkWell(
+                      onTap: () => Get.to(() => const ReelsScreen()),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E1B4B),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.movie_filter_rounded, color: Color(0xFF8B5CF6), size: 48),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Watch Trending Reels 🎬',
+                                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Tap to watch full-screen vertical short videos & audio clips.',
+                                    style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
                   // Recent Posts
-                  _buildSectionHeader(context, 'Recent Posts'),
+                  _buildSectionHeader(
+                    context,
+                    'Recent Posts',
+                    onViewAll: () => Get.to(() => const RecentPostsScreen()),
+                  ),
                   const SizedBox(height: 12),
                   _isLoadingPosts
                       ? const Center(
@@ -494,6 +453,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 );
                               },
                             ),
+                  const SizedBox(height: 32),
+
+                  // New Posts Section Header
+                  _buildSectionHeader(
+                    context,
+                    'New Posts',
+                    onViewAll: () => Get.to(() => const NewPostsScreen()),
+                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
