@@ -132,11 +132,6 @@ class _TwoFactorLoginScreenState extends State<TwoFactorLoginScreen> {
       _errorMessage = null;
     });
 
-    final result = await TwoFactorService.verifyRecoveryCodeLogin(
-      userId: widget.userId,
-      recoveryCode: code,
-      trustDevice: _trustDevice,
-      deviceId: _deviceId,
     try {
       final result = await TwoFactorService.verifyRecoveryCodeLogin(
         userId: widget.userId,
