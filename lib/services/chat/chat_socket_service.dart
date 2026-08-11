@@ -577,6 +577,27 @@ class ChatSocketService extends GetxService with WidgetsBindingObserver {
       'contactPhone': msg.contactPhone,
     };
 
+    // ─── Layer 1: Block Check Guard ───
+    if (msg.receiverId != null && msg.receiverId!.isNotEmpty) {
+      try {
+        final isBlocked = await Supabase.instance.client.rpc('is_user_blocked', params: {
+          'p_user1_id': msg.senderId,
+          'p_user2_id': msg.receiverId,
+        });
+        if (isBlocked == true) {
+          debugPrint('[ChatSocketService] Message dispatch blocked due to active user block.');
+          Get.snackbar(
+            'Action Blocked 🛡️',
+            'You cannot send messages to this user because of an active block.',
+            backgroundColor: const Color(0xFFEF4444),
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          return;
+        }
+      } catch (_) {}
+    }
+
     // ─── Layer 1: Supabase DB Persistence (PRIMARY — always happens) ───
     bool dbSaved = false;
     try {

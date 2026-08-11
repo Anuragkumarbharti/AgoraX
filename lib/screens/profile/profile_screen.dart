@@ -178,6 +178,213 @@ class _ProfileScreenState extends State<ProfileScreen>
     });
   }
 
+  Future<void> _checkFollowingStatus() async {
+    final myId = UserProfileCacheManager.currentUserId;
+    final targetId = widget.visitorUser?.id;
+    if (myId.isEmpty || targetId == null || targetId == myId) return;
+
+    try {
+      final isBlockedRes = await Supabase.instance.client.rpc('is_user_blocked', params: {
+        'p_user1_id': myId,
+        'p_user2_id': targetId,
+      });
+
+      if (mounted) {
+        setState(() {
+          _isBlocked = isBlockedRes == true;
+        });
+      }
+    } catch (e) {
+      debugPrint('[ProfileScreen] Error checking block status: $e');
+    }
+  }
+
+  Future<void> _blockCurrentTargetUser() async {
+    final targetId = widget.visitorUser?.id;
+    if (targetId == null) return;
+
+    Get.defaultDialog(
+      title: 'Block User?',
+      middleText: 'Are you sure you want to block @${_user.username}?\n\nThey will be automatically unfollowed and un-friended. Neither of you will be able to view posts or send direct messages.',
+      backgroundColor: context.secondaryBackgroundColor,
+      titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.errorColor),
+      middleTextStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
+      confirm: ElevatedButton(
+        onPressed: () async {
+          Get.back();
+          try {
+            final res = await Supabase.instance.client.rpc('block_user', params: {'p_blocked_id': targetId});
+            if (res != null && res['success'] == true) {
+              setState(() => _isBlocked = true);
+              UserProfileCacheManager.unfollowUser(targetId);
+              UserProfileCacheManager.invalidateCache(targetId);
+              Get.snackbar(
+                'User Blocked 🛡️',
+                'You have blocked @${_user.username}.',
+                backgroundColor: const Color(0xFFEF4444),
+                colorText: Colors.white,
+                snackPosition: SnackPosition.BOTTOM,
+              );
+            }
+          } catch (e) {
+            Get.snackbar('Error', 'Failed to block user: $e');
+          }
+        },
+        style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
+        child: const Text('Block User'),
+      ),
+      cancel: OutlinedButton(
+        onPressed: () => Get.back(),
+        child: const Text('Cancel'),
+      ),
+    );
+  }
+
+  Future<void> _unblockCurrentTargetUser() async {
+    final targetId = widget.visitorUser?.id;
+    if (targetId == null) return;
+
+    try {
+      final res = await Supabase.instance.client.rpc('unblock_user', params: {'p_blocked_id': targetId});
+      if (res != null && res['success'] == true) {
+        setState(() => _isBlocked = false);
+        UserProfileCacheManager.invalidateCache(targetId);
+        Get.snackbar(
+          'User Unblocked',
+          '@${_user.username} has been unblocked.',
+          backgroundColor: const Color(0xFF10B981),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to unblock user: $e');
+    }
+  }
+
+  void _showMoreMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.secondaryBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.share_rounded, color: context.textPrimary),
+                title: Text('Share Profile', style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold)),
+                onTap: () {
+                  Get.back();
+                  Share.share('Check out @${_user.username} on Creania!');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.report_problem_outlined, color: Colors.amberAccent),
+                title: Text('Report @${_user.username}', style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold)),
+                onTap: () {
+                  Get.back();
+                  Get.to(() => const HelpSupportScreen());
+                },
+              ),
+              ListTile(
+                leading: Icon(_isBlocked ? Icons.lock_open_rounded : Icons.block_rounded, color: context.errorColor),
+                title: Text(
+                  _isBlocked ? 'Unblock User' : 'Block User',
+                  style: GoogleFonts.poppins(color: context.errorColor, fontWeight: FontWeight.bold),
+                ),
+                onTap: () {
+                  Get.back();
+                  if (_isBlocked) {
+                    _unblockCurrentTargetUser();
+                  } else {
+                    _blockCurrentTargetUser();
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBlockedProfilePlaceholder(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: context.borderColor, width: 0.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: context.errorColor.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.block_rounded, size: 48, color: context.errorColor),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'You Have Blocked This User',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: context.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'You cannot view their posts, activities, or send direct messages.',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: context.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton.icon(
+                  onPressed: _unblockCurrentTargetUser,
+                  icon: const Icon(Icons.lock_open_rounded, size: 18, color: Colors.white),
+                  label: Text(
+                    'Unblock User',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _postCreatedSubscription?.cancel();
@@ -3172,6 +3379,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildPostsFeed() {
+    if (_isBlocked && !_isMe) {
+      return _buildBlockedProfilePlaceholder(context);
+    }
+
     if (!_postsLoaded && !_isLoadingPosts) {
       Future.microtask(() => _loadUserPosts());
     }

@@ -1,13 +1,22 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 
 class HelpSupportScreen extends StatefulWidget {
-  const HelpSupportScreen({Key? key}) : super(key: key);
+  final String? targetUserId;
+  final String? initialCategory;
+
+  const HelpSupportScreen({
+    Key? key,
+    this.targetUserId,
+    this.initialCategory,
+  }) : super(key: key);
 
   @override
   State<HelpSupportScreen> createState() => _HelpSupportScreenState();
@@ -17,12 +26,21 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
   final SupabaseClient _supabase = Supabase.instance.client;
   late TabController _tabController;
 
-  // New ticket form state
+  // Form state
   final _formKey = GlobalKey<FormState>();
   final _subjectCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
-  String _selectedCategory = 'General';
+  final _reportedUserCtrl = TextEditingController();
+  final _chatTranscriptCtrl = TextEditingController();
+  
+  late String _selectedCategory;
   bool _isSubmitting = false;
+
+  // File Attachments
+  final List<File> _attachedFiles = [];
+  final List<String> _uploadedAttachmentUrls = [];
+  bool _isUploadingFiles = false;
+  bool _attachChatLogs = false;
 
   // Tickets list state
   bool _isLoadingTickets = true;
@@ -34,12 +52,20 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
     'Request',
     'Account Recovery',
     'Bug Report',
+    'Harassment',
+    'Scam / Fraud',
+    'Impersonation',
   ];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _selectedCategory = widget.initialCategory ?? 'General';
+    if (widget.targetUserId != null && widget.targetUserId!.isNotEmpty) {
+      _reportedUserCtrl.text = widget.targetUserId!;
+      _selectedCategory = 'Report';
+    }
     _fetchMyTickets();
   }
 
@@ -48,7 +74,24 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
     _tabController.dispose();
     _subjectCtrl.dispose();
     _descriptionCtrl.dispose();
+    _reportedUserCtrl.dispose();
+    _chatTranscriptCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAttachment() async {
+    if (_attachedFiles.length >= 3) {
+      Get.snackbar('Limit Reached', 'You can attach up to 3 evidence files.');
+      return;
+    }
+
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (pickedFile != null) {
+      setState(() {
+        _attachedFiles.add(File(pickedFile.path));
+      });
+    }
   }
 
   Future<void> _fetchMyTickets() async {
@@ -79,25 +122,81 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
     if (userId.isEmpty) return;
 
     setState(() => _isSubmitting = true);
+
     try {
+      // 1. Upload files to report-attachments bucket if attached
+      _uploadedAttachmentUrls.clear();
+      if (_attachedFiles.isNotEmpty) {
+        setState(() => _isUploadingFiles = true);
+        for (int i = 0; i < _attachedFiles.length; i++) {
+          final file = _attachedFiles[i];
+          final fileName = 'report_${userId}_${DateTime.now().millisecondsSinceEpoch}_$i.png';
+          try {
+            await _supabase.storage.from('report-attachments').upload(fileName, file);
+            final publicUrl = _supabase.storage.from('report-attachments').getPublicUrl(fileName);
+            _uploadedAttachmentUrls.add(publicUrl);
+          } catch (uploadErr) {
+            debugPrint('[HelpSupportScreen] Attachment upload error: $uploadErr');
+          }
+        }
+        setState(() => _isUploadingFiles = false);
+      }
+
+      // Prepare Chat Log Proof Payload if requested
+      Map<String, dynamic>? chatLogPayload;
+      if (_attachChatLogs && _chatTranscriptCtrl.text.trim().isNotEmpty) {
+        chatLogPayload = {
+          'transcript': _chatTranscriptCtrl.text.trim(),
+          'timestamp': DateTime.now().toIso8601String(),
+          'reported_user_id': _reportedUserCtrl.text.trim(),
+        };
+      }
+
+      // 2. Insert into support_tickets table
       await _supabase.from('support_tickets').insert({
         'user_id': userId,
         'category': _selectedCategory,
         'subject': _subjectCtrl.text.trim(),
         'description': _descriptionCtrl.text.trim(),
         'status': 'Open',
+        'attachment_urls': _uploadedAttachmentUrls,
+        'chat_transcript': chatLogPayload,
       });
+
+      // 3. Also insert into reports table if it is a user/content report
+      if (_selectedCategory == 'Report' ||
+          _selectedCategory == 'Harassment' ||
+          _selectedCategory == 'Scam / Fraud' ||
+          _selectedCategory == 'Impersonation') {
+        try {
+          await _supabase.from('reports').insert({
+            'reporter_id': userId,
+            'reported_user_id': _reportedUserCtrl.text.trim().isNotEmpty ? _reportedUserCtrl.text.trim() : null,
+            'resource_type': 'user',
+            'resource_id': _reportedUserCtrl.text.trim().isNotEmpty ? _reportedUserCtrl.text.trim() : userId,
+            'reason': '${_selectedCategory}: ${_subjectCtrl.text.trim()} - ${_descriptionCtrl.text.trim()}',
+            'status': 'Open',
+            'attachment_urls': _uploadedAttachmentUrls,
+            'chat_transcript': chatLogPayload,
+          });
+        } catch (_) {}
+      }
 
       _subjectCtrl.clear();
       _descriptionCtrl.clear();
+      _reportedUserCtrl.clear();
+      _chatTranscriptCtrl.clear();
       setState(() {
+        _attachedFiles.clear();
+        _uploadedAttachmentUrls.clear();
         _selectedCategory = 'General';
+        _attachChatLogs = false;
         _isSubmitting = false;
       });
 
       Get.snackbar(
-        'Ticket Submitted 🎉',
-        'Your support request has been submitted to Creania Support.',
+        'Report Submitted 🎉',
+        'Your report and attached evidence have been sent to Creania Moderators.',
         backgroundColor: const Color(0xFF10B981),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -107,7 +206,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
       _fetchMyTickets();
     } catch (e) {
       setState(() => _isSubmitting = false);
-      Get.snackbar('Submission Failed', 'Error submitting ticket: $e');
+      Get.snackbar('Submission Failed', 'Error submitting report: $e');
     }
   }
 
@@ -131,7 +230,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
           unselectedLabelColor: context.textSecondary,
           labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
           tabs: const [
-            Tab(text: 'Submit Request'),
+            Tab(text: 'Submit Report / Ticket'),
             Tab(text: 'My Tickets'),
           ],
         ),
@@ -165,14 +264,14 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
             ),
             const SizedBox(height: 4),
             Text(
-              'Submit a support request or report an issue directly to our team.',
+              'Submit a support request or report violations with attached proof.',
               style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 20),
 
             // Category Selection
             Text(
-              'Category',
+              'Category / Reason',
               style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: context.textPrimary, fontSize: 13),
             ),
             const SizedBox(height: 6),
@@ -213,7 +312,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
               controller: _subjectCtrl,
               style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'Brief summary of the issue',
+                hintText: 'Brief summary of the issue or report',
                 hintStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12),
                 filled: true,
                 fillColor: context.surfaceColor,
@@ -233,16 +332,16 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
 
             // Description Field
             Text(
-              'Details / Description',
+              'Details & Evidence Description',
               style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: context.textPrimary, fontSize: 13),
             ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _descriptionCtrl,
-              maxLines: 5,
+              maxLines: 4,
               style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'Provide complete details regarding your issue or inquiry...',
+                hintText: 'Provide complete details regarding the issue or violation...',
                 hintStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12),
                 filled: true,
                 fillColor: context.surfaceColor,
@@ -253,11 +352,104 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
               ),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
-                  return 'Please describe your issue';
+                  return 'Please describe the issue';
                 }
                 return null;
               },
             ),
+            const SizedBox(height: 16),
+
+            // File Attachment Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Attach Screenshots / Files',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: context.textPrimary, fontSize: 13),
+                ),
+                TextButton.icon(
+                  onPressed: _pickAttachment,
+                  icon: Icon(Icons.attach_file_rounded, size: 16, color: context.primaryColor),
+                  label: Text('Add File', style: GoogleFonts.poppins(color: context.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ],
+            ),
+            if (_attachedFiles.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 80,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _attachedFiles.length,
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(right: 10),
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            image: DecorationImage(image: FileImage(_attachedFiles[index]), fit: BoxFit.cover),
+                          ),
+                        ),
+                        Positioned(
+                          top: 2,
+                          right: 12,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _attachedFiles.removeAt(index);
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                              child: const Icon(Icons.close, size: 12, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+
+            // Chat Transcript Section
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'Attach Chat Log Transcript Proof',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: context.textPrimary, fontSize: 13),
+              ),
+              subtitle: Text(
+                'Include recent chat message conversation history as proof.',
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11),
+              ),
+              value: _attachChatLogs,
+              activeColor: context.primaryColor,
+              onChanged: (val) => setState(() => _attachChatLogs = val),
+            ),
+            if (_attachChatLogs) ...[
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _chatTranscriptCtrl,
+                maxLines: 3,
+                style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12),
+                decoration: InputDecoration(
+                  hintText: 'Paste relevant chat messages or transcript context...',
+                  hintStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 11),
+                  filled: true,
+                  fillColor: context.surfaceColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: context.borderColor, width: 0.5),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             SizedBox(
@@ -270,17 +462,28 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: _isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            _isUploadingFiles ? 'Uploading Evidence...' : 'Submitting...',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                          ),
+                        ],
                       )
                     : Text(
-                        'Submit Ticket',
+                        'Submit Report / Ticket',
                         style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
                       ),
               ),
             ),
+            const SizedBox(height: 30),
           ],
         ),
       ),
@@ -300,12 +503,12 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
             Icon(Icons.assignment_outlined, size: 64, color: context.textSecondary.withOpacity(0.5)),
             const SizedBox(height: 16),
             Text(
-              'No Support Tickets',
+              'No Reports or Tickets',
               style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: context.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
-              'Your submitted support tickets will be listed here.',
+              'Your submitted reports & support tickets will be listed here.',
               style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
             ),
           ],
@@ -325,6 +528,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
           final String description = ticket['description'] ?? '';
           final String status = ticket['status'] ?? 'Open';
           final String? adminResponse = ticket['admin_response'];
+          final List attachmentUrls = ticket['attachment_urls'] ?? [];
           final String createdAtStr = ticket['created_at'] ?? '';
           DateTime? createdAt;
           if (createdAtStr.isNotEmpty) {
@@ -401,6 +605,19 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
                     fontSize: 12,
                   ),
                 ),
+                if (attachmentUrls.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.attach_file_rounded, size: 14, color: context.primaryColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${attachmentUrls.length} file evidence attached',
+                        style: GoogleFonts.poppins(color: context.primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
                 if (adminResponse != null && adminResponse.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -415,7 +632,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> with SingleTicker
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Support Response:',
+                          'Moderator Response:',
                           style: GoogleFonts.poppins(
                             color: context.primaryColor,
                             fontWeight: FontWeight.bold,
