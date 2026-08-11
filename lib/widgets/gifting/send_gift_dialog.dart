@@ -726,30 +726,44 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
                           ),
                           child: Stack(
                             children: [
-                              CircleAvatar(
-                                radius: 15,
-                                backgroundImage: (entry.avatarUrl != null &&
-                                        entry.avatarUrl!.isNotEmpty)
-                                    ? OptimizedImage.getOptimizedImageProvider(
-                                        entry.avatarUrl!,
-                                        preset: MediaSizePreset.xs,
-                                      )
-                                    : const AssetImage(
-                                        'assets/images/placeholder.png'),
-                                // Owner badge: small crown overlay on avatar
-                                child: isOwner
-                                    ? Align(
-                                        alignment: Alignment.topCenter,
-                                        child: Transform.translate(
-                                          offset: const Offset(0, -4),
-                                          child: const Text(
-                                            '👑',
-                                            style: TextStyle(fontSize: 8),
+                              Builder(builder: (context) {
+                                final cachedUser = UserProfileCacheManager.getCachedUser(entry.userId);
+                                final String effectiveAvatar = (entry.avatarUrl != null && entry.avatarUrl!.isNotEmpty)
+                                    ? entry.avatarUrl!
+                                    : (cachedUser?.avatar ?? '');
+
+                                return CircleAvatar(
+                                  radius: 15,
+                                  backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.3),
+                                  backgroundImage: effectiveAvatar.isNotEmpty
+                                      ? OptimizedImage.getOptimizedImageProvider(
+                                          effectiveAvatar,
+                                          preset: MediaSizePreset.xs,
+                                        )
+                                      : null,
+                                  child: effectiveAvatar.isEmpty
+                                      ? Text(
+                                          entry.userName.isNotEmpty ? entry.userName[0].toUpperCase() : 'U',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                        ),
-                                      )
-                                    : null,
-                              ),
+                                        )
+                                      : (isOwner
+                                          ? Align(
+                                              alignment: Alignment.topCenter,
+                                              child: Transform.translate(
+                                                offset: const Offset(0, -4),
+                                                child: const Text(
+                                                  '👑',
+                                                  style: TextStyle(fontSize: 8),
+                                                ),
+                                              ),
+                                            )
+                                          : null),
+                                );
+                              }),
                               if (isSelected)
                                 Positioned(
                                   bottom: 0,

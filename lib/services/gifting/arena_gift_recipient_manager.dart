@@ -420,10 +420,21 @@ class ArenaGiftRecipientManager extends GetxController {
       passedName: rawName,
       seatInfo: seat,
     );
+    String? avatar = seat['avatar'] as String?;
+    if (avatar == null || avatar.isEmpty) {
+      avatar = UserProfileCacheManager.getCachedUser(uid)?.avatar;
+      if ((avatar == null || avatar.isEmpty) && uid.isNotEmpty && !uid.startsWith('0000')) {
+        UserProfileCacheManager.fetchUserProfile(uid).then((u) {
+          if (u.avatar != null && u.avatar!.isNotEmpty) {
+            _syncReactiveState();
+          }
+        }).catchError((_) {});
+      }
+    }
     return RecipientEntry(
       userId: uid,
       userName: resolved,
-      avatarUrl: seat['avatar'] as String?,
+      avatarUrl: avatar,
       seatIndex: seat['seatIndex'] as int? ?? -1,
     );
   }
@@ -438,21 +449,33 @@ class ArenaGiftRecipientManager extends GetxController {
             ? UserProfileCacheManager.currentUserId
             : '00000000-0000-0000-0000-000000000000';
 
-    final ownerId = (room?.hostId != null &&
-            room!.hostId.isNotEmpty &&
-            room.hostId != 'room_owner')
-        ? room.hostId
-        : fallbackUid;
+    final ownerId = (room?.ownerUserId != null && room!.ownerUserId.isNotEmpty)
+        ? room.ownerUserId
+        : ((room?.hostId != null &&
+                room!.hostId.isNotEmpty &&
+                room.hostId != 'room_owner')
+            ? room.hostId
+            : fallbackUid);
 
     final ownerName = UserProfileCacheManager.resolveUsernameForGifting(
       ownerId,
       passedName: room?.ownerName,
     );
 
-    // Try to get the owner's avatar from their seat (if they are on one)
+    // Try to get the owner's avatar from their seat, room object, or profile cache
     final seats = _getSeats(roomId);
     final ownerSeat = seats.firstWhereOrNull((s) => s['userId'] == ownerId);
-    final avatar = ownerSeat != null ? ownerSeat['avatar'] as String? : null;
+    String? avatar = ownerSeat != null ? ownerSeat['avatar'] as String? : room?.avatar;
+    if (avatar == null || avatar.isEmpty) {
+      avatar = UserProfileCacheManager.getCachedUser(ownerId)?.avatar;
+      if ((avatar == null || avatar.isEmpty) && ownerId.isNotEmpty && !ownerId.startsWith('0000')) {
+        UserProfileCacheManager.fetchUserProfile(ownerId).then((u) {
+          if (u.avatar != null && u.avatar!.isNotEmpty) {
+            _syncReactiveState();
+          }
+        }).catchError((_) {});
+      }
+    }
 
     return RecipientEntry(
       userId: ownerId,

@@ -71,7 +71,7 @@ class _RoomsScreenState extends State<RoomsScreen>
   }
 
   String _formatXpValue(int value) {
-    return formatCompactNumber(value);
+    return value.toString();
   }
 
   String _sortBy = 'Trending'; // 'Trending' or 'Online Users'

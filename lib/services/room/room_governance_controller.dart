@@ -41,6 +41,11 @@ class RoomGovernanceController extends GetxController {
     AdminCustomPermissions? permissions,
   }) async {
     try {
+      final room = RoomController.to.rooms.firstWhereOrNull((r) => r.id == roomId);
+      if (room != null && (targetUserId == room.ownerUserId || targetUserId == room.hostId)) {
+        throw Exception('OWNER_PROTECTED: Permanent Room Owner role cannot be modified.');
+      }
+
       final response = await Supabase.instance.client.rpc(
         'promote_room_member_role_v2',
         params: {
@@ -64,10 +69,7 @@ class RoomGovernanceController extends GetxController {
         final targetProfile =
             await UserProfileCacheManager.fetchUserProfile(targetUserId);
         final targetName = targetProfile?.username ?? 'Member';
-        final roomName = RoomController.to.rooms
-                .firstWhereOrNull((r) => r.id == roomId)
-                ?.name ??
-            'Voice Room';
+        final roomName = room?.name ?? 'Voice Room';
 
         if (Get.isRegistered<RoomRealtimeController>()) {
           await RoomRealtimeController.to.broadcastRoleUpdate(
@@ -103,6 +105,11 @@ class RoomGovernanceController extends GetxController {
     String? reason,
   }) async {
     try {
+      final room = RoomController.to.rooms.firstWhereOrNull((r) => r.id == roomId);
+      if (room != null && (targetUserId == room.ownerUserId || targetUserId == room.hostId)) {
+        throw Exception('OWNER_PROTECTED: Permanent Room Owner role cannot be demoted or removed.');
+      }
+
       final response = await Supabase.instance.client.rpc(
         'demote_room_member_role_v2',
         params: {

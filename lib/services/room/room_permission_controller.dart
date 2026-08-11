@@ -35,7 +35,7 @@ class RoomPermissionController extends GetxController {
 
   String getUserRole(VoiceRoom room, String userId,
       {List<Map<String, dynamic>>? seatsInfo}) {
-    if (room.hostId == userId || room.founderId == userId) return 'Creator';
+    if (room.ownerUserId == userId || room.hostId == userId || room.founderId == userId) return 'Creator';
     if (room.coOwnerIds.contains(userId) == true) return 'Co-Owner';
     if (room.adminIds.contains(userId) == true ||
         room.moderatorIds.contains(userId) == true) return 'Admin';
@@ -110,7 +110,7 @@ class RoomPermissionController extends GetxController {
                 .firstWhereOrNull((item) => item.id == roomId)
             : null);
     if (r != null) {
-      return r.hostId == userId || r.founderId == userId;
+      return r.ownerUserId == userId || r.hostId == userId || r.founderId == userId;
     }
     return currentPermissions['is_host'] == true;
   }

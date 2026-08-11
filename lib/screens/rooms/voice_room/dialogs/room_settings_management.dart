@@ -8,6 +8,7 @@ import 'package:creania/core/theme.dart';
 import '../../../../models/room/room_model.dart';
 import '../../../../services/room/room_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
+import '../../../../widgets/common/optimized_image.dart';
 import '../governance/room_governance_dashboard_dialog.dart';
 
 class RoomSettingsManagement {
@@ -515,7 +516,12 @@ class RoomSettingsManagement {
     required VoiceRoom room,
   }) {
     final count = memberIds.length;
-    final firstAvatar = count > 0 ? getRoomUserAvatar(memberIds.first) : null;
+    final firstUserId = count > 0 ? memberIds.first : null;
+    final firstAvatar = firstUserId != null ? getRoomUserAvatar(firstUserId) : null;
+    final cachedUser = firstUserId != null ? UserProfileCacheManager.getCachedUser(firstUserId) : null;
+    final String effectiveAvatar = (firstAvatar != null && firstAvatar.isNotEmpty)
+        ? firstAvatar
+        : (cachedUser?.avatar ?? '');
 
     return ListTile(
       dense: true,
@@ -547,10 +553,19 @@ class RoomSettingsManagement {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (firstAvatar != null)
+          if (count > 0 && firstUserId != null)
             CircleAvatar(
-              radius: 10,
-              backgroundImage: NetworkImage(firstAvatar),
+              radius: 12,
+              backgroundColor: color.withValues(alpha: 0.25),
+              backgroundImage: effectiveAvatar.isNotEmpty
+                  ? OptimizedImage.getOptimizedImageProvider(
+                      effectiveAvatar,
+                      preset: MediaSizePreset.xs,
+                    )
+                  : null,
+              child: effectiveAvatar.isEmpty
+                  ? Icon(Icons.person, size: 12, color: color)
+                  : null,
             ),
           if (count > 1)
             Container(

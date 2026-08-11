@@ -170,6 +170,10 @@ class RoomModerationController extends GetxController {
       final room = rooms.firstWhereOrNull((r) => r.id == roomId);
       if (room == null) return;
 
+      if (userId == room.ownerUserId || userId == room.hostId) {
+        throw Exception('OWNER_PROTECTED: Permanent Room Owner cannot be kicked.');
+      }
+
       final callerRole = RoomPermissionController.to.getUserRole(room, currentUserId);
       final targetRole = RoomPermissionController.to.getUserRole(room, userId);
 
@@ -226,8 +230,16 @@ class RoomModerationController extends GetxController {
     String userId,
     String reason, {
     String? duration,
+    List<VoiceRoom>? rooms,
   }) async {
     try {
+      if (rooms != null) {
+        final room = rooms.firstWhereOrNull((r) => r.id == roomId);
+        if (room != null && (userId == room.ownerUserId || userId == room.hostId)) {
+          throw Exception('OWNER_PROTECTED: Permanent Room Owner cannot be banned.');
+        }
+      }
+
       await Supabase.instance.client.rpc('moderate_ban_user', params: {
         'p_room_id': roomId,
         'p_target_user_id': userId,
@@ -258,6 +270,97 @@ class RoomModerationController extends GetxController {
     } catch (e) {
       Get.snackbar('Action Failed', e.toString().replaceAll('Exception: ', ''));
     }
+  }
+
+  Future<void> transferHost(String roomId, String newHostId) async {
+    Get.snackbar(
+      'Action Disabled 🚫',
+      'OWNERSHIP_TRANSFER_DISABLED: Room ownership is permanent and cannot be transferred.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.shade900,
+      colorText: Colors.white,
+    );
+    throw Exception('OWNERSHIP_TRANSFER_DISABLED: Ownership transfer is permanently disabled.');
+  }
+
+  Future<void> changeMemberRole(
+    String roomId,
+    String userId,
+    String newRole,
+  ) async {
+    try {
+      await Supabase.instance.client.rpc('promote_room_member_role', params: {
+        'p_room_id': roomId,
+        'p_target_user_id': userId,
+        'p_new_role': newRole,
+      });
+    } catch (e) {
+      debugPrint('Error changing member role: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> promoteRoomMember(String roomId, String userId, String targetRole) =>
+      promoteRoomMemberRole(roomId, userId, targetRole);
+
+  Future<bool> promoteRoomMemberRole(
+    String roomId,
+    String userId,
+    String targetRole,
+  ) async {
+    try {
+      await changeMemberRole(roomId, userId, targetRole);
+
+      Get.snackbar(
+        'Role Updated 🎉',
+        'User assigned to $targetRole.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar('Promotion Failed', e.toString().replaceAll('Exception: ', ''));
+      return false;
+    }
+  }
+
+  Future<bool> demoteRoomMemberRole(
+    String roomId,
+    String userId, [
+    String? currentRole,
+  ]) async {
+    try {
+      await Supabase.instance.client.rpc('demote_room_member_role', params: {
+        'p_room_id': roomId,
+        'p_target_user_id': userId,
+      });
+      Get.snackbar(
+        'Role Demoted 👤',
+        'User demoted to Audience.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orangeAccent.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar('Demotion Failed', e.toString().replaceAll('Exception: ', ''));
+      return false;
+    }
+  }
+
+  Future<bool> transferRoomOwnership(
+    String roomId,
+    String newOwnerUserId,
+  ) async {
+    Get.snackbar(
+      'Action Disabled 🚫',
+      'OWNERSHIP_TRANSFER_DISABLED: Room ownership is permanent and cannot be transferred.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.shade900,
+      colorText: Colors.white,
+    );
+    return false;
   }
 
   Future<void> toggleMuteUser(String roomId, String userId, {List<VoiceRoom> rooms = const []}) async {
@@ -342,102 +445,6 @@ class RoomModerationController extends GetxController {
       }
     } catch (e) {
       debugPrint('Error updating room settings: $e');
-    }
-  }
-
-  Future<void> transferHost(String roomId, String newHostId) async {
-    try {
-      await Supabase.instance.client.rpc('transfer_room_ownership', params: {
-        'p_room_id': roomId,
-        'p_new_owner_id': newHostId,
-      });
-    } catch (e) {
-      debugPrint('Error transferring room ownership: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> changeMemberRole(
-    String roomId,
-    String userId,
-    String newRole,
-  ) async {
-    try {
-      await Supabase.instance.client.rpc('promote_room_member_role', params: {
-        'p_room_id': roomId,
-        'p_target_user_id': userId,
-        'p_new_role': newRole,
-      });
-    } catch (e) {
-      debugPrint('Error changing member role: $e');
-    }
-  }
-
-  Future<bool> promoteRoomMember(String roomId, String userId, String targetRole) =>
-      promoteRoomMemberRole(roomId, userId, targetRole);
-
-  Future<bool> promoteRoomMemberRole(
-    String roomId,
-    String userId,
-    String targetRole,
-  ) async {
-    try {
-      await changeMemberRole(roomId, userId, targetRole);
-
-      Get.snackbar(
-        'Role Updated 🎉',
-        'User assigned to $targetRole.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
-        colorText: Colors.white,
-      );
-      return true;
-    } catch (e) {
-      Get.snackbar('Promotion Failed', e.toString().replaceAll('Exception: ', ''));
-      return false;
-    }
-  }
-
-  Future<bool> demoteRoomMemberRole(
-    String roomId,
-    String userId, [
-    String? currentRole,
-  ]) async {
-    try {
-      await Supabase.instance.client.rpc('demote_room_member_role', params: {
-        'p_room_id': roomId,
-        'p_target_user_id': userId,
-      });
-      Get.snackbar(
-        'Role Demoted 👤',
-        'User demoted to Audience.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orangeAccent.withOpacity(0.9),
-        colorText: Colors.white,
-      );
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Future<bool> transferRoomOwnership(
-    String roomId,
-    String newOwnerUserId,
-  ) async {
-    try {
-      await transferHost(roomId, newOwnerUserId);
-      Get.snackbar(
-        'Ownership Transferred 👑',
-        'Room ownership was successfully transferred.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.9),
-        colorText: Colors.white,
-      );
-      return true;
-    } catch (e) {
-      Get.snackbar('Transfer Failed', e.toString().replaceAll('Exception: ', ''));
-      return false;
     }
   }
 

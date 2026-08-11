@@ -41,6 +41,7 @@ class VoiceRoom {
     required this.name,
     String? username,
     required this.description,
+    String? ownerUserId,
     required this.hostId,
     required this.communityId,
     required this.type,
@@ -125,10 +126,12 @@ class VoiceRoom {
     this.activeMode = 'Social', // Social, Debate, Study, Coaching, Family, Music, Gaming, Community, Event
     this.pinnedAnnouncement = 'Check out the active Poll in the menu!',
     this.currentDebateRound = 1,
-  })  : entryPermissions = entryPermissions ?? [],
+  })  : ownerUserId = (ownerUserId != null && ownerUserId.isNotEmpty) ? ownerUserId : hostId,
+        entryPermissions = entryPermissions ?? [],
         username = username ?? ('@' + id.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), ''));
 
   factory VoiceRoom.fromJson(Map<String, dynamic> json) {
+    final rawOwnerId = (json['owner_user_id'] ?? json['ownerUserId'] ?? json['room_owner'] ?? json['host_id'] ?? json['hostId'] ?? '').toString();
     return VoiceRoom(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
@@ -136,7 +139,8 @@ class VoiceRoom {
           ? (json['username'] ?? json['room_username'] ?? 'room_' + (json['id'] ?? '').toString().replaceAll('CRN-RM-', '').toLowerCase()).toString()
           : '@${json['username'] ?? json['room_username'] ?? 'room_' + (json['id'] ?? '').toString().replaceAll('CRN-RM-', '').toLowerCase()}',
       description: json['description'] ?? '',
-      hostId: json['hostId'] ?? json['host_id'] ?? '',
+      ownerUserId: rawOwnerId,
+      hostId: rawOwnerId.isNotEmpty ? rawOwnerId : (json['hostId'] ?? json['host_id'] ?? '').toString(),
       communityId: json['communityId'] ?? json['community_id'] ?? '',
       type: json['type'] ?? 'discussion',
       isLive: json['isLive'] ?? json['is_live'] ?? (json['status'] == 'live'),
@@ -229,6 +233,7 @@ class VoiceRoom {
   final String name;
   final String username;
   final String description;
+  final String ownerUserId;
   final String hostId;
   final String communityId;
   final String type; // Social Room, Debate Room, etc.
@@ -362,7 +367,10 @@ class VoiceRoom {
     'username': username.startsWith('@') ? username.substring(1) : username,
     'name': name,
     'description': description,
+    'owner_user_id': ownerUserId,
+    'ownerUserId': ownerUserId,
     'hostId': hostId,
+    'host_id': hostId,
     'communityId': communityId,
     'type': type,
     'isLive': isLive,
