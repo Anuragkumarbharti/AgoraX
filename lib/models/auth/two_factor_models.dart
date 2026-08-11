@@ -41,12 +41,14 @@ class TwoFactorSetupData {
   final String qrUri;
   final String setupKey;
   final List<String> recoveryCodes;
+  final List<String> serverSecurityKeys;
 
   TwoFactorSetupData({
     required this.secret,
     required this.qrUri,
     required this.setupKey,
     required this.recoveryCodes,
+    required this.serverSecurityKeys,
   });
 }
 

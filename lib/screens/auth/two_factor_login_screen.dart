@@ -28,17 +28,19 @@ class TwoFactorLoginScreen extends StatefulWidget {
 
 class _TwoFactorLoginScreenState extends State<TwoFactorLoginScreen> {
   final TextEditingController _codeCtrl = TextEditingController();
+  final TextEditingController _serverKeyCtrl = TextEditingController();
   final TextEditingController _recoveryCodeCtrl = TextEditingController();
   
   bool _trustDevice = true;
   bool _isLoading = false;
-  bool _useRecoveryMode = false;
+  int _verificationMode = 0; // 0: 6-Digit TOTP, 1: 64-Bit Server Key, 2: Recovery Code
   String? _errorMessage;
   int _attemptCount = 0;
 
   @override
   void dispose() {
     _codeCtrl.dispose();
+    _serverKeyCtrl.dispose();
     _recoveryCodeCtrl.dispose();
     super.dispose();
   }
@@ -135,28 +137,123 @@ class _TwoFactorLoginScreenState extends State<TwoFactorLoginScreen> {
       recoveryCode: code,
       trustDevice: _trustDevice,
       deviceId: _deviceId,
-      deviceName: _deviceName,
-    );
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (result['success'] == true) {
-      final remaining = result['remaining_codes'] ?? 0;
-      Get.snackbar(
-        'Recovery Code Used 🔓',
-        'Login successful. You have $remaining recovery codes remaining.',
-        backgroundColor: const Color(0xFF10B981),
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 4),
+    try {
+      final result = await TwoFactorService.verifyRecoveryCodeLogin(
+        userId: widget.userId,
+        recoveryCode: code,
+        trustDevice: _trustDevice,
+        deviceId: _deviceId,
+        deviceName: _deviceName,
       );
-      widget.onVerificationSuccess();
-    } else {
-      setState(() {
-        _errorMessage = result['error'] ?? 'Invalid recovery code. Please try again.';
-      });
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (result['success'] == true) {
+        final remaining = result['remaining_codes'] ?? 0;
+        Get.snackbar(
+          'Recovery Code Used 🔓',
+          'Login successful. You have $remaining recovery codes remaining.',
+          backgroundColor: const Color(0xFF10B981),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 4),
+        );
+        widget.onVerificationSuccess();
+      } else {
+        setState(() {
+          _errorMessage = result['error'] ?? 'Invalid recovery code. Please try again.';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Verification error: $e';
+        });
+      }
     }
+  }
+
+  void _handleVerifyServerSecurityKey() async {
+    final key = _serverKeyCtrl.text.trim();
+    if (key.isEmpty) {
+      setState(() => _errorMessage = 'Please enter a server security key.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await TwoFactorService.verifyServerSecurityKeyLogin(
+        userId: widget.userId,
+        key: key,
+        trustDevice: _trustDevice,
+        deviceId: _deviceId,
+        deviceName: _deviceName,
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (result['success'] == true) {
+        final remaining = result['remaining_keys'] ?? 0;
+        Get.snackbar(
+          'Server Key Used 🔓',
+          'Login successful. You have $remaining server security keys remaining.',
+          backgroundColor: const Color(0xFF10B981),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 4),
+        );
+        widget.onVerificationSuccess();
+      } else {
+        setState(() {
+          _errorMessage = result['error'] ?? 'Invalid server security key. Please try again.';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Verification failed. Please try again.';
+        });
+      }
+    }
+  }
+
+  Widget _buildModeTab(int modeIndex, String label) {
+    final isSelected = _verificationMode == modeIndex;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _verificationMode = modeIndex;
+          _errorMessage = null;
+        });
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? context.primaryColor : context.surfaceColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? context.primaryColor : context.borderColor,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : context.textSecondary,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -184,28 +281,47 @@ class _TwoFactorLoginScreenState extends State<TwoFactorLoginScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  _useRecoveryMode ? Icons.vpn_key_rounded : Icons.shield_rounded,
+                  _verificationMode == 1
+                      ? Icons.key_rounded
+                      : (_verificationMode == 2 ? Icons.vpn_key_rounded : Icons.shield_rounded),
                   size: 48,
                   color: context.primaryColor,
                 ),
               ),
               const SizedBox(height: 20),
               Text(
-                _useRecoveryMode ? 'Use Recovery Code' : 'Two-Step Verification Required',
+                _verificationMode == 1
+                    ? '64-Bit Server Security Key'
+                    : (_verificationMode == 2 ? 'Use Backup Recovery Code' : 'Two-Step Verification Required'),
                 style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: context.textPrimary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                _useRecoveryMode
-                    ? 'Enter one of your 8-digit backup recovery codes (format: XXXX-XXXX).'
-                    : 'Enter the 6-digit verification code generated by your authenticator app.',
+                _verificationMode == 1
+                    ? 'Enter one of the 64-bit high-security keys generated for you by the server.'
+                    : (_verificationMode == 2
+                        ? 'Enter one of your 8-digit backup recovery codes (format: XXXX-XXXX).'
+                        : 'Enter the 6-digit verification code generated by your authenticator app.'),
                 style: GoogleFonts.poppins(fontSize: 13, color: context.textSecondary),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
 
-              if (!_useRecoveryMode) ...[
+              // Verification Mode Selector Tabs
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildModeTab(0, '6-Digit TOTP'),
+                  const SizedBox(width: 8),
+                  _buildModeTab(1, 'Server Key'),
+                  const SizedBox(width: 8),
+                  _buildModeTab(2, 'Recovery Code'),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              if (_verificationMode == 0) ...[
                 TextField(
                   controller: _codeCtrl,
                   keyboardType: TextInputType.number,
@@ -232,6 +348,26 @@ class _TwoFactorLoginScreenState extends State<TwoFactorLoginScreen> {
                       _handleVerifyTotp();
                     }
                   },
+                ),
+              ] else if (_verificationMode == 1) ...[
+                TextField(
+                  controller: _serverKeyCtrl,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                    color: context.primaryColor,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Server Key (e.g. A7F9-3B2E-8C4D-1E9F)',
+                    labelStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: context.primaryColor, width: 2),
+                    ),
+                  ),
                 ),
               ] else ...[
                 TextField(
@@ -315,7 +451,11 @@ class _TwoFactorLoginScreenState extends State<TwoFactorLoginScreen> {
                   ),
                   onPressed: _isLoading
                       ? null
-                      : (_useRecoveryMode ? _handleVerifyRecoveryCode : _handleVerifyTotp),
+                      : () {
+                          if (_verificationMode == 0) _handleVerifyTotp();
+                          if (_verificationMode == 1) _handleVerifyServerSecurityKey();
+                          if (_verificationMode == 2) _handleVerifyRecoveryCode();
+                        },
                   child: _isLoading
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : Text(
@@ -324,6 +464,12 @@ class _TwoFactorLoginScreenState extends State<TwoFactorLoginScreen> {
                         ),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
               const SizedBox(height: 20),
 

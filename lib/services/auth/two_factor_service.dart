@@ -64,12 +64,14 @@ class TwoFactorService {
 
         final qrUri = TotpHelper.buildOtpauthUri(secret: secret, email: email);
         final recoveryCodes = TotpHelper.generateRecoveryCodes(count: 10);
+        final serverSecurityKeys = TotpHelper.generateServerSecurityKeys(count: 4);
 
         return TwoFactorSetupData(
           secret: secret,
           qrUri: qrUri,
           setupKey: secret,
           recoveryCodes: recoveryCodes,
+          serverSecurityKeys: serverSecurityKeys,
         );
       }
     } catch (e) {
@@ -78,11 +80,12 @@ class TwoFactorService {
     return null;
   }
 
-  /// Verifies setup code and enables 2FA in backend with hashed recovery codes.
+  /// Verifies setup code and enables 2FA in backend with hashed recovery codes and 64-bit server keys.
   static Future<Map<String, dynamic>> verifyAndEnable2FA({
     required String secret,
     required String code,
     required List<String> recoveryCodes,
+    List<String> serverSecurityKeys = const [],
   }) async {
     final uid = UserProfileCacheManager.currentUserId;
     if (uid.isEmpty) {
@@ -95,9 +98,13 @@ class TwoFactorService {
       return {'success': false, 'error': 'Invalid verification code. Please try again.'};
     }
 
-    // 2. Compute SHA-256 hashes of recovery codes
+    // 2. Compute SHA-256 hashes of recovery codes & server keys
     final List<String> codeHashes = recoveryCodes
         .map((c) => TotpHelper.hashCodeString(c))
+        .toList();
+
+    final List<String> serverKeyHashes = serverSecurityKeys
+        .map((k) => TotpHelper.hashCodeString(k))
         .toList();
 
     // 3. Enable in backend
@@ -109,6 +116,13 @@ class TwoFactorService {
       });
 
       if (res != null && res['success'] == true) {
+        if (serverKeyHashes.isNotEmpty) {
+          await _supabase.rpc('save_server_security_key_hashes', params: {
+            'p_user_id': uid,
+            'p_key_hashes': serverKeyHashes,
+          });
+        }
+
         markRecentlyVerified();
 
         // Update local User cache
@@ -117,6 +131,15 @@ class TwoFactorService {
           final updated = user.copyWith(twoFactorEnabled: true);
           UserProfileCacheManager.setCurrentUser(updated);
         }
+
+        return {'success': true};
+      } else {
+        return {'success': false, 'error': res?['error'] ?? 'Failed to enable 2FA'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Server verification failed: $e'};
+    }
+  }
 
         return {'success': true};
       } else {
@@ -232,6 +255,52 @@ class TwoFactorService {
         };
       } else {
         return {'success': false, 'error': res?['error'] ?? 'Invalid verification code. Please try again.'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Verification error: $e'};
+    }
+  }
+
+  /// Verifies high-security 32-bit / 64-bit server-generated security key during login.
+  static Future<Map<String, dynamic>> verifyServerSecurityKeyLogin({
+    required String userId,
+    required String key,
+    bool trustDevice = false,
+    String deviceId = '',
+    String deviceName = '',
+  }) async {
+    final keyHash = TotpHelper.hashCodeString(key);
+
+    String? deviceTokenHash;
+    String? rawDeviceToken;
+    if (trustDevice) {
+      rawDeviceToken = _generateSecureToken();
+      deviceTokenHash = TotpHelper.hashCodeString(rawDeviceToken);
+    }
+
+    try {
+      final res = await _supabase.rpc('verify_server_security_key_login', params: {
+        'p_user_id': userId,
+        'p_key_hash': keyHash,
+        'p_device_id': deviceId,
+        'p_device_name': deviceName,
+        'p_trust_device': trustDevice,
+        'p_device_token_hash': deviceTokenHash,
+      });
+
+      if (res != null && res['success'] == true) {
+        markRecentlyVerified();
+
+        if (trustDevice && rawDeviceToken != null) {
+          await _saveTrustedDeviceToken(userId, rawDeviceToken);
+        }
+
+        return {
+          'success': true,
+          'remaining_keys': res['remaining_keys'] ?? 0,
+        };
+      } else {
+        return {'success': false, 'error': res?['error'] ?? 'Invalid server security key. Please try again.'};
       }
     } catch (e) {
       return {'success': false, 'error': 'Verification error: $e'};

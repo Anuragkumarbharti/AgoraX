@@ -101,6 +101,29 @@ class TotpHelper {
     return codes;
   }
 
+  /// Generates 4 unique high-security 64-bit server keys (e.g. ['A7F9-3B2E-8C4D-1E9F']).
+  static List<String> generateServerSecurityKeys({int count = 4}) {
+    final rand = Random.secure();
+    const chars = '0123456789ABCDEF'; // Hexadecimal characters
+    final List<String> keys = [];
+
+    for (int i = 0; i < count; i++) {
+      final p1 = StringBuffer();
+      final p2 = StringBuffer();
+      final p3 = StringBuffer();
+      final p4 = StringBuffer();
+      for (int j = 0; j < 4; j++) {
+        p1.write(chars[rand.nextInt(chars.length)]);
+        p2.write(chars[rand.nextInt(chars.length)]);
+        p3.write(chars[rand.nextInt(chars.length)]);
+        p4.write(chars[rand.nextInt(chars.length)]);
+      }
+      keys.add('${p1.toString()}-${p2.toString()}-${p3.toString()}-${p4.toString()}');
+    }
+
+    return keys;
+  }
+
   /// Computes SHA-256 hash string for storing recovery codes securely in backend.
   static String hashCodeString(String code) {
     final cleanedCode = code.toUpperCase().replaceAll('-', '').trim();

@@ -97,6 +97,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
       secret: _setupData!.secret,
       code: code,
       recoveryCodes: _setupData!.recoveryCodes,
+      serverSecurityKeys: _setupData!.serverSecurityKeys,
     );
 
     if (!mounted) return;
@@ -463,6 +464,50 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
+              // High-Security 64-Bit Server Security Keys Section
+              Text(
+                'High-Security 64-Bit Server Keys',
+                style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: context.primaryColor),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'The server generated these cryptographically secure emergency keys for login:',
+                style: GoogleFonts.poppins(fontSize: 11, color: context.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: context.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: context.primaryColor.withOpacity(0.3)),
+                ),
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: (_setupData?.serverSecurityKeys ?? []).map((k) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: context.surfaceColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: context.primaryColor.withOpacity(0.4)),
+                      ),
+                      child: Text(
+                        k,
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                          color: context.primaryColor,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 18),
               Divider(color: context.borderColor),
               const SizedBox(height: 12),
 

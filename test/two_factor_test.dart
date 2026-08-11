@@ -74,5 +74,13 @@ void main() {
       expect(uri.contains('secret=$testSecret'), isTrue);
       expect(uri.contains('issuer=Creania'), isTrue);
     });
+
+    test('TEST 9: Generate 4 high-security 64-bit server keys in XXXX-XXXX-XXXX-XXXX format', () {
+      final keys = TotpHelper.generateServerSecurityKeys(count: 4);
+      expect(keys.length, equals(4));
+      for (final key in keys) {
+        expect(RegExp(r'^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$').hasMatch(key), isTrue);
+      }
+    });
   });
 }
