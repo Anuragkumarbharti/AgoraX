@@ -42,8 +42,12 @@ class OptimizedImage extends StatelessWidget {
     if (url.isEmpty) {
       return const AssetImage('assets/images/default_avatar.png');
     }
-    if (url.startsWith('assets/')) {
-      return AssetImage(url);
+    String cleanUrl = url.trim();
+    if (cleanUrl.startsWith('file:///assets/')) {
+      cleanUrl = cleanUrl.replaceFirst('file:///', '');
+    }
+    if (cleanUrl.startsWith('assets/')) {
+      return AssetImage(cleanUrl);
     }
     final optimizedUrl = AssetCacheManager.getOptimizedUrl(
       url,
@@ -65,10 +69,15 @@ class OptimizedImage extends StatelessWidget {
       return _buildErrorWidget();
     }
 
+    String cleanUrl = imageUrl.trim();
+    if (cleanUrl.startsWith('file:///assets/')) {
+      cleanUrl = cleanUrl.replaceFirst('file:///', '');
+    }
+
     Widget imageWidget;
-    if (imageUrl.startsWith('assets/')) {
+    if (cleanUrl.startsWith('assets/')) {
       imageWidget = Image.asset(
-        imageUrl,
+        cleanUrl,
         fit: fit,
         width: width,
         height: height,
