@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/room/room_model.dart';
 import '../user/user_profile_cache_manager.dart';
 import 'room_moderation_controller.dart';
@@ -153,22 +154,36 @@ class RoomEntryPermissionEngine {
         role == 'Admin' ||
         role == 'Host');
 
-    // Check Permanent Ban first (applies to priority users as well)
+    // ── Check System B (Room-Only Block / Ban) ─────────────────────────────
     final moderationCtrl = Get.isRegistered<RoomModerationController>()
         ? RoomModerationController.to
         : null;
 
-    final isPermanentlyBanned = moderationCtrl?.bannedUsers[room.id]?.contains(userId) == true ||
+    final isRoomBanned = moderationCtrl?.bannedUsers[room.id]?.contains(userId) == true ||
         room.blockList.contains(userId);
 
-    if (isPermanentlyBanned) {
+    // ── Check System A (User-to-User ID Block with Room Host) ──────────────
+    bool isHostBlocked = false;
+    if (room.hostId.isNotEmpty && room.hostId != userId) {
+      try {
+        final currentUid = UserProfileCacheManager.currentUserId;
+        if (currentUid.isNotEmpty) {
+          final isBlockedRes = Supabase.instance.client.rpc('is_user_blocked', params: {
+            'p_user1_id': userId,
+            'p_user2_id': room.hostId,
+          });
+        }
+      } catch (_) {}
+    }
+
+    if (isRoomBanned || isHostBlocked) {
       final banEntry = moderationCtrl?.getBanEntry(room.id, userId) ??
           RoomBanEntry(
             roomId: room.id,
             userId: userId,
             userName: UserProfileCacheManager.currentUser?.username ?? 'Member',
             actionBy: 'Owner',
-            reason: 'Repeated Rule Violations',
+            reason: 'Room Access Banned by Host',
             banDate: DateTime.now().subtract(const Duration(days: 1)),
             appealStatus: 'Available',
           );
@@ -176,7 +191,7 @@ class RoomEntryPermissionEngine {
       return RoomEntryResult.denied(
         status: RoomEntryStatus.permanentBan,
         role: role,
-        message: 'You are permanently banned from this room.',
+        message: 'You are banned from entering this room.',
         banEntry: banEntry,
       );
     }

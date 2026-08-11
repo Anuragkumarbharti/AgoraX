@@ -288,7 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 title: Text('Report @${_user.username}', style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold)),
                 onTap: () {
                   Get.back();
-                  Get.to(() => const HelpSupportScreen());
+                  Get.to(() => HelpSupportScreen(targetUserId: _user.id, initialCategory: 'Report'));
                 },
               ),
               ListTile(
@@ -637,24 +637,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       _fetchUserJoinedCommunitiesBackground();
       _fetchGiftStatsBackground();
     }
-  }
-
-  void _checkFollowingStatus() async {
-    try {
-      final currentUid = UserProfileCacheManager.currentUserId;
-      final visitorUid = widget.visitorUser!.id;
-      final response = await Supabase.instance.client
-          .from('followers')
-          .select()
-          .eq('follower_id', currentUid)
-          .eq('following_id', visitorUid)
-          .maybeSingle();
-      if (mounted) {
-        setState(() {
-          _isFollowing = response != null;
-        });
-      }
-    } catch (_) {}
   }
 
   Color _resolveProfileBackgroundColor() {
