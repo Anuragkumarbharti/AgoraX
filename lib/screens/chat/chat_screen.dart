@@ -201,6 +201,7 @@ class _ChatScreenState extends State<ChatScreen>
     _ctrl.sendMessage(
       _effectiveConvId,
       body,
+      receiverId: widget.conversation.otherUserId,
       type: type,
       audioDurationSeconds: audioDuration,
       mediaUrl: mediaUrl,
@@ -479,11 +480,13 @@ class _ChatScreenState extends State<ChatScreen>
           final isMe = msg.senderId == UserProfileCacheManager.currentUserId;
 
           bool showDateSep = false;
+          final msgLocal = msg.timestamp.toLocal();
+
           if (index == 0) {
             showDateSep = true;
           } else {
-            final prev = messages[index - 1];
-            if (msg.timestamp.day != prev.timestamp.day) {
+            final prevLocal = messages[index - 1].timestamp.toLocal();
+            if (msgLocal.day != prevLocal.day || msgLocal.month != prevLocal.month || msgLocal.year != prevLocal.year) {
               showDateSep = true;
             }
           }
@@ -494,14 +497,15 @@ class _ChatScreenState extends State<ChatScreen>
 
           if (index > 0) {
             final prev = messages[index - 1];
-            if (prev.senderId == msg.senderId && msg.timestamp.difference(prev.timestamp).inMinutes < 2 && !showDateSep) {
+            if (prev.senderId == msg.senderId && msg.timestamp.toUtc().difference(prev.timestamp.toUtc()).inMinutes < 2 && !showDateSep) {
               isSameSenderAsPrevious = true;
             }
           }
 
           if (index < messages.length - 1) {
             final next = messages[index + 1];
-            if (next.senderId == msg.senderId && next.timestamp.difference(msg.timestamp).inMinutes < 2 && next.timestamp.day == msg.timestamp.day) {
+            final nextLocal = next.timestamp.toLocal();
+            if (next.senderId == msg.senderId && next.timestamp.toUtc().difference(msg.timestamp.toUtc()).inMinutes < 2 && nextLocal.day == msgLocal.day) {
               isSameSenderAsNext = true;
             }
           }
@@ -524,11 +528,18 @@ class _ChatScreenState extends State<ChatScreen>
 
   Widget _buildStitchDateSeparator(DateTime dt) {
     String label = 'Today';
+    final localDt = dt.toLocal();
     final now = DateTime.now();
-    if (dt.day == now.day - 1) {
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDate = DateTime(localDt.year, localDt.month, localDt.day);
+    final differenceInDays = today.difference(messageDate).inDays;
+
+    if (differenceInDays == 0) {
+      label = 'Today';
+    } else if (differenceInDays == 1) {
       label = 'Yesterday';
-    } else if (dt.day != now.day) {
-      label = DateFormat('MMMM d, yyyy').format(dt);
+    } else {
+      label = DateFormat('MMMM d, yyyy').format(localDt);
     }
     return Center(
       child: Container(
@@ -609,7 +620,7 @@ class _ChatScreenState extends State<ChatScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  DateFormat('h:mm a').format(msg.timestamp),
+                  DateFormat('h:mm a').format(msg.timestamp.toLocal()),
                   style: GoogleFonts.inter(fontSize: 9.5, color: const Color(0xFF6C7B6B)),
                 ),
                 if (isMe) ...[
@@ -716,7 +727,7 @@ class _ChatScreenState extends State<ChatScreen>
             children: [
               const Spacer(),
               Text(
-                DateFormat('h:mm a').format(msg.timestamp),
+                DateFormat('h:mm a').format(msg.timestamp.toLocal()),
                 style: GoogleFonts.inter(
                   fontSize: 10,
                   color: isMe ? const Color(0xFF005523).withOpacity(0.8) : const Color(0xFF6C7B6B),
@@ -816,7 +827,7 @@ class _ChatScreenState extends State<ChatScreen>
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(
-                DateFormat('h:mm a').format(msg.timestamp),
+                DateFormat('h:mm a').format(msg.timestamp.toLocal()),
                 style: GoogleFonts.inter(
                   fontSize: 10.5,
                   color: isMe ? const Color(0xFF005523).withOpacity(0.8) : const Color(0xFF6C7B6B),
@@ -895,7 +906,7 @@ class _ChatScreenState extends State<ChatScreen>
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(
-                DateFormat('h:mm a').format(msg.timestamp),
+                DateFormat('h:mm a').format(msg.timestamp.toLocal()),
                 style: GoogleFonts.inter(
                   fontSize: 10.5,
                   color: isMe ? const Color(0xFF005523).withOpacity(0.8) : const Color(0xFF6C7B6B),
@@ -1244,7 +1255,7 @@ class _ChatScreenState extends State<ChatScreen>
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          DateFormat('h:mm a').format(msg.timestamp),
+                          DateFormat('h:mm a').format(msg.timestamp.toLocal()),
                           style: GoogleFonts.poppins(
                             fontSize: 10,
                             color: Colors.white38,

@@ -224,7 +224,7 @@ class ChatMessage {
         content: json['content'] ?? '',
         type: MessageType.values[((json['type'] as int?) ?? (json['media_type'] == 'roomInvite' ? MessageType.roomInvite.index : 0)).clamp(0, MessageType.values.length - 1)],
         status: MessageStatus.values[((json['status'] as int?) ?? 0).clamp(0, MessageStatus.values.length - 1)],
-        timestamp: DateTime.parse(json['timestamp'] ?? json['created_at'] ?? DateTime.now().toIso8601String()),
+        timestamp: DateTime.parse(json['timestamp'] ?? json['created_at'] ?? DateTime.now().toIso8601String()).toUtc(),
         isDeleted: json['isDeleted'] ?? json['is_deleted'] ?? false,
         deletedAt: json['deletedAt'] != null ? DateTime.parse(json['deletedAt']) : (json['deleted_at'] != null ? DateTime.parse(json['deleted_at']) : null),
         deletedBy: json['deletedBy'] ?? json['deleted_by'],

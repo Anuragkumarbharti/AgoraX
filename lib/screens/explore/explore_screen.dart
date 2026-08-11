@@ -619,7 +619,7 @@ class _ExploreScreenState extends State<ExploreScreen>
         isMuted: false,
         levelTitle: u.levelTitle,
         level: u.level,
-        lastMessageSenderId: 'me',
+        lastMessageSenderId: '',
       );
       Get.to(() => ChatScreen(conversation: conv));
     }

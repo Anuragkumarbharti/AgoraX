@@ -258,7 +258,7 @@ class _ChatMediaAttachmentWidgetState extends State<ChatMediaAttachmentWidget> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        DateFormat('h:mm a').format(msg.timestamp),
+                        DateFormat('h:mm a').format(msg.timestamp.toLocal()),
                         style: const TextStyle(color: Colors.white, fontSize: 9),
                       ),
                       if (isMe) ...[

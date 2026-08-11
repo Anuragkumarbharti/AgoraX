@@ -142,7 +142,7 @@ class ChatController extends GetxController {
         final aesKey = ChatCrypto.deriveFallbackKey(senderId, receiverId);
         final decryptedText = ChatCrypto.decryptMessage(encryptedContent, aesKey);
         final cleanContent = SecureDtoSanitizer.sanitizeChatMessageContent(decryptedText, fallback: 'Encrypted message');
-        final dt = timestampStr.isNotEmpty ? DateTime.parse(timestampStr) : DateTime.now();
+        final dt = timestampStr.isNotEmpty ? DateTime.parse(timestampStr).toUtc() : DateTime.now().toUtc();
 
         final String convId = getDeterministicConversationId(senderId, receiverId);
 
@@ -198,6 +198,7 @@ class ChatController extends GetxController {
           } else {
             current.add(newMsg);
           }
+          current.sort((a, b) => a.timestamp.toUtc().compareTo(b.timestamp.toUtc()));
           _messages[convId] = current;
           memoryUpdated = true;
         }
@@ -317,7 +318,7 @@ class ChatController extends GetxController {
           receiverId: m.receiverId,
           conversationId: m.conversationId,
           content: m.content,
-          timestamp: m.timestamp,
+          timestamp: m.timestamp.toUtc(),
           status: MessageStatus.values[m.statusValue.clamp(0, MessageStatus.values.length - 1)],
           type: MessageType.values[m.typeValue.clamp(0, MessageType.values.length - 1)],
           reactions: m.reactions,
@@ -334,6 +335,8 @@ class ChatController extends GetxController {
           isEdited: m.isEdited,
         );
       }).toList();
+
+      list.sort((a, b) => a.timestamp.toUtc().compareTo(b.timestamp.toUtc()));
       
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _messages[convId] = list;
@@ -376,7 +379,7 @@ class ChatController extends GetxController {
           receiverId: m.receiverId,
           conversationId: m.conversationId,
           content: m.content,
-          timestamp: m.timestamp,
+          timestamp: m.timestamp.toUtc(),
           status: MessageStatus.values[m.statusValue.clamp(0, MessageStatus.values.length - 1)],
           type: MessageType.values[m.typeValue.clamp(0, MessageType.values.length - 1)],
           reactions: m.reactions,
@@ -396,7 +399,9 @@ class ChatController extends GetxController {
 
       Future.microtask(() {
         final currentList = _messages[convId] ?? [];
-        _messages[convId] = [...list.reversed, ...currentList];
+        final combined = [...list, ...currentList];
+        combined.sort((a, b) => a.timestamp.toUtc().compareTo(b.timestamp.toUtc()));
+        _messages[convId] = combined;
         _loadedMessageOffsets[convId] = nextOffset;
         _messages.refresh();
       });
@@ -424,6 +429,27 @@ class ChatController extends GetxController {
 
   static String getDeterministicConversationId(String u1, String u2) {
     return ChatMessage.getDeterministicConversationId(u1, u2);
+  }
+
+  static String extractOtherUserId(String convId, String currentUid) {
+    if (convId.isEmpty) return '';
+    String clean = convId;
+    if (clean.startsWith('conv_')) {
+      clean = clean.substring(5);
+    } else if (clean.startsWith('dm_')) {
+      clean = clean.substring(3);
+    }
+    if (currentUid.isNotEmpty) {
+      final prefix = '${currentUid}_';
+      if (clean.startsWith(prefix)) {
+        return clean.substring(prefix.length);
+      }
+      final suffix = '_${currentUid}';
+      if (clean.endsWith(suffix)) {
+        return clean.substring(0, clean.length - suffix.length);
+      }
+    }
+    return clean == currentUid ? '' : clean;
   }
 
   Conversation getOrCreateConversation(String otherUserId, String otherUserName, String otherUserAvatar) {
@@ -597,9 +623,10 @@ class ChatController extends GetxController {
   }
 
 
-  void sendMessage(
+  Future<void> sendMessage(
     String conversationId,
     String content, {
+    String? receiverId,
     MessageType type = MessageType.text,
     int audioDurationSeconds = 0,
     bool isUnlockGift = false,
@@ -626,24 +653,30 @@ class ChatController extends GetxController {
     final String cleanContent = content.trim().isEmpty ? (fileName ?? 'Media Attachment') : content.trim();
 
     final int idxSearch = conversations.indexWhere((c) => c.id == conversationId);
+    final String targetOtherUserId = (receiverId != null && receiverId.isNotEmpty && receiverId != currentUserId)
+        ? receiverId
+        : (idxSearch != -1 && conversations[idxSearch].otherUserId.isNotEmpty && conversations[idxSearch].otherUserId != currentUserId
+            ? conversations[idxSearch].otherUserId
+            : extractOtherUserId(conversationId, currentUserId));
+
     final conv = idxSearch != -1 
         ? conversations[idxSearch] 
         : getOrCreateConversation(
-            conversationId.startsWith('conv_') || conversationId.startsWith('dm_') ? conversationId.split('_').last : conversationId,
+            targetOtherUserId,
             '',
             '',
           );
 
     final msgId = generateUuidV4();
     final clientMsgId = clientMessageId ?? generateUuidV4();
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
 
     final msg = ChatMessage(
       id: msgId,
       clientMessageId: clientMsgId,
       inviteId: type == MessageType.roomInvite ? inviteId : null,
       senderId: currentUserId,
-      receiverId: conv.otherUserId,
+      receiverId: targetOtherUserId,
       conversationId: conversationId,
       content: cleanContent,
       type: type,
@@ -670,7 +703,7 @@ class ChatController extends GetxController {
       ..clientMessageId = clientMsgId
       ..inviteId = type == MessageType.roomInvite ? inviteId : null
       ..senderId = currentUserId
-      ..receiverId = conv.otherUserId
+      ..receiverId = targetOtherUserId
       ..conversationId = conversationId
       ..content = cleanContent
       ..typeValue = type.index
@@ -694,7 +727,7 @@ class ChatController extends GetxController {
     // Update conversation metadata locally in Isar
     final isarConv = IsarConversation()
       ..uuid = conv.id
-      ..otherUserId = conv.otherUserId
+      ..otherUserId = targetOtherUserId
       ..otherUserName = conv.otherUserName
       ..otherUserAvatar = conv.otherUserAvatar
       ..lastMessage = cleanContent
@@ -710,8 +743,10 @@ class ChatController extends GetxController {
     await IsarStorageService.to.saveConversation(isarConv);
 
     // 2. Update memory stream and trigger state updates instantly
-    final current = getMessages(conversationId);
-    _messages[conversationId] = [...current, msg];
+    final current = List<ChatMessage>.from(getMessages(conversationId));
+    current.add(msg);
+    current.sort((a, b) => a.timestamp.toUtc().compareTo(b.timestamp.toUtc()));
+    _messages[conversationId] = current;
     _messages.refresh();
 
 
@@ -791,7 +826,9 @@ class ChatController extends GetxController {
   void onMessageReceivedFromSocket(ChatMessage msg) async {
     final current = getMessages(msg.conversationId);
     if (!current.any((m) => m.id == msg.id)) {
-      _messages[msg.conversationId] = [...current, msg];
+      final newList = List<ChatMessage>.from(current)..add(msg);
+      newList.sort((a, b) => a.timestamp.toUtc().compareTo(b.timestamp.toUtc()));
+      _messages[msg.conversationId] = newList;
       _messages.refresh();
 
       final String peerId = msg.senderId == UserProfileCacheManager.currentUserId ? msg.receiverId : msg.senderId;

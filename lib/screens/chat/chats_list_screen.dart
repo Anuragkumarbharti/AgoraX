@@ -88,13 +88,15 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   }
 
   String _formatTime(DateTime dt) {
+    final localDt = dt.toLocal();
     final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m';
-    if (diff.inDays < 1) return DateFormat('h:mm a').format(dt);
-    if (diff.inDays < 2) return 'Yesterday';
-    return DateFormat('MMM d').format(dt);
+    final today = DateTime(now.year, now.month, now.day);
+    final itemDate = DateTime(localDt.year, localDt.month, localDt.day);
+    final diffDays = today.difference(itemDate).inDays;
+
+    if (diffDays == 0) return DateFormat('h:mm a').format(localDt);
+    if (diffDays == 1) return 'Yesterday';
+    return DateFormat('MMM d').format(localDt);
   }
 
   @override
@@ -723,8 +725,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     return Obx(() {
       final isTyping = Get.find<ChatController>().typingState[conv.id] ?? false;
       final currentUid = UserProfileCacheManager.currentUserId;
-      final isMe = conv.lastMessageSenderId == currentUid ||
-          conv.lastMessageSenderId == 'me';
+      final isMe = conv.lastMessage.isNotEmpty &&
+          (conv.lastMessageSenderId == currentUid || conv.lastMessageSenderId == 'me');
 
       return InkWell(
         onTap: () => _openChat(conv),
@@ -890,7 +892,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                     Row(
                       children: [
                         // Status Ticks
-                        if (isMe && !isTyping) ...[
+                        if (isMe && conv.lastMessage.isNotEmpty && !isTyping) ...[
                           _buildDeliveryStatusIcon(conv.unreadCount == 0
                               ? MessageStatus.read
                               : MessageStatus.sent),

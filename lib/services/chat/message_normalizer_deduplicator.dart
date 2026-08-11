@@ -61,7 +61,7 @@ class MessageNormalizerDeduplicator {
     final String canonicalConvId = ChatMessage.getDeterministicConversationId(senderId, receiverId);
 
     final String timestampStr = rawPayload['timestamp']?.toString() ?? rawPayload['created_at']?.toString() ?? '';
-    final DateTime dt = timestampStr.isNotEmpty ? (DateTime.tryParse(timestampStr) ?? DateTime.now()) : DateTime.now();
+    final DateTime dt = timestampStr.isNotEmpty ? (DateTime.tryParse(timestampStr)?.toUtc() ?? DateTime.now().toUtc()) : DateTime.now().toUtc();
 
     final String? roomIdStr = rawPayload['roomId']?.toString() ?? rawPayload['room_id']?.toString() ?? rawPayload['contact_phone']?.toString();
     final String? roomNameStr = rawPayload['roomName']?.toString() ?? rawPayload['room_name']?.toString() ?? rawPayload['location_name']?.toString();

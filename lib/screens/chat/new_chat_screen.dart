@@ -462,7 +462,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       isMuted: false,
       levelTitle: 'VIP ${u.vipLevel}',
       level: u.vipLevel,
-      lastMessageSenderId: 'me',
+      lastMessageSenderId: '',
     );
     Get.to(() => ChatScreen(conversation: conv));
   }

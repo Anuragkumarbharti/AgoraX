@@ -275,7 +275,7 @@ class _VoiceMessagePlayerWidgetState extends State<VoiceMessagePlayerWidget> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    DateFormat('h:mm a').format(widget.message.timestamp),
+                    DateFormat('h:mm a').format(widget.message.timestamp.toLocal()),
                     style: TextStyle(fontSize: 9, color: secondaryTextColor),
                   ),
                   if (widget.isMe) ...[
