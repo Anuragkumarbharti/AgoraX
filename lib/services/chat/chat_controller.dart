@@ -230,9 +230,22 @@ class ChatController extends GetxController {
     if (trimmed.isEmpty) return '';
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
       try {
-        jsonDecode(trimmed);
+        final decoded = jsonDecode(trimmed);
+        if (decoded is Map) {
+          if (decoded['type'] == 'room_invite' || decoded['type'] == 'roomInvite') {
+            final roomName = decoded['roomName'] ?? decoded['room_name'] ?? 'Voice Room';
+            final roomId = decoded['roomId'] ?? decoded['room_id'] ?? '';
+            return roomId.isNotEmpty ? 'Room Invite: $roomName (ID: $roomId)' : 'Room Invite: $roomName';
+          }
+          if (decoded['content'] != null) {
+            return decoded['content'].toString();
+          }
+        }
         return 'Media Attachment';
       } catch (_) {}
+    }
+    if (trimmed.startsWith('🎙️ Room Invite: ')) {
+      return trimmed.replaceFirst('🎙️ ', '');
     }
     return trimmed;
   }
@@ -268,6 +281,12 @@ class ChatController extends GetxController {
         final msgs = await IsarStorageService.to.getMessagesForConversation(c.uuid, limit: 1);
         final hasHistory = msgs.isNotEmpty || cleanLastMsg.isNotEmpty;
 
+        MessageStatus lastStatus = MessageStatus.sent;
+        if (msgs.isNotEmpty) {
+          final sVal = msgs.first.statusValue;
+          lastStatus = MessageStatus.values[sVal.clamp(0, MessageStatus.values.length - 1)];
+        }
+
         // RULE: Show conversation ONLY if Mutual Follow OR Has Message History
         if (isMutual || hasHistory) {
           final convObj = Conversation(
@@ -285,6 +304,7 @@ class ChatController extends GetxController {
             levelTitle: c.levelTitle,
             level: c.level,
             lastMessageSenderId: c.lastMessageSenderId,
+            lastMessageStatus: lastStatus,
             isMutualFollow: isMutual,
           );
 
@@ -928,6 +948,16 @@ class ChatController extends GetxController {
         currentList[idx] = currentList[idx].copyWith(status: status);
         _messages[convId] = currentList;
         _messages.refresh();
+
+        // Single Source of Truth: update conversation's lastMessageStatus if this message is the latest
+        final convIdx = conversations.indexWhere((c) => c.id == convId);
+        if (convIdx != -1) {
+          final conv = conversations[convIdx];
+          if (idx == currentList.length - 1 || currentList.last.id == msgId) {
+            conversations[convIdx] = conv.copyWith(lastMessageStatus: status);
+            conversations.refresh();
+          }
+        }
       }
     });
   }

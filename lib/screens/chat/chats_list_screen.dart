@@ -374,44 +374,40 @@ class _ChatsListScreenState extends State<ChatsListScreen>
             ),
           ),
           if (liveUsers.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: AppTheme.primaryColor.withOpacity(0.4),
-                          width: 1.5),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                            'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'),
-                        fit: BoxFit.cover,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryColor.withOpacity(0.2),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      'No one is live in arena',
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppTheme.bgLight.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color: AppTheme.borderColor.withOpacity(0.3)),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.groups_outlined,
+                        size: 32, color: AppTheme.textTertiary.withOpacity(0.5)),
+                    const SizedBox(height: 6),
+                    Text(
+                      'No one is live in Arena right now.',
                       style: GoogleFonts.outfit(
-                        color: Colors.white70,
+                        color: AppTheme.textPrimary,
                         fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      'Check back later!',
+                      style: GoogleFonts.outfit(
+                        color: AppTheme.textTertiary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             )
           else
@@ -824,18 +820,34 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                                       'avatar_url': conv.otherUserAvatar,
                                     }),
                               )),
-                          child: Text(
-                            UserProfileCacheManager
-                                    .rxCache[conv.otherUserId]?.displayName ??
-                                conv.otherUserName,
-                            style: GoogleFonts.outfit(
-                              color: AppTheme.textPrimary,
-                              fontWeight: conv.unreadCount > 0
-                                  ? FontWeight.bold
-                                  : FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                          ),
+                          child: Builder(builder: (context) {
+                            final cached = UserProfileCacheManager.rxCache[conv.otherUserId] ??
+                                UserProfileCacheManager.getCachedUser(conv.otherUserId);
+                            final String resolvedName = (cached?.displayName != null && cached!.displayName.isNotEmpty)
+                                ? cached.displayName
+                                : ((cached?.username != null && cached!.username.isNotEmpty)
+                                    ? cached.username
+                                    : (conv.otherUserName.isNotEmpty && conv.otherUserName != 'User' && conv.otherUserName != 'Creaniaa User'
+                                        ? conv.otherUserName
+                                        : ''));
+                            if (resolvedName.isEmpty && conv.otherUserId.isNotEmpty) {
+                              UserProfileCacheManager.fetchUserProfile(conv.otherUserId);
+                            }
+                            final String displayName = resolvedName.isNotEmpty
+                                ? resolvedName
+                                : 'User ${conv.otherUserId.length > 6 ? conv.otherUserId.substring(0, 6) : conv.otherUserId}';
+
+                            return Text(
+                              displayName,
+                              style: GoogleFonts.outfit(
+                                color: AppTheme.textPrimary,
+                                fontWeight: conv.unreadCount > 0
+                                    ? FontWeight.bold
+                                    : FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            );
+                          }),
                         ),
                         if (conv.isVerified) ...[
                           const SizedBox(width: 4),
@@ -891,11 +903,9 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        // Status Ticks
+                        // Status Ticks - Single source of truth from conv.lastMessageStatus
                         if (isMe && conv.lastMessage.isNotEmpty && !isTyping) ...[
-                          _buildDeliveryStatusIcon(conv.unreadCount == 0
-                              ? MessageStatus.read
-                              : MessageStatus.sent),
+                          _buildDeliveryStatusIcon(conv.lastMessageStatus),
                           const SizedBox(width: 4),
                         ],
 

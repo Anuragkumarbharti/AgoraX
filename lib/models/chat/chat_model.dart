@@ -263,6 +263,7 @@ class Conversation {
   final bool isMuted;
   final bool isBlocked;
   final String? lastMessageSenderId; // to show "You: ..." vs name
+  final MessageStatus lastMessageStatus;
   final String levelTitle;
   final int level;
   final bool isMutualFollow;
@@ -281,6 +282,7 @@ class Conversation {
     this.isMuted = false,
     this.isBlocked = false,
     this.lastMessageSenderId,
+    this.lastMessageStatus = MessageStatus.sent,
     this.levelTitle = 'Member',
     this.level = 1,
     this.isMutualFollow = false,
@@ -300,6 +302,7 @@ class Conversation {
         'isMuted': isMuted,
         'isBlocked': isBlocked,
         'lastMessageSenderId': lastMessageSenderId,
+        'lastMessageStatus': lastMessageStatus.name,
         'levelTitle': levelTitle,
         'level': level,
         'isMutualFollow': isMutualFollow,
@@ -319,9 +322,55 @@ class Conversation {
         isMuted: json['isMuted'] ?? false,
         isBlocked: json['isBlocked'] ?? false,
         lastMessageSenderId: json['lastMessageSenderId'],
+        lastMessageStatus: json['lastMessageStatus'] != null
+            ? MessageStatus.values.firstWhere(
+                (e) => e.name == json['lastMessageStatus'],
+                orElse: () => MessageStatus.sent,
+              )
+            : MessageStatus.sent,
         levelTitle: json['levelTitle'] ?? 'Member',
         level: json['level'] ?? 1,
         isMutualFollow: json['isMutualFollow'] ?? false,
       );
+
+  Conversation copyWith({
+    String? id,
+    String? otherUserId,
+    String? otherUserName,
+    String? otherUserAvatar,
+    bool? otherUserOnline,
+    bool? isVerified,
+    String? lastMessage,
+    DateTime? lastMessageTime,
+    int? unreadCount,
+    bool? isPinned,
+    bool? isMuted,
+    bool? isBlocked,
+    String? lastMessageSenderId,
+    MessageStatus? lastMessageStatus,
+    String? levelTitle,
+    int? level,
+    bool? isMutualFollow,
+  }) {
+    return Conversation(
+      id: id ?? this.id,
+      otherUserId: otherUserId ?? this.otherUserId,
+      otherUserName: otherUserName ?? this.otherUserName,
+      otherUserAvatar: otherUserAvatar ?? this.otherUserAvatar,
+      otherUserOnline: otherUserOnline ?? this.otherUserOnline,
+      isVerified: isVerified ?? this.isVerified,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
+      unreadCount: unreadCount ?? this.unreadCount,
+      isPinned: isPinned ?? this.isPinned,
+      isMuted: isMuted ?? this.isMuted,
+      isBlocked: isBlocked ?? this.isBlocked,
+      lastMessageSenderId: lastMessageSenderId ?? this.lastMessageSenderId,
+      lastMessageStatus: lastMessageStatus ?? this.lastMessageStatus,
+      levelTitle: levelTitle ?? this.levelTitle,
+      level: level ?? this.level,
+      isMutualFollow: isMutualFollow ?? this.isMutualFollow,
+    );
+  }
 }
 
