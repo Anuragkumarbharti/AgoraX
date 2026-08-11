@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/theme.dart';
 import '../../models/community/post_type.dart';
 import '../../models/community/post_model.dart';
 import '../../models/discovery/audio_track_model.dart';
 import '../../services/post/post_upload_service.dart';
 import '../../services/post/post_event_service.dart';
+import '../../widgets/post_creation/music_picker_sheet.dart';
 
 class PostPreviewScreen extends StatefulWidget {
   final PostType postType;
@@ -41,10 +43,35 @@ class PostPreviewScreen extends StatefulWidget {
 }
 
 class _PostPreviewScreenState extends State<PostPreviewScreen> {
+  late PostType _postType;
+  late TextEditingController _captionCtrl;
+  late List<String> _hashtags;
+  File? _mediaFile;
+  AudioTrack? _audioTrack;
+  final TextEditingController _hashtagInputCtrl = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
+
   bool _isPublishing = false;
   double _publishProgress = 0.0;
   String _statusText = 'Publishing your post...';
   String? _clientRequestId;
+
+  @override
+  void initState() {
+    super.initState();
+    _postType = widget.postType;
+    _captionCtrl = TextEditingController(text: widget.caption);
+    _hashtags = List.from(widget.hashtags);
+    _mediaFile = widget.mediaFile;
+    _audioTrack = widget.audioTrack;
+  }
+
+  @override
+  void dispose() {
+    _captionCtrl.dispose();
+    _hashtagInputCtrl.dispose();
+    super.dispose();
+  }
 
   String get _currentUserName {
     final user = Supabase.instance.client.auth.currentUser;
@@ -54,6 +81,86 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
   String get _currentUserAvatar {
     final user = Supabase.instance.client.auth.currentUser;
     return user?.userMetadata?['avatar_url'] ?? user?.userMetadata?['profile_photo'] ?? '';
+  }
+
+  Future<void> _pickOrChangeMedia() async {
+    try {
+      if (_postType == PostType.video || _postType == PostType.reel) {
+        final picked = await _imagePicker.pickVideo(source: ImageSource.gallery);
+        if (picked != null) {
+          setState(() {
+            _mediaFile = File(picked.path);
+          });
+        }
+      } else {
+        final picked = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+        if (picked != null) {
+          setState(() {
+            _mediaFile = File(picked.path);
+            if (_postType == PostType.text) {
+              _postType = PostType.photo;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error changing media: $e');
+    }
+  }
+
+  void _openMusicPicker() async {
+    final track = await MusicPickerSheet.show(context, initialTrack: _audioTrack);
+    if (track != null) {
+      setState(() {
+        _audioTrack = track;
+      });
+    }
+  }
+
+  void _addHashtagPrompt() {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: context.dialogBackgroundColor,
+        title: Text('Add Hashtag', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: TextField(
+          controller: _hashtagInputCtrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'e.g. #flutter, #ai, #creania',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              var text = _hashtagInputCtrl.text.trim();
+              if (text.isNotEmpty) {
+                if (!text.startsWith('#')) text = '#$text';
+                text = text.replaceAll(' ', '_');
+                if (!_hashtags.contains(text) && _hashtags.length < 10) {
+                  setState(() {
+                    _hashtags.add(text);
+                  });
+                }
+              }
+              _hashtagInputCtrl.clear();
+              Get.back();
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _insertMention() {
+    final currentText = _captionCtrl.text;
+    final newText = currentText.isEmpty ? '@' : '$currentText @';
+    _captionCtrl.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
+    );
+    setState(() {});
   }
 
   Future<void> _publishPost() async {
@@ -67,7 +174,6 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
     });
 
     try {
-      // 1. Progress simulation updates
       await Future.delayed(const Duration(milliseconds: 200));
       if (!mounted) return;
       setState(() {
@@ -75,15 +181,14 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
         _statusText = 'Uploading media asset...';
       });
 
-      // 2. Call upload service
       final createdPost = await PostUploadService.instance.createAndReturnPost(
-        postType: widget.postType,
-        caption: widget.caption,
-        hashtags: widget.hashtags,
+        postType: _postType,
+        caption: _captionCtrl.text.trim(),
+        hashtags: _hashtags,
         communityId: widget.communityId,
         visibility: widget.visibility,
-        mediaFile: widget.mediaFile,
-        audioTrackId: widget.audioTrack?.id,
+        mediaFile: _mediaFile,
+        audioTrackId: _audioTrack?.id,
         mcqData: widget.mcqData,
         pollData: widget.pollData,
         questionData: widget.questionData,
@@ -102,7 +207,6 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
         if (!mounted) return;
 
         // Auto-Back to original caller context (pops Preview screen AND CreatePost screen)
-        // First pop Preview, then pop Composer
         final navigator = Navigator.of(context);
         navigator.pop(); // Pop preview
         navigator.pop(); // Pop composer back to caller screen (Home/Community/Profile)
@@ -110,7 +214,6 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
         // Broadcast PostCreated event to insert at TOP (index 0) of caller feed & show Instagram mini confirmation toast
         PostEventService.to.notifyPostCreated(createdPost, context: Get.context);
       } else {
-        // Failed on backend
         setState(() {
           _isPublishing = false;
           _publishProgress = 0.0;
@@ -149,7 +252,7 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F0F17) : Colors.grey.shade100,
+      backgroundColor: isDark ? const Color(0xFF0F0F17) : Colors.white,
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF161622) : Colors.white,
         elevation: 0,
@@ -182,11 +285,212 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
       ),
       body: Stack(
         children: [
-          // Main Instagram-Style Preview Feed Card
+          // Main Preview Screen matching Image 2 Layout
           SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 1. Top Media Preview Card with Rounded Corners (Matching Image 2)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(minHeight: 220, maxHeight: 380),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1A1A28) : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        if (_mediaFile != null && _mediaFile!.existsSync())
+                          Image.file(
+                            _mediaFile!,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                          )
+                        else
+                          _buildTypeFallbackGraphic(context, isDark),
+
+                        // Overlay action bar (Change Photo & Add Photo buttons)
+                        Positioned(
+                          bottom: 12,
+                          right: 12,
+                          child: Row(
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: _pickOrChangeMedia,
+                                icon: Icon(_mediaFile != null ? Icons.photo_library_rounded : Icons.add_a_photo_rounded, size: 16),
+                                label: Text(_mediaFile != null ? 'Change Photo' : 'Add Photo'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.black.withOpacity(0.7),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  textStyle: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              if (_mediaFile != null) ...[
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () => setState(() => _mediaFile = null),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.7),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 2. Caption Input Area ("Write a caption...")
+                TextField(
+                  controller: _captionCtrl,
+                  maxLines: 3,
+                  minLines: 1,
+                  style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'Write a caption...',
+                    hintStyle: GoogleFonts.poppins(color: context.caption, fontSize: 13),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 12),
+
+                // 3. Quick Action Buttons Row (# Hashtags, @ Mention) matching Image 2
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: _addHashtagPrompt,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        child: Row(
+                          children: [
+                            const Text('#', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Hashtags',
+                              style: GoogleFonts.poppins(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    InkWell(
+                      onTap: _insertMention,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        child: Row(
+                          children: [
+                            const Text('@', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Mention',
+                              style: GoogleFonts.poppins(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // 4. Music Selector Row ("♫ Add Music" / Selected Track) matching Image 2
+                InkWell(
+                  onTap: _openMusicPicker,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.music_note_rounded,
+                          color: _audioTrack != null ? AppTheme.primaryColor : AppTheme.primaryColor,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _audioTrack != null ? '${_audioTrack!.title} • ${_audioTrack!.artist}' : 'Add Music',
+                          style: GoogleFonts.poppins(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        if (_audioTrack != null) ...[
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => setState(() => _audioTrack = null),
+                            child: const Icon(Icons.close_rounded, size: 16, color: Colors.redAccent),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Display Active Hashtags Pills if added
+                if (_hashtags.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: _hashtags.map((h) {
+                      return Chip(
+                        label: Text(h, style: GoogleFonts.inter(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                        backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
+                        deleteIcon: const Icon(Icons.close, size: 12, color: AppTheme.primaryColor),
+                        onDeleted: () => setState(() => _hashtags.remove(h)),
+                        visualDensity: VisualDensity.compact,
+                      );
+                    }).toList(),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+
+                // Section Title: Live Instagram Feed Preview
+                Text(
+                  'FEED PREVIEW',
+                  style: GoogleFonts.outfit(
+                    color: context.caption,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Live Feed Card Mockup Preview
                 Container(
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF161622) : Colors.white,
@@ -205,17 +509,17 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. Author Header Bar
+                      // Author Header
                       Padding(
                         padding: const EdgeInsets.all(14.0),
                         child: Row(
                           children: [
                             CircleAvatar(
-                              radius: 20,
+                              radius: 18,
                               backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
                               backgroundImage: _currentUserAvatar.isNotEmpty ? NetworkImage(_currentUserAvatar) : null,
                               child: _currentUserAvatar.isEmpty
-                                  ? const Icon(Icons.person, color: AppTheme.primaryColor, size: 20)
+                                  ? const Icon(Icons.person, color: AppTheme.primaryColor, size: 18)
                                   : null,
                             ),
                             const SizedBox(width: 10),
@@ -246,10 +550,11 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                         ),
                       ),
 
-                      // 2. Media Preview Display
-                      _buildMediaPreviewArea(context, isDark),
+                      // Feed Media
+                      if (_mediaFile != null && _mediaFile!.existsSync())
+                        Image.file(_mediaFile!, width: double.infinity, fit: BoxFit.cover),
 
-                      // 3. Action Row (Like, Comment, Share, Bookmark)
+                      // Feed Actions Row
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         child: Row(
@@ -265,7 +570,7 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                         ),
                       ),
 
-                      // 4. Creator Caption & Hashtags Section
+                      // Feed Caption & Tags
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                         child: Column(
@@ -283,7 +588,7 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: widget.caption,
+                                    text: _captionCtrl.text,
                                     style: GoogleFonts.poppins(
                                       color: context.textPrimary,
                                       fontSize: 13,
@@ -292,35 +597,22 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                                 ],
                               ),
                             ),
-                            if (widget.hashtags.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Wrap(
-                                spacing: 6,
-                                children: widget.hashtags.map((h) {
-                                  return Text(
-                                    h,
-                                    style: GoogleFonts.inter(
-                                      color: const Color(0xFF3B82F6),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  );
-                                }).toList(),
+                            if (_hashtags.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _hashtags.join(' '),
+                                style: GoogleFonts.inter(color: const Color(0xFF3B82F6), fontWeight: FontWeight.bold, fontSize: 12),
                               ),
                             ],
-                            if (widget.audioTrack != null) ...[
-                              const SizedBox(height: 8),
+                            if (_audioTrack != null) ...[
+                              const SizedBox(height: 6),
                               Row(
                                 children: [
                                   const Icon(Icons.music_note, size: 14, color: AppTheme.primaryColor),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${widget.audioTrack!.title} • ${widget.audioTrack!.artist}',
-                                    style: GoogleFonts.inter(
-                                      color: AppTheme.primaryColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11,
-                                    ),
+                                    '${_audioTrack!.title} • ${_audioTrack!.artist}',
+                                    style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 11),
                                   ),
                                 ],
                               ),
@@ -332,12 +624,12 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 100), // Space for sticky button
+                const SizedBox(height: 100),
               ],
             ),
           ),
 
-          // Bottom Sticky "Post Now" Action Bar
+          // Bottom Sticky "Post Now" Button
           if (!_isPublishing)
             Positioned(
               left: 0,
@@ -392,7 +684,6 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Flying Paper Airplane Animation Icon
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -406,7 +697,6 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-
                       Text(
                         'Publishing your post...',
                         style: GoogleFonts.outfit(
@@ -424,8 +714,6 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-
-                      // Linear Progress Bar
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: LinearProgressIndicator(
@@ -436,7 +724,6 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-
                       Text(
                         '${(_publishProgress * 100).toInt()}% • $_statusText',
                         style: GoogleFonts.poppins(
@@ -455,64 +742,23 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
     );
   }
 
-  Widget _buildMediaPreviewArea(BuildContext context, bool isDark) {
-    if (widget.mediaFile != null && widget.mediaFile!.existsSync()) {
-      if (widget.postType == PostType.photo) {
-        return Image.file(
-          widget.mediaFile!,
-          width: double.infinity,
-          fit: BoxFit.cover,
-        );
-      }
-      return Container(
-        height: 240,
-        width: double.infinity,
-        color: Colors.black87,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(widget.postType.icon, color: Colors.white70, size: 48),
-            Positioned(
-              bottom: 12,
-              left: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.64),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${widget.postType.emoji} ${widget.postType.displayName}',
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (widget.postType == PostType.mcq && widget.mcqData != null) {
+  Widget _buildTypeFallbackGraphic(BuildContext context, bool isDark) {
+    if (_postType == PostType.mcq && widget.mcqData != null) {
       final mcq = widget.mcqData!;
-      return Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.primaryColor.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
-        ),
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Text('☑', style: TextStyle(fontSize: 18)),
+                const Text('☑', style: TextStyle(fontSize: 20)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     mcq.question,
-                    style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                    style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ],
@@ -520,26 +766,13 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
             const SizedBox(height: 12),
             ...mcq.options.map((opt) {
               return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF222234) : Colors.white,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      opt.isCorrect ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                      color: opt.isCorrect ? const Color(0xFF10B981) : context.caption,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      opt.text,
-                      style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
-                    ),
-                  ],
-                ),
+                child: Text(opt.text, style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12)),
               );
             }).toList(),
           ],
@@ -547,27 +780,22 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
       );
     }
 
-    if (widget.postType == PostType.poll && widget.pollData != null) {
+    if (_postType == PostType.poll && widget.pollData != null) {
       final poll = widget.pollData!;
-      return Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blue.withOpacity(0.3)),
-        ),
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Text('📊', style: TextStyle(fontSize: 18)),
+                const Text('📊', style: TextStyle(fontSize: 20)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     poll.question,
-                    style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                    style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ],
@@ -575,16 +803,13 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
             const SizedBox(height: 12),
             ...poll.options.map((opt) {
               return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF222234) : Colors.white,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  opt.text,
-                  style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 13),
-                ),
+                child: Text(opt.text, style: GoogleFonts.poppins(color: context.textPrimary, fontSize: 12)),
               );
             }).toList(),
           ],
@@ -592,30 +817,16 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
       );
     }
 
-    if (widget.postType == PostType.question && widget.questionData != null) {
-      return Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.amber.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.amber.withOpacity(0.3)),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(_postType.icon, size: 48, color: AppTheme.primaryColor),
+        const SizedBox(height: 8),
+        Text(
+          'Select or Add Media for ${_postType.displayName}',
+          style: GoogleFonts.poppins(color: context.caption, fontSize: 13),
         ),
-        child: Row(
-          children: [
-            const Text('❓', style: TextStyle(fontSize: 22)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                widget.questionData!.question,
-                style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return const SizedBox.shrink();
+      ],
+    );
   }
 }

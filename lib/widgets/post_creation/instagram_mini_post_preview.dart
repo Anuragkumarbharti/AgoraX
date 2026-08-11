@@ -19,13 +19,35 @@ class InstagramMiniPostPreview extends StatefulWidget {
   static OverlayEntry? _activeOverlay;
 
   static void show({BuildContext? context, required Post post}) {
-    if (context == null) return;
+    final targetContext = context ?? Get.overlayContext ?? Get.context;
+    if (targetContext == null) return;
     
     // Remove existing overlay if present
-    _activeOverlay?.remove();
+    try {
+      _activeOverlay?.remove();
+    } catch (_) {}
     _activeOverlay = null;
 
-    final overlayState = Overlay.of(context);
+    OverlayState? overlayState;
+    try {
+      overlayState = Overlay.maybeOf(targetContext, rootOverlay: true) ?? Overlay.maybeOf(targetContext);
+    } catch (_) {}
+
+    if (overlayState == null) {
+      // Fallback display if Overlay context not in tree
+      Get.snackbar(
+        '✓ Post shared successfully!',
+        post.caption.isNotEmpty ? post.caption : 'Your post is live.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF1F2937),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+        margin: const EdgeInsets.all(12),
+        borderRadius: 16,
+      );
+      return;
+    }
+
     late OverlayEntry overlayEntry;
 
     overlayEntry = OverlayEntry(
@@ -38,7 +60,9 @@ class InstagramMiniPostPreview extends StatefulWidget {
           child: InstagramMiniPostPreview(
             post: post,
             onDismiss: () {
-              overlayEntry.remove();
+              try {
+                overlayEntry.remove();
+              } catch (_) {}
               _activeOverlay = null;
             },
           ),
