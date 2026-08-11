@@ -414,20 +414,37 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: context.primaryColor.withOpacity(0.3)),
                   ),
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                  child: Column(
                     children: keys.map((k) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: context.surfaceColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: context.primaryColor.withOpacity(0.4)),
-                        ),
-                        child: Text(
-                          k,
-                          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: context.primaryColor),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: InkWell(
+                          onTap: () => _copyToClipboard(k, 'Key $k'),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: context.surfaceColor,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: context.primaryColor.withOpacity(0.4)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  k,
+                                  style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: context.primaryColor),
+                                ),
+                                Row(
+                                  children: [
+                                    Text('Copy', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: context.primaryColor)),
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.content_copy_rounded, size: 14, color: context.primaryColor),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -501,18 +518,27 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                     spacing: 10,
                     runSpacing: 10,
                     children: codes.map((c) {
-                      return Container(
-                        width: 120,
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: context.surfaceColor,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: context.borderColor.withOpacity(0.5)),
-                        ),
-                        child: Text(
-                          c,
-                          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: context.textPrimary),
-                          textAlign: TextAlign.center,
+                      return InkWell(
+                        onTap: () => _copyToClipboard(c, 'Recovery Code $c'),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: 140,
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: context.surfaceColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: context.borderColor.withOpacity(0.6)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                c,
+                                style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: context.textPrimary),
+                              ),
+                              Icon(Icons.content_copy_rounded, size: 13, color: context.textSecondary),
+                            ],
+                          ),
                         ),
                       );
                     }).toList(),
@@ -826,24 +852,35 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: context.primaryColor.withOpacity(0.3)),
                 ),
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
+                child: Column(
                   children: (_setupData?.serverSecurityKeys ?? []).map((k) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: context.surfaceColor,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6.0),
+                      child: InkWell(
+                        onTap: () => _copyToClipboard(k, 'Key $k'),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: context.primaryColor.withOpacity(0.4)),
-                      ),
-                      child: Text(
-                        k,
-                        style: GoogleFonts.outfit(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                          color: context.primaryColor,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: context.surfaceColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: context.primaryColor.withOpacity(0.4)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                k,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                  color: context.primaryColor,
+                                ),
+                              ),
+                              Icon(Icons.content_copy_rounded, size: 14, color: context.primaryColor),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -875,26 +912,35 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                   border: Border.all(color: context.borderColor),
                 ),
                 child: Wrap(
-                  spacing: 12,
+                  spacing: 10,
                   runSpacing: 10,
                   children: codes.map((c) {
-                    return Container(
-                      width: 130,
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: context.surfaceColor,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: context.borderColor.withOpacity(0.5)),
-                      ),
-                      child: Text(
-                        c,
-                        style: GoogleFonts.outfit(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                          color: context.textPrimary,
+                    return InkWell(
+                      onTap: () => _copyToClipboard(c, 'Recovery Code $c'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        width: 140,
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: context.surfaceColor,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: context.borderColor.withOpacity(0.6)),
                         ),
-                        textAlign: TextAlign.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              c,
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                                color: context.textPrimary,
+                              ),
+                            ),
+                            Icon(Icons.content_copy_rounded, size: 13, color: context.textSecondary),
+                          ],
+                        ),
                       ),
                     );
                   }).toList(),
