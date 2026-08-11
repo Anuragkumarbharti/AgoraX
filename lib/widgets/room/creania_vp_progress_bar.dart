@@ -203,23 +203,45 @@ class _CreaniaVpProgressBarState extends State<CreaniaVpProgressBar>
   }
 
   Widget _buildSubtitleRow() {
-    if (widget.roomName == null || widget.roomName!.isEmpty) {
+    if (widget.roomId == null || widget.roomId!.isEmpty) {
       return const SizedBox.shrink();
     }
     return Padding(
       padding: const EdgeInsets.only(top: 3.0),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 100),
-        child: Text(
-          widget.roomName!,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.poppins(
-            color: Colors.white.withValues(alpha: 0.65),
-            fontSize: 8.5,
-            fontWeight: FontWeight.w600,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'ID: ${widget.roomId}',
+            style: GoogleFonts.poppins(
+              color: Colors.white.withValues(alpha: 0.65),
+              fontSize: 8.5,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
+          if (widget.roomName != null && widget.roomName!.isNotEmpty) ...[
+            Text(
+              '  •  ',
+              style: GoogleFonts.poppins(
+                color: Colors.white.withValues(alpha: 0.35),
+                fontSize: 8.5,
+              ),
+            ),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 62),
+              child: Text(
+                widget.roomName!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  color: Colors.white.withValues(alpha: 0.65),
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

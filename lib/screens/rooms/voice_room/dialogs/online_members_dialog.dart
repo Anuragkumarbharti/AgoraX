@@ -235,6 +235,14 @@ class OnlineMembersDialog extends StatelessWidget {
                                       ],
                                     ),
                                     const SizedBox(height: 2),
+                                    Text(
+                                      'ID: ${u.userID}',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white38,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     UserBadgeRow(
                                        user: profile,

@@ -630,7 +630,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   ],
                 ),
                 Text(
-                  '${p['role']}',
+                  '${p['role']} • ${p['userId']}',
                   style: TextStyle(color: context.caption, fontSize: 9),
                 ),
                 Text(

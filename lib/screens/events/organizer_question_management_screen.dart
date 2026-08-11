@@ -977,7 +977,7 @@ class _OrganizerQuestionManagementScreenState extends State<OrganizerQuestionMan
                     ],
                   ),
                   SizedBox(height: 4),
-                  Text('Role: ${log['role']}', style: TextStyle(color: context.caption, fontSize: 9)),
+                  Text('By: ${log['userId']} (${log['role']}) • Device: ${log['device']} • IP: ${log['ip']}', style: TextStyle(color: context.caption, fontSize: 9)),
                 ],
               ),
             )),

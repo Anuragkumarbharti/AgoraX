@@ -338,7 +338,7 @@ class _RoomGovernanceDashboardDialogState extends State<RoomGovernanceDashboardD
                 ],
               ),
               const SizedBox(height: 4),
-              Text('Actor Role: ${item.actorRole}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+              Text('Actor: ${item.actorRole} • Target ID: ${item.targetUserId}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
             ],
           ),
         );

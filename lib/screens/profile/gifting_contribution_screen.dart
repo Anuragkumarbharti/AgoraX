@@ -692,7 +692,7 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
                       const SizedBox(width: 8),
                       Text('•', style: GoogleFonts.inter(color: Colors.white30, fontSize: 8)),
                       const SizedBox(width: 8),
-                      Text('Arena Room', style: GoogleFonts.inter(color: Colors.white30, fontSize: 8)),
+                      Text('Room: $roomId', style: GoogleFonts.inter(color: Colors.white30, fontSize: 8)),
                     ],
                   ],
                 ),

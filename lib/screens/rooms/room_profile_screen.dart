@@ -6,7 +6,6 @@ import '../../models/room/room_model.dart';
 import '../../models/progression/room_progression_models.dart';
 import '../../services/room/room_controller.dart';
 import '../../widgets/room/room_upgrade_dialog.dart';
-import '../../services/user/user_profile_cache_manager.dart';
 
 class RoomProfileScreen extends StatelessWidget {
   final String roomId;
@@ -531,11 +530,7 @@ class RoomProfileScreen extends StatelessWidget {
         if (coOwners.isEmpty)
           _buildEmptyRoleTile(context, 'No Co-owners assigned')
         else
-          ...coOwners.map((id) {
-            final u = UserProfileCacheManager.getCachedUser(id);
-            final name = u?.displayName ?? u?.username ?? 'Co-owner';
-            return _buildUserTile(context, name, 'Co-owner', Colors.purpleAccent);
-          }),
+          ...coOwners.map((id) => _buildUserTile(context, 'Co-owner ($id)', 'Co-owner', Colors.purpleAccent)),
         const SizedBox(height: 12),
 
         // Admins
@@ -543,11 +538,7 @@ class RoomProfileScreen extends StatelessWidget {
         if (admins.isEmpty)
           _buildEmptyRoleTile(context, 'No Admins assigned')
         else
-          ...admins.map((id) {
-            final u = UserProfileCacheManager.getCachedUser(id);
-            final name = u?.displayName ?? u?.username ?? 'Admin';
-            return _buildUserTile(context, name, 'Admin', Colors.blueAccent);
-          }),
+          ...admins.map((id) => _buildUserTile(context, 'Admin ($id)', 'Admin', Colors.blueAccent)),
         const SizedBox(height: 12),
 
         // Star Members
@@ -555,11 +546,7 @@ class RoomProfileScreen extends StatelessWidget {
         if (stars.isEmpty)
           _buildEmptyRoleTile(context, 'No Star Members assigned')
         else
-          ...stars.map((id) {
-            final u = UserProfileCacheManager.getCachedUser(id);
-            final name = u?.displayName ?? u?.username ?? 'Star Member';
-            return _buildUserTile(context, name, 'Star Member', Colors.tealAccent);
-          }),
+          ...stars.map((id) => _buildUserTile(context, 'Star ($id)', 'Star Member', Colors.tealAccent)),
       ],
     );
   }
