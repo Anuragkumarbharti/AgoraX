@@ -306,19 +306,23 @@ class EventController extends GetxController {
 
     silverCoins.value -= 59;
     try {
-      await Supabase.instance.client
-          .from('wallets')
-          .update({'coins_balance': silverCoins.value})
-          .eq('id', currentUserId);
-
-      await Supabase.instance.client.from('wallet_transactions').insert({
-        'wallet_id': currentUserId,
-        'amount': 59.00,
-        'currency': 'Gold Coins',
-        'type': 'Spend',
-        'status': 'Completed',
-        'details': 'Event Creation: ${newEvent.title}',
-      });
+      final res = await Supabase.instance.client.rpc(
+        'process_authoritative_wallet_transaction',
+        params: {
+          'p_user_id': currentUserId,
+          'p_currency': 'Gold',
+          'p_amount': 59,
+          'p_type': 'Debit',
+          'p_source': 'EventCreation',
+          'p_transaction_id': 'tx_event_create_${DateTime.now().millisecondsSinceEpoch}_$currentUserId',
+        },
+      );
+      if (res == null || res['success'] != true) {
+        silverCoins.value += 59;
+        Get.snackbar('Transaction Failed ⚠️', res?['error'] ?? 'Could not process coin deduction',
+            snackPosition: SnackPosition.BOTTOM);
+        return false;
+      }
     } catch (_) {}
 
     try {
@@ -424,21 +428,6 @@ class EventController extends GetxController {
       return true;
     } catch (e) {
       silverCoins.value += 59;
-      try {
-        await Supabase.instance.client
-            .from('wallets')
-            .update({'coins_balance': silverCoins.value})
-            .eq('id', currentUserId);
-
-        await Supabase.instance.client.from('wallet_transactions').insert({
-          'wallet_id': currentUserId,
-          'amount': 59.00,
-          'currency': 'Gold Coins',
-          'type': 'Refund',
-          'status': 'Completed',
-          'details': 'Refund: Event Creation Failed',
-        });
-      } catch (_) {}
 
       Get.snackbar(
         'Error ⚠️',
@@ -519,20 +508,27 @@ class EventController extends GetxController {
         }
         silverCoins.value -= e.entryFeeAmount;
         try {
-          await Supabase.instance.client
-              .from('wallets')
-              .update({'coins_balance': silverCoins.value})
-              .eq('id', currentUserId);
-
-          await Supabase.instance.client.from('wallet_transactions').insert({
-            'wallet_id': currentUserId,
-            'amount': e.entryFeeAmount.toDouble(),
-            'currency': 'Gold Coins',
-            'type': 'Spend',
-            'status': 'Completed',
-            'details': 'Event Entry: ${e.title}',
-          });
-        } catch (_) {}
+          final res = await Supabase.instance.client.rpc(
+            'process_authoritative_wallet_transaction',
+            params: {
+              'p_user_id': currentUserId,
+              'p_currency': 'Gold',
+              'p_amount': e.entryFeeAmount,
+              'p_type': 'Debit',
+              'p_source': 'EventRegistration',
+              'p_transaction_id': 'tx_event_reg_${e.id}_$currentUserId',
+            },
+          );
+          if (res == null || res['success'] != true) {
+            silverCoins.value += e.entryFeeAmount;
+            Get.snackbar('Registration Failed ⚠️', res?['error'] ?? 'Could not process entry fee',
+                snackPosition: SnackPosition.BOTTOM);
+            return false;
+          }
+        } catch (_) {
+          silverCoins.value += e.entryFeeAmount;
+          return false;
+        }
       }
     }
 

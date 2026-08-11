@@ -849,18 +849,17 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
       // 3. Grant Reward Coins (100 coins)
       try {
-        final walletRes = await Supabase.instance.client
-            .from('wallets')
-            .select('coins_balance')
-            .eq('id', userIdToUse)
-            .maybeSingle();
-        final currentCoins = walletRes?['coins_balance'] ?? 0;
-        await Supabase.instance.client.from('wallets').upsert({
-          'id': userIdToUse,
-          'coins_balance': currentCoins + 100,
-          'inr_balance': 0.00,
-          'withdrawable_balance': 0.00,
-        });
+        await Supabase.instance.client.rpc(
+          'process_authoritative_wallet_transaction',
+          params: {
+            'p_user_id': userIdToUse,
+            'p_currency': 'Gold',
+            'p_amount': 100,
+            'p_type': 'Credit',
+            'p_source': 'SignupReward',
+            'p_transaction_id': 'tx_signup_reward_$userIdToUse',
+          },
+        );
       } catch (_) {}
 
       // Invalidate profile cache & sync from DB

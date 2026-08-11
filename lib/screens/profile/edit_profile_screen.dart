@@ -395,18 +395,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (didComplete100) {
         // Increment wallet coins
         try {
-          final walletRes = await Supabase.instance.client
-              .from('wallets')
-              .select('coins_balance')
-              .eq('id', userId)
-              .maybeSingle();
-          final currentCoins = walletRes?['coins_balance'] ?? 0;
-          await Supabase.instance.client.from('wallets').upsert({
-            'id': userId,
-            'coins_balance': currentCoins + 100,
-            'inr_balance': 0.00,
-            'withdrawable_balance': 0.00,
-          });
+          await Supabase.instance.client.rpc(
+            'process_authoritative_wallet_transaction',
+            params: {
+              'p_user_id': userId,
+              'p_currency': 'Gold',
+              'p_amount': 100,
+              'p_type': 'Credit',
+              'p_source': 'ProfileCompletionReward',
+              'p_transaction_id': 'tx_profile_complete_$userId',
+            },
+          );
         } catch (_) {}
       }
 

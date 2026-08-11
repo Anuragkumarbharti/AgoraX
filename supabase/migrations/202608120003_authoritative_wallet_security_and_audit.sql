@@ -115,8 +115,8 @@ BEGIN
     ELSE 'Gold'
   END;
 
-  -- Anomaly / Anti-Abuse Cap: Reject single transactions > 50,000 unless from explicit gateway payment
-  IF p_amount > 50000 AND LOWER(p_source) NOT LIKE '%payment%' AND LOWER(p_source) NOT LIKE '%razorpay%' AND LOWER(p_source) NOT LIKE '%inapp%' THEN
+  -- Anomaly / Anti-Abuse Cap: Reject single transactions > 6,000 unconditionally for all RPC transaction requests
+  IF p_amount > 6000 THEN
     RAISE WARNING '[WALLET SECURITY ALERT] Abnormally large transaction attempt blocked: User %, Amount %, Source %', p_user_id, p_amount, p_source;
     RETURN jsonb_build_object('success', false, 'error', 'Abnormally large transaction amount rejected by security rules');
   END IF;
