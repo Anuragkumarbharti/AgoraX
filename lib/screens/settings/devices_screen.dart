@@ -78,20 +78,18 @@ class _DevicesScreenState extends State<DevicesScreen> {
   Future<void> _revokeDevice(String deviceId, String deviceName) async {
     try {
       final res = await _supabase.rpc('revoke_user_device', params: {'p_device_id': deviceId});
-      if (res != null && res['success'] == true) {
-        setState(() {
-          _devices.removeWhere((d) => d['device_id'] == deviceId);
-        });
-        Get.snackbar(
-          'Access Revoked',
-          'Session for $deviceName has been revoked.',
-          backgroundColor: const Color(0xFF10B981),
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      } else {
-        Get.snackbar('Error', res?['error'] ?? 'Failed to revoke device');
-      }
+      await _supabase.rpc('revoke_trusted_device_rpc', params: {'p_device_id': deviceId});
+      
+      setState(() {
+        _devices.removeWhere((d) => d['device_id'] == deviceId || d['id'] == deviceId);
+      });
+      Get.snackbar(
+        'Access Revoked',
+        'Session for $deviceName has been revoked.',
+        backgroundColor: const Color(0xFF10B981),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       Get.snackbar('Error', 'Failed to revoke device access: $e');
     }

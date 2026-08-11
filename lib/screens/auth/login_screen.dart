@@ -14,6 +14,8 @@ import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/user/user_progress_sync_service.dart';
 import '../../core/api_error_handler.dart';
 import '../../services/auth/auth_memory_service.dart';
+import '../../services/auth/two_factor_service.dart';
+import './two_factor_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -168,6 +170,25 @@ class _LoginScreenState extends State<LoginScreen>
           }
         }
         Get.offAll(() => SignupFlowScreen(userId: userId, startStep: startStep));
+        return;
+      }
+
+      // Check 2FA requirement for untrusted devices
+      final requires2FA = await TwoFactorService.checkLogin2FARequired(userId);
+      if (requires2FA) {
+        Get.to(() => TwoFactorLoginScreen(
+              userId: userId,
+              onVerificationSuccess: () async {
+                await UserProfileCacheManager.getOrFetchCanonicalId();
+                await UserProfileCacheManager.fetchUserProfile('me', forceRefresh: true);
+                await UserProgressSyncService.syncFromSupabase();
+                Get.offAll(() => const MainScreen());
+              },
+              onCancel: () async {
+                await Supabase.instance.client.auth.signOut();
+                Get.offAll(() => const LoginScreen());
+              },
+            ));
         return;
       }
 

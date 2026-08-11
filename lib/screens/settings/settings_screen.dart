@@ -21,6 +21,7 @@ import './devices_screen.dart';
 import './login_activity_screen.dart';
 import './help_support_screen.dart';
 import './legal_terms_screen.dart';
+import './two_factor_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -97,147 +98,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       setState(() => _privateProfile = !val);
       Get.snackbar('Error', 'Failed to update privacy settings: $e');
-    }
-  }
-
-  void _handle2FAChange(bool enable) {
-    _pinCtrl.clear();
-    if (enable) {
-      // Prompt setup Security PIN
-      Get.defaultDialog(
-        title: 'Enable Two-Factor Auth 🛡️',
-        backgroundColor: context.secondaryBackgroundColor,
-        titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.textPrimary),
-        middleTextStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
-        content: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Text(
-                'Set a 4 to 6 digit Security PIN to secure your account during logins.',
-                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: _pinCtrl,
-                keyboardType: TextInputType.number,
-                obscureText: true,
-                maxLength: 6,
-                style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold),
-                decoration: InputDecoration(
-                  labelText: 'Security PIN',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        confirm: ElevatedButton(
-          onPressed: () async {
-            final pin = _pinCtrl.text.trim();
-            if (pin.length < 4 || pin.length > 6) {
-              Get.snackbar('Error', 'PIN must be 4 to 6 digits');
-              return;
-            }
-            Get.back();
-            try {
-              final res = await _supabase.rpc('enable_2fa', params: {'p_pin': pin});
-              if (res != null && res['success'] == true) {
-                setState(() => _twoFactorEnabled = true);
-                final user = UserProfileCacheManager.currentUser;
-                if (user != null) {
-                  final updated = user.copyWith(twoFactorEnabled: true);
-                  UserProfileCacheManager.setCurrentUser(updated);
-                }
-                Get.snackbar(
-                  '2FA Enabled 🛡️',
-                  'Your Security PIN has been set.',
-                  backgroundColor: const Color(0xFF10B981),
-                  colorText: Colors.white,
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-              } else {
-                Get.snackbar('Error', res?['error'] ?? 'Failed to enable 2FA');
-              }
-            } catch (e) {
-              Get.snackbar('Error', 'Failed to enable 2FA: $e');
-            }
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: context.primaryColor),
-          child: const Text('Enable 2FA'),
-        ),
-        cancel: OutlinedButton(
-          onPressed: () => Get.back(),
-          child: const Text('Cancel'),
-        ),
-      );
-    } else {
-      // Prompt verification to disable
-      Get.defaultDialog(
-        title: 'Disable 2FA?',
-        backgroundColor: context.secondaryBackgroundColor,
-        titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.errorColor),
-        content: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Text(
-                'Enter your Security PIN to turn off Two-Factor Authentication.',
-                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: _pinCtrl,
-                keyboardType: TextInputType.number,
-                obscureText: true,
-                maxLength: 6,
-                style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold),
-                decoration: InputDecoration(
-                  labelText: 'Current Security PIN',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        confirm: ElevatedButton(
-          onPressed: () async {
-            final pin = _pinCtrl.text.trim();
-            if (pin.isEmpty) return;
-            Get.back();
-            try {
-              final res = await _supabase.rpc('disable_2fa', params: {'p_pin': pin});
-              if (res != null && res['success'] == true) {
-                setState(() => _twoFactorEnabled = false);
-                final user = UserProfileCacheManager.currentUser;
-                if (user != null) {
-                  final updated = user.copyWith(twoFactorEnabled: false);
-                  UserProfileCacheManager.setCurrentUser(updated);
-                }
-                Get.snackbar(
-                  '2FA Disabled',
-                  'Two-Factor Authentication has been turned off.',
-                  backgroundColor: Colors.orangeAccent,
-                  colorText: Colors.white,
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-              } else {
-                Get.snackbar('Error', res?['error'] ?? 'Incorrect Security PIN');
-              }
-            } catch (e) {
-              Get.snackbar('Error', 'Failed to disable 2FA: $e');
-            }
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
-          child: const Text('Disable'),
-        ),
-        cancel: OutlinedButton(
-          onPressed: () => Get.back(),
-          child: const Text('Cancel'),
-        ),
-      );
     }
   }
 
@@ -330,13 +190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.history_toggle_off_rounded,
               onTap: () => Get.to(() => const LoginActivityScreen()),
             ),
-            _buildToggleSetting(
-              'Two-Factor Authentication',
-              'Secure your account with 2FA verification codes',
-              Icons.security_rounded,
-              _twoFactorEnabled,
-              (val) => _handle2FAChange(val),
-            ),
+            const TwoFactorSettingsWidget(),
 
             Divider(color: context.borderColor, height: 32, thickness: 0.5),
 
