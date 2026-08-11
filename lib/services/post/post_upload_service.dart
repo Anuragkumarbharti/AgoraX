@@ -62,7 +62,7 @@ class PostUploadService extends GetxController {
 
     try {
       final currentUser = Supabase.instance.client.auth.currentUser;
-      final userId = currentUser?.id ?? 'user_${DateTime.now().millisecondsSinceEpoch}';
+      final userId = currentUser?.id ?? '6553bee0-8fe9-450c-9f7b-e34ff9a16e4e';
       final username = currentUser?.userMetadata?['username'] ??
           currentUser?.userMetadata?['full_name'] ??
           'Anurag Kumar';

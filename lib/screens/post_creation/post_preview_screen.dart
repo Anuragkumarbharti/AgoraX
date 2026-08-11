@@ -203,16 +203,17 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
           _statusText = 'Post published successfully!';
         });
 
-        await Future.delayed(const Duration(milliseconds: 300));
-        if (!mounted) return;
+        await Future.delayed(const Duration(milliseconds: 250));
 
-        // Auto-Back to original caller context (pops Preview screen AND CreatePost screen)
-        final navigator = Navigator.of(context);
-        navigator.pop(); // Pop preview
-        navigator.pop(); // Pop composer back to caller screen (Home/Community/Profile)
+        // 1. Broadcast PostCreated event to insert at TOP (index 0) of caller feed & show Instagram mini confirmation toast
+        PostEventService.to.notifyPostCreated(createdPost);
 
-        // Broadcast PostCreated event to insert at TOP (index 0) of caller feed & show Instagram mini confirmation toast
-        PostEventService.to.notifyPostCreated(createdPost, context: Get.context);
+        // 2. Auto-Back to original caller context (pops Preview screen AND CreatePost screen safely)
+        if (mounted) {
+          final nav = Navigator.of(context);
+          if (nav.canPop()) nav.pop();
+          if (nav.canPop()) nav.pop();
+        }
       } else {
         setState(() {
           _isPublishing = false;
