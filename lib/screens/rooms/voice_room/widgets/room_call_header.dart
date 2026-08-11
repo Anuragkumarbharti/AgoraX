@@ -77,7 +77,8 @@ class RoomCallHeader extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     child: Builder(
                       builder: (context) {
-                        final isWeekend = Get.put(RoomProgressionController()).isWeekend;
+                        final isWeekend =
+                            Get.put(RoomProgressionController()).isWeekend;
 
                         return CreaniaVpProgressBar(
                           roomId: '$liveId',
@@ -102,10 +103,16 @@ class RoomCallHeader extends StatelessWidget {
                     child: Builder(
                       builder: (context) {
                         final progCtrl = Get.put(RoomProgressionController());
-                        final int mapGems = progCtrl.roomTotalGemsMap[liveId] ?? 0;
-                        final int liveGems = liveRoom?.totalRoomGems ?? liveRoom?.totalRoomStars ?? 0;
-                        final int initialGems = room?.totalRoomGems ?? room?.totalRoomStars ?? 0;
-                        final int totalGems = mapGems > liveGems ? (mapGems > initialGems ? mapGems : initialGems) : (liveGems > initialGems ? liveGems : initialGems);
+                        final int mapGems =
+                            progCtrl.roomTotalGemsMap[liveId] ?? 0;
+                        final int liveGems = liveRoom?.totalRoomGems ??
+                            liveRoom?.totalRoomStars ??
+                            0;
+                        final int initialGems =
+                            room?.totalRoomGems ?? room?.totalRoomStars ?? 0;
+                        final int totalGems = mapGems > liveGems
+                            ? (mapGems > initialGems ? mapGems : initialGems)
+                            : (liveGems > initialGems ? liveGems : initialGems);
                         return GestureDetector(
                           onTap: () {
                             Get.dialog(

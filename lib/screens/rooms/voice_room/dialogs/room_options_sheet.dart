@@ -5,9 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../models/room/room_model.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/navigation/main_navigation_controller.dart';
+import '../../../chat/chats_list_screen.dart';
 import 'member_list_dialog.dart';
 import 'room_audio_settings_dialog.dart';
 import 'room_settings_dialog.dart';
+import 'room_share_friends_sheet.dart';
 import '../../../../widgets/gems/gem_widgets.dart';
 
 /// Helper model for Room Option items
@@ -16,34 +19,43 @@ class RoomOptionItem {
   final String title;
   final IconData icon;
   final VoidCallback onTap;
+  final Color? color;
+  final String? badge;
 
-  RoomOptionItem({
+  const RoomOptionItem({
     required this.id,
     required this.title,
     required this.icon,
     required this.onTap,
+    this.color,
+    this.badge,
   });
 }
 
-/// Clean Minimal Grid Sheet for Room Options
-class RoomOptionsSheet extends StatelessWidget {
+class RoomOptionsSheet extends StatefulWidget {
   final String roomId;
-  final VoiceRoom? room;
-
-  const RoomOptionsSheet({
-    required this.roomId,
-    this.room,
-    Key? key,
-  }) : super(key: key);
+  const RoomOptionsSheet({Key? key, required this.roomId}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final controller = RoomController.to;
-    final activeRoom = room ??
-        controller.rooms.firstWhereOrNull((r) => r.id == roomId) ??
-        VoiceRoom.dummy(roomId);
+  State<RoomOptionsSheet> createState() => _RoomOptionsSheetState();
+}
 
-    final options = [
+class _RoomOptionsSheetState extends State<RoomOptionsSheet> {
+  @override
+  Widget build(BuildContext context) {
+    VoiceRoom activeRoom = VoiceRoom.dummy(widget.roomId);
+
+    if (Get.isRegistered<RoomController>()) {
+      final controller = Get.find<RoomController>();
+      final room = controller.rooms.firstWhereOrNull((r) => r.id == widget.roomId);
+      if (room != null) {
+        activeRoom = room;
+      }
+    }
+
+    final String roomId = widget.roomId;
+
+    final options = <RoomOptionItem>[
       RoomOptionItem(
         id: 'settings',
         title: 'Room Settings',
@@ -76,8 +88,23 @@ class RoomOptionsSheet extends StatelessWidget {
         title: 'Inbox',
         icon: Icons.chat_bubble,
         onTap: () {
-          Get.back();
-          _showRoomInboxDialog(context);
+          Get.back(); // Dismiss RoomOptionsSheet
+
+          if (Get.isRegistered<RoomController>()) {
+            final roomCtrl = Get.find<RoomController>();
+            final activeId = roomCtrl.activeRoomId ?? roomId;
+            final roomObj =
+                roomCtrl.rooms.firstWhereOrNull((r) => r.id == activeId) ??
+                    activeRoom;
+
+            roomCtrl.showPipBubble(
+              activeId,
+              roomObj.name,
+              roomObj.avatar ?? '',
+            );
+          }
+
+          MainNavigationController.to.navigateToMessages();
         },
       ),
       RoomOptionItem(
@@ -122,7 +149,9 @@ class RoomOptionsSheet extends StatelessWidget {
         icon: Icons.share,
         onTap: () {
           Get.back();
-          _showShareRoomDialog(context, activeRoom);
+          if (activeRoom != null) {
+            RoomShareFriendsSheet.show(context, activeRoom);
+          }
         },
       ),
       RoomOptionItem(
@@ -788,7 +817,8 @@ class RoomOptionsSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(name, style: GoogleFonts.poppins(color: Colors.white, fontSize: 11)),
+          Text(name,
+              style: GoogleFonts.poppins(color: Colors.white, fontSize: 11)),
           Text(
             count,
             style: GoogleFonts.poppins(
@@ -801,82 +831,7 @@ class RoomOptionsSheet extends StatelessWidget {
       );
 
   void _showShareRoomDialog(BuildContext context, VoiceRoom room) {
-    Get.dialog(
-      Dialog(
-        backgroundColor: const Color(0xFF121927),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          width: Get.width * 0.9,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '🔗 Share Room Invite',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.link_rounded, color: Colors.cyanAccent),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'creania.app/room/$roomId',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.cyanAccent,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                      ),
-                      onPressed: () {
-                        Clipboard.setData(
-                          ClipboardData(text: 'https://creania.app/room/$roomId'),
-                        );
-                        Get.back();
-                        Get.snackbar(
-                          'Link Copied',
-                          'Room invite link copied to clipboard!',
-                          snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: Colors.green,
-                          colorText: Colors.white,
-                        );
-                      },
-                      child: Text(
-                        'Copy',
-                        style: GoogleFonts.poppins(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
+    RoomShareFriendsSheet.show(context, room);
   }
 
   void _showRoomEffectsDialog(BuildContext context) {

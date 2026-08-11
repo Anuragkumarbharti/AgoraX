@@ -3,6 +3,9 @@ import 'package:get/get.dart';
 import '../../screens/rooms/voice_room_call_screen.dart';
 import '../../widgets/common/optimized_image.dart';
 import '../user/user_profile_cache_manager.dart';
+import '../voice/room_voice_manager.dart';
+import '../navigation/main_navigation_controller.dart';
+import 'room_controller.dart';
 
 class RoomPipController extends GetxController {
   static RoomPipController get to => Get.find<RoomPipController>();
@@ -36,90 +39,140 @@ class RoomPipController extends GetxController {
                     yPosition += details.delta.dy;
                   });
                 },
-                onTap: () {
-                  hidePipBubble();
-                  final currentUid = UserProfileCacheManager.currentUserId;
-                  final currentUsername =
-                      UserProfileCacheManager.currentUser?.username ??
-                          'anurag_kumar';
-                  Get.to(
-                    () => VoiceRoomCallScreen(
-                      roomId: roomId,
-                      roomName: roomName,
-                      userId: currentUid,
-                      userName: currentUsername,
-                      isHost: isHostChecker(roomId),
-                    ),
-                  );
-                },
                 child: Material(
                   color: Colors.transparent,
                   child: Stack(
                     alignment: Alignment.center,
                     clipBehavior: Clip.none,
                     children: [
-                      Container(
-                        width: 66,
-                        height: 66,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.pinkAccent.withOpacity(0.2),
-                        ),
-                      ),
-                      Container(
-                        width: 54,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border:
-                              Border.all(color: Colors.pinkAccent, width: 2),
-                          boxShadow: const [
-                            BoxShadow(
-                                color: Colors.black38,
-                                blurRadius: 6,
-                                offset: Offset(0, 3)),
+                      // Floating Bubble (re-opens room)
+                      GestureDetector(
+                        onTap: () {
+                          hidePipBubble();
+                          final currentUid = UserProfileCacheManager.currentUserId;
+                          final currentUsername =
+                              UserProfileCacheManager.currentUser?.username ??
+                                  'anurag_kumar';
+                          Get.to(
+                            () => VoiceRoomCallScreen(
+                              roomId: roomId,
+                              roomName: roomName,
+                              userId: currentUid,
+                              userName: currentUsername,
+                              isHost: isHostChecker(roomId),
+                            ),
+                          );
+                        },
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 66,
+                              height: 66,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.pinkAccent.withOpacity(0.2),
+                              ),
+                            ),
+                            Container(
+                              width: 54,
+                              height: 54,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.pinkAccent, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(
+                                      color: Colors.black38,
+                                      blurRadius: 6,
+                                      offset: Offset(0, 3)),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(27),
+                                child: OptimizedImage(
+                                  imageUrl: avatarUrl.isNotEmpty
+                                      ? avatarUrl
+                                      : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
+                                  preset: MediaSizePreset.xs,
+                                  fit: BoxFit.cover,
+                                  errorWidget: Container(
+                                    color: Colors.pinkAccent,
+                                    child: const Icon(Icons.music_note,
+                                        color: Colors.white, size: 24),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: 2,
+                              bottom: 2,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.green,
+                                  border:
+                                      Border.all(color: Colors.black87, width: 1.5),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: -2,
+                              top: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                  color: Colors.pinkAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.mic,
+                                    color: Colors.white, size: 10),
+                              ),
+                            ),
                           ],
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(27),
-                          child: OptimizedImage(
-                            imageUrl: avatarUrl.isNotEmpty
-                                ? avatarUrl
-                                : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
-                            preset: MediaSizePreset.xs,
-                            fit: BoxFit.cover,
-                            errorWidget: Container(
-                              color: Colors.pinkAccent,
-                              child: const Icon(Icons.music_note,
-                                  color: Colors.white, size: 24),
+                      ),
+                      // Small 'X' exit button at top right of floating room bubble
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: GestureDetector(
+                          onTap: () {
+                            hidePipBubble();
+                            try {
+                              RoomVoiceManager().leaveRoom();
+                              if (Get.isRegistered<RoomController>()) {
+                                RoomController.to.exitRoom(roomId);
+                              }
+                            } catch (e) {
+                              debugPrint('Error leaving room via PiP close: $e');
+                            }
+                            MainNavigationController.to.navigateToArena();
+                          },
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF2D55),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 1.5),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black45,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                              size: 13,
                             ),
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        right: 2,
-                        bottom: 2,
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.green,
-                            border:
-                                Border.all(color: Colors.black87, width: 1.5),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: -2,
-                        top: -2,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: Colors.pinkAccent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.mic, color: Colors.white, size: 10),
                         ),
                       ),
                     ],

@@ -27,6 +27,7 @@ import '../../services/gifting/gift_overlay_manager.dart';
 import '../../services/gifting/quick_repeat_controller.dart';
 import '../../widgets/gifting/quick_repeat_button_widget.dart';
 import '../../services/room/room_dual_progress_controller.dart';
+import '../../services/navigation/main_navigation_controller.dart';
 import '../../services/room/room_permission_controller.dart';
 
 // Extracted Sub-Modules
@@ -559,7 +560,9 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       return;
     }
 
-    if (seat != null && seat['userId'] != null && seat['userId'] != widget.userId) {
+    if (seat != null &&
+        seat['userId'] != null &&
+        seat['userId'] != widget.userId) {
       RoomCenterNotificationOverlay.show(
         context,
         title: 'Seat Occupied 🪑',
@@ -639,7 +642,7 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       try {
         RoomVoiceManager().leaveRoom();
         _controller.exitRoom(widget.roomId);
-        Get.back();
+        MainNavigationController.to.navigateToArena();
       } catch (e) {
         Get.snackbar('Error', 'Failed to leave arena',
             snackPosition: SnackPosition.BOTTOM);
@@ -1065,161 +1068,166 @@ class _VoiceRoomCallScreenState extends State<VoiceRoomCallScreen>
       // Layer 4: Interactive Floating Room UI (Header, Seats, Panels, Chat, Controls)
       layer4FloatingUI: RoomCenterNotificationOverlay.wrap(
         child: Stack(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: bottomInset),
-              child: Column(
-                children: [
-                  Obx(() {
-                    final liveRoom = _controller.rooms
-                            .firstWhereOrNull((r) => r.id == widget.roomId) ??
-                        VoiceRoom.dummy();
-                    return RoomCallHeader(
-                      roomId: widget.roomId,
-                      roomName: widget.roomName,
-                      room: liveRoom,
-                      userId: widget.userId,
-                      getUserDp: _getUserDp,
-                      onLeaveRoom: _leaveRoom,
-                      onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
-                    );
-                  }),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        // StarMaker-style Smooth Upward Collapse/Expand Animation for Seats Stage & Panels
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 320),
-                          curve: Curves.fastOutSlowIn,
-                          alignment: Alignment.topCenter,
-                          child: ClipRect(
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 280),
-                              curve: Curves.easeInOut,
-                              opacity: isChatFocused ? 0.0 : 1.0,
-                              child: isChatFocused
-                                  ? const SizedBox(width: double.infinity, height: 0)
-                                  : Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const SizedBox(height: 8),
-                                        RoomCallSeatGrid(
-                                          roomId: widget.roomId,
-                                          seatKeys: _seatKeys,
-                                          onSeatClick: _handleSeatClick,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Obx(() {
-                                          final liveRoom = _controller.rooms
-                                                  .firstWhereOrNull(
-                                                      (r) => r.id == widget.roomId) ??
-                                              VoiceRoom.dummy();
-                                          return RoomCallSpecialPanels(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: bottomInset),
+                child: Column(
+                  children: [
+                    Obx(() {
+                      final liveRoom = _controller.rooms
+                              .firstWhereOrNull((r) => r.id == widget.roomId) ??
+                          VoiceRoom.dummy();
+                      return RoomCallHeader(
+                        roomId: widget.roomId,
+                        roomName: widget.roomName,
+                        room: liveRoom,
+                        userId: widget.userId,
+                        getUserDp: _getUserDp,
+                        onLeaveRoom: _leaveRoom,
+                        onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
+                      );
+                    }),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          // StarMaker-style Smooth Upward Collapse/Expand Animation for Seats Stage & Panels
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 320),
+                            curve: Curves.fastOutSlowIn,
+                            alignment: Alignment.topCenter,
+                            child: ClipRect(
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 280),
+                                curve: Curves.easeInOut,
+                                opacity: isChatFocused ? 0.0 : 1.0,
+                                child: isChatFocused
+                                    ? const SizedBox(
+                                        width: double.infinity, height: 0)
+                                    : Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const SizedBox(height: 8),
+                                          RoomCallSeatGrid(
                                             roomId: widget.roomId,
-                                            room: liveRoom,
-                                            userId: widget.userId,
-                                            userName: widget.userName,
-                                            debateRound: _debateRound,
-                                            debateTimerSeconds: _debateTimerSeconds,
-                                            isDebateTimerRunning:
-                                                _isDebateTimerRunning,
-                                            scoreCandidateA: _scoreCandidateA,
-                                            scoreCandidateB: _scoreCandidateB,
-                                            debateTimer: _debateTimer,
-                                            quizVotes: _quizVotes,
-                                            quizSelectedOption:
-                                                _quizSelectedOption,
-                                            quizVoted: _quizVoted,
-                                            songQueue: _songQueue,
-                                            pollVotes: _pollVotes,
-                                            pollSelectedOption:
-                                                _pollSelectedOption,
-                                            pollVoted: _pollVoted,
-                                            seats: _seats,
-                                            glowController: _glowController,
-                                            getUserDp: _getUserDp,
-                                            onJoinSeat: _joinSeat,
-                                            onShowLeaveSeatMenu: (idx) =>
-                                                SeatActionSheets.showSelfSeatActions(
-                                              context: context,
+                                            seatKeys: _seatKeys,
+                                            onSeatClick: _handleSeatClick,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Obx(() {
+                                            final liveRoom = _controller.rooms
+                                                    .firstWhereOrNull((r) =>
+                                                        r.id ==
+                                                        widget.roomId) ??
+                                                VoiceRoom.dummy();
+                                            return RoomCallSpecialPanels(
                                               roomId: widget.roomId,
-                                              seatIndex: idx,
-                                              isMicOn: _isMicOn.value,
-                                              onToggleMic: _toggleMic,
-                                              onLeaveSeat: _leaveSeat,
+                                              room: liveRoom,
+                                              userId: widget.userId,
+                                              userName: widget.userName,
+                                              debateRound: _debateRound,
+                                              debateTimerSeconds:
+                                                  _debateTimerSeconds,
+                                              isDebateTimerRunning:
+                                                  _isDebateTimerRunning,
+                                              scoreCandidateA: _scoreCandidateA,
+                                              scoreCandidateB: _scoreCandidateB,
+                                              debateTimer: _debateTimer,
+                                              quizVotes: _quizVotes,
+                                              quizSelectedOption:
+                                                  _quizSelectedOption,
+                                              quizVoted: _quizVoted,
+                                              songQueue: _songQueue,
+                                              pollVotes: _pollVotes,
+                                              pollSelectedOption:
+                                                  _pollSelectedOption,
+                                              pollVoted: _pollVoted,
                                               seats: _seats,
-                                            ),
-                                            onShowMiniProfileDialog:
-                                                _showMiniProfileDialog,
-                                          );
-                                        }),
-                                      ],
-                                    ),
+                                              glowController: _glowController,
+                                              getUserDp: _getUserDp,
+                                              onJoinSeat: _joinSeat,
+                                              onShowLeaveSeatMenu: (idx) =>
+                                                  SeatActionSheets
+                                                      .showSelfSeatActions(
+                                                context: context,
+                                                roomId: widget.roomId,
+                                                seatIndex: idx,
+                                                isMicOn: _isMicOn.value,
+                                                onToggleMic: _toggleMic,
+                                                onLeaveSeat: _leaveSeat,
+                                                seats: _seats,
+                                              ),
+                                              onShowMiniProfileDialog:
+                                                  _showMiniProfileDialog,
+                                            );
+                                          }),
+                                        ],
+                                      ),
+                              ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: RoomCallChatBox(
-                            roomId: widget.roomId,
-                            chatScrollController: _chatScrollController,
-                            getUserDp: _getUserDp,
+                          Expanded(
+                            child: RoomCallChatBox(
+                              roomId: widget.roomId,
+                              chatScrollController: _chatScrollController,
+                              getUserDp: _getUserDp,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Obx(() {
-                    final _ = _controller.roomSeatsInfo[widget.roomId]?.length;
-                    return RoomCallBottomControls(
-                      roomId: widget.roomId,
-                      chatInputController: _chatInputController,
-                      chatInputFocusNode: _chatInputFocusNode,
-                      isMicOn: _isMicOn,
-                      isCurrentUserOnSeat: _isCurrentUserOnSeat(),
-                      onToggleMic: _toggleMic,
-                      onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
-                      onTriggerReaction: () => _triggerReaction('❤️'),
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: bottomInset + 96,
-            right: 14,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 200),
-              opacity: isChatFocused ? 0.0 : 1.0,
-              child: IgnorePointer(
-                ignoring: isChatFocused,
-                child: QuickRepeatButtonWidget(
-                  roomId: widget.roomId,
-                  currentUserId: widget.userId,
+                    Obx(() {
+                      final _ =
+                          _controller.roomSeatsInfo[widget.roomId]?.length;
+                      return RoomCallBottomControls(
+                        roomId: widget.roomId,
+                        chatInputController: _chatInputController,
+                        chatInputFocusNode: _chatInputFocusNode,
+                        isMicOn: _isMicOn,
+                        isCurrentUserOnSeat: _isCurrentUserOnSeat(),
+                        onToggleMic: _toggleMic,
+                        onShowRoomOptionsMenuSheet: _showRoomOptionsMenuSheet,
+                        onTriggerReaction: () => _triggerReaction('❤️'),
+                      );
+                    }),
+                  ],
                 ),
               ),
             ),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Obx(() {
-                final list = _reactions.toList();
-                return Stack(
-                  children: list.map((r) {
-                    return FloatingEmojiItem(
-                      key: r.key,
-                      reaction: r,
-                    );
-                  }).toList(),
-                );
-              }),
+            Positioned(
+              bottom: bottomInset + 96,
+              right: 14,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: isChatFocused ? 0.0 : 1.0,
+                child: IgnorePointer(
+                  ignoring: isChatFocused,
+                  child: QuickRepeatButtonWidget(
+                    roomId: widget.roomId,
+                    currentUserId: widget.userId,
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Obx(() {
+                  final list = _reactions.toList();
+                  return Stack(
+                    children: list.map((r) {
+                      return FloatingEmojiItem(
+                        key: r.key,
+                        reaction: r,
+                      );
+                    }).toList(),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
 
       // Layer 5: Dedicated Stable Gift Layer (STABLE KEY - Never destroyed on parent rebuilds)
       layer5Gifts: GiftingAnimationOverlay(

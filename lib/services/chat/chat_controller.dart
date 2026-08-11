@@ -552,6 +552,42 @@ class ChatController extends GetxController {
     );
   }
 
+  Future<bool> sendRoomInvitation({
+    required String targetUserId,
+    required String roomId,
+    required String roomTitle,
+    required String hostName,
+    String? roomCover,
+  }) async {
+    if (targetUserId.isEmpty || roomId.isEmpty) return false;
+
+    final String convId = getDeterministicConversationId(currentUserId, targetUserId);
+    final String textContent = '🎙️ Room Invite: $roomTitle';
+
+    sendMessage(
+      convId,
+      textContent,
+      type: MessageType.roomInvite,
+      locationName: roomTitle,
+      contactName: hostName,
+      contactPhone: roomId,
+      mediaUrl: roomCover,
+    );
+
+    // Call Supabase RPC in background for audit & rate-limiting log
+    try {
+      Supabase.instance.client.rpc('send_room_invitation', params: {
+        'p_room_id': roomId,
+        'p_receiver_id': targetUserId,
+        'p_room_title': roomTitle,
+        'p_host_name': hostName,
+        'p_room_cover': roomCover ?? '',
+      }).then((_) {}).catchError((_) {});
+    } catch (_) {}
+
+    return true;
+  }
+
   void sendMessage(
     String conversationId,
     String content, {

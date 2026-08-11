@@ -17,6 +17,12 @@ import '../../widgets/chat/message_limit_dialog.dart';
 import '../../widgets/chat/voice_message_player_widget.dart';
 import '../../widgets/gifting/send_gift_dialog.dart';
 import '../../widgets/chat/chat_media_attachment_widget.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../../models/room/room_model.dart';
+import '../../services/room/room_controller.dart';
+import '../rooms/voice_room_call_screen.dart';
+import '../../services/room/room_entry_permission_engine.dart';
+import '../../services/room/room_pip_controller.dart';
 
 class ChatScreen extends StatefulWidget {
   final Conversation conversation;
@@ -534,9 +540,11 @@ class _ChatScreenState extends State<ChatScreen>
             borderRadius: BorderRadius.circular(16),
             child: msg.type == MessageType.gift
                 ? _buildStitchGiftMessageCard(msg, isMe)
-                : msg.type == MessageType.document || msg.type == MessageType.file
-                    ? _buildStitchDocumentCard(msg, isMe)
-                    : _buildStitchStandardBubble(msg, isMe),
+                : msg.type == MessageType.roomInvite
+                    ? _buildStitchRoomInviteCard(msg, isMe)
+                    : msg.type == MessageType.document || msg.type == MessageType.file
+                        ? _buildStitchDocumentCard(msg, isMe)
+                        : _buildStitchStandardBubble(msg, isMe),
           ),
         ),
       ),
@@ -814,6 +822,205 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
+  Widget _buildStitchRoomInviteCard(ChatMessage msg, bool isMe) {
+    final roomId = msg.inviteRoomId;
+    final roomTitle = msg.inviteRoomTitle;
+    final hostName = msg.inviteHostName;
+
+    return Container(
+      width: 250,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isMe ? const Color(0xFF1E293B) : const Color(0xFF121927),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.cyanAccent.withOpacity(0.4),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyanAccent.withOpacity(0.12),
+            blurRadius: 10,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Colors.cyanAccent,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.mic_rounded, color: Colors.black, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Join Arena',
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Room: $roomTitle',
+            style: GoogleFonts.poppins(
+              color: Colors.cyanAccent,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Host: $hostName',
+            style: GoogleFonts.poppins(
+              color: Colors.white70,
+              fontSize: 12,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: ElevatedButton(
+              onPressed: () => _handleJoinRoomFromInvite(roomId, roomTitle),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyanAccent,
+                foregroundColor: Colors.black,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Join Room',
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                DateFormat('h:mm a').format(msg.timestamp),
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  color: Colors.white38,
+                ),
+              ),
+              if (isMe) ...[
+                const SizedBox(width: 4),
+                _buildDeliveryStatusTick(msg.status, isMe: true),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleJoinRoomFromInvite(String roomId, String roomTitle) async {
+    if (roomId.isEmpty) {
+      Get.snackbar('Unavailable', 'Room has ended or is unavailable.',
+          backgroundColor: Colors.redAccent, colorText: Colors.white);
+      return;
+    }
+
+    HapticFeedback.mediumImpact();
+
+    bool isLive = false;
+    VoiceRoom? roomObj;
+
+    if (Get.isRegistered<RoomController>()) {
+      final roomCtrl = Get.find<RoomController>();
+      roomObj = roomCtrl.rooms.firstWhereOrNull((r) => r.id == roomId);
+      if (roomObj != null && roomObj.isLive) {
+        isLive = true;
+      }
+    }
+
+    if (!isLive) {
+      try {
+        final res = await Supabase.instance.client.rpc('validate_room_invite_status', params: {'p_room_id': roomId});
+        if (res != null && res is Map && res['is_live'] == true) {
+          isLive = true;
+        }
+      } catch (_) {}
+    }
+
+    if (!isLive && roomObj == null) {
+      Get.snackbar(
+        'Room Closed',
+        'Room has ended or is unavailable.',
+        backgroundColor: Colors.redAccent.withOpacity(0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    final targetRoom = roomObj ?? VoiceRoom.dummy(roomId);
+
+    // Enforce room entry permission engine: password prompts if locked, VIP/role checks, etc.
+    RoomEntryPermissionEngine.validateAndJoin(context, targetRoom);
+  }
+
+  void _handleShareCurrentRoomInChat() {
+    VoiceRoom? activeRoom;
+    if (Get.isRegistered<RoomController>()) {
+      final roomCtrl = Get.find<RoomController>();
+      final activeId = roomCtrl.activeRoomId;
+      if (activeId != null && activeId.isNotEmpty) {
+        activeRoom = roomCtrl.rooms.firstWhereOrNull((r) => r.id == activeId);
+      }
+    }
+
+    if (activeRoom == null || !activeRoom.isLive) {
+      Get.snackbar(
+        'No Active Room',
+        'You are not currently in a room. Join or host a room first!',
+        backgroundColor: AppTheme.bgLight,
+        colorText: AppTheme.textPrimary,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    _sendMessage(
+      text: '🎙️ Room Invite: ${activeRoom.name}',
+      type: MessageType.roomInvite,
+      locationName: activeRoom.name,
+      contactName: activeRoom.ownerName,
+      contactPhone: activeRoom.id,
+      mediaUrl: activeRoom.avatar,
+    );
+
+    Get.snackbar(
+      'Room Shared',
+      'Room invitation sent to this chat',
+      backgroundColor: const Color(0xFF006D2F),
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+    );
+  }
+
   Widget _buildDeliveryStatusTick(MessageStatus status, {bool isMe = false}) {
     final color = isMe ? const Color(0xFF004018) : const Color(0xFF006D2F);
     switch (status) {
@@ -1076,6 +1283,7 @@ class _ChatScreenState extends State<ChatScreen>
 
   Widget _buildAttachmentMenuPanel() {
     final items = [
+      {'name': 'Share Room', 'icon': Icons.podcasts_rounded, 'color': Colors.deepOrange, 'type': 'room_share'},
       {'name': 'Gift', 'icon': Icons.card_giftcard_rounded, 'color': const Color(0xFF006D2F), 'type': 'gift'},
       {'name': 'Document', 'icon': Icons.description_rounded, 'color': Colors.blue, 'type': 'document'},
       {'name': 'Camera', 'icon': Icons.camera_alt_rounded, 'color': Colors.red, 'type': 'camera'},
@@ -1097,7 +1305,9 @@ class _ChatScreenState extends State<ChatScreen>
             onTap: () {
               _showAttachmentPanel.value = false;
               final typeKey = item['type'] as String;
-              if (typeKey == 'gift') {
+              if (typeKey == 'room_share') {
+                _handleShareCurrentRoomInChat();
+              } else if (typeKey == 'gift') {
                 _openGiftDialog();
               } else if (typeKey == 'document') {
                 _sendMessage(

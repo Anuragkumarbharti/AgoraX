@@ -15,6 +15,7 @@ import '../../models/room/room_model.dart';
 import '../../models/user/user_model.dart';
 import '../../widgets/profile/custom_avatar_frame.dart';
 import '../rooms/voice_room_call_screen.dart';
+import '../../services/room/room_pip_controller.dart';
 import '../profile/profile_screen.dart';
 import './chat_screen.dart';
 import './new_chat_screen.dart';
@@ -31,12 +32,11 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late final ChatController _ctrl;
   final TextEditingController _searchCtrl = TextEditingController();
-  
+
   // Animation controllers for premium looks
   late final AnimationController _entranceAnimCtrl;
   late final AnimationController _glowAnimCtrl;
   late final AnimationController _typingAnimCtrl;
-
 
   @override
   void initState() {
@@ -103,7 +103,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
       backgroundColor: AppTheme.bgDark,
       body: SafeArea(
         child: FadeTransition(
-          opacity: CurvedAnimation(parent: _entranceAnimCtrl, curve: Curves.easeIn),
+          opacity:
+              CurvedAnimation(parent: _entranceAnimCtrl, curve: Curves.easeIn),
           child: Column(
             children: [
               _buildHeader(),
@@ -116,7 +117,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Get.to(() => const NewChatScreen(), transition: Transition.rightToLeftWithFade),
+        onPressed: () => Get.to(() => const NewChatScreen(),
+            transition: Transition.rightToLeftWithFade),
         backgroundColor: AppTheme.primaryColor,
         elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -130,7 +132,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
       padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
       decoration: BoxDecoration(
         color: AppTheme.bgLight.withOpacity(0.4),
-        border: Border(bottom: BorderSide(color: AppTheme.borderColor.withOpacity(0.3))),
+        border: Border(
+            bottom: BorderSide(color: AppTheme.borderColor.withOpacity(0.3))),
       ),
       child: Row(
         children: [
@@ -147,7 +150,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
             onTap: () {
               HapticFeedback.lightImpact();
               Get.snackbar('Messages', 'Chat & presence synced.',
-                  backgroundColor: AppTheme.bgLight, colorText: AppTheme.textPrimary);
+                  backgroundColor: AppTheme.bgLight,
+                  colorText: AppTheme.textPrimary);
             },
             child: Container(
               width: 42,
@@ -155,12 +159,14 @@ class _ChatsListScreenState extends State<ChatsListScreen>
               decoration: BoxDecoration(
                 color: AppTheme.bgLight,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
+                border:
+                    Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  const Icon(Icons.chat_bubble_outline_rounded, color: AppTheme.textPrimary, size: 20),
+                  const Icon(Icons.chat_bubble_outline_rounded,
+                      color: AppTheme.textPrimary, size: 20),
                   Positioned(
                     top: 10,
                     right: 10,
@@ -190,11 +196,11 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor.withOpacity(0.4)),
       ),
-
       child: Row(
         children: [
           const SizedBox(width: 14),
-          const Icon(Icons.search_rounded, color: AppTheme.textTertiary, size: 20),
+          const Icon(Icons.search_rounded,
+              color: AppTheme.textTertiary, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
@@ -202,7 +208,9 @@ class _ChatsListScreenState extends State<ChatsListScreen>
               style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Search conversations...',
-                hintStyle: TextStyle(color: AppTheme.textTertiary.withOpacity(0.8), fontSize: 14),
+                hintStyle: TextStyle(
+                    color: AppTheme.textTertiary.withOpacity(0.8),
+                    fontSize: 14),
                 border: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -215,7 +223,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
           ),
           if (_searchCtrl.text.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.close, size: 16, color: AppTheme.textTertiary),
+              icon: const Icon(Icons.close,
+                  size: 16, color: AppTheme.textTertiary),
               onPressed: () {
                 _searchCtrl.clear();
                 _ctrl.searchQuery.value = '';
@@ -228,22 +237,25 @@ class _ChatsListScreenState extends State<ChatsListScreen>
 
   List<LiveArenaUser> _getLiveArenaUsers() {
     final List<LiveArenaUser> list = [];
-    
+
     if (!Get.isRegistered<RoomController>()) {
       return list;
     }
-    
+
     final roomCtrl = Get.find<RoomController>();
     for (final room in roomCtrl.rooms) {
       if (!room.isLive) continue;
-      
+
       final hostId = room.hostId;
-      final isMutual = UserProfileCacheManager.connectionStatuses[hostId] == 'mutual' ||
-          (UserProfileCacheManager.followerUserIds.contains(hostId) &&
-              UserProfileCacheManager.followedUserIds.contains(hostId));
-      final isFollowing = UserProfileCacheManager.followedUserIds.contains(hostId) ||
-          roomCtrl.favoriteRoomIds.contains(room.id);
-      final isVerified = UserProfileCacheManager.getCachedUser(hostId)?.isVerified ?? false;
+      final isMutual =
+          UserProfileCacheManager.connectionStatuses[hostId] == 'mutual' ||
+              (UserProfileCacheManager.followerUserIds.contains(hostId) &&
+                  UserProfileCacheManager.followedUserIds.contains(hostId));
+      final isFollowing =
+          UserProfileCacheManager.followedUserIds.contains(hostId) ||
+              roomCtrl.favoriteRoomIds.contains(room.id);
+      final isVerified =
+          UserProfileCacheManager.getCachedUser(hostId)?.isVerified ?? false;
 
       // 5-Tier Priority Rank: 1 = Friend (Mutual), 2 = Following, 3 = Verified, 4 = Others
       int priority = 4;
@@ -258,13 +270,18 @@ class _ChatsListScreenState extends State<ChatsListScreen>
       list.add(LiveArenaUser(
         userId: hostId,
         username: room.ownerName,
-        avatar: room.avatar ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-        avatarFrame: room.roomTheme.toLowerCase().contains('gold') ? 'Golden Frame' : 'Normal',
-        vipBadge: (UserProfileCacheManager.getCachedUser(hostId)?.vipLevel != null &&
+        avatar: room.avatar ??
+            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+        avatarFrame: room.roomTheme.toLowerCase().contains('gold')
+            ? 'Golden Frame'
+            : 'Normal',
+        vipBadge: (UserProfileCacheManager.getCachedUser(hostId)?.vipLevel !=
+                    null &&
                 UserProfileCacheManager.getCachedUser(hostId)!.vipLevel > 0)
             ? 'VIP ${UserProfileCacheManager.getCachedUser(hostId)!.vipLevel}'
             : null,
-        isSpeaking: room.speakerIds.contains(hostId) || room.hostIds.contains(hostId),
+        isSpeaking:
+            room.speakerIds.contains(hostId) || room.hostIds.contains(hostId),
         roomId: room.id,
         room: room,
         isFollowed: isFollowing,
@@ -273,20 +290,19 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         priorityRank: priority,
       ));
     }
-    
+
     // Sort by Priority Rank
     list.sort((a, b) => a.priorityRank.compareTo(b.priorityRank));
     return list;
   }
 
-
   void _joinArena(VoiceRoom room) {
     if (room.entryPermission != 'everyone') {
       final currentUid = UserProfileCacheManager.currentUserId;
       final allowed = room.coOwnerIds.contains(currentUid) ||
-                      room.adminIds.contains(currentUid) ||
-                      room.moderatorIds.contains(currentUid) ||
-                      room.hostId == currentUid;
+          room.adminIds.contains(currentUid) ||
+          room.moderatorIds.contains(currentUid) ||
+          room.hostId == currentUid;
       if (!allowed) {
         Get.snackbar(
           'Private Arena',
@@ -297,10 +313,11 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         return;
       }
     }
-    
+
     final currentUid = UserProfileCacheManager.currentUserId;
-    final currentUsername = UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student';
-    
+    final currentUsername =
+        UserProfileCacheManager.currentUser?.username ?? 'Creaniaa Student';
+
     // Record visit in recents
     if (Get.isRegistered<RoomController>()) {
       Get.find<RoomController>().addRecentRoom(room.id);
@@ -311,7 +328,9 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         roomId: room.id,
         roomName: room.name,
         userId: currentUid.isNotEmpty ? currentUid : 'uid_anurag_101',
-        userName: currentUsername != 'Creaniaa Student' ? currentUsername : 'anurag_kumar',
+        userName: currentUsername != 'Creaniaa Student'
+            ? currentUsername
+            : 'anurag_kumar',
         isHost: room.hostId == currentUid,
       ),
     );
@@ -320,7 +339,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   Widget _buildLiveInArenaSection() {
     return Obx(() {
       final liveUsers = _getLiveArenaUsers();
-      
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -362,9 +381,12 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                     height: 50,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.4), width: 1.5),
+                      border: Border.all(
+                          color: AppTheme.primaryColor.withOpacity(0.4),
+                          width: 1.5),
                       image: const DecorationImage(
-                        image: NetworkImage('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'),
+                        image: NetworkImage(
+                            'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'),
                         fit: BoxFit.cover,
                       ),
                       boxShadow: [
@@ -400,7 +422,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                 children: [
                   // 1. Party Broadcast (Always First, Circular Icon)
                   _buildPartyBroadcastItem(),
-                  
+
                   // 2. Real Live Arena Users
                   ...liveUsers.map((user) => _buildArenaUserAvatar(user)),
                 ],
@@ -426,12 +448,14 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppTheme.primaryColor.withOpacity(0.3 + 0.7 * _glowAnimCtrl.value),
+                    color: AppTheme.primaryColor
+                        .withOpacity(0.3 + 0.7 * _glowAnimCtrl.value),
                     width: 2.0,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.25 * _glowAnimCtrl.value),
+                      color: AppTheme.primaryColor
+                          .withOpacity(0.25 * _glowAnimCtrl.value),
                       blurRadius: 8,
                       spreadRadius: 2,
                     )
@@ -444,7 +468,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                     color: AppTheme.primaryColor,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 24),
+                  child: const Icon(Icons.volume_up_rounded,
+                      color: Colors.white, size: 24),
                 ),
               );
             },
@@ -494,15 +519,19 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: user.isSpeaking
-                              ? AppTheme.accentColor.withOpacity(0.3 + 0.7 * _glowAnimCtrl.value)
-                              : borderColor.withOpacity(0.4 + 0.6 * _glowAnimCtrl.value),
+                              ? AppTheme.accentColor
+                                  .withOpacity(0.3 + 0.7 * _glowAnimCtrl.value)
+                              : borderColor
+                                  .withOpacity(0.4 + 0.6 * _glowAnimCtrl.value),
                           width: 2.2,
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: user.isSpeaking
-                                ? AppTheme.accentColor.withOpacity(0.3 * _glowAnimCtrl.value)
-                                : borderColor.withOpacity(0.25 * _glowAnimCtrl.value),
+                                ? AppTheme.accentColor
+                                    .withOpacity(0.3 * _glowAnimCtrl.value)
+                                : borderColor
+                                    .withOpacity(0.25 * _glowAnimCtrl.value),
                             blurRadius: 6,
                           ),
                         ],
@@ -547,7 +576,6 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     );
   }
 
-
   Widget _buildConversationList() {
     return Obx(() {
       if (_ctrl.isLoading.value && _ctrl.conversations.isEmpty) {
@@ -569,11 +597,14 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.chat_bubble_outline_rounded, size: 48, color: AppTheme.textTertiary.withOpacity(0.5)),
+                      Icon(Icons.chat_bubble_outline_rounded,
+                          size: 48,
+                          color: AppTheme.textTertiary.withOpacity(0.5)),
                       const SizedBox(height: 12),
                       Text(
                         'No conversations found',
-                        style: GoogleFonts.outfit(color: AppTheme.textTertiary, fontSize: 15),
+                        style: GoogleFonts.outfit(
+                            color: AppTheme.textTertiary, fontSize: 15),
                       ),
                     ],
                   ),
@@ -609,7 +640,9 @@ class _ChatsListScreenState extends State<ChatsListScreen>
           children: [
             Icon(Icons.mark_chat_read_rounded, color: Colors.white),
             SizedBox(width: 10),
-            Text('Mark Read', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('Mark Read',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -620,7 +653,9 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('Delete',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
             SizedBox(width: 10),
             Icon(Icons.delete_outline_rounded, color: Colors.white),
           ],
@@ -630,8 +665,10 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         if (direction == DismissDirection.startToEnd) {
           // Swipe Right: Mark Read / Pin Option
           _ctrl.markConversationRead(conv.id);
-          Get.snackbar('Conversation Updated', '${conv.otherUserName} marked read',
-              snackPosition: SnackPosition.BOTTOM, backgroundColor: AppTheme.bgLight);
+          Get.snackbar(
+              'Conversation Updated', '${conv.otherUserName} marked read',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: AppTheme.bgLight);
           return false; // Don't remove from list
         } else {
           // Swipe Left: Archive / Delete Options
@@ -640,11 +677,14 @@ class _ChatsListScreenState extends State<ChatsListScreen>
             AlertDialog(
               backgroundColor: AppTheme.bgLight,
               title: const Text('Delete Chat?'),
-              content: Text('Do you want to delete this chat with ${conv.otherUserName}?'),
+              content: Text(
+                  'Do you want to delete this chat with ${conv.otherUserName}?'),
               actions: [
-                TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+                TextButton(
+                    onPressed: () => Get.back(), child: const Text('Cancel')),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.errorColor),
                   onPressed: () {
                     delete = true;
                     Get.back();
@@ -668,7 +708,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
     return Obx(() {
       final isTyping = Get.find<ChatController>().typingState[conv.id] ?? false;
       final currentUid = UserProfileCacheManager.currentUserId;
-      final isMe = conv.lastMessageSenderId == currentUid || conv.lastMessageSenderId == 'me';
+      final isMe = conv.lastMessageSenderId == currentUid ||
+          conv.lastMessageSenderId == 'me';
 
       return InkWell(
         onTap: () => _openChat(conv),
@@ -676,17 +717,18 @@ class _ChatsListScreenState extends State<ChatsListScreen>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
-
             children: [
               // Avatar with frame and online indicator
               GestureDetector(
                 onTap: () => Get.to(() => ProfileScreen(
-                      visitorUser: UserProfileCacheManager.getCachedUser(conv.otherUserId) ?? User.fromJson({
-                        'id': conv.otherUserId,
-                        'username': conv.otherUserName,
-                        'displayName': conv.otherUserName,
-                        'avatar_url': conv.otherUserAvatar,
-                      }),
+                      visitorUser: UserProfileCacheManager.getCachedUser(
+                              conv.otherUserId) ??
+                          User.fromJson({
+                            'id': conv.otherUserId,
+                            'username': conv.otherUserName,
+                            'displayName': conv.otherUserName,
+                            'avatar_url': conv.otherUserAvatar,
+                          }),
                     )),
                 child: Stack(
                   children: [
@@ -695,10 +737,13 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                       username: conv.otherUserName,
                       size: 52,
                       child: OptimizedImage(
-                        imageUrl: UserProfileCacheManager.rxCache[conv.otherUserId]?.avatar ?? conv.otherUserAvatar,
+                        imageUrl: UserProfileCacheManager
+                                .rxCache[conv.otherUserId]?.avatar ??
+                            conv.otherUserAvatar,
                         preset: MediaSizePreset.xs,
                         fit: BoxFit.cover,
-                        errorWidget: const Icon(Icons.person, color: Colors.white30),
+                        errorWidget:
+                            const Icon(Icons.person, color: Colors.white30),
                       ),
                     ),
                     if (conv.otherUserOnline)
@@ -711,7 +756,8 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                           decoration: BoxDecoration(
                             color: AppTheme.successColor,
                             shape: BoxShape.circle,
-                            border: Border.all(color: AppTheme.bgDark, width: 2),
+                            border:
+                                Border.all(color: AppTheme.bgDark, width: 2),
                           ),
                         ),
                       ),
@@ -723,14 +769,18 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                         right: 0,
                         child: Center(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1),
                             decoration: BoxDecoration(
                               color: AppTheme.primaryColor,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'ARENA',
-                              style: TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 6,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
@@ -748,52 +798,75 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                       children: [
                         GestureDetector(
                           onTap: () => Get.to(() => ProfileScreen(
-                                visitorUser: UserProfileCacheManager.rxCache[conv.otherUserId] ?? User.fromJson({
-                                  'id': conv.otherUserId,
-                                  'username': conv.otherUserName,
-                                  'displayName': conv.otherUserName,
-                                  'avatar_url': conv.otherUserAvatar,
-                                }),
+                                visitorUser: UserProfileCacheManager
+                                        .rxCache[conv.otherUserId] ??
+                                    User.fromJson({
+                                      'id': conv.otherUserId,
+                                      'username': conv.otherUserName,
+                                      'displayName': conv.otherUserName,
+                                      'avatar_url': conv.otherUserAvatar,
+                                    }),
                               )),
                           child: Text(
-                            UserProfileCacheManager.rxCache[conv.otherUserId]?.displayName ?? conv.otherUserName,
+                            UserProfileCacheManager
+                                    .rxCache[conv.otherUserId]?.displayName ??
+                                conv.otherUserName,
                             style: GoogleFonts.outfit(
                               color: AppTheme.textPrimary,
-                              fontWeight: conv.unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
+                              fontWeight: conv.unreadCount > 0
+                                  ? FontWeight.bold
+                                  : FontWeight.w600,
                               fontSize: 15,
                             ),
                           ),
                         ),
                         if (conv.isVerified) ...[
                           const SizedBox(width: 4),
-                          const Icon(Icons.verified_rounded, color: Color(0xFF60A5FA), size: 14),
+                          const Icon(Icons.verified_rounded,
+                              color: Color(0xFF60A5FA), size: 14),
                         ],
-                        if (UserProfileCacheManager.rxCache[conv.otherUserId]?.vipLevel != null && UserProfileCacheManager.rxCache[conv.otherUserId]!.vipLevel > 0) ...[
+                        if (UserProfileCacheManager
+                                    .rxCache[conv.otherUserId]?.vipLevel !=
+                                null &&
+                            UserProfileCacheManager
+                                    .rxCache[conv.otherUserId]!.vipLevel >
+                                0) ...[
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1),
                             decoration: BoxDecoration(
                               color: AppTheme.accentColor.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: AppTheme.accentColor, width: 0.5),
+                              border: Border.all(
+                                  color: AppTheme.accentColor, width: 0.5),
                             ),
                             child: Text(
                               'VIP ${UserProfileCacheManager.rxCache[conv.otherUserId]!.vipLevel}',
-                              style: const TextStyle(color: AppTheme.accentColor, fontSize: 8, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  color: AppTheme.accentColor,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
                         if (conv.isMuted) ...[
                           const SizedBox(width: 4),
-                          Icon(Icons.volume_off_rounded, color: AppTheme.textTertiary.withOpacity(0.6), size: 14),
+                          Icon(Icons.volume_off_rounded,
+                              color: AppTheme.textTertiary.withOpacity(0.6),
+                              size: 14),
                         ],
                         const Spacer(),
                         Text(
                           _formatTime(conv.lastMessageTime),
                           style: GoogleFonts.outfit(
-                            color: conv.unreadCount > 0 ? AppTheme.accentColor : AppTheme.textTertiary,
+                            color: conv.unreadCount > 0
+                                ? AppTheme.accentColor
+                                : AppTheme.textTertiary,
                             fontSize: 11,
-                            fontWeight: conv.unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: conv.unreadCount > 0
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -803,7 +876,9 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                       children: [
                         // Status Ticks
                         if (isMe && !isTyping) ...[
-                          _buildDeliveryStatusIcon(conv.unreadCount == 0 ? MessageStatus.read : MessageStatus.sent),
+                          _buildDeliveryStatusIcon(conv.unreadCount == 0
+                              ? MessageStatus.read
+                              : MessageStatus.sent),
                           const SizedBox(width: 4),
                         ],
 
@@ -826,9 +901,13 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                               : Text(
                                   conv.lastMessage,
                                   style: GoogleFonts.outfit(
-                                    color: conv.unreadCount > 0 ? AppTheme.textPrimary : AppTheme.textTertiary,
+                                    color: conv.unreadCount > 0
+                                        ? AppTheme.textPrimary
+                                        : AppTheme.textTertiary,
                                     fontSize: 13,
-                                    fontWeight: conv.unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
+                                    fontWeight: conv.unreadCount > 0
+                                        ? FontWeight.w500
+                                        : FontWeight.normal,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -838,17 +917,23 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: const BoxDecoration(
-                              color: AppTheme.successColor, // Bright Green badge in reference images
+                              color: AppTheme
+                                  .successColor, // Bright Green badge in reference images
                               shape: BoxShape.circle,
                             ),
                             child: Text(
                               '${conv.unreadCount}',
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         if (conv.isPinned) ...[
                           const SizedBox(width: 6),
-                          Icon(Icons.push_pin_rounded, color: AppTheme.textTertiary.withOpacity(0.7), size: 12),
+                          Icon(Icons.push_pin_rounded,
+                              color: AppTheme.textTertiary.withOpacity(0.7),
+                              size: 12),
                         ],
                       ],
                     ),
@@ -865,13 +950,17 @@ class _ChatsListScreenState extends State<ChatsListScreen>
   Widget _buildDeliveryStatusIcon(MessageStatus status) {
     switch (status) {
       case MessageStatus.sending:
-        return const Icon(Icons.access_time_rounded, size: 14, color: AppTheme.textTertiary);
+        return const Icon(Icons.access_time_rounded,
+            size: 14, color: AppTheme.textTertiary);
       case MessageStatus.sent:
-        return const Icon(Icons.done_rounded, size: 14, color: AppTheme.textTertiary);
+        return const Icon(Icons.done_rounded,
+            size: 14, color: AppTheme.textTertiary);
       case MessageStatus.delivered:
-        return const Icon(Icons.done_all_rounded, size: 14, color: AppTheme.textTertiary);
+        return const Icon(Icons.done_all_rounded,
+            size: 14, color: AppTheme.textTertiary);
       case MessageStatus.read:
-        return const Icon(Icons.done_all_rounded, size: 14, color: Color(0xFF60A5FA));
+        return const Icon(Icons.done_all_rounded,
+            size: 14, color: Color(0xFF60A5FA));
     }
   }
 
@@ -888,7 +977,10 @@ class _ChatsListScreenState extends State<ChatsListScreen>
           width: 20,
           child: Text(
             dots,
-            style: const TextStyle(color: AppTheme.accentColor, fontSize: 14, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: AppTheme.accentColor,
+                fontSize: 14,
+                fontWeight: FontWeight.bold),
           ),
         );
       },
@@ -920,19 +1012,28 @@ class _ChatsListScreenState extends State<ChatsListScreen>
               width: 36,
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(color: AppTheme.borderColor, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(
+                  color: AppTheme.borderColor,
+                  borderRadius: BorderRadius.circular(2)),
             ),
             Row(
               children: [
-                CircleAvatar(radius: 22, backgroundImage: NetworkImage(conv.otherUserAvatar)),
+                CircleAvatar(
+                    radius: 22,
+                    backgroundImage: NetworkImage(conv.otherUserAvatar)),
                 const SizedBox(width: 12),
                 Text(conv.otherUserName,
-                    style: GoogleFonts.outfit(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                    style: GoogleFonts.outfit(
+                        color: AppTheme.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 20),
             _optionTile(
-              icon: conv.isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+              icon: conv.isPinned
+                  ? Icons.push_pin_rounded
+                  : Icons.push_pin_outlined,
               color: AppTheme.warningColor,
               label: conv.isPinned ? 'Unpin' : 'Pin Chat',
               onTap: () {
@@ -941,7 +1042,9 @@ class _ChatsListScreenState extends State<ChatsListScreen>
               },
             ),
             _optionTile(
-              icon: conv.isMuted ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+              icon: conv.isMuted
+                  ? Icons.volume_up_rounded
+                  : Icons.volume_off_rounded,
               color: AppTheme.textSecondary,
               label: conv.isMuted ? 'Unmute' : 'Mute',
               onTap: () {
@@ -958,18 +1061,23 @@ class _ChatsListScreenState extends State<ChatsListScreen>
                 Get.back();
               },
             ),
-
           ],
         ),
       ),
     );
   }
 
-  Widget _optionTile({required IconData icon, required Color color, required String label, required VoidCallback onTap}) {
+  Widget _optionTile(
+      {required IconData icon,
+      required Color color,
+      required String label,
+      required VoidCallback onTap}) {
     return ListTile(
       onTap: onTap,
       leading: Icon(icon, color: color),
-      title: Text(label, style: GoogleFonts.outfit(color: AppTheme.textPrimary, fontWeight: FontWeight.w500)),
+      title: Text(label,
+          style: GoogleFonts.outfit(
+              color: AppTheme.textPrimary, fontWeight: FontWeight.w500)),
     );
   }
 }
@@ -1003,7 +1111,6 @@ class LiveArenaUser {
     this.priorityRank = 4,
   });
 }
-
 
 // Simple copyWith extension for Conversation
 extension ConversationExtension on Conversation {

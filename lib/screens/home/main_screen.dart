@@ -7,6 +7,7 @@ import '../../services/vault/study_vault_controller.dart';
 import '../../services/user/user_progress_sync_service.dart';
 import '../../services/voice/room_voice_manager.dart';
 import '../../services/user/user_profile_cache_manager.dart';
+import '../../services/navigation/main_navigation_controller.dart';
 import './home_screen.dart';
 import '../explore/explore_screen.dart';
 import '../rooms/rooms_screen.dart';
@@ -14,18 +15,24 @@ import '../chat/chats_list_screen.dart';
 import '../profile/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  final int initialIndex;
+  const MainScreen({Key? key, this.initialIndex = 0}) : super(key: key);
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
+  late final MainNavigationController _navCtrl;
 
   @override
   void initState() {
     super.initState();
+    _navCtrl = MainNavigationController.to;
+    if (widget.initialIndex != 0) {
+      _navCtrl.selectedIndex.value = widget.initialIndex;
+    }
+
     // Register lazy controllers once here — never inside build()
     if (!Get.isRegistered<StudyVaultController>()) {
       Get.put(StudyVaultController());
@@ -47,7 +54,8 @@ class _MainScreenState extends State<MainScreen> {
     ProfileScreen(),
   ];
 
-  Widget _buildAnimatedBadgeIcon(BuildContext context, int unread, IconData iconData) {
+  Widget _buildAnimatedBadgeIcon(
+      BuildContext context, int unread, IconData iconData) {
     final String labelStr = unread > 99 ? '99+' : '$unread';
 
     return Stack(
@@ -100,17 +108,17 @@ class _MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       // IndexedStack keeps every tab alive — zero rebuild on tab switch
-      body: IndexedStack(
-        index: _selectedIndex,
+      body: Obx(() => IndexedStack(
+        index: _navCtrl.selectedIndex.value,
         children: _screens,
-      ),
+      )),
       bottomNavigationBar: Obx(() {
         final unread = chatCtrl.totalUnread;
         return BottomNavigationBar(
-          currentIndex: _selectedIndex,
+          currentIndex: _navCtrl.selectedIndex.value,
           backgroundColor: context.bottomNavBackgroundColor,
           onTap: (index) {
-            setState(() => _selectedIndex = index);
+            _navCtrl.changeTab(index);
           },
           type: BottomNavigationBarType.fixed,
           iconSize: AppDimensions.minIconSize,
@@ -142,8 +150,8 @@ class _MainScreenState extends State<MainScreen> {
             BottomNavigationBarItem(
               icon: _buildAnimatedBadgeIcon(
                   context, unread, Icons.chat_bubble_outline_rounded),
-              activeIcon:
-                  _buildAnimatedBadgeIcon(context, unread, Icons.chat_bubble_rounded),
+              activeIcon: _buildAnimatedBadgeIcon(
+                  context, unread, Icons.chat_bubble_rounded),
               label: 'Messages',
             ),
             const BottomNavigationBarItem(

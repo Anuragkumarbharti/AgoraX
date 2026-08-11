@@ -1,4 +1,4 @@
-enum MessageType { text, image, audio, video, file, document, gif, sticker, location, contact, reaction, gift }
+enum MessageType { text, image, audio, video, file, document, gif, sticker, location, contact, reaction, gift, roomInvite }
 enum MessageStatus { sending, sent, delivered, read }
 
 class ChatMessage {
@@ -26,6 +26,11 @@ class ChatMessage {
   final bool isEdited;
   final bool isUnlockGift;
   final int audioDurationSeconds;
+
+  String get inviteRoomId => contactPhone ?? '';
+  String get inviteRoomTitle => locationName ?? (content.startsWith('🎙️ Room Invite: ') ? content.substring(16) : 'Voice Room');
+  String get inviteHostName => contactName ?? 'Host';
+  String get inviteRoomCover => mediaUrl ?? '';
 
   const ChatMessage({
     required this.id,
