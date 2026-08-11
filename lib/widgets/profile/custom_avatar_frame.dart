@@ -224,13 +224,15 @@ class _CustomAvatarFrameState extends State<CustomAvatarFrame> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
-                    color: widget.role == 'Owner' || widget.role == 'Host'
+                    color: widget.role == 'Owner'
                         ? const Color(0xFF8A2BE2)
-                        : (widget.role == 'Co-owner' || widget.role == 'Co-Host' ? const Color(0xFFFF8C00) : const Color(0xFF007AFF)),
+                        : (widget.role == 'Co-Owner' || widget.role == 'Co-owner'
+                            ? const Color(0xFFFF8C00)
+                            : (widget.role == 'Admin' ? const Color(0xFF007AFF) : const Color(0xFF059669))),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    widget.role == 'Moderator' ? 'Admin' : widget.role!,
+                    widget.role == 'Moderator' || widget.role == 'Host' ? 'Mod' : widget.role!,
                     style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold),
                   ),
                 ),

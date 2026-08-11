@@ -97,33 +97,25 @@ class RoomEntryPermissionEngine {
 
   /// Determine user role in room
   String getUserRole(VoiceRoom room, String userId, {List<Map<String, dynamic>>? seatsInfo}) {
-    // Owner / Creator check ("owner creator ek hi hai")
-    if (room.hostId == userId ||
+    // Owner / Creator check
+    if (room.ownerUserId == userId ||
+        room.hostId == userId ||
         room.founderId == userId ||
         room.ownerName == 'Current User' ||
         userId == 'uid_anurag_101') {
-      return 'Creator';
+      return 'Owner';
     }
 
     if (room.coOwnerIds.contains(userId)) {
       return 'Co-Owner';
     }
 
-    if (room.adminIds.contains(userId) || room.moderatorIds.contains(userId)) {
+    if (room.adminIds.contains(userId)) {
       return 'Admin';
     }
 
-    // Check Host seat status (Seat 0 or Seat 1)
-    if (seatsInfo != null && seatsInfo.isNotEmpty) {
-      final seat1 = seatsInfo.firstWhereOrNull(
-          (s) => s['seatIndex'] == 0 || s['seatNumber'] == 0 || seatsInfo.indexOf(s) == 0);
-      if (seat1 != null && seat1['userId'] == userId) {
-        return 'Host';
-      }
-    }
-
-    if (room.hostIds.contains(userId)) {
-      return 'Host';
+    if (room.hostIds.contains(userId) || room.moderatorIds.contains(userId)) {
+      return 'Mod';
     }
 
     return 'Audience';
@@ -145,14 +137,14 @@ class RoomEntryPermissionEngine {
     final role = getUserRole(room, userId, seatsInfo: seatsInfo);
 
     // ── Priority Access Rule ──────────────────────────────────────────────────
-    // Creator, Owner, Co Owner, Admin, Host -> Always allowed to enter,
+    // Owner, Co-Owner, Admin, Mod -> Always allowed to enter,
     // regardless of Password, Followers, Following, Friends, Family, VIP, Invite.
     // ONLY permanent ban or account suspension overrides this rule.
-    final isPriorityUser = (role == 'Creator' ||
-        role == 'Owner' ||
+    final isPriorityUser = (role == 'Owner' ||
+        role == 'Creator' ||
         role == 'Co-Owner' ||
         role == 'Admin' ||
-        role == 'Host');
+        role == 'Mod');
 
     // ── Check System B (Room-Only Block / Ban) ─────────────────────────────
     final moderationCtrl = Get.isRegistered<RoomModerationController>()

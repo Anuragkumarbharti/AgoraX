@@ -286,14 +286,18 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     String? roleName;
 
     for (final r in [roomRole, targetRole]) {
-      final l = r.trim().toLowerCase();
-      if (l == 'owner' ||
-          l == 'host' ||
-          l == 'co-owner' ||
-          l == 'co-host' ||
-          l == 'admin' ||
-          l == 'moderator') {
-        roleName = r.trim();
+      final l = r.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
+      if (l == 'owner' || l == 'founder' || l == 'creator' || l == 'developer') {
+        roleName = 'Owner';
+        break;
+      } else if (l == 'coowner') {
+        roleName = 'Co-Owner';
+        break;
+      } else if (l == 'admin') {
+        roleName = 'Admin';
+        break;
+      } else if (l == 'mod' || l == 'moderator' || l == 'host') {
+        roleName = 'Mod';
         break;
       }
     }
@@ -305,10 +309,12 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     if (roleName == null || roleName.isEmpty) {
       return const SizedBox.shrink();
     }
-    final lowerRole = roleName.toLowerCase();
+    final lowerRole = roleName.toLowerCase().replaceAll('-', '').replaceAll(' ', '');
     if (lowerRole == 'speaker' ||
         lowerRole == 'listener' ||
         lowerRole == 'audience' ||
+        lowerRole == 'cohost' ||
+        lowerRole == 'starmember' ||
         lowerRole == 'member' ||
         lowerRole == 'user') {
       return const SizedBox.shrink();
@@ -321,27 +327,34 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     ];
     Color accentColor = const Color(0xFFA78BFA);
 
-    if (lowerRole == 'owner' || lowerRole == 'host' || lowerRole == 'founder') {
+    if (lowerRole == 'owner' || lowerRole == 'founder' || lowerRole == 'creator') {
       iconData = Icons.workspace_premium_rounded;
       gradientColors = [
         const Color(0xFFD97706),
         const Color(0xFFB45309),
       ];
       accentColor = const Color(0xFFFBBF24);
-    } else if (lowerRole == 'co-owner' || lowerRole == 'co-host') {
+    } else if (lowerRole == 'coowner') {
       iconData = Icons.shield_rounded;
       gradientColors = [
         const Color(0xFF7C3AED),
         const Color(0xFF6D28D9),
       ];
       accentColor = const Color(0xFFA78BFA);
-    } else if (lowerRole == 'admin' || lowerRole == 'moderator') {
+    } else if (lowerRole == 'admin') {
       iconData = Icons.star_rounded;
       gradientColors = [
         const Color(0xFF2563EB),
         const Color(0xFF1D4ED8),
       ];
       accentColor = const Color(0xFF60A5FA);
+    } else if (lowerRole == 'mod' || lowerRole == 'moderator' || lowerRole == 'host') {
+      iconData = Icons.security_rounded;
+      gradientColors = [
+        const Color(0xFF059669),
+        const Color(0xFF047857),
+      ];
+      accentColor = const Color(0xFF34D399);
     } else if (lowerRole == 'creator' || lowerRole == 'developer') {
       iconData = Icons.code_rounded;
       gradientColors = [

@@ -78,8 +78,8 @@ void main() {
 
     test('1. Role Hierarchy Resolution & Weights Verification', () {
       // Creator IS Owner
-      expect(permissionCtrl.getUserRole(level1Room, creatorId), equals('Creator'));
-      expect(permissionCtrl.getRoleWeight('Creator'), equals(10));
+      expect(permissionCtrl.getUserRole(level1Room, creatorId), equals('Owner'));
+      expect(permissionCtrl.getRoleWeight('Owner'), equals(10));
 
       // Co-Owner
       expect(permissionCtrl.getUserRole(level1Room, coOwnerId), equals('Co-Owner'));
@@ -89,32 +89,34 @@ void main() {
       expect(permissionCtrl.getUserRole(level1Room, adminId), equals('Admin'));
       expect(permissionCtrl.getRoleWeight('Admin'), equals(7));
 
+      // Mod
+      expect(permissionCtrl.getRoleWeight('Mod'), equals(5));
+
       // Audience
       expect(permissionCtrl.getUserRole(level1Room, audienceId), equals('Audience'));
       expect(permissionCtrl.getRoleWeight('Audience'), equals(1));
     });
 
-    test('2. Dynamic Host Role Resolution (Seat 1 Occupant Only)', () {
+    test('2. Seat Position Role Independence (Seats 1-10 do NOT grant roles)', () {
       final seatsWithAudienceOnSeat1 = [
-        {'seatIndex': 0, 'userId': audienceId, 'name': 'Audience User'},
-        {'seatIndex': 1, 'userId': null, 'name': RoomSeatController.getSeatName(1)},
+        {'seatIndex': 0, 'userId': audienceId, 'name': 'Seat 1'},
+        {'seatIndex': 1, 'userId': null, 'name': 'Seat 2'},
       ];
 
-      final seatsWithoutSeat1 = [
-        {'seatIndex': 0, 'userId': null, 'name': RoomSeatController.getSeatName(0)},
-        {'seatIndex': 1, 'userId': audienceId, 'name': RoomSeatController.getSeatName(1)},
+      final seatsWithAudienceOnSeat2 = [
+        {'seatIndex': 0, 'userId': null, 'name': 'Seat 1'},
+        {'seatIndex': 1, 'userId': audienceId, 'name': 'Seat 2'},
       ];
 
-      // Sitting on Seat 1 (Seat Index 0) resolves role as Host
+      // Sitting on Seat 1 (Seat Index 0) does NOT grant any role (remains Audience)
       expect(
         permissionCtrl.getUserRole(level1Room, audienceId, seatsInfo: seatsWithAudienceOnSeat1),
-        equals('Host'),
+        equals('Audience'),
       );
-      expect(permissionCtrl.getRoleWeight('Host'), equals(6));
 
-      // Sitting on Seat 2 (Seat Index 1) does NOT make them Host
+      // Sitting on Seat 2 (Seat Index 1) does NOT grant any role (remains Audience)
       expect(
-        permissionCtrl.getUserRole(level1Room, audienceId, seatsInfo: seatsWithoutSeat1),
+        permissionCtrl.getUserRole(level1Room, audienceId, seatsInfo: seatsWithAudienceOnSeat2),
         equals('Audience'),
       );
     });
@@ -171,68 +173,67 @@ void main() {
     });
 
     test('5. Role Hierarchy Manage Button Visibility Matrix', () {
-      final ownerWeight = permissionCtrl.getRoleWeight('Creator');
+      final ownerWeight = permissionCtrl.getRoleWeight('Owner');
       final coOwnerWeight = permissionCtrl.getRoleWeight('Co-Owner');
       final adminWeight = permissionCtrl.getRoleWeight('Admin');
-      final hostWeight = permissionCtrl.getRoleWeight('Host');
+      final modWeight = permissionCtrl.getRoleWeight('Mod');
       final audienceWeight = permissionCtrl.getRoleWeight('Audience');
 
-      // OWNER sees Manage on Co-Owner, Admin, Host, Audience
+      // OWNER sees Manage on Co-Owner, Admin, Mod, Audience
       expect(ownerWeight > coOwnerWeight, isTrue);
       expect(ownerWeight > adminWeight, isTrue);
-      expect(ownerWeight > hostWeight, isTrue);
+      expect(ownerWeight > modWeight, isTrue);
       expect(ownerWeight > audienceWeight, isTrue);
 
-      // CO-OWNER sees Manage on Admin, Host, Audience
+      // CO-OWNER sees Manage on Admin, Mod, Audience
       expect(coOwnerWeight > ownerWeight, isFalse);
       expect(coOwnerWeight > adminWeight, isTrue);
-      expect(coOwnerWeight > hostWeight, isTrue);
+      expect(coOwnerWeight > modWeight, isTrue);
       expect(coOwnerWeight > audienceWeight, isTrue);
 
-      // ADMIN sees Manage on Host, Audience
+      // ADMIN sees Manage on Mod, Audience
       expect(adminWeight > ownerWeight, isFalse);
       expect(adminWeight > coOwnerWeight, isFalse);
-      expect(adminWeight > hostWeight, isTrue);
+      expect(adminWeight > modWeight, isTrue);
       expect(adminWeight > audienceWeight, isTrue);
 
-      // HOST sees Manage on Audience
-      expect(hostWeight > adminWeight, isFalse);
-      expect(hostWeight > audienceWeight, isTrue);
+      // MOD sees Manage on Audience
+      expect(modWeight > adminWeight, isFalse);
+      expect(modWeight > audienceWeight, isTrue);
 
       // AUDIENCE sees Manage on no one
-      expect(audienceWeight > hostWeight, isFalse);
+      expect(audienceWeight > modWeight, isFalse);
       expect(audienceWeight > audienceWeight, isFalse);
     });
 
     test('6. Role Assignment and Removal Granular Permissions Matrix', () {
-      final ownerWeight = permissionCtrl.getRoleWeight('Creator');
+      final ownerWeight = permissionCtrl.getRoleWeight('Owner');
       final coOwnerWeight = permissionCtrl.getRoleWeight('Co-Owner');
       final adminWeight = permissionCtrl.getRoleWeight('Admin');
-      final hostWeight = permissionCtrl.getRoleWeight('Host');
 
-      // Owner can assign/remove Co-Owner (8), Admin (7), Host (6)
+      // Owner can assign/remove Co-Owner (8), Admin (7), Mod (5)
       final ownerCanAssignCoOwner = ownerWeight >= 10;
       final ownerCanAssignAdmin = ownerWeight >= 10 || ownerWeight >= 8;
-      final ownerCanAssignHost = ownerWeight >= 10 || ownerWeight >= 8 || ownerWeight >= 7;
+      final ownerCanAssignMod = ownerWeight >= 10 || ownerWeight >= 8 || ownerWeight >= 7;
       expect(ownerCanAssignCoOwner, isTrue);
       expect(ownerCanAssignAdmin, isTrue);
-      expect(ownerCanAssignHost, isTrue);
+      expect(ownerCanAssignMod, isTrue);
 
-      // Co-Owner can assign/remove Admin (7), Host (6) but NOT Co-Owner (8)
+      // Co-Owner can assign/remove Admin (7), Mod (5) but NOT Co-Owner (8)
       final coOwnerCanAssignCoOwner = coOwnerWeight >= 10;
       final coOwnerCanAssignAdmin = coOwnerWeight >= 8;
-      final coOwnerCanAssignHost = coOwnerWeight >= 8 || coOwnerWeight >= 7;
+      final coOwnerCanAssignMod = coOwnerWeight >= 8 || coOwnerWeight >= 7;
       expect(coOwnerCanAssignCoOwner, isFalse);
       expect(coOwnerCanAssignAdmin, isTrue);
-      expect(coOwnerCanAssignHost, isTrue);
+      expect(coOwnerCanAssignMod, isTrue);
 
-      // Admin can assign/remove Host (6) but NOT Admin (7) or Co-Owner (8)
+      // Admin can assign/remove Mod (5) but NOT Admin (7) or Co-Owner (8)
       final adminCanAssignCoOwner = adminWeight >= 10;
       final adminCanAssignAdmin = adminWeight >= 8;
-      final adminCanAssignHost = adminWeight >= 7;
+      final adminCanAssignMod = adminWeight >= 7;
       expect(adminCanAssignCoOwner, isFalse);
       expect(adminCanAssignAdmin, isFalse);
-      expect(adminCanAssignHost, isTrue);
+      expect(adminCanAssignMod, isTrue);
     });
 
     test('7. Assigned Role Protection & Moderation List Management Verification', () async {
@@ -242,8 +243,8 @@ void main() {
       expect(permissionCtrl.isAssignedRole('Creator'), isTrue);
       expect(permissionCtrl.isAssignedRole('Co-Owner'), isTrue);
       expect(permissionCtrl.isAssignedRole('Admin'), isTrue);
-      expect(permissionCtrl.isAssignedRole('Host'), isTrue);
-      expect(permissionCtrl.isAssignedRole('Star Member'), isTrue);
+      expect(permissionCtrl.isAssignedRole('Mod'), isTrue);
+      expect(permissionCtrl.isAssignedRole('Star Member'), isFalse);
       expect(permissionCtrl.isAssignedRole('Audience'), isFalse);
 
       // Verify Co-Owner role protection

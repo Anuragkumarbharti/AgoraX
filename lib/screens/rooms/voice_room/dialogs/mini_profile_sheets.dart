@@ -269,15 +269,15 @@ class MiniProfileSheets {
         (room?.coOwnerIds.any((id) => id.trim() == targetUserId.trim()) == true);
 
     final bool isTargetAdmin = normTargetRole == 'admin' ||
-        normTargetRole == 'moderator' ||
         memberRoleFromCtrl == 'admin' ||
-        memberRoleFromCtrl == 'moderator' ||
         (room?.adminIds.any((id) => id.trim() == targetUserId.trim()) == true);
 
-    final bool isTargetHost = normTargetRole == 'host' ||
-        normTargetRole == 'cohost' ||
+    final bool isTargetMod = normTargetRole == 'mod' ||
+        normTargetRole == 'moderator' ||
+        normTargetRole == 'host' ||
+        memberRoleFromCtrl == 'mod' ||
+        memberRoleFromCtrl == 'moderator' ||
         memberRoleFromCtrl == 'host' ||
-        memberRoleFromCtrl == 'cohost' ||
         (room?.hostIds.any((id) => id.trim() == targetUserId.trim()) == true);
 
     final limits = controller.permissionCtrl.getRoomRoleLimits(room?.level ?? 1);
@@ -360,27 +360,27 @@ class MiniProfileSheets {
                 ),
             ],
 
-            // 3. Host Assign / Remove (Owner, Co-Owner & Admin)
+            // 3. Mod Assign / Remove (Owner, Co-Owner & Admin)
             if (isCreator || isCoOwner || isAdmin) ...[
-              if (isTargetHost)
+              if (isTargetMod)
                 ListTile(
-                  leading: const Icon(Icons.mic_off_rounded, color: Colors.deepOrangeAccent),
-                  title: Text('Remove 🎙 Host Role', style: GoogleFonts.poppins(color: Colors.white)),
-                  subtitle: Text('Remove Host tag & permissions', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                  leading: const Icon(Icons.security_rounded, color: Colors.deepOrangeAccent),
+                  title: Text('Remove 🛡 Mod Role', style: GoogleFonts.poppins(color: Colors.white)),
+                  subtitle: Text('Remove Mod tag & privileges', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
                   onTap: () async {
                     Get.back();
-                    await controller.demoteRoomMemberRole(roomId, targetUserId, 'Host');
+                    await controller.demoteRoomMemberRole(roomId, targetUserId, 'Mod');
                     onStateChanged();
                   },
                 )
               else
                 ListTile(
-                  leading: const Icon(Icons.mic_rounded, color: Color(0xFF34D399)),
-                  title: Text('Assign 🎙 Host Role', style: GoogleFonts.poppins(color: Colors.white)),
-                  subtitle: Text('Grant Host tag & stage privileges', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                  leading: const Icon(Icons.verified_user_rounded, color: Color(0xFF34D399)),
+                  title: Text('Assign 🛡 Mod Role', style: GoogleFonts.poppins(color: Colors.white)),
+                  subtitle: Text('Grant Mod role & room moderation privileges', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
                   onTap: () async {
                     Get.back();
-                    await controller.promoteRoomMemberRole(roomId, targetUserId, 'Host');
+                    await controller.promoteRoomMemberRole(roomId, targetUserId, 'Mod');
                     onStateChanged();
                   },
                 ),

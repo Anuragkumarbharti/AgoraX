@@ -16,30 +16,7 @@ class RoomSeatController extends GetxController {
   final RxMap<String, int> roomSeatGiftsCounters = <String, int>{}.obs;
 
   static String getSeatName(int seatIndex) {
-    switch (seatIndex) {
-      case 0:
-        return 'Host Seat';
-      case 1:
-        return 'Co-Host Seat';
-      case 2:
-        return 'Seat 1';
-      case 3:
-        return 'Seat 2';
-      case 4:
-        return 'Seat 3';
-      case 5:
-        return 'Seat 4';
-      case 6:
-        return 'Seat 5';
-      case 7:
-        return 'Seat 6';
-      case 8:
-        return 'Seat 7';
-      case 9:
-        return 'Seat 8';
-      default:
-        return 'Seat ${seatIndex - 1}';
-    }
+    return 'Seat ${seatIndex + 1}';
   }
 
   static String getSeatNameByNumber(int seatNumber) {
@@ -47,18 +24,7 @@ class RoomSeatController extends GetxController {
   }
 
   bool canOccupySeat(String roomId, int seatIndex, String userId) {
-    if (seatIndex < 0 || seatIndex >= 10) return false;
-
-    if (seatIndex == 0 || seatIndex == 1) {
-      if (Get.isRegistered<RoomPermissionController>()) {
-        final perm = RoomPermissionController.to;
-        return perm.isHost(roomId, userId) ||
-            perm.isCoHost(roomId, userId) ||
-            perm.isModerator(roomId, userId);
-      }
-      return true;
-    }
-    return true;
+    return seatIndex >= 0 && seatIndex < 10;
   }
 
   bool isUserReconnectingOnSeat(String roomId, int seatIndex) {
@@ -157,12 +123,6 @@ class RoomSeatController extends GetxController {
       if (prevIdx != -1) {
         eventType = ArenaEventTypes.seatChanged;
         message = ArenaEventFormatter.formatSeatMoveMessage(uName, prevIdx, seatIndex);
-      } else if (seatIndex == 0) {
-        eventType = ArenaEventTypes.hostSeatTaken;
-        message = ArenaEventFormatter.formatSeatTakeMessage(uName, seatIndex);
-      } else if (seatIndex == 1) {
-        eventType = ArenaEventTypes.cohostSeatTaken;
-        message = ArenaEventFormatter.formatSeatTakeMessage(uName, seatIndex);
       } else {
         eventType = ArenaEventTypes.seatTaken;
         message = ArenaEventFormatter.formatSeatTakeMessage(uName, seatIndex);
@@ -244,14 +204,7 @@ class RoomSeatController extends GetxController {
           await UserProfileCacheManager.fetchUserProfile(currentUserId);
       final uName = profile?.username ?? 'Creaniaa Student';
 
-      String eventType;
-      if (seatIndex == 0) {
-        eventType = ArenaEventTypes.hostSeatLeft;
-      } else if (seatIndex == 1) {
-        eventType = ArenaEventTypes.cohostSeatLeft;
-      } else {
-        eventType = ArenaEventTypes.seatLeft;
-      }
+      final String eventType = ArenaEventTypes.seatLeft;
       final message = ArenaEventFormatter.formatSeatLeaveMessage(uName, seatIndex);
 
       await onEmitActivity(

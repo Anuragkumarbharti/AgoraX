@@ -40,16 +40,17 @@ class RoomPermissionController extends GetxController {
         l == 'owner' ||
         l == 'founder' ||
         l == 'coowner' ||
-        l == 'cohost' ||
         l == 'admin' ||
+        l == 'mod' ||
         l == 'moderator' ||
-        l == 'host' ||
-        l == 'starmember';
+        l == 'host';
   }
 
   String getUserRole(VoiceRoom room, String userId,
       {List<Map<String, dynamic>>? seatsInfo}) {
-    if (room.ownerUserId == userId || room.hostId == userId || room.founderId == userId) return 'Creator';
+    if (room.ownerUserId == userId || room.hostId == userId || room.founderId == userId) {
+      return 'Owner';
+    }
 
     // Check active members from DB room_members via RoomMemberController
     if (Get.isRegistered<RoomMemberController>()) {
@@ -57,54 +58,37 @@ class RoomPermissionController extends GetxController {
           .firstWhereOrNull((m) => m.userId == userId);
       if (member != null && member.role.isNotEmpty) {
         final r = member.role.trim();
-        final l = r.toLowerCase();
-        if (l == 'owner' || l == 'creator' || l == 'founder') return 'Creator';
-        if (l == 'co-owner' || l == 'co owner' || l == 'coowner') return 'Co-Owner';
-        if (l == 'co-host' || l == 'co host' || l == 'cohost') return 'Co-Host';
-        if (l == 'admin' || l == 'moderator') return 'Admin';
-        if (l == 'host') return 'Host';
-        if (l == 'star member' || l == 'starmember') return 'Star Member';
+        final l = r.toLowerCase().replaceAll('-', '').replaceAll(' ', '');
+        if (l == 'owner' || l == 'creator' || l == 'founder') return 'Owner';
+        if (l == 'coowner') return 'Co-Owner';
+        if (l == 'admin') return 'Admin';
+        if (l == 'mod' || l == 'moderator' || l == 'host') return 'Mod';
       }
     }
 
     if (room.coOwnerIds.contains(userId) == true) return 'Co-Owner';
-    if (room.adminIds.contains(userId) == true ||
-        room.moderatorIds.contains(userId) == true) return 'Admin';
-
-    // Check if user is currently occupying Seat 1 (Seat Index 0)
-    if (seatsInfo != null && seatsInfo.isNotEmpty) {
-      final seat1 = seatsInfo.firstWhereOrNull((s) =>
-          s['seatIndex'] == 0 ||
-          s['seatNumber'] == 0 ||
-          seatsInfo.indexOf(s) == 0);
-      if (seat1 != null && seat1['userId'] == userId) {
-        return 'Host';
-      }
-    }
-
-    if (room.hostIds.contains(userId) == true) return 'Host';
+    if (room.adminIds.contains(userId) == true) return 'Admin';
+    if (room.hostIds.contains(userId) == true ||
+        room.moderatorIds.contains(userId) == true) return 'Mod';
 
     return 'Audience';
   }
 
   int getRoleWeight(String role) {
-    switch (role.toLowerCase().trim()) {
+    switch (role.toLowerCase().trim().replaceAll('-', '').replaceAll(' ', '')) {
       case 'creator':
       case 'owner':
       case 'founder':
-      case 'arena owner':
+      case 'arenaowner':
         return 10;
-      case 'co-owner':
-      case 'co owner':
-      case 'co-host':
-      case 'cohost':
       case 'coowner':
         return 8;
       case 'admin':
-      case 'moderator':
         return 7;
+      case 'mod':
+      case 'moderator':
       case 'host':
-        return 6;
+        return 5;
       case 'audience':
       case 'listener':
       case 'speaker':
@@ -128,13 +112,10 @@ class RoomPermissionController extends GetxController {
 
   bool canChangeEntryRules(VoiceRoom room, String userId) {
     final role = getUserRole(room, userId);
-    return role == 'Creator' ||
-        role == 'Owner' ||
-        role == 'Co-Owner' ||
-        role == 'Co Owner';
+    return role == 'Owner' || role == 'Co-Owner';
   }
 
-  bool isHost(String roomId, String userId, {VoiceRoom? room}) {
+  bool isOwner(String roomId, String userId, {VoiceRoom? room}) {
     final r = room ??
         (Get.isRegistered<RoomDiscoveryController>()
             ? RoomDiscoveryController.to.rooms
@@ -143,10 +124,10 @@ class RoomPermissionController extends GetxController {
     if (r != null) {
       return r.ownerUserId == userId || r.hostId == userId || r.founderId == userId;
     }
-    return currentPermissions['is_host'] == true;
+    return currentPermissions['is_owner'] == true || currentPermissions['is_host'] == true;
   }
 
-  bool isCoHost(String roomId, String userId, {VoiceRoom? room}) {
+  bool isCoOwner(String roomId, String userId, {VoiceRoom? room}) {
     final r = room ??
         (Get.isRegistered<RoomDiscoveryController>()
             ? RoomDiscoveryController.to.rooms
@@ -154,12 +135,12 @@ class RoomPermissionController extends GetxController {
             : null);
     if (r != null) {
       final role = getUserRole(r, userId);
-      return role == 'Creator' || role == 'Owner' || role == 'Co-Owner' || role == 'Co-Host';
+      return role == 'Owner' || role == 'Co-Owner';
     }
-    return currentPermissions['is_cohost'] == true;
+    return currentPermissions['is_coowner'] == true || currentPermissions['is_cohost'] == true;
   }
 
-  bool isModerator(String roomId, String userId, {VoiceRoom? room}) {
+  bool isAdmin(String roomId, String userId, {VoiceRoom? room}) {
     final r = room ??
         (Get.isRegistered<RoomDiscoveryController>()
             ? RoomDiscoveryController.to.rooms
@@ -167,8 +148,26 @@ class RoomPermissionController extends GetxController {
             : null);
     if (r != null) {
       final role = getUserRole(r, userId);
-      return role == 'Creator' || role == 'Owner' || role == 'Co-Owner' || role == 'Co-Host' || role == 'Admin';
+      return role == 'Owner' || role == 'Co-Owner' || role == 'Admin';
     }
-    return currentPermissions['is_moderator'] == true;
+    return currentPermissions['is_admin'] == true;
   }
+
+  bool isMod(String roomId, String userId, {VoiceRoom? room}) {
+    final r = room ??
+        (Get.isRegistered<RoomDiscoveryController>()
+            ? RoomDiscoveryController.to.rooms
+                .firstWhereOrNull((item) => item.id == roomId)
+            : null);
+    if (r != null) {
+      final role = getUserRole(r, userId);
+      return role == 'Owner' || role == 'Co-Owner' || role == 'Admin' || role == 'Mod';
+    }
+    return currentPermissions['is_mod'] == true || currentPermissions['is_moderator'] == true;
+  }
+
+  // Backward compatibility alias methods
+  bool isHost(String roomId, String userId, {VoiceRoom? room}) => isOwner(roomId, userId, room: room);
+  bool isCoHost(String roomId, String userId, {VoiceRoom? room}) => isCoOwner(roomId, userId, room: room);
+  bool isModerator(String roomId, String userId, {VoiceRoom? room}) => isMod(roomId, userId, room: room);
 }

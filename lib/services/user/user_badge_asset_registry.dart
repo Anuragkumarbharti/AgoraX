@@ -74,57 +74,45 @@ class UserBadgeAssetRegistry {
   /// using exact official assets.
   static RoleTagConfig? getRoleTagConfig(String? role) {
     if (role == null || role.trim().isEmpty) return null;
-    final lower = role.trim().toLowerCase();
+    final lower = role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
 
     if (lower == 'speaker' ||
         lower == 'listener' ||
         lower == 'audience' ||
         lower == 'member' ||
+        lower == 'cohost' ||
+        lower == 'starmember' ||
         lower == 'user') {
       return null;
     }
 
-    if (lower == 'owner' || lower == 'founder') {
+    if (lower == 'owner' || lower == 'founder' || lower == 'creator' || lower == 'developer') {
       return const RoleTagConfig(
         roleName: 'owner',
         displayTitle: 'OWNER',
         assetPath: 'assets/identity_tags/ROLL_TAG/OWNER.webp',
       );
-    } else if (lower == 'co-owner' ||
-        lower == 'co-host' ||
-        lower == 'coowner' ||
-        lower == 'cohost') {
+    } else if (lower == 'coowner') {
       return const RoleTagConfig(
         roleName: 'co-owner',
         displayTitle: 'CO-OWNER',
         assetPath: 'assets/identity_tags/ROLL_TAG/CO-OWNER.webp',
       );
-    } else if (lower == 'admin' || lower == 'moderator') {
+    } else if (lower == 'admin') {
       return const RoleTagConfig(
         roleName: 'admin',
         displayTitle: 'ADMIN',
         assetPath: 'assets/identity_tags/ROLL_TAG/ADMIN.webp',
       );
-    } else if (lower == 'host') {
+    } else if (lower == 'mod' || lower == 'moderator' || lower == 'host') {
       return const RoleTagConfig(
-        roleName: 'host',
-        displayTitle: 'HOST',
+        roleName: 'mod',
+        displayTitle: 'MOD',
         assetPath: 'assets/identity_tags/ROLL_TAG/HOST.webp',
-      );
-    } else if (lower == 'creator' || lower == 'developer') {
-      return const RoleTagConfig(
-        roleName: 'creator',
-        displayTitle: 'CREATOR',
-        assetPath: 'assets/identity_tags/ROLL_TAG/OWNER.webp',
       );
     }
 
-    // Fallback role tag config
-    return const RoleTagConfig(
-      roleName: 'owner',
-      displayTitle: 'OWNER',
-      assetPath: 'assets/identity_tags/ROLL_TAG/OWNER.webp',
-    );
+    return null;
   }
 
   /// Pre-caches essential badge image assets into memory

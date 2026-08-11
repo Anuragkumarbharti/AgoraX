@@ -215,20 +215,17 @@ class _RoomsScreenState extends State<RoomsScreen>
   // Check role of current user in a room
   String? _getUserRoleInArena(VoiceRoom room) {
     final userId = UserProfileCacheManager.currentUserId;
-    if (room.hostId == userId || room.ownerName == 'Current User') {
+    if (room.ownerUserId == userId || room.hostId == userId || room.ownerName == 'Current User') {
       return 'Owner';
     }
     if (room.coOwnerIds.contains(userId)) {
-      return 'Co-owner';
+      return 'Co-Owner';
     }
     if (room.adminIds.contains(userId)) {
       return 'Admin';
     }
-    if (room.hostId == userId) {
-      return 'Host';
-    }
-    if (room.starMemberIds.contains(userId)) {
-      return 'Star Member';
+    if (room.hostIds.contains(userId) || room.moderatorIds.contains(userId)) {
+      return 'Mod';
     }
     return null;
   }
@@ -237,15 +234,15 @@ class _RoomsScreenState extends State<RoomsScreen>
   Color _getRoleBadgeColor(String role) {
     switch (role) {
       case 'Owner':
-        return Color(0xFFFFD700); // Gold
+        return const Color(0xFFFFD700); // Gold
+      case 'Co-Owner':
       case 'Co-owner':
-        return Color(0xFF9D4EDD); // Purple
+        return const Color(0xFF9D4EDD); // Purple
       case 'Admin':
-        return Color(0xFF24A0ED); // Blue
+        return const Color(0xFF24A0ED); // Blue
+      case 'Mod':
       case 'Host':
-        return Color(0xFF2EC4B6); // Green
-      case 'Star Member':
-        return Color(0xFFF72585); // Pink
+        return const Color(0xFF2EC4B6); // Green/Teal
       default:
         return context.caption;
     }

@@ -313,16 +313,17 @@ class UserBadgeRow extends StatelessWidget {
       for (final r in [roomRole, targetRole]) {
         if (r == null || r.trim().isEmpty) continue;
         final l = r.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
-        if (l == 'owner' ||
-            l == 'host' ||
-            l == 'coowner' ||
-            l == 'cohost' ||
-            l == 'admin' ||
-            l == 'moderator' ||
-            l == 'founder' ||
-            l == 'creator' ||
-            l == 'developer') {
-          roleName = r.trim();
+        if (l == 'owner' || l == 'founder' || l == 'creator' || l == 'developer') {
+          roleName = 'Owner';
+          break;
+        } else if (l == 'coowner') {
+          roleName = 'Co-Owner';
+          break;
+        } else if (l == 'admin') {
+          roleName = 'Admin';
+          break;
+        } else if (l == 'mod' || l == 'moderator' || l == 'host') {
+          roleName = 'Mod';
           break;
         }
       }

@@ -68,8 +68,13 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
           .maybeSingle();
       _hasApplied = appRes != null;
 
-      // 3. If Host/Co-Host, load all pending applications
-      if (_userRole == 'Host' || _userRole == 'Co-Host') {
+      // 3. If authorized role (Owner, Co-Owner, Admin, Mod), load all pending applications
+      final isManagerRole = _userRole == 'Owner' ||
+          _userRole == 'Co-Owner' ||
+          _userRole == 'Admin' ||
+          _userRole == 'Mod' ||
+          _userRole == 'Host';
+      if (isManagerRole) {
         final apps = await _supabase
             .from('room_seat_applications')
             .select('*, profiles(username, avatar)')
@@ -78,7 +83,7 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
         _applications = List<Map<String, dynamic>>.from(apps);
       }
     } catch (e) {
-      debugPrint('Error fetching seat application details: $e');
+      debugPrint('Error loading seat applications: $e');
     } finally {
       if (mounted) {
         setState(() => _isChecking = false);
@@ -142,7 +147,11 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isManager = _userRole == 'Host' || _userRole == 'Co-Host';
+    final isManager = _userRole == 'Owner' ||
+        _userRole == 'Co-Owner' ||
+        _userRole == 'Admin' ||
+        _userRole == 'Mod' ||
+        _userRole == 'Host';
 
     return Dialog(
       backgroundColor: Colors.transparent,
