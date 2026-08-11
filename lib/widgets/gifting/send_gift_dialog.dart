@@ -557,8 +557,11 @@ class _SendGiftDialogState extends State<SendGiftDialog> {
     final double singleCost =
         _selectedGift != null ? _selectedGift!.cost.toDouble() : 0.0;
     final totalCost = singleCost * effectiveMultiplier;
+    final bool hasSelectedItem = _selectedTabIndex == 5
+        ? _selectedVaultItem != null
+        : _selectedGift != null;
     final hasValidRecipient =
-        activeReceiversCount > 0 && effectiveMultiplier > 0;
+        activeReceiversCount > 0 && effectiveMultiplier > 0 && hasSelectedItem;
 
     // Calculate exact height for 2 rows of the 4-column gift grid
     final screenWidth = MediaQuery.of(context).size.width;

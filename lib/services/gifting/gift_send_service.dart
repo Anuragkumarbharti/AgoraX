@@ -1,15 +1,23 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../room/room_controller.dart';
 import '../room/room_gift_controller.dart';
 import '../store/store_controller.dart';
 import '../../widgets/gifting/send_gift_dialog.dart';
 import '../../models/vault/vault_models.dart';
+import '../../models/gift/gift_animation_metadata.dart';
 import '../../widgets/gifting/insufficient_balance_sheet.dart';
 import '../network/network_connectivity_service.dart';
 import '../network/network_guard.dart';
 import '../user/user_profile_cache_manager.dart';
+import '../vault/vault_controller.dart';
+import '../room/room_dual_progress_controller.dart';
+import '../room/room_progression_controller.dart';
 import 'arena_gift_recipient_manager.dart';
+import 'gift_event_service.dart';
 
 class GiftSendService extends GetxController {
   static GiftSendService get to {
@@ -25,10 +33,10 @@ class GiftSendService extends GetxController {
   /// Complete, safe gift send pipeline.
   /// Panel closes ONLY after:
   /// 1. Validation succeeds.
-  /// 2. Coins deducted successfully.
+  /// 2. Coins/Vault deducted successfully.
   /// 3. Gift event sent to backend.
   /// 4. Backend confirms success.
-  /// If any step fails: keep panel open, show error, never play animation, never deduct coins twice.
+  /// If any step fails: keep panel open, show error, never play animation, never deduct twice.
   Future<bool> sendGift({
     required String roomId,
     required GiftItem? gift,
@@ -72,9 +80,6 @@ class GiftSendService extends GetxController {
 
       final roomSeats = RoomController.to.roomSeatsInfo[roomId] ?? [];
 
-      // Build initial receiver list from caller's selection.
-      // 'giftAll' is now only used as a legacy path; the manager handles
-      // all-seat selection internally via initForRoom / auto-select-all.
       List<String> receiverIds = giftAll
           ? roomSeats
               .where((s) => s['userId'] != null)
@@ -90,8 +95,6 @@ class GiftSendService extends GetxController {
               .toList()
           : List.from(selectedSeatIndices);
 
-      // Rule 7 / 13: If the caller list is empty, ask the manager for a
-      // validated fallback (Room Owner) rather than immediately failing.
       if (receiverIds.isEmpty) {
         if (Get.isRegistered<ArenaGiftRecipientManager>()) {
           final fallbacks =
@@ -112,7 +115,6 @@ class GiftSendService extends GetxController {
         return false;
       }
 
-      // Resolve display names for the final receiverIds.
       for (int i = 0; i < receiverIds.length; i++) {
         final uId = receiverIds[i];
         final passedName = i < selectedRecipientNames.length
@@ -126,7 +128,6 @@ class GiftSendService extends GetxController {
         ));
       }
 
-      // Check coin balance pre-flight
       final int receiverCount = receiverIds.length;
       int effectiveMultiplier = comboMultiplier;
       if (effectiveMultiplier < 1) effectiveMultiplier = 1;
@@ -158,12 +159,87 @@ class GiftSendService extends GetxController {
         Get.back();
       }
 
-      // ── Step 2, 3 & 4: Backend API & Coin Deduction ──
+      // ── Step 2, 3 & 4: Backend API & Vault/Coin Deduction ──
       if (isVault && vaultItem != null) {
+        if (vaultItem.quantity < totalGifts) {
+          _showError('Insufficient quantity of ${vaultItem.displayName} in Vault. (Have: ${vaultItem.quantity}, Need: $totalGifts)');
+          return false;
+        }
+
+        final vaultCtrl = Get.isRegistered<VaultController>()
+            ? VaultController.to
+            : Get.put(VaultController());
+
+        for (final rId in receiverIds) {
+          for (int i = 0; i < effectiveMultiplier; i++) {
+            await vaultCtrl.giftItem(vaultItem, rId);
+          }
+        }
+
+        final user = UserProfileCacheManager.currentUser;
+        final String uName = user?.username ?? '';
+        final String fName = user?.fullName ?? '';
+        final String senderName = (uName.isNotEmpty && uName != 'User')
+            ? uName
+            : (fName.isNotEmpty)
+                ? fName
+                : 'Member';
+        final String? senderAvatar = user?.avatar;
+
+        final String transactionId =
+            'tx_vault_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(999999)}';
+        final meta = GiftMetadataRegistry.getMetadata(vaultItem.displayName);
+
+        final Map<String, dynamic> eventPayload = {
+          'id': transactionId,
+          'giftId': meta.giftId,
+          'giftName': vaultItem.displayName,
+          'giftIcon': vaultItem.category == 'Premium' ? '👑' : '🎒',
+          'senderId': UserProfileCacheManager.currentUserId,
+          'senderName': senderName,
+          'senderAvatar': senderAvatar,
+          'receiverIds': receiverIds,
+          'receiverNames': receiverNames,
+          'receiverSeats': seatIndices,
+          'roomId': roomId,
+          'giftType': 'volt',
+          'currency': 'volt',
+          'giftValue': 100,
+          'price': 0,
+          'quantity': totalGifts,
+          'count': totalGifts,
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+          'messageText':
+              '🎁 $senderName sent ${vaultItem.displayName} × $totalGifts from Vault to ${receiverNames.join(", ")}.',
+        };
+
+        unawaited(GiftEventService.to.broadcastGiftEvent(roomId, eventPayload));
+
+        // Process Free Activity / Normal Task progress (Volt gifts DO NOT fill Gold task)
+        try {
+          await Supabase.instance.client.rpc('process_room_dual_progress', params: {
+            'p_room_id': roomId,
+            'p_user_id': UserProfileCacheManager.currentUserId,
+            'p_points': totalGifts * 100,
+            'p_source': 'volt_gift',
+          });
+        } catch (e) {
+          debugPrint('[GiftSendService] Vault dual progress call note: $e');
+        }
+
+        if (Get.isRegistered<RoomDualProgressController>()) {
+          unawaited(RoomDualProgressController.to.fetchDualProgress(roomId));
+        }
+        if (Get.isRegistered<RoomProgressionController>()) {
+          final progCtrl = Get.find<RoomProgressionController>();
+          unawaited(progCtrl.fetchRoomProgression(roomId,
+              onUpdateSeats: (_) {}, onUpdateSeatGifts: (_) {}));
+        }
+
         return true;
       } else if (gift != null) {
         final totalCost = gift.cost * totalGifts;
-        debugPrint('[Gift] API Request: roomId: $roomId, gift: ${gift.name}, multiplier: $effectiveMultiplier, totalGifts: $totalGifts, totalCost: $totalCost');
+        debugPrint('[Gift] API Request: roomId: $roomId, gift: ${gift.name}, multiplier: $effectiveMultiplier, totalGifts: $totalGifts, totalCost: $totalCost, currency: ${gift.currency}');
         final success = await RoomGiftController.to.sendStarGiftToRoom(
           roomId: roomId,
           giftId: gift.id,

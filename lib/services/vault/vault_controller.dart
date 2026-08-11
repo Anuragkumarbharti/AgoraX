@@ -7,6 +7,13 @@ import '../../models/vault/vault_models.dart';
 import '../user/user_profile_cache_manager.dart';
 
 class VaultController extends GetxController {
+  static VaultController get to {
+    if (!Get.isRegistered<VaultController>()) {
+      return Get.put(VaultController());
+    }
+    return Get.find<VaultController>();
+  }
+
   final RxList<VaultItem> vaultItems = <VaultItem>[].obs;
   final RxList<VaultHistoryEntry> historyEntries = <VaultHistoryEntry>[].obs;
   

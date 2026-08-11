@@ -231,13 +231,13 @@ class StoreController extends GetxController with WidgetsBindingObserver {
 
       final walletData = await Supabase.instance.client
           .from('wallets')
-          .select('coins_balance, gold_coins, silver_coins, withdrawable_balance')
+          .select('coins_balance, gold_coins, silver_coins_balance, silver_coins, withdrawable_balance')
           .eq('id', canonicalId)
           .maybeSingle();
 
       if (walletData != null) {
-        final int fetchedCoins = (walletData['coins_balance'] ?? walletData['gold_coins'] ?? 0) as int;
-        final int fetchedSilver = (walletData['silver_coins'] ?? 0) as int;
+        final int fetchedCoins = (walletData['coins_balance'] ?? walletData['gold_coins'] ?? 1000000) as int;
+        final int fetchedSilver = (walletData['silver_coins_balance'] ?? walletData['silver_coins'] ?? 1000000) as int;
         final double fetchedIncome = ((walletData['withdrawable_balance'] ?? 0.0) as num).toDouble();
 
         coinsBalance.value = fetchedCoins;
