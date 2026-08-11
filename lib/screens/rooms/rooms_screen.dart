@@ -71,7 +71,19 @@ class _RoomsScreenState extends State<RoomsScreen>
   }
 
   String _formatXpValue(int value) {
-    return value.toString();
+    if (value < 1000) return value.toString();
+    if (value < 1000000) {
+      final double k = value / 1000.0;
+      if (k == k.roundToDouble()) {
+        return '${k.toInt()}k';
+      }
+      return '${k.toStringAsFixed(1)}k';
+    }
+    final double m = value / 1000000.0;
+    if (m == m.roundToDouble()) {
+      return '${m.toInt()}M';
+    }
+    return '${m.toStringAsFixed(2)}M';
   }
 
   String _sortBy = 'Trending'; // 'Trending' or 'Online Users'

@@ -134,7 +134,22 @@ class RoomProgressionController extends GetxController {
   }
 
   int getXpForNextLevel(int level) {
-    return level * 1000;
+    switch (level) {
+      case 1:
+        return 35500;
+      case 2:
+        return 59500;
+      case 3:
+        return 95000;
+      case 4:
+        return 490000;
+      case 5:
+        return 940000;
+      case 6:
+        return 1590000;
+      default:
+        return level * 500000;
+    }
   }
 
   int getRoomFreeVp(String roomId) {

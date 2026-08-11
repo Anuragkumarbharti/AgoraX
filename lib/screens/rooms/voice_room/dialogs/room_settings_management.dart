@@ -705,12 +705,27 @@ class RoomSettingsManagement {
                   itemBuilder: (context, i) {
                     final uid = memberIds[i];
                     final name = getRoomUserName(uid);
-                    final avatar = getRoomUserAvatar(uid);
+                    final avatarUrl = getRoomUserAvatar(uid);
+                    final cachedUser = UserProfileCacheManager.getCachedUser(uid);
+                    final String effectiveAvatar = avatarUrl.isNotEmpty ? avatarUrl : (cachedUser?.avatar ?? '');
+
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
                         radius: 20,
-                        backgroundImage: NetworkImage(avatar),
+                        backgroundColor: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                        backgroundImage: effectiveAvatar.isNotEmpty
+                            ? OptimizedImage.getOptimizedImageProvider(
+                                effectiveAvatar,
+                                preset: MediaSizePreset.xs,
+                              )
+                            : null,
+                        child: effectiveAvatar.isEmpty
+                            ? Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              )
+                            : null,
                       ),
                       title: Text(
                         name,
@@ -751,6 +766,9 @@ class RoomSettingsManagement {
     final bool isOwner = currentUserId == room.hostId || currentUserId == room.founderId;
     final bool isSelf = userId == currentUserId;
     final controller = RoomController.to;
+    final avatarUrl = getRoomUserAvatar(userId);
+    final cachedUser = UserProfileCacheManager.getCachedUser(userId);
+    final String effectiveAvatar = avatarUrl.isNotEmpty ? avatarUrl : (cachedUser?.avatar ?? '');
 
     Get.bottomSheet(
       Container(
@@ -776,7 +794,19 @@ class RoomSettingsManagement {
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundImage: NetworkImage(getRoomUserAvatar(userId)),
+                  backgroundColor: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                  backgroundImage: effectiveAvatar.isNotEmpty
+                      ? OptimizedImage.getOptimizedImageProvider(
+                          effectiveAvatar,
+                          preset: MediaSizePreset.sm,
+                        )
+                      : null,
+                  child: effectiveAvatar.isEmpty
+                      ? Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
