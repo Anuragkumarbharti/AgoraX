@@ -470,31 +470,4 @@ class _TwoFactorLoginScreenState extends State<TwoFactorLoginScreen> {
       ),
     );
   }
-
-              const SizedBox(height: 20),
-
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _useRecoveryMode = !_useRecoveryMode;
-                    _errorMessage = null;
-                  });
-                },
-                child: Text(
-                  _useRecoveryMode
-                      ? 'Back to Authenticator Code'
-                      : "Can't access your authenticator? Use Recovery Code",
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: context.primaryColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

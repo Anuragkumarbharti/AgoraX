@@ -141,15 +141,6 @@ class TwoFactorService {
     }
   }
 
-        return {'success': true};
-      } else {
-        return {'success': false, 'error': res?['error'] ?? 'Failed to enable 2FA'};
-      }
-    } catch (e) {
-      return {'success': false, 'error': 'Server verification failed: $e'};
-    }
-  }
-
   /// Checks if 2FA login is required for current user & device.
   static Future<bool> checkLogin2FARequired(String userId) async {
     if (userId.isEmpty) return false;
