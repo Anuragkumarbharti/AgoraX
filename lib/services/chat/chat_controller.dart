@@ -12,6 +12,9 @@ import './chat_socket_service.dart';
 import './chat_data_deletion_service.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../../utils/secure_dto_sanitizer.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import './chat_wallpaper_service.dart';
 import '../network/network_connectivity_service.dart';
 import '../network/network_guard.dart';
 
@@ -507,7 +510,13 @@ class ChatController extends GetxController {
         });
       });
     }
-    return _messages[conversationId] ?? [];
+    final rawMsgs = _messages[conversationId] ?? [];
+    final clearedAtMs = ChatWallpaperService.to.getConversationClearedAt(conversationId);
+    if (clearedAtMs != null) {
+      final clearedDt = DateTime.fromMillisecondsSinceEpoch(clearedAtMs, isUtc: true);
+      return rawMsgs.where((m) => m.timestamp.toUtc().isAfter(clearedDt)).toList();
+    }
+    return rawMsgs;
   }
 
   static String generateUuidV4() {
@@ -1169,7 +1178,92 @@ class ChatController extends GetxController {
     }
   }
 
+  final RxSet<String> blockedUserIds = <String>{}.obs;
+
+  bool isUserBlocked(String userId) {
+    return blockedUserIds.contains(userId);
+  }
+
+  Future<bool> toggleBlockUser(String otherUserId) async {
+    if (otherUserId.isEmpty) return false;
+    final bool currentlyBlocked = isUserBlocked(otherUserId);
+    try {
+      if (currentlyBlocked) {
+        await Supabase.instance.client
+            .from('user_blocks')
+            .delete()
+            .match({'blocker_id': currentUserId, 'blocked_id': otherUserId});
+        blockedUserIds.remove(otherUserId);
+        blockedUserIds.refresh();
+        return false; // Now unblocked
+      } else {
+        await Supabase.instance.client.rpc('block_user', params: {
+          'p_blocked_id': otherUserId,
+        });
+        blockedUserIds.add(otherUserId);
+        blockedUserIds.refresh();
+        return true; // Now blocked
+      }
+    } catch (e) {
+      debugPrint('[ChatController] Toggle block user error: $e');
+      if (!currentlyBlocked) {
+        blockedUserIds.add(otherUserId);
+      } else {
+        blockedUserIds.remove(otherUserId);
+      }
+      blockedUserIds.refresh();
+      return !currentlyBlocked;
+    }
+  }
+
+  Future<String?> exportChatTranscript(String conversationId, String otherUserName) async {
+    try {
+      final msgs = getMessages(conversationId);
+      if (msgs.isEmpty) {
+        return null;
+      }
+      final sb = StringBuffer();
+      sb.writeln('==========================================');
+      sb.writeln('Creania App Chat Export');
+      sb.writeln('Conversation with: $otherUserName');
+      sb.writeln('Exported on: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}');
+      sb.writeln('Total Messages: ${msgs.length}');
+      sb.writeln('==========================================\n');
+
+      for (final m in msgs) {
+        final sender = m.senderId == currentUserId ? 'You' : otherUserName;
+        final timeStr = DateFormat('yyyy-MM-dd HH:mm').format(m.timestamp.toLocal());
+        sb.writeln('[$timeStr] $sender:');
+        if (m.type == MessageType.text) {
+          sb.writeln(m.content);
+        } else if (m.type == MessageType.image) {
+          sb.writeln('[Photo: ${m.mediaUrl ?? m.content}]');
+        } else if (m.type == MessageType.audio) {
+          sb.writeln('[Voice Message: ${m.audioDurationSeconds}s]');
+        } else if (m.type == MessageType.file) {
+          sb.writeln('[File: ${m.fileName ?? m.content}]');
+        } else {
+          sb.writeln('[${m.type.name.toUpperCase()}: ${m.content}]');
+        }
+        sb.writeln('');
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final sanitizeName = otherUserName.replaceAll(RegExp(r'[^\w\s\-]'), '_').replaceAll(' ', '_');
+      final filePath = '${tempDir.path}/Chat_Export_${sanitizeName}_${DateTime.now().millisecondsSinceEpoch}.txt';
+      final file = File(filePath);
+      await file.writeAsString(sb.toString());
+      return filePath;
+    } catch (e) {
+      debugPrint('[ChatController] Export chat error: $e');
+      return null;
+    }
+  }
+
   void clearChat(String conversationId) async {
+    final now = DateTime.now().toUtc();
+    await ChatWallpaperService.to.setConversationClearedAt(conversationId, now);
+
     _messages[conversationId] = [];
     _messages.refresh();
 

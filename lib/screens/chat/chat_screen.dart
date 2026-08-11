@@ -22,6 +22,9 @@ import '../../models/room/room_model.dart';
 import '../../services/room/room_controller.dart';
 import '../rooms/voice_room_call_screen.dart';
 import '../../services/room/room_entry_permission_engine.dart';
+import 'dart:io';
+import 'dart:ui';
+import '../../services/chat/chat_wallpaper_service.dart';
 import '../../services/room/room_pip_controller.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -258,10 +261,73 @@ class _ChatScreenState extends State<ChatScreen>
     }
   }
 
+  BoxFit _parseBoxFit(String mode) {
+    switch (mode) {
+      case 'contain':
+        return BoxFit.contain;
+      case 'fill':
+        return BoxFit.fill;
+      default:
+        return BoxFit.cover;
+    }
+  }
+
+  Widget _buildWallpaperBackground(Widget child) {
+    return Obx(() {
+      final wp = ChatWallpaperService.to.getWallpaper(_effectiveConvId);
+      Widget baseWidget;
+
+      if (wp.type == WallpaperType.customImage && File(wp.value).existsSync()) {
+        baseWidget = Image.file(
+          File(wp.value),
+          fit: _parseBoxFit(wp.fitMode),
+          width: double.infinity,
+          height: double.infinity,
+        );
+      } else if (wp.type == WallpaperType.solidColor) {
+        Color c = const Color(0xFF0F172A);
+        try {
+          final hexStr = wp.value.replaceAll('#', '');
+          c = Color(int.parse('FF$hexStr', radix: 16));
+        } catch (_) {}
+        baseWidget = Container(color: c);
+      } else {
+        final preset = ChatWallpaperService.presets.firstWhereOrNull((x) => x['id'] == wp.value) ??
+            ChatWallpaperService.presets.first;
+        final List<Color> colors = List<Color>.from(preset['colors']);
+        baseWidget = Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        );
+      }
+
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          baseWidget,
+          if (wp.blur > 0)
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: wp.blur, sigmaY: wp.blur),
+              child: Container(color: Colors.transparent),
+            ),
+          Container(
+            color: Colors.black.withOpacity(wp.dimness),
+          ),
+          child,
+        ],
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FC), // Light surface background
+      backgroundColor: const Color(0xFF0F172A),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: _buildStitchTopAppBar(),
@@ -269,7 +335,35 @@ class _ChatScreenState extends State<ChatScreen>
       body: SafeArea(
         child: Column(
           children: [
-            Expanded(child: _buildChatArea()),
+            Obx(() {
+              final isBlocked = _ctrl.isUserBlocked(widget.conversation.otherUserId);
+              if (isBlocked) {
+                return Container(
+                  color: Colors.redAccent.withOpacity(0.9),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.block_rounded, color: Colors.white, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'You have blocked this user.',
+                          style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          await _ctrl.toggleBlockUser(widget.conversation.otherUserId);
+                        },
+                        child: Text('UNBLOCK', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }),
+            Expanded(child: _buildWallpaperBackground(_buildChatArea())),
             _buildStitchBottomInputBar(),
             Obx(() {
               if (_showEmojiPanel.value) return _buildEmojiSelectorPanel();
