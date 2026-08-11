@@ -278,11 +278,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                         ],
                       ],
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Family ID: ${comm.id.hashCode.abs() % 900000 + 100000}',
-                      style: TextStyle(color: context.caption, fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
+                    const SizedBox.shrink(),
                     SizedBox(height: 6),
                     Row(
                       children: [
@@ -773,7 +769,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         }
 
         final user = snapshot.data;
-        final String displayName = user?.displayName ?? 'Member ${userId.substring(0, 8)}';
+        final String displayName = user?.displayName ?? 'Community Member';
         final String username = user?.username ?? '';
         final avatar = user?.avatar;
 
@@ -888,8 +884,6 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                       Row(
                         children: [
                           _buildRoleLabel(currentRole),
-                          SizedBox(width: 8),
-                          Text('ID: ${userId.hashCode.abs() % 900000 + 100000}', style: TextStyle(color: context.caption, fontSize: 12)),
                         ],
                       ),
                     ],
@@ -1569,12 +1563,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13)),
-                        const SizedBox(height: 2),
-                        Text(userId.length > 12
-                            ? userId.substring(0, 12) + '...'
-                            : userId,
-                            style: const TextStyle(
-                                color: Colors.white38, fontSize: 10)),
+                        const SizedBox.shrink(),
                       ],
                     ),
                   ),

@@ -549,10 +549,6 @@ class _ProgressionAdminDashboardState extends State<ProgressionAdminDashboard>
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'User ID: ${log['user_id']}',
-                    style: GoogleFonts.inter(color: Colors.white70, fontSize: 11),
-                  ),
                   const SizedBox(height: 4),
                   Text(
                     'Event: ${log['source_id']}',

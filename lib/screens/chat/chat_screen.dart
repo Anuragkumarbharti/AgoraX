@@ -1125,23 +1125,7 @@ class _ChatScreenState extends State<ChatScreen>
 
                     const SizedBox(height: 2),
 
-                    // Room ID
-                    Row(
-                      children: [
-                        Icon(Icons.tag_rounded, color: Colors.cyanAccent.withOpacity(0.8), size: 12),
-                        const SizedBox(width: 2),
-                        Text(
-                          'ID: $displayRoomId',
-                          style: GoogleFonts.poppins(
-                            color: Colors.cyanAccent.withOpacity(0.9),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
+                    const SizedBox.shrink(),
 
                     const SizedBox(height: 4),
 

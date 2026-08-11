@@ -123,10 +123,9 @@ class RoomSettingsManagement {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        subtitle: Text(
-                          'ID: ${blockedId.hashCode.abs() % 900000 + 100000}$durationInfo',
-                          style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11),
-                        ),
+                        subtitle: durationInfo.isNotEmpty
+                            ? Text(durationInfo.trim(), style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11))
+                            : null,
                         trailing: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
@@ -473,7 +472,7 @@ class RoomSettingsManagement {
                         name,
                         style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
-                      subtitle: Text('ID: ${mem.userId}', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11)),
+                      subtitle: Text(mem.role.isNotEmpty ? mem.role : 'Member', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11)),
                       trailing: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.cyanAccent,
@@ -736,7 +735,7 @@ class RoomSettingsManagement {
                         ),
                       ),
                       subtitle: Text(
-                        'ID: ${uid.hashCode.abs() % 900000 + 100000}',
+                        role.isNotEmpty ? role : 'Member',
                         style: const TextStyle(color: Colors.white38, fontSize: 11),
                       ),
                       trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14),
@@ -840,11 +839,7 @@ class RoomSettingsManagement {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'ID: ${userId.hashCode.abs() % 900000 + 100000}',
-                            style: const TextStyle(color: Colors.white54, fontSize: 12),
-                          ),
+                          const SizedBox.shrink(),
                         ],
                       ),
                     ],

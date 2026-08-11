@@ -86,6 +86,18 @@ class _RoomsScreenState extends State<RoomsScreen>
     return '${m.toStringAsFixed(2)}M';
   }
 
+  String _getUserRoleInArena(VoiceRoom room) {
+    final currentUid = Supabase.instance.client.auth.currentUser?.id ?? '';
+    if (Get.isRegistered<RoomPermissionController>()) {
+      return RoomPermissionController.to.getUserRole(room, currentUid);
+    }
+    if (room.ownerUserId == currentUid || room.hostId == currentUid || room.founderId == currentUid) return 'Creator';
+    if (room.coOwnerIds.contains(currentUid)) return 'Co-Owner';
+    if (room.adminIds.contains(currentUid) || room.moderatorIds.contains(currentUid)) return 'Admin';
+    if (room.hostIds.contains(currentUid)) return 'Host';
+    return 'Member';
+  }
+
   String _sortBy = 'Trending'; // 'Trending' or 'Online Users'
 
   // Constant Categories
@@ -885,7 +897,7 @@ class _RoomsScreenState extends State<RoomsScreen>
               final hasRoom = activeRoom != null;
               final roomName = hasRoom ? activeRoom.name : 'Create your Arena';
               final roomAvatar = hasRoom ? activeRoom.avatar : null;
-              final roomId = hasRoom ? 'Arena ID: ${activeRoom.id}' : '';
+              final roomId = hasRoom ? activeRoom.id : '';
 
               final roomProgress = hasRoom
                   ? _controller.roomLevelProgresses[activeRoom.id]
@@ -974,10 +986,11 @@ class _RoomsScreenState extends State<RoomsScreen>
                               if (hasRoom) ...[
                                 SizedBox(height: 2),
                                 Text(
-                                  roomId,
+                                  _getUserRoleInArena(activeRoom!) ?? 'Member',
                                   style: TextStyle(
                                     color: context.caption,
                                     fontSize: 11,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -1327,15 +1340,7 @@ class _RoomsScreenState extends State<RoomsScreen>
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Arena ID: ${room.id}',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            color: context.caption,
-                          ),
-                        ),
-                        SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Builder(
                           builder: (context) {
                             final roomLvl = room.level > 0 ? room.level : 1;
@@ -1639,11 +1644,6 @@ class _RoomsScreenState extends State<RoomsScreen>
                 SizedBox(height: 4),
                 Row(
                   children: [
-                    Text(
-                      'ID: ${room.id}',
-                      style: TextStyle(color: context.caption, fontSize: 10),
-                    ),
-                    SizedBox(width: 8),
                     // Level badge
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),

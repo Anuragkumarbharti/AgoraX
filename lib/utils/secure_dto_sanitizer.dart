@@ -8,12 +8,31 @@ import 'package:flutter/foundation.dart';
 class SecureDtoSanitizer {
   SecureDtoSanitizer._();
 
-  // Common patterns for encrypted text, JSON objects, and raw backend errors
+  // Common patterns for encrypted text, JSON objects, UUIDs, and raw backend errors
   static final RegExp _ciphertextRegex = RegExp(r'^(gAAAAA|[A-Za-z0-9+/=]{40,})');
+  static final RegExp _uuidRegex = RegExp(
+    r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+  );
   static final RegExp _backendErrorRegex = RegExp(
-    r'(PostgrestException|PGRST\d+|DatabaseError|SQLState|stack_trace|public\.\w+|schema_cache|InternalServerError)',
+    r'(PostgrestException|PGRST\d+|DatabaseError|SQLState|stack_trace|public\.\w+|schema_cache|InternalServerError|user_id=|room_id=|table|socket|rpc)',
     caseSensitive: false,
   );
+
+  /// Sanitizes error messages for user-facing UI (SnackBar, Toast, Dialogs, etc.).
+  /// Strips raw UUIDs, SQL queries, Postgres error codes, stack traces, and backend field names.
+  static String sanitizeErrorMessage(dynamic error, {String fallback = 'Something went wrong. Please try again.'}) {
+    if (error == null) return fallback;
+    final str = error.toString().trim();
+    if (str.isEmpty) return fallback;
+    if (_uuidRegex.hasMatch(str) || containsBackendDetails(str) || isEncryptedOrRawJson(str)) {
+      return fallback;
+    }
+    String clean = str.replaceFirst(RegExp(r'^Exception:\s*', caseSensitive: false), '').trim();
+    if (clean.isEmpty || _uuidRegex.hasMatch(clean) || containsBackendDetails(clean)) {
+      return fallback;
+    }
+    return clean;
+  }
 
   /// Sanitize Notification Title
   static String sanitizeNotificationTitle(dynamic title, {String fallback = 'New Notification'}) {

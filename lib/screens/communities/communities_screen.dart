@@ -730,8 +730,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> with SingleTicker
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text('ID: ${comm.id}', style: TextStyle(color: context.caption, fontSize: 11)),
+                    const SizedBox.shrink(),
                     const SizedBox(height: 6),
                     Text(
                       comm.description,
@@ -1045,7 +1044,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> with SingleTicker
                               ],
                             ],
                           ),
-                          Text('ID: ${comm.id}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                          const SizedBox.shrink(),
                         ],
                       ),
                     ],
@@ -1110,7 +1109,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> with SingleTicker
                           return FutureBuilder<User>(
                             future: UserProfileCacheManager.fetchUserProfile(m.userId),
                             builder: (context, userSnap) {
-                              final name = userSnap.data?.displayName ?? 'Member ${m.userId.substring(0, 8)}';
+                              final name = userSnap.data?.displayName ?? 'Community Member';
                               final username = userSnap.data?.username ?? '';
                               return ListTile(
                                 contentPadding: EdgeInsets.zero,
