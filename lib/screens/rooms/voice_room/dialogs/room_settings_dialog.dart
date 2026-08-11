@@ -751,9 +751,26 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     final liveRoom = _controller.rooms
                             .firstWhereOrNull((r) => r.id == widget.roomId) ??
                         widget.room;
+                    final blockedCount = liveRoom.blockList.length;
+                    final kickedCount = (_controller.roomKickedUsersDetailed[widget.roomId] ?? {})
+                        .values
+                        .where((k) => k.isActive)
+                        .length;
+
+                    String trailingText;
+                    if (blockedCount == 0 && kickedCount == 0) {
+                      trailingText = '0 Users';
+                    } else if (kickedCount == 0) {
+                      trailingText = '$blockedCount Blocked';
+                    } else if (blockedCount == 0) {
+                      trailingText = '$kickedCount Kicked';
+                    } else {
+                      trailingText = '$blockedCount Blocked, $kickedCount Kicked';
+                    }
+
                     return _buildListTile(
                       'Block List',
-                      trailingText: '${liveRoom.blockList.length} Users',
+                      trailingText: trailingText,
                       onTap: () => RoomSettingsManagement.showBlockListManager(context, widget.roomId, liveRoom, _controller),
                     );
                   }),

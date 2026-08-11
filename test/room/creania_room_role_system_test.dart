@@ -3,6 +3,7 @@ import 'package:creania/models/room/room_model.dart';
 import 'package:creania/services/room/room_permission_controller.dart';
 import 'package:creania/services/room/room_seat_controller.dart';
 import 'package:creania/services/room/room_controller.dart';
+import 'package:creania/services/room/room_moderation_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -232,6 +233,45 @@ void main() {
       expect(adminCanAssignCoOwner, isFalse);
       expect(adminCanAssignAdmin, isFalse);
       expect(adminCanAssignHost, isTrue);
+    });
+
+    test('7. Assigned Role Protection & Moderation List Management Verification', () async {
+      roomCtrl.rooms.add(level1Room);
+
+      // Check isAssignedRole
+      expect(permissionCtrl.isAssignedRole('Creator'), isTrue);
+      expect(permissionCtrl.isAssignedRole('Co-Owner'), isTrue);
+      expect(permissionCtrl.isAssignedRole('Admin'), isTrue);
+      expect(permissionCtrl.isAssignedRole('Host'), isTrue);
+      expect(permissionCtrl.isAssignedRole('Star Member'), isTrue);
+      expect(permissionCtrl.isAssignedRole('Audience'), isFalse);
+
+      // Verify Co-Owner role protection
+      final coOwnerRole = permissionCtrl.getUserRole(level1Room, coOwnerId);
+      expect(permissionCtrl.isAssignedRole(coOwnerRole), isTrue);
+
+      // Verify Admin role protection
+      final adminRole = permissionCtrl.getUserRole(level1Room, adminId);
+      expect(permissionCtrl.isAssignedRole(adminRole), isTrue);
+
+      // Record and Unkick Audience user test
+      roomCtrl.moderationCtrl.recordTemporaryKick(RoomKickEntry(
+        roomId: testRoomId,
+        userId: audienceId,
+        userName: 'Audience User',
+        removedBy: creatorId,
+        reason: 'Kicked by moderator',
+        restrictionDuration: const Duration(hours: 24),
+        kickedAt: DateTime.now(),
+      ));
+
+      final kickEntry = roomCtrl.moderationCtrl.getKickEntry(testRoomId, audienceId);
+      expect(kickEntry, isNotNull);
+      expect(kickEntry?.userId, equals(audienceId));
+
+      // Unkick Audience user -> removes kick restriction
+      await roomCtrl.unkickUser(testRoomId, audienceId);
+      expect(roomCtrl.moderationCtrl.getKickEntry(testRoomId, audienceId), isNull);
     });
   });
 }

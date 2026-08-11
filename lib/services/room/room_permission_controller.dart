@@ -34,6 +34,19 @@ class RoomPermissionController extends GetxController {
     return currentPermissions[action] == true;
   }
 
+  bool isAssignedRole(String role) {
+    final l = role.toLowerCase().trim().replaceAll('-', '').replaceAll(' ', '');
+    return l == 'creator' ||
+        l == 'owner' ||
+        l == 'founder' ||
+        l == 'coowner' ||
+        l == 'cohost' ||
+        l == 'admin' ||
+        l == 'moderator' ||
+        l == 'host' ||
+        l == 'starmember';
+  }
+
   String getUserRole(VoiceRoom room, String userId,
       {List<Map<String, dynamic>>? seatsInfo}) {
     if (room.ownerUserId == userId || room.hostId == userId || room.founderId == userId) return 'Creator';

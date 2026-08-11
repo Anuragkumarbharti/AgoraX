@@ -99,6 +99,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   RxMap<String, List<String>> get mutedChatUsers => moderationCtrl.mutedChatUsers;
   RxMap<String, List<String>> get bannedUsers => moderationCtrl.bannedUsers;
   RxMap<String, Map<String, RoomBanEntry>> get roomBannedUsersDetailed => moderationCtrl.roomBannedUsersDetailed;
+  RxMap<String, Map<String, RoomKickEntry>> get roomKickedUsersDetailed => moderationCtrl.roomKickedUsersDetailed;
 
   // Chat & Notifications State Delegators
   RxMap<String, RxList<RoomChatMessage>> get roomChats => chatCtrl.roomChats;
@@ -264,6 +265,7 @@ class RoomController extends GetxController with WidgetsBindingObserver {
   Future<void> moderateBanUser(String roomId, String userId, String reason, {String? duration}) => moderationCtrl.moderateBanUser(roomId, userId, reason, duration: duration);
   Future<void> banUserWithDuration(String roomId, String userId, String reason, [String duration = '24_hours']) => moderationCtrl.banUserWithDuration(roomId, userId, reason, duration);
   Future<void> unbanUser(String roomId, String userId) => moderationCtrl.unbanUser(roomId, userId);
+  Future<void> unkickUser(String roomId, String userId) => moderationCtrl.unkickUser(roomId, userId);
   Future<void> updateRoomSettings(String roomId, {String? name, String? bulletin, String? greetings, String? theme, String? whoCanJoin, String? whoCanSpeak, String? seatPermissions, List<String>? wordFilter, bool? muteAll, String? avatar, String? banner, String? roomCoverUrl, bool? coHostCanEditCover, bool? adminCanEditCover}) => moderationCtrl.updateRoomSettings(roomId, name: name, bulletin: bulletin, greetings: greetings, theme: theme, whoCanJoin: whoCanJoin, whoCanSpeak: whoCanSpeak, seatPermissions: seatPermissions, wordFilter: wordFilter, muteAll: muteAll, avatar: avatar, banner: banner, roomCoverUrl: roomCoverUrl, coHostCanEditCover: coHostCanEditCover, adminCanEditCover: adminCanEditCover);
   Future<void> transferHost(String roomId, String newHostId) => moderationCtrl.transferHost(roomId, newHostId);
   Future<void> changeMemberRole(String roomId, String userId, String newRole) => moderationCtrl.changeMemberRole(roomId, userId, newRole);

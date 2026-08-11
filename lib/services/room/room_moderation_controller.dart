@@ -171,12 +171,12 @@ class RoomModerationController extends GetxController {
       final room = rooms.firstWhereOrNull((r) => r.id == roomId);
       if (room == null) return;
 
-      if (userId == room.ownerUserId || userId == room.hostId) {
-        throw Exception('OWNER_PROTECTED: Permanent Room Owner cannot be kicked.');
+      final targetRole = RoomPermissionController.to.getUserRole(room, userId);
+      if (RoomPermissionController.to.isAssignedRole(targetRole)) {
+        throw Exception('ROLE_PROTECTED: User holds assigned role ($targetRole). You must demote/remove their role before kicking them.');
       }
 
       final callerRole = RoomPermissionController.to.getUserRole(room, currentUserId);
-      final targetRole = RoomPermissionController.to.getUserRole(room, userId);
 
       final callerWeight = RoomPermissionController.to.getRoleWeight(callerRole);
       final targetWeight = RoomPermissionController.to.getRoleWeight(targetRole);
@@ -201,6 +201,16 @@ class RoomModerationController extends GetxController {
       final targetProfile =
           await UserProfileCacheManager.fetchUserProfile(userId);
       final targetName = targetProfile?.username ?? 'Member';
+
+      recordTemporaryKick(RoomKickEntry(
+        roomId: roomId,
+        userId: userId,
+        userName: targetName,
+        removedBy: currentUserId,
+        reason: 'Kicked by moderator',
+        restrictionDuration: const Duration(hours: 24),
+        kickedAt: DateTime.now(),
+      ));
 
       await onEmitActivity(
         'user_kicked',
@@ -236,8 +246,11 @@ class RoomModerationController extends GetxController {
     try {
       if (rooms != null) {
         final room = rooms.firstWhereOrNull((r) => r.id == roomId);
-        if (room != null && (userId == room.ownerUserId || userId == room.hostId)) {
-          throw Exception('OWNER_PROTECTED: Permanent Room Owner cannot be banned.');
+        if (room != null) {
+          final targetRole = RoomPermissionController.to.getUserRole(room, userId);
+          if (RoomPermissionController.to.isAssignedRole(targetRole)) {
+            throw Exception('ROLE_PROTECTED: User holds assigned role ($targetRole). You must demote/remove their role before banning them.');
+          }
         }
       }
 
@@ -435,6 +448,24 @@ class RoomModerationController extends GetxController {
       roomBannedUsersDetailed[roomId]?.remove(userId);
     } catch (e) {
       debugPrint('Error unbanning user: $e');
+    }
+  }
+
+  Future<void> unkickUser(String roomId, String userId) async {
+    try {
+      roomKickedUsersDetailed[roomId]?.remove(userId);
+      roomKickedUsersDetailed.refresh();
+      if (Get.context != null) {
+        Get.snackbar(
+          'Kick Restriction Removed 🥾',
+          'User can now re-enter the room.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF10B981),
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error unkicking user: $e');
     }
   }
 

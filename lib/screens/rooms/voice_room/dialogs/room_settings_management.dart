@@ -43,122 +43,256 @@ class RoomSettingsManagement {
     return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
   }
 
-  /// Block List Manager Dialog
+  /// Block List & Kick List Manager Dialog
   static void showBlockListManager(
     BuildContext context,
     String roomId,
     VoiceRoom liveRoom,
     RoomController controller,
   ) {
+    int activeTab = 0; // 0 = Blocked, 1 = Kicked
+
     Get.dialog(
       Dialog(
         backgroundColor: const Color(0xFF121927),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          width: Get.width * 0.9,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              padding: const EdgeInsets.all(20),
+              width: Get.width * 0.9,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '🚫 Arena Block List',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '🛡️ Block & Kick Manager',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white60, size: 18),
+                        onPressed: Get.back,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white60, size: 18),
-                    onPressed: Get.back,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Obx(() {
-                final liveR = controller.rooms.firstWhereOrNull((r) => r.id == roomId) ?? liveRoom;
-
-                if (liveR.blockList.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Column(
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
                       children: [
-                        const Icon(Icons.shield_outlined, color: Colors.white38, size: 40),
-                        const SizedBox(height: 8),
-                        Text(
-                          'No blocked users in this arena.',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return SizedBox(
-                  height: 240,
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: liveR.blockList.length,
-                    itemBuilder: (context, idx) {
-                      final blockedId = liveR.blockList[idx];
-                      final name = getRoomUserName(blockedId);
-                      final detailed = controller.roomBannedUsersDetailed[roomId]?[blockedId];
-                      final durationInfo = detailed != null ? ' (${detailed.reason})' : '';
-
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          radius: 18,
-                          backgroundImage: OptimizedImage.getOptimizedImageProvider(getRoomUserAvatar(blockedId)),
-                        ),
-                        title: Text(
-                          name,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'ID: ${blockedId.hashCode.abs() % 900000 + 100000}$durationInfo',
-                          style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11),
-                        ),
-                        trailing: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
-                            side: const BorderSide(color: Colors.redAccent),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          ),
-                          onPressed: () {
-                            controller.unbanUser(roomId, blockedId);
-                            Get.snackbar(
-                              'Unblocked',
-                              '$name has been unblocked.',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.green,
-                              colorText: Colors.white,
-                            );
-                          },
-                          child: Text(
-                            'Unblock',
-                            style: GoogleFonts.poppins(
-                              color: Colors.redAccent,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => activeTab = 0),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: activeTab == 0 ? Colors.redAccent.withOpacity(0.8) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '🚫 Blocked',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: activeTab == 0 ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      );
-                    },
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => activeTab = 1),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: activeTab == 1 ? Colors.orangeAccent.withOpacity(0.8) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '🥾 Kicked',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: activeTab == 1 ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              }),
-            ],
-          ),
+                  const SizedBox(height: 16),
+                  Obx(() {
+                    final liveR = controller.rooms.firstWhereOrNull((r) => r.id == roomId) ?? liveRoom;
+                    final kickedMap = controller.roomKickedUsersDetailed[roomId] ?? {};
+                    final kickedEntries = kickedMap.values.where((k) => k.isActive).toList();
+
+                    if (activeTab == 0) {
+                      if (liveR.blockList.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 28),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.shield_outlined, color: Colors.white38, size: 40),
+                              const SizedBox(height: 8),
+                              Text(
+                                'No blocked users in this arena.',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return SizedBox(
+                        height: 240,
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: liveR.blockList.length,
+                          itemBuilder: (context, idx) {
+                            final blockedId = liveR.blockList[idx];
+                            final name = getRoomUserName(blockedId);
+                            final detailed = controller.roomBannedUsersDetailed[roomId]?[blockedId];
+                            final durationInfo = detailed != null ? ' (${detailed.reason})' : '';
+
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                radius: 18,
+                                backgroundImage: OptimizedImage.getOptimizedImageProvider(getRoomUserAvatar(blockedId)),
+                              ),
+                              title: Text(
+                                name,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'ID: ${blockedId.hashCode.abs() % 900000 + 100000}$durationInfo',
+                                style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11),
+                              ),
+                              trailing: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
+                                  side: const BorderSide(color: Colors.redAccent),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                ),
+                                onPressed: () {
+                                  controller.unbanUser(roomId, blockedId);
+                                  Get.snackbar(
+                                    'Unblocked',
+                                    '$name has been unblocked.',
+                                    snackPosition: SnackPosition.BOTTOM,
+                                    backgroundColor: Colors.green,
+                                    colorText: Colors.white,
+                                  );
+                                },
+                                child: Text(
+                                  'Unblock',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.redAccent,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    } else {
+                      if (kickedEntries.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 28),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.do_not_disturb_on_outlined, color: Colors.white38, size: 40),
+                              const SizedBox(height: 8),
+                              Text(
+                                'No kicked users in this arena.',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return SizedBox(
+                        height: 240,
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: kickedEntries.length,
+                          itemBuilder: (context, idx) {
+                            final kick = kickedEntries[idx];
+                            final name = kick.userName;
+                            final kickedId = kick.userId;
+
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                radius: 18,
+                                backgroundImage: OptimizedImage.getOptimizedImageProvider(getRoomUserAvatar(kickedId)),
+                              ),
+                              title: Text(
+                                name,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'Kicked • Remaining: ${kick.remainingTime.inMinutes}m',
+                                style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11),
+                              ),
+                              trailing: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orangeAccent.withValues(alpha: 0.2),
+                                  side: const BorderSide(color: Colors.orangeAccent),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                ),
+                                onPressed: () {
+                                  controller.unkickUser(roomId, kickedId);
+                                },
+                                child: Text(
+                                  'Unkick',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.orangeAccent,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }
+                  }),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
