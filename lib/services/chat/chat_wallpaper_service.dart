@@ -239,7 +239,31 @@ class ChatWallpaperService extends GetxService {
     await _prefs?.setInt('$_clearedAtPrefix$conversationId', ms);
   }
 
-  int? getConversationClearedAt(String conversationId) {
-    return _clearedAtTimestamps[conversationId] ?? _prefs?.getInt('$_clearedAtPrefix$conversationId');
+  int? getConversationClearedAt(String conversationId, {String? otherUserId}) {
+    int? maxTs;
+    final List<String> keys = [conversationId];
+    if (otherUserId != null && otherUserId.isNotEmpty) {
+      keys.add(otherUserId);
+      final currentUid = UserProfileCacheManager.currentUserId;
+      if (currentUid.isNotEmpty) {
+        keys.add(ChatMessage.getDeterministicConversationId(currentUid, otherUserId));
+      }
+    }
+
+    for (final key in keys) {
+      int? ts = _clearedAtTimestamps[key];
+      if (ts == null && _prefs != null) {
+        ts = _prefs?.getInt('$_clearedAtPrefix$key');
+        if (ts != null) {
+          _clearedAtTimestamps[key] = ts;
+        }
+      }
+      if (ts != null) {
+        if (maxTs == null || ts > maxTs) {
+          maxTs = ts;
+        }
+      }
+    }
+    return maxTs;
   }
 }

@@ -135,45 +135,37 @@ class IsarStorageService extends GetxService {
           .idProperty()
           .findAll();
 
-      final ids3 = await _isar.isarChatMessages
-          .filter()
-          .senderIdEqualTo(currentUserId)
-          .and()
-          .receiverIdEqualTo(otherUserId)
-          .idProperty()
-          .findAll();
+      List<int> ids3 = [];
+      if (otherUserId.isNotEmpty) {
+        ids3 = await _isar.isarChatMessages
+            .filter()
+            .conversationIdEqualTo(otherUserId)
+            .idProperty()
+            .findAll();
+      }
 
-      final ids4 = await _isar.isarChatMessages
-          .filter()
-          .senderIdEqualTo(otherUserId)
-          .and()
-          .receiverIdEqualTo(currentUserId)
-          .idProperty()
-          .findAll();
+      final allMsgs = await _isar.isarChatMessages.where().findAll();
+      final ids4 = allMsgs.where((m) {
+        final isMatchPair = (currentUserId.isNotEmpty && otherUserId.isNotEmpty &&
+                ((m.senderId == currentUserId && m.receiverId == otherUserId) ||
+                    (m.senderId == otherUserId && m.receiverId == currentUserId))) ||
+            (m.conversationId == conversationId || m.conversationId == canonicalConvId || (otherUserId.isNotEmpty && m.conversationId == otherUserId));
+        return isMatchPair;
+      }).map((m) => m.id).toList();
 
       final allIdsToPurge = <int>{...ids1, ...ids2, ...ids3, ...ids4}.toList();
       if (allIdsToPurge.isNotEmpty) {
         await _isar.isarChatMessages.deleteAll(allIdsToPurge);
       }
 
-      final conv1 = await _isar.isarConversations
-          .filter()
-          .uuidEqualTo(conversationId)
-          .findFirst();
-      if (conv1 != null) {
-        conv1.lastMessage = '';
-        conv1.unreadCount = 0;
-        await _isar.isarConversations.putByUuid(conv1);
-      }
-
-      final conv2 = await _isar.isarConversations
-          .filter()
-          .uuidEqualTo(canonicalConvId)
-          .findFirst();
-      if (conv2 != null) {
-        conv2.lastMessage = '';
-        conv2.unreadCount = 0;
-        await _isar.isarConversations.putByUuid(conv2);
+      final isarConvs = await _isar.isarConversations.where().findAll();
+      for (final conv in isarConvs) {
+        if (conv.uuid == conversationId || conv.uuid == canonicalConvId || (otherUserId.isNotEmpty && conv.otherUserId == otherUserId)) {
+          conv.lastMessage = '';
+          conv.unreadCount = 0;
+          conv.lastMessageTime = DateTime.now();
+          await _isar.isarConversations.putByUuid(conv);
+        }
       }
     });
   }

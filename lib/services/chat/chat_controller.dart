@@ -313,8 +313,11 @@ class ChatController extends GetxController {
       _loadedMessageOffsets[convId] = 0;
       _hasMoreMessages[convId] = true;
 
+      final targetOtherId = extractOtherUserId(convId, currentUserId);
+      final clearedAtMs = ChatWallpaperService.to.getConversationClearedAt(convId, otherUserId: targetOtherId);
+
       final isarMsgs = await IsarStorageService.to.getMessagesForConversation(convId, limit: 100);
-      final list = isarMsgs.map((m) {
+      List<ChatMessage> list = isarMsgs.map((m) {
         return ChatMessage(
           id: m.uuid,
           senderId: m.senderId,
@@ -338,6 +341,10 @@ class ChatController extends GetxController {
           isEdited: m.isEdited,
         );
       }).toList();
+
+      if (clearedAtMs != null) {
+        list = list.where((m) => m.timestamp.millisecondsSinceEpoch > clearedAtMs).toList();
+      }
 
       list.sort((a, b) => a.timestamp.toUtc().compareTo(b.timestamp.toUtc()));
       
@@ -500,21 +507,17 @@ class ChatController extends GetxController {
   }
 
   List<ChatMessage> getMessages(String conversationId) {
-    final Stopwatch sw = Stopwatch()..start();
+    final targetOtherId = extractOtherUserId(conversationId, currentUserId);
     if (!_messages.containsKey(conversationId)) {
       _messages[conversationId] = [];
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadMessagesFromIsar(conversationId).then((_) {
-          sw.stop();
-          debugPrint('⏱️ [PERF PROFILER] Chat Open: ${sw.elapsedMilliseconds} ms | Isar Query: 14 ms | First Render: ${min(sw.elapsedMilliseconds, 180)} ms | Network Sync: Pending background');
-        });
+        _loadMessagesFromIsar(conversationId);
       });
     }
     final rawMsgs = _messages[conversationId] ?? [];
-    final clearedAtMs = ChatWallpaperService.to.getConversationClearedAt(conversationId);
+    final clearedAtMs = ChatWallpaperService.to.getConversationClearedAt(conversationId, otherUserId: targetOtherId);
     if (clearedAtMs != null) {
-      final clearedDt = DateTime.fromMillisecondsSinceEpoch(clearedAtMs, isUtc: true);
-      return rawMsgs.where((m) => m.timestamp.toUtc().isAfter(clearedDt)).toList();
+      return rawMsgs.where((m) => m.timestamp.millisecondsSinceEpoch > clearedAtMs).toList();
     }
     return rawMsgs;
   }
@@ -1313,10 +1316,16 @@ class ChatController extends GetxController {
     // 4. Record clearedAt timestamp in SharedPreferences for startup sync isolation
     await ChatWallpaperService.to.setConversationClearedAt(conversationId, now);
     await ChatWallpaperService.to.setConversationClearedAt(detConvId, now);
+    if (targetOtherId.isNotEmpty) {
+      await ChatWallpaperService.to.setConversationClearedAt(targetOtherId, now);
+    }
 
     // 5. Hard Clear Memory Cache ONLY for target conversation
     _messages[conversationId] = [];
     _messages[detConvId] = [];
+    if (targetOtherId.isNotEmpty) {
+      _messages[targetOtherId] = [];
+    }
     _messages.refresh();
 
     // 6. Instant UI & Conversation List State Update
