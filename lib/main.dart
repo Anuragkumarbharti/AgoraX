@@ -23,6 +23,8 @@ import './services/vault/vault_controller.dart';
 import './services/vault/study_vault_controller.dart';
 import './services/progression/progression_controller.dart';
 import './services/voice/voice_controller.dart';
+import './services/post/post_event_service.dart';
+import './services/post/post_upload_service.dart';
 import './services/store/razorpay_backend_service.dart';
 import './services/storage/theme_controller.dart';
 import './services/user/user_profile_cache_manager.dart';
@@ -140,6 +142,8 @@ void main() async {
       Get.put(ProgressionController(), permanent: true);
       Get.put(StudyVaultController(), permanent: true);
       Get.put(VoiceController(), permanent: true);
+      Get.put(PostEventService(), permanent: true);
+      Get.put(PostUploadService(), permanent: true);
     } catch (err, stack) {
       debugPrint('[Main] Pre-frame init error: $err\n$stack');
     } finally {

@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../models/community/post_model.dart';
 import '../../models/community/post_type.dart';
 import '../../services/post/post_repository.dart';
+import '../../services/post/post_event_service.dart';
 import '../../widgets/community/post_card.dart';
 
 class RecentPostsScreen extends StatefulWidget {
@@ -27,9 +28,11 @@ class _RecentPostsScreenState extends State<RecentPostsScreen> {
   bool _hasError = false;
   String _selectedTypeFilter = 'all';
   String _sortBy = 'Newest';
+
   int _offset = 0;
   final int _limit = 15;
   bool _hasMore = true;
+  StreamSubscription<Post>? _postSubscription;
 
   @override
   void initState() {
@@ -38,6 +41,13 @@ class _RecentPostsScreenState extends State<RecentPostsScreen> {
       _selectedTypeFilter = widget.initialPostType!;
     }
     _loadPosts();
+    _postSubscription = PostEventService.to.onPostCreated.listen((newPost) {
+      if (mounted) {
+        setState(() {
+          _posts.insert(0, newPost);
+        });
+      }
+    });
 
     _scrollCtrl.addListener(() {
       if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200) {
@@ -50,6 +60,7 @@ class _RecentPostsScreenState extends State<RecentPostsScreen> {
 
   @override
   void dispose() {
+    _postSubscription?.cancel();
     _searchCtrl.dispose();
     _scrollCtrl.dispose();
     _debounceTimer?.cancel();

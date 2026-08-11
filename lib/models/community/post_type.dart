@@ -146,6 +146,8 @@ enum PostType {
     }
   }
 
+  IconData get icon => iconData;
+
   Color get color {
     switch (this) {
       case PostType.text:

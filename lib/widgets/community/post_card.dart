@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,7 @@ import '../../models/discovery/unified_content_model.dart';
 import '../../models/discovery/audio_track_model.dart';
 import '../../services/post/post_repository.dart';
 import '../../services/discovery/discovery_service.dart';
+import '../../screens/feed/recent_posts_screen.dart';
 import '../common/optimized_image.dart';
 
 // Specialized Type Feed Cards
@@ -375,6 +377,14 @@ class _PostCardState extends State<PostCard> {
           TextSpan(
             text: word,
             style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                if (widget.onHashtagTap != null) {
+                  widget.onHashtagTap!(word);
+                } else {
+                  Get.to(() => RecentPostsScreen(initialPostType: null));
+                }
+              },
           ),
         );
       } else if (word.startsWith('@')) {
@@ -382,6 +392,17 @@ class _PostCardState extends State<PostCard> {
           TextSpan(
             text: word,
             style: GoogleFonts.inter(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                Get.snackbar(
+                  'Mention',
+                  'Viewing profile for $word',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.cyan.shade900.withOpacity(0.9),
+                  colorText: Colors.white,
+                  duration: const Duration(seconds: 1),
+                );
+              },
           ),
         );
       } else {

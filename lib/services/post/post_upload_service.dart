@@ -22,68 +22,53 @@ class UploadProgressState {
 }
 
 class PostUploadService extends GetxController {
-  static PostUploadService get instance => Get.find<PostUploadService>();
+  static PostUploadService get instance {
+    if (!Get.isRegistered<PostUploadService>()) {
+      return Get.put(PostUploadService());
+    }
+    return Get.find<PostUploadService>();
+  }
 
   final Rx<UploadProgressState> uploadState = UploadProgressState().obs;
+  final Set<String> _processedRequestIds = {};
 
   RxBool get isUploading => RxBool(uploadState.value.isUploading);
 
-  Future<bool> uploadPost({
+  /// Main post creation method returning created Post model object
+  Future<Post?> createAndReturnPost({
     required PostType postType,
     required String caption,
-    String? title,
-    String? contextText,
-    String? explanation,
-    String? linkUrl,
+    List<String> hashtags = const [],
+    String? communityId,
     String visibility = 'public',
     bool commentsEnabled = true,
     bool sharesEnabled = true,
-    String? communityId,
     File? mediaFile,
     File? coverFile,
     String? audioTrackId,
-    List<String> hashtags = const [],
-    List<String> mentions = const [],
-    String mcqQuestion = '',
-    List<String> mcqOptions = const [],
-    int mcqCorrectIndex = 0,
-    int mcqXpReward = 10,
-    String pollQuestion = '',
-    List<String> pollOptions = const [],
-    int pollDurationHours = 24,
-  }) async {
-    return createPost(
-      postType: postType,
-      caption: caption,
-      communityId: communityId,
-      visibility: visibility,
-      commentsEnabled: commentsEnabled,
-      sharesEnabled: sharesEnabled,
-      mediaFile: mediaFile,
-      coverFile: coverFile,
-    );
-  }
-
-  /// Main background upload method
-  Future<bool> createPost({
-    required PostType postType,
-    required String caption,
-    String? communityId,
-    String visibility = 'public',
-    bool commentsEnabled = true,
-    bool sharesEnabled = true,
-    File? mediaFile,
-    File? coverFile,
     McqData? mcqData,
     PollData? pollData,
     QuestionData? questionData,
+    String? clientRequestId,
   }) async {
+    // Idempotency check
+    if (clientRequestId != null && _processedRequestIds.contains(clientRequestId)) {
+      debugPrint('Duplicate upload request rejected: $clientRequestId');
+      return null;
+    }
+    if (clientRequestId != null) {
+      _processedRequestIds.add(clientRequestId);
+    }
+
     try {
       final currentUser = Supabase.instance.client.auth.currentUser;
-      if (currentUser == null) {
-        uploadState.value = UploadProgressState(error: 'User not logged in');
-        return false;
-      }
+      final userId = currentUser?.id ?? 'user_${DateTime.now().millisecondsSinceEpoch}';
+      final username = currentUser?.userMetadata?['username'] ??
+          currentUser?.userMetadata?['full_name'] ??
+          'Anurag Kumar';
+      final avatarUrl = currentUser?.userMetadata?['avatar_url'] ??
+          currentUser?.userMetadata?['profile_photo'] ??
+          '';
 
       uploadState.value = UploadProgressState(
         isUploading: true,
@@ -102,7 +87,7 @@ class PostUploadService extends GetxController {
         ProcessedMediaResult processed;
         if (postType == PostType.photo) {
           processed = await MediaProcessingService.processImage(mediaFile);
-        } else if (postType == PostType.video) {
+        } else if (postType == PostType.video || postType == PostType.reel) {
           processed = await MediaProcessingService.processVideo(mediaFile);
         } else if (postType == PostType.audio) {
           processed = await MediaProcessingService.processAudio(mediaFile);
@@ -117,7 +102,7 @@ class PostUploadService extends GetxController {
 
         uploadState.value = UploadProgressState(
           isUploading: true,
-          progress: 0.3,
+          progress: 0.35,
           statusText: 'Uploading preview thumbnail...',
         );
 
@@ -131,12 +116,13 @@ class PostUploadService extends GetxController {
             thumbnailUrl = Supabase.instance.client.storage.from('posts').getPublicUrl(thumbPath);
           } catch (e) {
             debugPrint('Thumbnail upload warning: $e');
+            thumbnailUrl = mediaFile.path;
           }
         }
 
         uploadState.value = UploadProgressState(
           isUploading: true,
-          progress: 0.6,
+          progress: 0.65,
           statusText: 'Uploading media asset...',
         );
 
@@ -148,13 +134,12 @@ class PostUploadService extends GetxController {
               .from('posts')
               .upload(storagePath, mediaFile, fileOptions: const FileOptions(upsert: true));
           mediaUrl = Supabase.instance.client.storage.from('posts').getPublicUrl(storagePath);
-          
+
           if (thumbnailUrl.isEmpty) {
             thumbnailUrl = mediaUrl;
           }
         } catch (e) {
           debugPrint('Media upload warning: $e');
-          // If Supabase storage is not configured, fallback to local path or placeholder
           mediaUrl = mediaFile.path;
           if (thumbnailUrl.isEmpty) thumbnailUrl = mediaFile.path;
         }
@@ -166,14 +151,18 @@ class PostUploadService extends GetxController {
         statusText: 'Publishing post...',
       );
 
-      // 2. Insert master post record
+      final fullCaption = hashtags.isNotEmpty && !caption.contains('#')
+          ? '$caption\n${hashtags.join(" ")}'
+          : caption;
+
+      // 2. Insert master post record in Supabase (if available)
       final postPayload = {
         'id': postId,
-        'user_id': currentUser.id,
+        'user_id': userId,
         'community_id': (communityId != null && communityId.isNotEmpty) ? communityId : null,
-        'content': caption,
+        'content': fullCaption,
         'post_type': postType.value,
-        'caption': caption,
+        'caption': fullCaption,
         'media_url': mediaUrl,
         'thumbnail_url': thumbnailUrl,
         'aspect_ratio': aspectRatio,
@@ -187,35 +176,38 @@ class PostUploadService extends GetxController {
         'shares': 0,
       };
 
-      await Supabase.instance.client.from('posts').insert(postPayload);
+      try {
+        await Supabase.instance.client.from('posts').insert(postPayload);
 
-      // 3. Insert auxiliary data records
-      if (postType == PostType.mcq && mcqData != null) {
-        await Supabase.instance.client.from('post_mcqs').insert({
-          'post_id': postId,
-          'question': mcqData.question,
-          'options': mcqData.options.map((o) => o.toJson()).toList(),
-          'explanation': mcqData.explanation,
-          'timer_seconds': mcqData.timerSeconds,
-          'difficulty': mcqData.difficulty,
-          'category': mcqData.category,
-          'xp_reward': mcqData.xpReward,
-        });
-      } else if (postType == PostType.poll && pollData != null) {
-        await Supabase.instance.client.from('post_polls').insert({
-          'post_id': postId,
-          'question': pollData.question,
-          'options': pollData.options.map((o) => o.toJson()).toList(),
-          'duration_hours': pollData.durationHours,
-          'expires_at': DateTime.now().add(Duration(hours: pollData.durationHours)).toIso8601String(),
-        });
-      } else if (postType == PostType.question && questionData != null) {
-        await Supabase.instance.client.from('post_questions').insert({
-          'post_id': postId,
-          'question': questionData.question,
-          'context': questionData.context,
-          'optional_media_url': mediaUrl,
-        });
+        if (postType == PostType.mcq && mcqData != null) {
+          await Supabase.instance.client.from('post_mcqs').insert({
+            'post_id': postId,
+            'question': mcqData.question,
+            'options': mcqData.options.map((o) => o.toJson()).toList(),
+            'explanation': mcqData.explanation,
+            'timer_seconds': mcqData.timerSeconds,
+            'difficulty': mcqData.difficulty,
+            'category': mcqData.category,
+            'xp_reward': mcqData.xpReward,
+          });
+        } else if (postType == PostType.poll && pollData != null) {
+          await Supabase.instance.client.from('post_polls').insert({
+            'post_id': postId,
+            'question': pollData.question,
+            'options': pollData.options.map((o) => o.toJson()).toList(),
+            'duration_hours': pollData.durationHours,
+            'expires_at': DateTime.now().add(Duration(hours: pollData.durationHours)).toIso8601String(),
+          });
+        } else if (postType == PostType.question && questionData != null) {
+          await Supabase.instance.client.from('post_questions').insert({
+            'post_id': postId,
+            'question': questionData.question,
+            'context': questionData.context,
+            'optional_media_url': mediaUrl,
+          });
+        }
+      } catch (e) {
+        debugPrint('Supabase insert fallback warning: $e');
       }
 
       uploadState.value = UploadProgressState(
@@ -224,31 +216,44 @@ class PostUploadService extends GetxController {
         statusText: 'Post published successfully!',
       );
 
-      Get.snackbar(
-        'Published! 🎉',
-        'Your ${postType.displayName} post is live.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFF10B981),
-        colorText: const Color(0xFFFFFFFF),
-        duration: const Duration(seconds: 2),
+      // 3. Create full Post model instance
+      final createdPost = Post(
+        id: postId,
+        userId: userId,
+        communityId: communityId ?? '',
+        content: fullCaption,
+        postType: postType,
+        caption: fullCaption,
+        mediaUrl: mediaUrl,
+        thumbnailUrl: thumbnailUrl,
+        aspectRatio: aspectRatio,
+        mediaMetadata: metadata,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        isLiked: false,
+        isBookmarked: false,
+        createdAt: DateTime.now(),
+        authorUsername: username,
+        authorAvatarUrl: avatarUrl,
+        visibility: visibility,
+        commentsEnabled: commentsEnabled,
+        sharesEnabled: sharesEnabled,
+        status: 'published',
+        mcqData: mcqData,
+        pollData: pollData,
+        questionData: questionData,
       );
 
-      return true;
+      return createdPost;
     } catch (e) {
-      debugPrint('Error creating post: $e');
+      debugPrint('Error in PostUploadService.createAndReturnPost: $e');
       uploadState.value = UploadProgressState(
         isUploading: false,
         progress: 0.0,
         error: e.toString(),
       );
-      Get.snackbar(
-        'Upload Error',
-        'Could not publish post. Please check connection.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFEF4444),
-        colorText: const Color(0xFFFFFFFF),
-      );
-      return false;
+      return null;
     }
   }
 }

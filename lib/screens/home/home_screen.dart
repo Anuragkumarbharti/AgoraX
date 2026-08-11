@@ -31,6 +31,9 @@ import '../feed/recent_posts_screen.dart';
 import '../feed/new_posts_screen.dart';
 import '../reels/reels_screen.dart';
 
+import 'dart:async';
+import '../../services/post/post_event_service.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -45,11 +48,19 @@ class _HomeScreenState extends State<HomeScreen> {
   final CommunityController _communityCtrl = Get.find<CommunityController>();
   List<Post> _posts = [];
   bool _isLoadingPosts = true;
+  StreamSubscription<Post>? _postSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchRecentPosts();
+    _postSubscription = PostEventService.to.onPostCreated.listen((newPost) {
+      if (mounted) {
+        setState(() {
+          _posts.insert(0, newPost);
+        });
+      }
+    });
     _scrollController.addListener(() {
       if (_scrollController.position.userScrollDirection ==
           ScrollDirection.reverse) {
@@ -66,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _postSubscription?.cancel();
     _scrollController.dispose();
     _showFloatingButton.dispose();
     super.dispose();

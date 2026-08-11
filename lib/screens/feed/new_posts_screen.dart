@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/theme.dart';
 import '../../models/community/post_model.dart';
 import '../../services/post/post_repository.dart';
+import '../../services/post/post_event_service.dart';
 import '../../widgets/community/post_card.dart';
 
 class NewPostsScreen extends StatefulWidget {
@@ -22,11 +24,19 @@ class _NewPostsScreenState extends State<NewPostsScreen> {
   int _offset = 0;
   final int _limit = 15;
   bool _hasMore = true;
+  StreamSubscription<Post>? _postSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadPosts();
+    _postSubscription = PostEventService.to.onPostCreated.listen((newPost) {
+      if (mounted) {
+        setState(() {
+          _posts.insert(0, newPost);
+        });
+      }
+    });
 
     _scrollCtrl.addListener(() {
       if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200) {
@@ -39,6 +49,7 @@ class _NewPostsScreenState extends State<NewPostsScreen> {
 
   @override
   void dispose() {
+    _postSubscription?.cancel();
     _scrollCtrl.dispose();
     super.dispose();
   }
