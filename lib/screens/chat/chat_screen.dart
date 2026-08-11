@@ -550,6 +550,35 @@ class _ChatScreenState extends State<ChatScreen>
     return Obx(() {
       final messages = _ctrl.getMessages(_effectiveConvId);
 
+      if (messages.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B).withOpacity(0.8),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: const Icon(Icons.chat_bubble_outline_rounded, size: 36, color: Color(0xFF94A3B8)),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'No messages here yet',
+                style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Send a message to start the conversation!',
+                style: GoogleFonts.outfit(color: const Color(0xFF94A3B8), fontSize: 12.5),
+              ),
+            ],
+          ),
+        );
+      }
+
       if (messages.length > _previousMessageCount) {
         _previousMessageCount = messages.length;
         WidgetsBinding.instance.addPostFrameCallback((_) {

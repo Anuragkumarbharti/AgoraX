@@ -157,6 +157,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                 onConfirm: () {
                   _ctrl.clearChat(widget.conversationId, otherUserId: _otherUserId);
                   _showSuccessToast('Chat cleared successfully!');
+                  Get.back(); // Pop settings screen back to ChatScreen
                 },
               ),
             ),

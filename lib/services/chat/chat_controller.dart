@@ -1274,22 +1274,56 @@ class ChatController extends GetxController {
 
   void clearChat(String conversationId, {String? otherUserId}) async {
     final now = DateTime.now().toUtc();
-    final String targetOtherId = (otherUserId != null && otherUserId.isNotEmpty)
+    
+    // 1. Identify target partner ID cleanly
+    String targetOtherId = (otherUserId != null && otherUserId.isNotEmpty)
         ? otherUserId
         : extractOtherUserId(conversationId, currentUserId);
+
+    if (targetOtherId.isEmpty) {
+      final matchedConv = conversations.firstWhereOrNull((c) => c.id == conversationId);
+      if (matchedConv != null) {
+        targetOtherId = matchedConv.otherUserId;
+      }
+    }
+
     final String detConvId = getDeterministicConversationId(currentUserId, targetOtherId);
 
+    debugPrint('🗑️ [CLEAR CHAT ENGINE] Initiating COMPLETE data deletion for conversation $conversationId (Target User: $targetOtherId)');
+
+    // 2. Call Supabase RPC for Backend Database Deletion & Timestamp Sync
+    try {
+      if (targetOtherId.isNotEmpty) {
+        await Supabase.instance.client.rpc('clear_user_conversation', params: {
+          'p_other_user_id': targetOtherId,
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ [CLEAR CHAT RPC] Supabase RPC error (offline fallback active): $e');
+    }
+
+    // 3. Local Isar Database HARD Delete (All sent/received messages & attachments)
+    await IsarStorageService.to.hardClearConversationData(
+      conversationId: conversationId,
+      canonicalConvId: detConvId,
+      currentUserId: currentUserId,
+      otherUserId: targetOtherId,
+    );
+
+    // 4. Record clearedAt timestamp in SharedPreferences for startup sync isolation
     await ChatWallpaperService.to.setConversationClearedAt(conversationId, now);
     await ChatWallpaperService.to.setConversationClearedAt(detConvId, now);
 
+    // 5. Hard Clear Memory Cache ONLY for target conversation
     _messages[conversationId] = [];
     _messages[detConvId] = [];
     _messages.refresh();
 
-    await IsarStorageService.to.clearMessagesForConversation(conversationId);
-    await IsarStorageService.to.clearMessagesForConversation(detConvId);
+    // 6. Instant UI & Conversation List State Update
+    final idx = conversations.indexWhere(
+      (c) => c.id == conversationId || c.id == detConvId || (targetOtherId.isNotEmpty && c.otherUserId == targetOtherId),
+    );
 
-    final idx = conversations.indexWhere((c) => c.id == conversationId || c.id == detConvId || c.otherUserId == targetOtherId);
     if (idx != -1) {
       final conv = conversations[idx];
       conversations[idx] = Conversation(
@@ -1300,13 +1334,13 @@ class ChatController extends GetxController {
         otherUserOnline: conv.otherUserOnline,
         isVerified: conv.isVerified,
         lastMessage: '',
-        lastMessageTime: conv.lastMessageTime,
+        lastMessageTime: now,
         unreadCount: 0,
         isPinned: conv.isPinned,
         isMuted: conv.isMuted,
         levelTitle: conv.levelTitle,
         level: conv.level,
-        lastMessageSenderId: conv.lastMessageSenderId,
+        lastMessageSenderId: '',
         isMutualFollow: conv.isMutualFollow,
       );
       conversations.refresh();
@@ -1315,6 +1349,7 @@ class ChatController extends GetxController {
       if (isarConv != null) {
         isarConv.lastMessage = '';
         isarConv.unreadCount = 0;
+        isarConv.lastMessageTime = now;
         await IsarStorageService.to.saveConversation(isarConv);
       }
     }
