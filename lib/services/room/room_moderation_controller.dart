@@ -5,6 +5,7 @@ import '../../models/room/room_model.dart';
 import '../user/user_profile_cache_manager.dart';
 import 'room_permission_controller.dart';
 import 'room_realtime_controller.dart';
+import 'room_member_controller.dart';
 
 class RoomKickEntry {
   final String roomId;
@@ -295,8 +296,12 @@ class RoomModerationController extends GetxController {
         'p_new_role': newRole,
       });
     } catch (e) {
-      debugPrint('Error changing member role: $e');
-      rethrow;
+      debugPrint('Error in promote_room_member_role, attempting promote_room_member_role_v2: $e');
+      await Supabase.instance.client.rpc('promote_room_member_role_v2', params: {
+        'p_room_id': roomId,
+        'p_target_user_id': userId,
+        'p_new_role': newRole,
+      });
     }
   }
 
@@ -311,16 +316,32 @@ class RoomModerationController extends GetxController {
     try {
       await changeMemberRole(roomId, userId, targetRole);
 
+      if (Get.isRegistered<RoomMemberController>()) {
+        RoomMemberController.to.fetchRoomMembers(
+          roomId,
+          activeRoomId: roomId,
+          onDisconnect: (_, __) {},
+          onSyncRoom: (_, __) {},
+        );
+      }
+
       Get.snackbar(
         'Role Updated 🎉',
         'User assigned to $targetRole.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+        backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.9),
         colorText: Colors.white,
       );
       return true;
     } catch (e) {
-      Get.snackbar('Promotion Failed', e.toString().replaceAll('Exception: ', ''));
+      final msg = e.toString().replaceAll('Exception: ', '').replaceAll('PostgrestException', '').trim();
+      Get.snackbar(
+        'Promotion Failed',
+        msg.contains('PGRST203') ? 'Database function updating, please run migration to clear overloads.' : msg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade900,
+        colorText: Colors.white,
+      );
       return false;
     }
   }
@@ -331,15 +352,33 @@ class RoomModerationController extends GetxController {
     String? currentRole,
   ]) async {
     try {
-      await Supabase.instance.client.rpc('demote_room_member_role', params: {
-        'p_room_id': roomId,
-        'p_target_user_id': userId,
-      });
+      try {
+        await Supabase.instance.client.rpc('demote_room_member_role', params: {
+          'p_room_id': roomId,
+          'p_target_user_id': userId,
+        });
+      } catch (e) {
+        debugPrint('Error in demote_room_member_role, attempting demote_room_member_role_v2: $e');
+        await Supabase.instance.client.rpc('demote_room_member_role_v2', params: {
+          'p_room_id': roomId,
+          'p_target_user_id': userId,
+        });
+      }
+
+      if (Get.isRegistered<RoomMemberController>()) {
+        RoomMemberController.to.fetchRoomMembers(
+          roomId,
+          activeRoomId: roomId,
+          onDisconnect: (_, __) {},
+          onSyncRoom: (_, __) {},
+        );
+      }
+
       Get.snackbar(
         'Role Demoted 👤',
         'User demoted to Audience.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orangeAccent.withOpacity(0.9),
+        backgroundColor: Colors.orangeAccent.withValues(alpha: 0.9),
         colorText: Colors.white,
       );
       return true;

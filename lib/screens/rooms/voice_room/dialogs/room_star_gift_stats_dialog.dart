@@ -79,6 +79,32 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
           _totalSentGifts = totalSent != null ? List<Map<String, dynamic>>.from(totalSent) : [];
           _totalReceivedGifts = totalRecv != null ? List<Map<String, dynamic>>.from(totalRecv) : [];
 
+          // Fallback calculation: Ensure Total & Today's Gems cards reflect actual sums from contributor lists
+          double calculatedTotal = 0;
+          for (final item in _totalSentGifts) {
+            final val = ((item['gems_value'] ?? item['stars_value'] ?? 0) as num).toDouble();
+            calculatedTotal += val;
+          }
+          if (calculatedTotal > _totalStars) {
+            _totalStars = calculatedTotal;
+          }
+
+          double calculatedToday = 0;
+          for (final item in _todaySentGifts) {
+            final val = ((item['gems_value'] ?? item['stars_value'] ?? 0) as num).toDouble();
+            calculatedToday += val;
+          }
+          if (calculatedToday > _todayStars) {
+            _todayStars = calculatedToday;
+          }
+
+          if (Get.isRegistered<RoomProgressionController>()) {
+            final currentMapGems = RoomProgressionController.to.roomTotalGemsMap[widget.roomId] ?? 0;
+            if (_totalStars.toInt() > currentMapGems) {
+              RoomProgressionController.to.roomTotalGemsMap[widget.roomId] = _totalStars.toInt();
+            }
+          }
+
           _isLoading = false;
         });
       } else {

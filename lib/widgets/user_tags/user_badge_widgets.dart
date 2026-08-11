@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../models/user/user_model.dart';
+import '../../services/room/room_member_controller.dart';
 import '../../services/user/user_badge_asset_registry.dart';
 import '../memberships/novel_badge_widget.dart';
 import '../memberships/vip_badge_widget.dart';
@@ -310,11 +312,11 @@ class UserBadgeRow extends StatelessWidget {
       String? roleName;
       for (final r in [roomRole, targetRole]) {
         if (r == null || r.trim().isEmpty) continue;
-        final l = r.trim().toLowerCase();
+        final l = r.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
         if (l == 'owner' ||
             l == 'host' ||
-            l == 'co-owner' ||
-            l == 'co-host' ||
+            l == 'coowner' ||
+            l == 'cohost' ||
             l == 'admin' ||
             l == 'moderator' ||
             l == 'founder' ||
@@ -322,6 +324,13 @@ class UserBadgeRow extends StatelessWidget {
             l == 'developer') {
           roleName = r.trim();
           break;
+        }
+      }
+
+      if (roleName == null && user != null && Get.isRegistered<RoomMemberController>()) {
+        final member = RoomMemberController.to.activeMembers.firstWhereOrNull((m) => m.userId == user!.id);
+        if (member != null && member.role.isNotEmpty) {
+          roleName = member.role;
         }
       }
 

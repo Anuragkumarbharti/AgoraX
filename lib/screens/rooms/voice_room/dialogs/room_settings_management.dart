@@ -766,9 +766,12 @@ class RoomSettingsManagement {
     VoiceRoom room,
   ) {
     final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
-    final bool isOwner = currentUserId == room.hostId || currentUserId == room.founderId;
+    final bool isOwner = currentUserId == room.hostId || currentUserId == room.founderId || currentUserId == room.ownerUserId;
     final bool isSelf = userId == currentUserId;
     final controller = RoomController.to;
+    final normCurrentRole = currentRole.toLowerCase().replaceAll('-', '').replaceAll(' ', '');
+    final isTargetCoOwner = normCurrentRole == 'coowner';
+    final isTargetAdmin = normCurrentRole == 'admin' || normCurrentRole == 'moderator';
     final avatarUrl = getRoomUserAvatar(userId);
     final cachedUser = UserProfileCacheManager.getCachedUser(userId);
     final String effectiveAvatar = avatarUrl.isNotEmpty ? avatarUrl : (cachedUser?.avatar ?? '');
@@ -884,20 +887,14 @@ class RoomSettingsManagement {
                 context: context,
                 icon: Icons.workspace_premium_rounded,
                 color: Colors.amber,
-                label: currentRole == 'Co-owner' ? 'Demote from Co-owner' : 'Make Co-owner',
+                label: isTargetCoOwner ? 'Demote from Co-Owner' : 'Make Co-Owner',
                 onTap: () {
                   Get.back();
-                  controller.promoteRoomMember(
-                    room.id,
-                    userId,
-                    currentRole == 'Co-owner' ? 'Speaker' : 'Co-owner',
-                  );
-                  Get.snackbar(
-                    'Role Updated',
-                    '$name is now ${currentRole == 'Co-owner' ? 'a Speaker' : 'a Co-owner'}.',
-                    backgroundColor: Colors.purpleAccent,
-                    colorText: Colors.white,
-                  );
+                  if (isTargetCoOwner) {
+                    controller.demoteRoomMemberRole(room.id, userId);
+                  } else {
+                    controller.promoteRoomMemberRole(room.id, userId, 'Co-Owner');
+                  }
                 },
               ),
 
@@ -905,20 +902,14 @@ class RoomSettingsManagement {
                 context: context,
                 icon: Icons.security_rounded,
                 color: Colors.purpleAccent,
-                label: currentRole == 'Admin' ? 'Demote from Admin' : 'Make Admin',
+                label: isTargetAdmin ? 'Demote from Admin' : 'Make Admin',
                 onTap: () {
                   Get.back();
-                  controller.promoteRoomMember(
-                    room.id,
-                    userId,
-                    currentRole == 'Admin' ? 'Speaker' : 'Admin',
-                  );
-                  Get.snackbar(
-                    'Role Updated',
-                    '$name is now ${currentRole == 'Admin' ? 'a Speaker' : 'an Admin'}.',
-                    backgroundColor: Colors.purpleAccent,
-                    colorText: Colors.white,
-                  );
+                  if (isTargetAdmin) {
+                    controller.demoteRoomMemberRole(room.id, userId);
+                  } else {
+                    controller.promoteRoomMemberRole(room.id, userId, 'Admin');
+                  }
                 },
               ),
 

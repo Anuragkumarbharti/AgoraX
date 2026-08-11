@@ -4,6 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/room/room_model.dart';
 import '../user/user_profile_cache_manager.dart';
 
+import '../voice/voice_controller.dart';
+import 'room_seat_controller.dart';
+
 class RoomMemberController extends GetxController {
   static RoomMemberController get to => Get.find<RoomMemberController>();
 
@@ -31,6 +34,40 @@ class RoomMemberController extends GetxController {
           (response as List).map((m) => RoomMember.fromJson(m)).toList();
 
       activeMembers.assignAll(members);
+
+      final activeUserIds = members.map((m) => m.userId).toSet();
+
+      // Auto-prune stale RTC voice users that no longer exist in DB room_members
+      if (Get.isRegistered<VoiceController>()) {
+        VoiceController.to.roomUsers
+            .removeWhere((u) => !activeUserIds.contains(u.userID));
+      }
+
+      // Auto-clear seats for users who have left room_members
+      if (Get.isRegistered<RoomSeatController>()) {
+        final seats = RoomSeatController.to.roomSeatsInfo[roomId];
+        if (seats != null && seats.isNotEmpty) {
+          bool seatModified = false;
+          final updatedSeats = seats.map((s) {
+            final seatUserId = s['userId'];
+            if (seatUserId != null && !activeUserIds.contains(seatUserId)) {
+              seatModified = true;
+              final map = Map<String, dynamic>.from(s);
+              map['userId'] = null;
+              map['isSpeaking'] = false;
+              map['micStatus'] = 'muted';
+              map['isReconnecting'] = false;
+              return map;
+            }
+            return s;
+          }).toList();
+
+          if (seatModified) {
+            RoomSeatController.to.roomSeatsInfo[roomId] = updatedSeats;
+            RoomSeatController.to.roomSeatsInfo.refresh();
+          }
+        }
+      }
 
       final myMember =
           members.firstWhereOrNull((m) => m.userId == currentUserId);

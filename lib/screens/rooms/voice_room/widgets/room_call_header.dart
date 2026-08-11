@@ -190,8 +190,10 @@ class RoomCallHeader extends StatelessWidget {
                         const SizedBox(width: 4),
                         Builder(
                           builder: (context) {
-                            final onlineUsersCount =
-                                VoiceController.to.roomUsers.length;
+                            final activeMems = RoomController.to.activeMembers;
+                            final onlineUsersCount = activeMems.isNotEmpty
+                                ? activeMems.length
+                                : VoiceController.to.roomUsers.length;
                             final displayCount = onlineUsersCount > 0
                                 ? onlineUsersCount
                                 : (liveRoom?.totalMembers ?? 1);
@@ -341,8 +343,10 @@ class RoomCallHeader extends StatelessWidget {
                 children: [
                   Builder(
                     builder: (context) {
-                      final users = VoiceController.to.roomUsers;
-                      final count = users.length;
+                      final activeMems = RoomController.to.activeMembers;
+                      final count = activeMems.isNotEmpty
+                          ? activeMems.length
+                          : VoiceController.to.roomUsers.length;
 
                       return GestureDetector(
                         onTap: () {

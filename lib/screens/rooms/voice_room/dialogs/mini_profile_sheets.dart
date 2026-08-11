@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../services/room/room_controller.dart';
+import '../../../../services/room/room_member_controller.dart';
 
 class MiniProfileSheets {
   static void showReportUserSheet(BuildContext context, String targetUserName) {
@@ -256,9 +257,28 @@ class MiniProfileSheets {
     final isCoOwner = callerWeight >= 8;
     final isAdmin = callerWeight >= 7;
 
-    final bool isTargetCoOwner = targetRole == 'Co-Owner' || (room?.coOwnerIds.contains(targetUserId) == true);
-    final bool isTargetAdmin = targetRole == 'Admin' || (room?.adminIds.contains(targetUserId) == true);
-    final bool isTargetHost = targetRole == 'Host' || (room?.hostIds.contains(targetUserId) == true);
+    final String normTargetRole = targetRole.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
+
+    final memberFromCtrl = Get.isRegistered<RoomMemberController>()
+        ? RoomMemberController.to.activeMembers.firstWhereOrNull((m) => m.userId == targetUserId)
+        : null;
+    final String memberRoleFromCtrl = memberFromCtrl?.role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '') ?? '';
+
+    final bool isTargetCoOwner = normTargetRole == 'coowner' ||
+        memberRoleFromCtrl == 'coowner' ||
+        (room?.coOwnerIds.any((id) => id.trim() == targetUserId.trim()) == true);
+
+    final bool isTargetAdmin = normTargetRole == 'admin' ||
+        normTargetRole == 'moderator' ||
+        memberRoleFromCtrl == 'admin' ||
+        memberRoleFromCtrl == 'moderator' ||
+        (room?.adminIds.any((id) => id.trim() == targetUserId.trim()) == true);
+
+    final bool isTargetHost = normTargetRole == 'host' ||
+        normTargetRole == 'cohost' ||
+        memberRoleFromCtrl == 'host' ||
+        memberRoleFromCtrl == 'cohost' ||
+        (room?.hostIds.any((id) => id.trim() == targetUserId.trim()) == true);
 
     final limits = controller.permissionCtrl.getRoomRoleLimits(room?.level ?? 1);
     final maxCoOwners = limits['co_owners'] ?? 1;

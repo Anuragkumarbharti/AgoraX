@@ -91,10 +91,10 @@ class OnlineMembersDialog extends StatelessWidget {
                           ),
                         ),
                         Obx(() {
-                          final count = max(
-                            RoomController.to.activeMembers.length,
-                            VoiceController.to.roomUsers.length,
-                          );
+                          final activeMems = RoomController.to.activeMembers;
+                          final count = activeMems.isNotEmpty
+                              ? activeMems.length
+                              : VoiceController.to.roomUsers.length;
                           return Text(
                             '$count Users Currently Online',
                             style: GoogleFonts.poppins(
@@ -124,19 +124,22 @@ class OnlineMembersDialog extends StatelessWidget {
             Expanded(
               child: Obx(
                 () {
-                  // Merge active members from RoomController and VoiceController
+                  // DB active members is the primary Single Source of Truth (SSOT)
                   final Map<String, dynamic> userMap = {};
+                  final dbMembers = RoomController.to.activeMembers;
 
-                  for (final u in VoiceController.to.roomUsers) {
-                    userMap[u.userID] = u;
-                  }
-
-                  for (final m in RoomController.to.activeMembers) {
-                    if (!userMap.containsKey(m.userId)) {
+                  if (dbMembers.isNotEmpty) {
+                    for (final m in dbMembers) {
                       final profile =
                           UserProfileCacheManager.getCachedUser(m.userId);
-                      userMap[m.userId] =
+                      final voiceUser = VoiceController.to.roomUsers
+                          .firstWhereOrNull((u) => u.userID == m.userId);
+                      userMap[m.userId] = voiceUser ??
                           ZegoUser(m.userId, profile?.username ?? 'Member');
+                    }
+                  } else {
+                    for (final u in VoiceController.to.roomUsers) {
+                      userMap[u.userID] = u;
                     }
                   }
 

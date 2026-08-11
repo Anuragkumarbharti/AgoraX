@@ -355,7 +355,25 @@ class MemberListDialog extends StatelessWidget {
               ),
               Expanded(
                 child: Obx(() {
-                  final onlineUsers = VoiceController.to.roomUsers;
+                  final Map<String, dynamic> userMap = {};
+                  final dbMembers = RoomController.to.activeMembers;
+
+                  if (dbMembers.isNotEmpty) {
+                    for (final m in dbMembers) {
+                      final profile =
+                          UserProfileCacheManager.getCachedUser(m.userId);
+                      final voiceUser = VoiceController.to.roomUsers
+                          .firstWhereOrNull((u) => u.userID == m.userId);
+                      userMap[m.userId] = voiceUser ??
+                          ZegoUser(m.userId, profile?.username ?? 'Member');
+                    }
+                  } else {
+                    for (final u in VoiceController.to.roomUsers) {
+                      userMap[u.userID] = u;
+                    }
+                  }
+
+                  final onlineUsers = userMap.values.cast<ZegoUser>().toList();
                   final onlineUserIds =
                       onlineUsers.map((u) => u.userID).toSet();
 

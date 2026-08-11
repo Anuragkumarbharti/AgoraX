@@ -7,6 +7,7 @@ import '../../models/progression/room_progression_models.dart';
 import '../user/user_profile_cache_manager.dart';
 import '../progression/progression_controller.dart';
 import 'room_seat_controller.dart';
+import 'room_member_controller.dart';
 import 'room_dual_progress_controller.dart';
 
 class RoomProgressionController extends GetxController {
@@ -454,9 +455,18 @@ class RoomProgressionController extends GetxController {
       final List<Map<String, dynamic>> seatsList = [];
       final Map<String, int> giftsCounters = {};
 
+      final activeUserIds = Get.isRegistered<RoomMemberController>()
+          ? RoomMemberController.to.activeMembers.map((m) => m.userId).toSet()
+          : null;
+
       for (var s in seatsResp) {
         final seatIdx = s['seat_index'] as int;
-        final uId = s['user_id'] as String?;
+        final rawUserId = s['user_id'] as String?;
+        final bool isUserActiveInRoom = rawUserId == null ||
+            (activeUserIds != null && activeUserIds.isNotEmpty
+                ? activeUserIds.contains(rawUserId)
+                : true);
+        final uId = isUserActiveInRoom ? rawUserId : null;
         final profile = uId != null ? UserProfileCacheManager.getCachedUser(uId) : null;
         final count = giftMap[seatIdx] ?? 0;
         final int sessionGems = (s['seat_session_gems'] ?? s['seat_total_gems'] ?? s['seat_total_stars'] ?? 0) as int;

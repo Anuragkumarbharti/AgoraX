@@ -139,7 +139,12 @@ class _RoomTasksAndRewardsDialogState extends State<RoomTasksAndRewardsDialog>
       final double fillRatio = rawFillRatio.isNaN || rawFillRatio.isInfinite ? 0.0 : rawFillRatio;
       final int percent = (fillRatio * 100).toInt();
 
-      final int activeMemberCount = VoiceController.to.roomUsers.length;
+      final activeMems = Get.isRegistered<RoomController>()
+          ? RoomController.to.activeMembers
+          : [];
+      final int activeMemberCount = activeMems.isNotEmpty
+          ? activeMems.length
+          : VoiceController.to.roomUsers.length;
       final double surgeMultiplier =
           progCtrl.calculateActiveMemberSurgeMultiplier(activeMemberCount);
 

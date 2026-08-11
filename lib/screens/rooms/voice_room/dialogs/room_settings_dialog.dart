@@ -565,18 +565,39 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       ? _controller.rooms.first
                       : widget.room);
 
-              final activeUserIds =
-                  _controller.activeMembers.map((m) => m.userId).toSet();
-              final coOwners = List<String>.from(room.coOwnerIds)
-                  .where((id) => activeUserIds.contains(id) || true)
-                  .toList();
-              final admins = List<String>.from(room.adminIds)
-                  .where((id) => activeUserIds.contains(id) || true)
-                  .toList();
-              final starMembers = List<String>.from(room.starMemberIds)
-                  .where((id) => activeUserIds.contains(id) || true)
-                  .toList();
-              final ownerId = room.hostId;
+              final activeMembersList = _controller.activeMembers;
+
+              final coOwners = <String>{
+                ...room.coOwnerIds,
+                ...activeMembersList
+                    .where((m) {
+                      final l = m.role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
+                      return l == 'coowner' || l == 'cohost';
+                    })
+                    .map((m) => m.userId),
+              }.toList();
+
+              final admins = <String>{
+                ...room.adminIds,
+                ...activeMembersList
+                    .where((m) {
+                      final l = m.role.trim().toLowerCase();
+                      return l == 'admin' || l == 'moderator';
+                    })
+                    .map((m) => m.userId),
+              }.toList();
+
+              final starMembers = <String>{
+                ...room.starMemberIds,
+                ...activeMembersList
+                    .where((m) {
+                      final l = m.role.trim().toLowerCase().replaceAll(' ', '');
+                      return l == 'starmember' || l == 'speaker';
+                    })
+                    .map((m) => m.userId),
+              }.toList();
+
+              final ownerId = room.hostId.isNotEmpty ? room.hostId : room.ownerUserId;
 
               return Container(
                 decoration: BoxDecoration(

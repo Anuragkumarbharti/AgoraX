@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/room/room_model.dart';
 import 'room_discovery_controller.dart';
+import 'room_member_controller.dart';
 
 class RoomPermissionController extends GetxController {
   static RoomPermissionController get to =>
@@ -36,6 +37,23 @@ class RoomPermissionController extends GetxController {
   String getUserRole(VoiceRoom room, String userId,
       {List<Map<String, dynamic>>? seatsInfo}) {
     if (room.ownerUserId == userId || room.hostId == userId || room.founderId == userId) return 'Creator';
+
+    // Check active members from DB room_members via RoomMemberController
+    if (Get.isRegistered<RoomMemberController>()) {
+      final member = RoomMemberController.to.activeMembers
+          .firstWhereOrNull((m) => m.userId == userId);
+      if (member != null && member.role.isNotEmpty) {
+        final r = member.role.trim();
+        final l = r.toLowerCase();
+        if (l == 'owner' || l == 'creator' || l == 'founder') return 'Creator';
+        if (l == 'co-owner' || l == 'co owner' || l == 'coowner') return 'Co-Owner';
+        if (l == 'co-host' || l == 'co host' || l == 'cohost') return 'Co-Host';
+        if (l == 'admin' || l == 'moderator') return 'Admin';
+        if (l == 'host') return 'Host';
+        if (l == 'star member' || l == 'starmember') return 'Star Member';
+      }
+    }
+
     if (room.coOwnerIds.contains(userId) == true) return 'Co-Owner';
     if (room.adminIds.contains(userId) == true ||
         room.moderatorIds.contains(userId) == true) return 'Admin';
@@ -122,7 +140,8 @@ class RoomPermissionController extends GetxController {
                 .firstWhereOrNull((item) => item.id == roomId)
             : null);
     if (r != null) {
-      return r.coOwnerIds.contains(userId) == true;
+      final role = getUserRole(r, userId);
+      return role == 'Creator' || role == 'Owner' || role == 'Co-Owner' || role == 'Co-Host';
     }
     return currentPermissions['is_cohost'] == true;
   }
@@ -134,8 +153,8 @@ class RoomPermissionController extends GetxController {
                 .firstWhereOrNull((item) => item.id == roomId)
             : null);
     if (r != null) {
-      return r.adminIds.contains(userId) == true ||
-          r.moderatorIds.contains(userId) == true;
+      final role = getUserRole(r, userId);
+      return role == 'Creator' || role == 'Owner' || role == 'Co-Owner' || role == 'Co-Host' || role == 'Admin';
     }
     return currentPermissions['is_moderator'] == true;
   }
