@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:creania/core/theme.dart';
 import '../../services/store/store_controller.dart';
 import '../../services/memberships/vip_controller.dart';
 import '../../services/memberships/novel_controller.dart';
 import '../../services/user/customization_controller.dart';
+import '../../services/wallet/creania_balance_controller.dart';
+import '../../models/wallet/creania_balance_model.dart';
+import '../wallet/creania_balance_wallet_screen.dart';
 import '../store/store_home_screen.dart';
 import '../store/checkout_screen.dart';
 import '../vip/vip_purchase_screen.dart';
@@ -26,6 +30,9 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   final VipController _vipCtrl = Get.find<VipController>();
   final NovelController _novelCtrl = Get.find<NovelController>();
   final CustomizationController _custCtrl = Get.find<CustomizationController>();
+  late final CreaniaBalanceController _cbCtrl = Get.isRegistered<CreaniaBalanceController>()
+      ? Get.find<CreaniaBalanceController>()
+      : Get.put(CreaniaBalanceController());
 
   // PageController for sticky top cards
   final PageController _pageController = PageController();
@@ -306,23 +313,23 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
 
   Widget _buildIncomeSummaryCard() {
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       color: context.surfaceColor.withOpacity(0.85),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Color(0xFF10B981).withOpacity(0.2)),
+          border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
           gradient: LinearGradient(
             colors: [
-              Color(0xFF022C22).withOpacity(0.3),
-              Color(0xFF0F172A).withOpacity(0.8),
+              const Color(0xFF022C22).withOpacity(0.3),
+              const Color(0xFF0F172A).withOpacity(0.8),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -331,39 +338,57 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.monetization_on_rounded, color: Color(0xFF34D399), size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.monetization_on_rounded, color: Color(0xFF34D399), size: 20),
+                    const SizedBox(width: 8),
                     Text(
                       'Income Center Dashboard',
                       style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ),
-                // Pending withdrawal badge
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFEF4444),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text('1 Pending', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                ),
+                Obx(() {
+                  final wallet = _cbCtrl.walletData.value;
+                  final pendingCb = wallet?.pendingCbBalance ?? 0;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: pendingCb > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      pendingCb > 0 ? '${NumberFormat('#,##,###').format(pendingCb)} CB Pending' : 'Verified Payouts',
+                      style: TextStyle(
+                        color: pendingCb > 0 ? Colors.white : const Color(0xFF10B981),
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                }),
               ],
             ),
             const Spacer(),
             Obx(() {
+              final wallet = _cbCtrl.walletData.value;
+              final cbBal = wallet?.creaniaBalance ?? 0;
+              final giftCb = wallet?.giftEarningsCb ?? 0;
+              final roomCb = wallet?.roomEarningsCb ?? 0;
+              final commCb = wallet?.communityEarningsCb ?? 0;
+              final familyCb = wallet?.familyEarningsCb ?? 0;
+              final lifetimeCb = wallet?.lifetimeEarnedCb ?? 0;
+
               return GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 3,
                 childAspectRatio: 2.2,
                 children: [
-                  _buildSummaryItem('Avail. Balance', '\$${_availableIncome.value.toStringAsFixed(2)}', '💵'),
-                  _buildSummaryItem('Today\'s Income', '\$${_todayIncome.toStringAsFixed(2)}', '📈'),
-                  _buildSummaryItem('Weekly Income', '\$${_weeklyIncome.toStringAsFixed(2)}', '📊'),
-                  _buildSummaryItem('Monthly Income', '\$${_monthlyIncome.toStringAsFixed(2)}', '📅'),
-                  _buildSummaryItem('Total Income', '\$${_totalIncome.toStringAsFixed(2)}', '💼'),
-                  _buildSummaryItem('Lifetime Income', '\$${_lifetimeIncome.toStringAsFixed(2)}', '👑'),
+                  _buildSummaryItem('Avail. Balance', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(cbBal)), '💎'),
+                  _buildSummaryItem('Gift Earnings', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(giftCb)), '🎁'),
+                  _buildSummaryItem('Room Royalty', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(roomCb)), '🎙️'),
+                  _buildSummaryItem('Community Share', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(commCb)), '👥'),
+                  _buildSummaryItem('Family Settle', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(familyCb)), '🛡️'),
+                  _buildSummaryItem('Lifetime Income', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(lifetimeCb)), '👑'),
                 ],
               );
             }),
@@ -794,11 +819,16 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
   Widget _buildWalletSection() {
     return _buildCategoryGroup(
       id: 'wallet',
-      title: '💰 My Wallet',
+      title: '💰 My Wallet & Creania Balance',
       icon: Icons.account_balance_wallet_outlined,
       children: [
         // Wallet Balances summary
         Obx(() {
+          final cbCtrl = Get.isRegistered<CreaniaBalanceController>()
+              ? Get.find<CreaniaBalanceController>()
+              : Get.put(CreaniaBalanceController());
+          final cbVal = cbCtrl.walletData.value?.creaniaBalance ?? 0;
+
           return Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -807,6 +837,24 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
             ),
             child: Column(
               children: [
+                InkWell(
+                  onTap: () => Get.to(() => const CreaniaBalanceWalletScreen()),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                    ),
+                    child: _buildWalletBalanceRow(
+                      'Creania Balance (CB)',
+                      '${NumberFormat('#,##,###').format(cbVal)} CB (≈ ₹${(cbVal / 250.0).toStringAsFixed(2)})',
+                      '💎',
+                    ),
+                  ),
+                ),
+                Divider(color: Colors.white10, height: 12),
                 _buildWalletBalanceRow('Gold Coins', '${_storeCtrl.coinsBalance.value}', '🪙'),
                 Divider(color: Colors.white10, height: 12),
                 _buildWalletBalanceRow('Silver Coins', '${_silverCoins.value}', '🥈'),
@@ -833,12 +881,18 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           children: [
+            _buildStoreGridButton(Icons.account_balance_wallet, 'CB Wallet', () => Get.to(() => const CreaniaBalanceWalletScreen())),
             _buildStoreGridButton(Icons.add_card, 'Recharge', () => _showRechargeDialog()),
-            _buildStoreGridButton(Icons.account_balance, 'Withdraw', () => _showWithdrawDialog()),
-            _buildStoreGridButton(Icons.send_rounded, 'Transfer', () => _showTransferDialog()),
+            _buildStoreGridButton(Icons.account_balance, 'Withdraw', () => Get.to(() => const CreaniaBalanceWalletScreen())),
           ],
         ),
         Divider(color: Colors.white10),
+        _buildFeatureTile(
+          title: 'Creania Balance Center',
+          subtitle: 'Manage CB earnings, exchanges & withdrawals',
+          trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+          onTap: () => Get.to(() => const CreaniaBalanceWalletScreen()),
+        ),
         _buildFeatureTile(
           title: 'Wallet History',
           subtitle: 'All credit and debit transactions',
@@ -871,24 +925,36 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
       id: 'income',
       title: '💵 Income Center',
       icon: Icons.payments_outlined,
-      badge: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: Color(0xFFEF4444).withOpacity(0.15),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Color(0xFFEF4444).withOpacity(0.3)),
-        ),
-        child: Text('Pending', style: TextStyle(color: Color(0xFFEF4444), fontSize: 8, fontWeight: FontWeight.bold)),
-      ),
+      badge: Obx(() {
+        final wallet = _cbCtrl.walletData.value;
+        final pendingCb = wallet?.pendingCbBalance ?? 0;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: pendingCb > 0 ? const Color(0xFFEF4444).withOpacity(0.15) : const Color(0xFF10B981).withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: pendingCb > 0 ? const Color(0xFFEF4444).withOpacity(0.3) : const Color(0xFF10B981).withOpacity(0.3)),
+          ),
+          child: Text(
+            pendingCb > 0 ? 'Pending Settlement' : 'Verified',
+            style: TextStyle(color: pendingCb > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.bold),
+          ),
+        );
+      }),
       children: [
-        // Available balance
+        // Available balance card
         Obx(() {
+          final wallet = _cbCtrl.walletData.value;
+          final cbBal = wallet?.creaniaBalance ?? 0;
+          final inrVal = CreaniaBalanceConverter.cbToInr(cbBal);
+
           return Container(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             width: double.infinity,
             decoration: BoxDecoration(
               color: context.surfaceColor,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -896,71 +962,90 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Available Balance', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 10)),
-                    SizedBox(height: 4),
-                    Text('\$${_availableIncome.value.toStringAsFixed(2)}', style: GoogleFonts.poppins(color: Color(0xFF10B981), fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text('Available Creania Balance', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 10)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${NumberFormat('#,##,###').format(cbBal)} CB',
+                      style: GoogleFonts.poppins(color: const Color(0xFF10B981), fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '≈ ${CreaniaBalanceConverter.formatInr(inrVal)}',
+                      style: GoogleFonts.poppins(color: Colors.amber.shade300, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
                   ],
                 ),
                 ElevatedButton(
-                  onPressed: () => _showIncomeWithdrawDialog(),
+                  onPressed: () => Get.to(() => const CreaniaBalanceWalletScreen()),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF10B981),
+                    backgroundColor: const Color(0xFF10B981),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: Text('Withdraw', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: const Text('Income Wallet', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ],
             ),
           );
         }),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
 
-        Text(
-          'INCOME SOURCES',
-          style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
-        ),
-        SizedBox(height: 8),
-
-        // Income Sources Grid
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          childAspectRatio: 3.2,
-          crossAxisSpacing: 6,
-          mainAxisSpacing: 6,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildSourceTile('Gifts Received', '\$480.00', '🎁'),
-            _buildSourceTile('Voice Arenas', '\$320.00', '🎙️'),
-            _buildSourceTile('Events Hosted', '\$150.00', '🎪'),
-            _buildSourceTile('Completed Tasks', '\$75.00', '📋'),
-            _buildSourceTile('Referrals', '\$115.00', '👥'),
-            _buildSourceTile('Creator Program', '\$80.00', '🎤'),
-            _buildSourceTile('Agency Share', '\$30.00', '💼'),
-            _buildSourceTile('Bonus Income', '\$0.00', '⚡'),
+            Text(
+              'INCOME SOURCES & CATEGORIES',
+              style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+            ),
+            GestureDetector(
+              onTap: () => Get.to(() => const CreaniaBalanceWalletScreen()),
+              child: Text(
+                'View All Ledger ›',
+                style: GoogleFonts.poppins(color: const Color(0xFFA78BFA), fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
-        Divider(color: Colors.white10),
+        const SizedBox(height: 8),
+
+        // Income Sources Grid
+        Obx(() {
+          final wallet = _cbCtrl.walletData.value;
+          final giftCb = wallet?.giftEarningsCb ?? 0;
+          final roomCb = wallet?.roomEarningsCb ?? 0;
+          final commCb = wallet?.communityEarningsCb ?? 0;
+          final familyCb = wallet?.familyEarningsCb ?? 0;
+          final lifetimeCb = wallet?.lifetimeEarnedCb ?? 0;
+
+          return GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            childAspectRatio: 2.8,
+            crossAxisSpacing: 6,
+            mainAxisSpacing: 6,
+            children: [
+              _buildSourceTile('Gift Earnings', '${NumberFormat('#,##,###').format(giftCb)} CB', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(giftCb)), '🎁'),
+              _buildSourceTile('Voice Arenas', '${NumberFormat('#,##,###').format(roomCb)} CB', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(roomCb)), '🎙️'),
+              _buildSourceTile('Community Share', '${NumberFormat('#,##,###').format(commCb)} CB', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(commCb)), '👥'),
+              _buildSourceTile('Family Settle', '${NumberFormat('#,##,###').format(familyCb)} CB', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(familyCb)), '🛡️'),
+              _buildSourceTile('Study Vault', '0 CB', '₹0.00', '📚'),
+              _buildSourceTile('Lifetime Total', '${NumberFormat('#,##,###').format(lifetimeCb)} CB', CreaniaBalanceConverter.formatInr(CreaniaBalanceConverter.cbToInr(lifetimeCb)), '👑'),
+            ],
+          );
+        }),
+        const Divider(color: Colors.white10),
 
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             TextButton.icon(
-              onPressed: () => _showPaymentAccountsDialog(),
-              icon: Icon(Icons.link, size: 14, color: Color(0xFFA78BFA)),
-              label: Text('Payment Accounts', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
+              onPressed: () => Get.to(() => const CreaniaBalanceWalletScreen()),
+              icon: const Icon(Icons.account_balance_wallet, size: 14, color: Color(0xFFA78BFA)),
+              label: const Text('CB Income Center', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
             ),
             TextButton.icon(
-              onPressed: () => _showWithdrawalHistoryDialog(),
-              icon: Icon(Icons.history, size: 14, color: Color(0xFFA78BFA)),
-              label: Text('Withdrawal History', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
-            ),
-            TextButton.icon(
-              onPressed: () {
-                Get.snackbar('Analytics', 'Income Analytics coming soon!', snackPosition: SnackPosition.BOTTOM);
-              },
-              icon: Icon(Icons.analytics_outlined, size: 14, color: Color(0xFFA78BFA)),
-              label: Text('Income Analytics', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
+              onPressed: () => Get.to(() => const CreaniaBalanceWalletScreen()),
+              icon: const Icon(Icons.history, size: 14, color: Color(0xFFA78BFA)),
+              label: const Text('Transaction History', style: TextStyle(fontSize: 11, color: Color(0xFFA78BFA))),
             ),
           ],
         )
@@ -968,28 +1053,33 @@ class _AccountCenterScreenState extends State<AccountCenterScreen> {
     );
   }
 
-  Widget _buildSourceTile(String name, String val, String emoji) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Color(0xFF14141E),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Text(emoji, style: TextStyle(fontSize: 12)),
-          SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(name, style: GoogleFonts.poppins(color: Colors.white38, fontSize: 8), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(val, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
-              ],
+  Widget _buildSourceTile(String name, String val, String inrVal, String emoji) {
+    return GestureDetector(
+      onTap: () => Get.to(() => const CreaniaBalanceWalletScreen()),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF14141E),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(name, style: GoogleFonts.poppins(color: Colors.white38, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(val, style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text('≈ $inrVal', style: GoogleFonts.poppins(color: const Color(0xFF10B981), fontSize: 9, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

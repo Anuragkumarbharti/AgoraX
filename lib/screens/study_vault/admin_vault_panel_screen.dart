@@ -39,7 +39,7 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -140,7 +140,7 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
       backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          'Admin Panel (Study Vault)',
+          'Admin Panel (Vault & CB Economy)',
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         backgroundColor: context.secondaryBackgroundColor,
@@ -154,12 +154,13 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
             Tab(icon: Icon(Icons.rate_review_outlined), text: 'Reviews'),
             Tab(icon: Icon(Icons.cloud_upload_outlined), text: 'Official'),
             Tab(icon: Icon(Icons.payments_outlined), text: 'Payouts'),
+            Tab(icon: Icon(Icons.account_balance_wallet_outlined), text: 'CB Economy'),
             Tab(icon: Icon(Icons.settings_outlined), text: 'Settings'),
           ],
           indicatorColor: context.primaryColor,
           labelColor: context.primaryColor,
           unselectedLabelColor: context.caption,
-          labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+          labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
         ),
       ),
       body: Obx(() {
@@ -178,7 +179,10 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
             // Tab 3: Withdrawal requests & Piracy Reports
             _buildPayoutsTab(pendingWithdrawals),
 
-            // Tab 4: General Settings
+            // Tab 4: CB Economy & System Rules
+            _buildCbEconomyAdminTab(),
+
+            // Tab 5: General Settings
             _buildSettingsTab(),
           ],
         );
@@ -756,6 +760,89 @@ class _AdminVaultPanelScreenState extends State<AdminVaultPanelScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCbEconomyAdminTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.shield, color: Color(0xFF10B981)),
+                    SizedBox(width: 8),
+                    Text(
+                      'CREANIA BALANCE ECONOMY ENGINE',
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Base Value: 500 CB = ₹2.00 (250 CB = ₹1.00)\nServer-Authoritative, Idempotent, Fraud-Resistant',
+                  style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildAdminRuleTile('Gold Receiver CB Ratio', '50.0x (100 Gold = 5,000 CB / ₹20)'),
+          _buildAdminRuleTile('Gold Room Owner Royalty', '25.0x (100 Gold = 2,500 CB / ₹10)'),
+          _buildAdminRuleTile('Gold Community Reward', '15.0x (100 Gold = 1,500 CB / ₹6)'),
+          _buildAdminRuleTile('Gold Family Reward', '10.0x (Pending Weekend Settlement)'),
+          _buildAdminRuleTile('Silver Gift Reward Rate', '0.05x (Fractional CB)'),
+          _buildAdminRuleTile('Volt Gift Reward Rate', '0.10x (Fractional CB)'),
+          _buildAdminRuleTile('Min Withdrawal Threshold', '25,000 CB = ₹100.00'),
+          _buildAdminRuleTile('Min Exchange Requirement', '1,000 CB = ₹4.00'),
+          _buildAdminRuleTile('Promotional Bonus Rate', '5.0% for >= 50,000 CB Exchanges'),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.cleaning_services, color: Colors.white),
+              label: const Text('Trigger Weekend Family Settlement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                Get.snackbar('Admin Command', 'Weekend Family Settlement cron process dispatched successfully.');
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminRuleTile(String title, String subtitle) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(subtitle, style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 }

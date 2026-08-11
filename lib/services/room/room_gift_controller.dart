@@ -22,6 +22,7 @@ import '../../widgets/gifting/insufficient_balance_sheet.dart';
 
 import '../network/network_connectivity_service.dart';
 import '../network/network_guard.dart';
+import '../wallet/creania_balance_controller.dart';
 
 class RoomGiftController extends GetxController {
   static RoomGiftController get to {
@@ -281,6 +282,13 @@ class RoomGiftController extends GetxController {
         final progCtrl = Get.find<RoomProgressionController>();
         unawaited(progCtrl.fetchRoomProgression(roomId, onUpdateSeats: (_) {}, onUpdateSeatGifts: (_) {}));
       }
+
+      // Refresh Creania Balance Wallet
+      try {
+        if (Get.isRegistered<CreaniaBalanceController>()) {
+          unawaited(CreaniaBalanceController.to.fetchWalletData());
+        }
+      } catch (_) {}
 
       // Lucky reward notification check
       final luckyResult = resMap['lucky_result'];

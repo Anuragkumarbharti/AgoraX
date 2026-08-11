@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:creania/core/theme.dart';
-import '../../services/community/event_controller.dart';
+import '../../models/wallet/creania_balance_model.dart';
+import '../../services/wallet/creania_balance_controller.dart';
+import '../../services/store/store_controller.dart';
+import '../wallet/exchange_crea_balance_screen.dart';
+import '../wallet/withdraw_crea_balance_screen.dart';
+import '../store/store_home_screen.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({Key? key}) : super(key: key);
@@ -11,144 +17,19 @@ class WalletScreen extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<WalletScreen> {
-  final EventController _controller = Get.find<EventController>();
-  final _withdrawFormKey = GlobalKey<FormState>();
-  final _amountController = TextEditingController();
-  final _upiController = TextEditingController();
+  late CreaniaBalanceController _cbController;
+  late StoreController _storeController;
 
   @override
-  void dispose() {
-    _amountController.dispose();
-    _upiController.dispose();
-    super.dispose();
-  }
-
-  void _showWithdrawDialog() {
-    _amountController.clear();
-    _upiController.clear();
-
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: context.secondaryBackgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Row(
-          children: [
-            Icon(Icons.account_balance_wallet,
-                color: context.primaryColor, size: 24),
-            SizedBox(width: 10),
-            Text(
-              'Withdraw Cash (₹)',
-              style: TextStyle(
-                color: context.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: Form(
-          key: _withdrawFormKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Funds will be transferred to your UPI ID instantly.',
-                style: TextStyle(color: context.textSecondary, fontSize: 11),
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: Colors.white, fontSize: 14),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Please enter amount';
-                  final amt = double.tryParse(v);
-                  if (amt == null || amt <= 0) return 'Invalid amount';
-                  if (amt > _controller.cashBalance.value)
-                    return 'Insufficient cash balance';
-                  return null;
-                },
-                decoration: InputDecoration(
-                  prefixText: '₹ ',
-                  labelText: 'Amount to Withdraw',
-                  labelStyle: TextStyle(color: context.caption, fontSize: 12),
-                  filled: true,
-                  fillColor: context.scaffoldBackgroundColor,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                ),
-              ),
-              SizedBox(height: 12),
-              TextFormField(
-                controller: _upiController,
-                keyboardType: TextInputType.emailAddress,
-                style: TextStyle(color: Colors.white, fontSize: 14),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'UPI ID required';
-                  if (!v.contains('@'))
-                    return 'Invalid UPI format (e.g. user@upi)';
-                  return null;
-                },
-                decoration: InputDecoration(
-                  labelText: 'UPI ID (e.g. mobile@upi)',
-                  labelStyle: TextStyle(color: context.caption, fontSize: 12),
-                  filled: true,
-                  fillColor: context.scaffoldBackgroundColor,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('Cancel', style: TextStyle(color: context.caption)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: context.primaryColor,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () async {
-              if (_withdrawFormKey.currentState!.validate()) {
-                final amt = double.parse(_amountController.text);
-                final upi = _upiController.text.trim();
-                final success = await _controller.withdrawCash(amt, upi);
-                Get.back();
-                if (success) {
-                  Get.snackbar(
-                    'Withdrawal Initiated 💰',
-                    '₹$amt is being transferred to $upi',
-                    snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: Color(0xFF10B981),
-                    colorText: Colors.white,
-                  );
-                }
-              }
-            },
-            child: Text('Withdraw',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _depositMockMoney() {
-    _controller.depositCash(500.0);
-    Get.snackbar(
-      'Mock Deposit Success 💳',
-      'Added ₹500.00 mock cash to your wallet!',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: context.accentOrange,
-      colorText: Colors.white,
-    );
+  void initState() {
+    super.initState();
+    _cbController = Get.isRegistered<CreaniaBalanceController>()
+        ? Get.find<CreaniaBalanceController>()
+        : Get.put(CreaniaBalanceController());
+    _storeController = Get.isRegistered<StoreController>()
+        ? Get.find<StoreController>()
+        : Get.put(StoreController());
+    _cbController.fetchWalletData();
   }
 
   @override
@@ -163,7 +44,7 @@ class _WalletScreenState extends State<WalletScreen> {
           onPressed: () => Get.back(),
         ),
         title: Text(
-          'Wallet & History',
+          'Wallet & Balances',
           style: TextStyle(
             color: context.textPrimary,
             fontSize: 18,
@@ -172,276 +53,302 @@ class _WalletScreenState extends State<WalletScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.add_card_rounded, color: context.accentOrange),
-            tooltip: 'Deposit Mock Money',
-            onPressed: _depositMockMoney,
+            icon: Icon(Icons.refresh, color: context.iconPrimary),
+            onPressed: () => _cbController.fetchWalletData(),
           ),
         ],
       ),
       body: Obx(() {
-        return Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Double Balance Card
-              _buildBalanceCards(),
-              SizedBox(height: 24),
+        final wallet = _cbController.walletData.value;
+        final goldCoins = _storeController.coinsBalance.value;
+        final silverCoins = _storeController.silverCoinsBalance.value;
+        final cbBalance = wallet?.creaniaBalance ?? 0;
+        final pendingCb = wallet?.pendingCbBalance ?? 0;
+        final inrVal = CreaniaBalanceConverter.cbToInr(cbBalance);
 
-              // 2. Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.primaryColor,
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                      ),
-                      icon: Icon(Icons.account_balance_wallet_outlined,
-                          color: Colors.white),
-                      label: Text('Withdraw Cash',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
-                      onPressed: _showWithdrawDialog,
+        return RefreshIndicator(
+          onRefresh: () => _cbController.fetchWalletData(),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── 1. MAIN CREANIA BALANCE CARD ──
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF065F46), Color(0xFF047857), Color(0xFF059669)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 28),
-
-              // 3. Transactions List Header
-              Text(
-                '📜 Transaction History',
-                style: TextStyle(
-                  color: context.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 12),
-
-              // 4. Transactions List
-              Expanded(
-                child: _controller.walletTransactions.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No transactions yet.',
-                          style:
-                              TextStyle(color: context.caption, fontSize: 13),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _controller.walletTransactions.length,
-                        itemBuilder: (context, index) {
-                          final tx = _controller.walletTransactions[index];
-                          return _buildTransactionRow(tx);
-                        },
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.25),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
                       ),
-              ),
-            ],
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: const [
+                                Text('💎', style: TextStyle(fontSize: 12)),
+                                SizedBox(width: 6),
+                                Text(
+                                  'CREANIA BALANCE',
+                                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '500 CB = ₹2.00',
+                            style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        '${NumberFormat('#,##,###').format(cbBalance)} CB',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '≈ ${CreaniaBalanceConverter.formatInr(inrVal)} ${pendingCb > 0 ? "(Pending: ${NumberFormat('#,##,###').format(pendingCb)} CB)" : ""}',
+                        style: TextStyle(
+                          color: Colors.amber.shade300,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => Get.to(() => const ExchangeCreaBalanceScreen()),
+                              icon: const Icon(Icons.swap_horiz, color: Colors.black87, size: 16),
+                              label: const Text('Exchange CB', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => Get.to(() => const WithdrawCreaBalanceScreen()),
+                              icon: const Icon(Icons.account_balance, color: Colors.white, size: 16),
+                              label: const Text('Withdraw', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0F172A),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(color: Colors.white24),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── 2. GOLD & SILVER CURRENCY CARDS ──
+                Row(
+                  children: [
+                    // Gold Coins Card
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: const [
+                                    Text('🪙', style: TextStyle(fontSize: 14)),
+                                    SizedBox(width: 4),
+                                    Text('Gold Coins', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                GestureDetector(
+                                  onTap: () => Get.to(() => const StoreHomeScreen()),
+                                  child: const Text('+ Topup', style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              NumberFormat('#,##,###').format(goldCoins),
+                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text('Spending Currency', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Silver Coins Card
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFF94A3B8).withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: const [
+                                Text('🥈', style: TextStyle(fontSize: 14)),
+                                SizedBox(width: 4),
+                                Text('Silver Coins', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              NumberFormat('#,##,###').format(silverCoins),
+                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text('Free Activity Coins', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // ── 3. TRANSACTION HISTORY ──
+                Text(
+                  '📜 Creania Balance Audit History',
+                  style: TextStyle(
+                    color: context.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                if (wallet == null || wallet.transactions.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Text('No transaction history found.', style: TextStyle(color: Colors.white38, fontSize: 13)),
+                    ),
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: wallet.transactions.length,
+                    itemBuilder: (context, index) {
+                      final tx = wallet.transactions[index];
+                      final isCredit = tx.isCredit;
+                      final color = isCredit ? const Color(0xFF10B981) : Colors.redAccent;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: color.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                isCredit ? Icons.arrow_downward : Icons.arrow_upward,
+                                color: color,
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    tx.displayTitle,
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    DateFormat('dd MMM yyyy, hh:mm a').format(tx.createdAt),
+                                    style: const TextStyle(color: Colors.white38, fontSize: 10),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${isCredit ? '+' : ''}${NumberFormat('#,##,###').format(tx.amountCb)} CB',
+                                  style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '≈ ${CreaniaBalanceConverter.formatInr(tx.inrEquivalent.abs())}',
+                                  style: const TextStyle(color: Colors.white54, fontSize: 10),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
           ),
         );
       }),
-    );
-  }
-
-  Widget _buildBalanceCards() {
-    return Row(
-      children: [
-        // Silver Coins Card
-        Expanded(
-          child: Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF475569),
-                  Color(0xFF1E293B).withOpacity(0.9),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('🪙', style: TextStyle(fontSize: 18)),
-                    SizedBox(width: 6),
-                    Text(
-                      'Silver Coins',
-                      style: TextStyle(
-                          color: context.textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-                Text(
-                  '${_controller.silverCoins.value}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'For hosting events & tools',
-                  style: TextStyle(color: context.caption, fontSize: 9),
-                ),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(width: 10),
-        // Cash Card
-        Expanded(
-          child: Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1E1B4B),
-                  Color(0xFF0F172A).withOpacity(0.9),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: context.primaryColor.withOpacity(0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('💰', style: TextStyle(fontSize: 16)),
-                    SizedBox(width: 6),
-                    Text(
-                      'Cash Balance',
-                      style: TextStyle(
-                          color: context.textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-                Text(
-                  '₹${_controller.cashBalance.value.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: context.accentOrange,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'For entry fees & winnings',
-                  style: TextStyle(color: context.caption, fontSize: 9),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTransactionRow(Map<String, dynamic> tx) {
-    final bool isCredit = tx['isCredit'] as bool;
-    final String amount = tx['amount'] as String;
-    final String type = tx['type'] as String;
-    final String title = tx['title'] as String;
-    final String date = tx['date'] as String;
-
-    IconData icon;
-    Color iconColor;
-
-    if (type.contains('Paid') ||
-        type.contains('Fee') ||
-        type.contains('Withdrawal')) {
-      icon = Icons.arrow_outward_rounded;
-      iconColor = Colors.redAccent;
-    } else {
-      icon = Icons.call_received_rounded;
-      iconColor = Color(0xFF10B981);
-    }
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: context.cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.borderColor),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: iconColor.withOpacity(0.12),
-            radius: 18,
-            child: Icon(icon, color: iconColor, size: 16),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                      color: context.textPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 3),
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: context.scaffoldBackgroundColor,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        type,
-                        style: TextStyle(
-                            color: iconColor,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      date,
-                      style: TextStyle(color: context.caption, fontSize: 10),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '${isCredit ? '+' : '-'}$amount',
-            style: TextStyle(
-              color: isCredit ? context.successColor : context.textPrimary,
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

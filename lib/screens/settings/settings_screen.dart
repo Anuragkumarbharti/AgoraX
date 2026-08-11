@@ -7,6 +7,7 @@ import '../auth/login_screen.dart';
 import '../vip/vip_purchase_screen.dart';
 import '../novel/novel_purchase_screen.dart';
 import '../store/store_home_screen.dart';
+import '../wallet/creania_balance_wallet_screen.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/storage/theme_controller.dart';
 import '../../services/community/community_controller.dart';
@@ -74,6 +75,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Purchase frames, entry effects, and gifts',
               icon: Icons.storefront_rounded,
               onTap: () => Get.to(() => const StoreHomeScreen()),
+            ),
+            _buildSettingsTile(
+              context,
+              'Income Center & Wallet',
+              'Manage Creania Balance (CB), gift earnings, exchanges & withdrawals',
+              icon: Icons.account_balance_wallet_outlined,
+              onTap: () => Get.to(() => const CreaniaBalanceWalletScreen()),
             ),
 
             Divider(color: context.borderColor, height: 32, thickness: 0.5),
