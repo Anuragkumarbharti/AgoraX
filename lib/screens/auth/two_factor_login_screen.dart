@@ -304,15 +304,19 @@ class _TwoFactorLoginScreenState extends State<TwoFactorLoginScreen> {
               const SizedBox(height: 20),
 
               // Verification Mode Selector Tabs
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildModeTab(0, '6-Digit TOTP'),
-                  const SizedBox(width: 8),
-                  _buildModeTab(1, 'Server Key'),
-                  const SizedBox(width: 8),
-                  _buildModeTab(2, 'Recovery Code'),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildModeTab(0, '6-Digit TOTP'),
+                    const SizedBox(width: 6),
+                    _buildModeTab(1, 'Server Key'),
+                    const SizedBox(width: 6),
+                    _buildModeTab(2, 'Recovery Code'),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
 
