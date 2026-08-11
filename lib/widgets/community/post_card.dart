@@ -49,6 +49,8 @@ class _PostCardState extends State<PostCard> {
   late bool _isBookmarked;
   late int _comments;
   late int _shares;
+  late bool _isReposted;
+  late int _reposts;
 
   final DiscoveryService _discoveryService = Get.put(DiscoveryService());
 
@@ -62,18 +64,24 @@ class _PostCardState extends State<PostCard> {
       _isBookmarked = p.isSaved;
       _comments = p.comments;
       _shares = p.shares;
+      _isReposted = false;
+      _reposts = 0;
     } else if (p is Post) {
       _isLiked = p.isLiked;
       _likes = p.likes;
       _isBookmarked = p.isBookmarked;
       _comments = p.comments;
       _shares = p.shares;
+      _isReposted = false;
+      _reposts = 0;
     } else {
       _isLiked = false;
       _likes = 0;
       _isBookmarked = false;
       _comments = 0;
       _shares = 0;
+      _isReposted = false;
+      _reposts = 0;
     }
   }
 
@@ -86,6 +94,24 @@ class _PostCardState extends State<PostCard> {
   DateTime get _createdAt => widget.post.createdAt ?? DateTime.now();
   AudioTrack? get _audioTrack => (widget.post is UnifiedContentItem) ? widget.post.audioTrack : null;
 
+  String _formatPostTime(DateTime dt) {
+    final now = DateTime.now();
+    final localDt = dt.toLocal();
+    final diff = now.difference(localDt);
+
+    if (diff.inSeconds.abs() < 60) {
+      return 'Just now';
+    } else if (diff.inMinutes < 60 && !diff.isNegative) {
+      return '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24 && !diff.isNegative) {
+      return '${diff.inHours}h ago';
+    } else if (diff.inDays < 7 && !diff.isNegative) {
+      return '${diff.inDays}d ago';
+    } else {
+      return DateFormat.yMMMd().add_jm().format(localDt);
+    }
+  }
+
   Future<void> _handleLike() async {
     final prevLiked = _isLiked;
     setState(() {
@@ -93,6 +119,21 @@ class _PostCardState extends State<PostCard> {
       _likes = _isLiked ? _likes + 1 : _likes - 1;
     });
     await PostRepository.toggleLike(_postId, prevLiked);
+  }
+
+  void _handleRepost() {
+    setState(() {
+      _isReposted = !_isReposted;
+      _reposts = _isReposted ? _reposts + 1 : _reposts - 1;
+    });
+    Get.snackbar(
+      _isReposted ? 'Reposted! 🔄' : 'Repost Removed',
+      _isReposted ? 'Post shared to your profile feed.' : 'Repost removed.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: const Color(0xFF10B981).withOpacity(0.9),
+      colorText: Colors.white,
+      duration: const Duration(seconds: 1),
+    );
   }
 
   Future<void> _handleBookmark() async {
@@ -150,7 +191,7 @@ class _PostCardState extends State<PostCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final formattedTime = DateFormat.yMMMd().add_jm().format(_createdAt);
+    final formattedTime = _formatPostTime(_createdAt);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -303,7 +344,7 @@ class _PostCardState extends State<PostCard> {
 
           const SizedBox(height: 12),
 
-          // Action Buttons Bar (Like, Comment, Share, Bookmark)
+          // Action Buttons Bar (Like, Comment, Repost, Share, Bookmark)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -311,7 +352,7 @@ class _PostCardState extends State<PostCard> {
                 onTap: _handleLike,
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   child: Row(
                     children: [
                       Icon(
@@ -330,7 +371,7 @@ class _PostCardState extends State<PostCard> {
                 onTap: () {},
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   child: Row(
                     children: [
                       Icon(Icons.chat_bubble_outline_rounded, color: context.caption, size: 18),
@@ -342,10 +383,29 @@ class _PostCardState extends State<PostCard> {
               ),
 
               InkWell(
+                onTap: _handleRepost,
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.repeat_rounded,
+                        color: _isReposted ? const Color(0xFF10B981) : context.caption,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 4),
+                      Text('$_reposts', style: GoogleFonts.poppins(color: _isReposted ? const Color(0xFF10B981) : context.caption, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
+
+              InkWell(
                 onTap: _handleShare,
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   child: Row(
                     children: [
                       Icon(Icons.share_outlined, color: context.caption, size: 18),
@@ -357,6 +417,8 @@ class _PostCardState extends State<PostCard> {
               ),
 
               IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
                 icon: Icon(_isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: _isBookmarked ? context.primaryColor : context.caption, size: 20),
                 onPressed: _handleBookmark,
               ),
