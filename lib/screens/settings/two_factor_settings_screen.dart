@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import '../../models/auth/two_factor_models.dart';
 import '../../services/auth/two_factor_service.dart';
@@ -55,8 +56,29 @@ class _TwoFactorSettingsWidgetState extends State<TwoFactorSettingsWidget> {
     }
   }
 
+  bool _isOAuthUser() {
+    final supaUser = Supabase.instance.client.auth.currentUser;
+    if (supaUser == null) return false;
+    final provider = supaUser.appMetadata['provider']?.toString().toLowerCase() ?? '';
+    if (provider.isNotEmpty && provider != 'email' && provider != 'password') {
+      return true;
+    }
+    final identities = supaUser.identities ?? [];
+    for (final id in identities) {
+      final p = id.provider.toLowerCase();
+      if (p == 'google' || p == 'facebook' || p == 'apple' || p == 'phone') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   void _promptPasswordForSetup() {
     _passwordCtrl.clear();
+    final isOAuth = _isOAuthUser();
+    final user = UserProfileCacheManager.currentUser;
+    final email = user?.email ?? Supabase.instance.client.auth.currentUser?.email ?? '';
+
     Get.defaultDialog(
       title: 'Security Verification 🛡️',
       backgroundColor: context.secondaryBackgroundColor,
@@ -65,26 +87,30 @@ class _TwoFactorSettingsWidgetState extends State<TwoFactorSettingsWidget> {
       content: Column(
         children: [
           Text(
-            'Please confirm your account password before setting up Two-Factor Authentication.',
+            isOAuth
+                ? 'Your account is verified via Social Sign-In ($email).\nTap Continue to proceed with 2FA setup.'
+                : 'Please confirm your account password before setting up Two-Factor Authentication.',
             style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _passwordCtrl,
-            obscureText: true,
-            style: GoogleFonts.poppins(color: context.textPrimary),
-            decoration: InputDecoration(
-              labelText: 'Account Password',
-              labelStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
-              prefixIcon: Icon(Icons.lock_outline_rounded, color: context.primaryColor, size: 20),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: context.primaryColor, width: 1.5),
+          if (!isOAuth) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordCtrl,
+              obscureText: true,
+              style: GoogleFonts.poppins(color: context.textPrimary),
+              decoration: InputDecoration(
+                labelText: 'Account Password',
+                labelStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
+                prefixIcon: Icon(Icons.lock_outline_rounded, color: context.primaryColor, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.primaryColor, width: 1.5),
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
       confirm: ElevatedButton(
@@ -95,13 +121,11 @@ class _TwoFactorSettingsWidgetState extends State<TwoFactorSettingsWidget> {
         ),
         onPressed: () async {
           final password = _passwordCtrl.text.trim();
-          if (password.isEmpty) {
+          if (!isOAuth && password.isEmpty) {
             Get.snackbar('Error', 'Please enter your password');
             return;
           }
           Get.back();
-          final user = UserProfileCacheManager.currentUser;
-          final email = user?.email ?? '';
 
           Get.to(() => TwoFactorSetupScreen(
                 userEmail: email,
