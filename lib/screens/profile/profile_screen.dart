@@ -17,6 +17,7 @@ import '../../models/user/user_model.dart';
 import '../../models/community/post_model.dart';
 import '../../models/community/question_model.dart';
 import '../settings/settings_screen.dart';
+import '../settings/help_support_screen.dart';
 import './gifting_contribution_screen.dart';
 import '../../widgets/community/post_attachments_widget.dart';
 import '../../widgets/community/post_card.dart';
