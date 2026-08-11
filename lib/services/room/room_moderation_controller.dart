@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/room/room_model.dart';
 import '../user/user_profile_cache_manager.dart';
+import 'room_permission_controller.dart';
+import 'room_realtime_controller.dart';
 
 class RoomKickEntry {
   final String roomId;
@@ -168,40 +170,13 @@ class RoomModerationController extends GetxController {
       final room = rooms.firstWhereOrNull((r) => r.id == roomId);
       if (room == null) return;
 
-      if (room.hostId != currentUserId &&
-          room.coOwnerIds.contains(currentUserId) != true &&
-          room.moderatorIds.contains(currentUserId) != true) {
-        throw Exception(
-            'Only Room Host, Co-Owners, and Admins can kick members.');
-      }
+      final callerRole = RoomPermissionController.to.getUserRole(room, currentUserId);
+      final targetRole = RoomPermissionController.to.getUserRole(room, userId);
 
-      final targetMember =
-          activeMembers.firstWhereOrNull((m) => m.userId == userId);
-      final targetRole = targetMember?.role ?? 'Guest';
+      final callerWeight = RoomPermissionController.to.getRoleWeight(callerRole);
+      final targetWeight = RoomPermissionController.to.getRoleWeight(targetRole);
 
-      final callerMember =
-          activeMembers.firstWhereOrNull((m) => m.userId == currentUserId);
-      final callerRole = callerMember?.role ?? 'Guest';
-
-      int getRoleWeight(String role) {
-        switch (role.toLowerCase()) {
-          case 'owner':
-          case 'founder':
-            return 10;
-          case 'co-owner':
-          case 'co-host':
-            return 9;
-          case 'admin':
-          case 'moderator':
-            return 8;
-          case 'speaker':
-            return 5;
-          default:
-            return 1;
-        }
-      }
-
-      if (getRoleWeight(callerRole) <= getRoleWeight(targetRole)) {
+      if (callerWeight <= targetWeight) {
         throw Exception(
             'You cannot kick a member with equal or higher authority.');
       }
@@ -211,6 +186,13 @@ class RoomModerationController extends GetxController {
         'p_target_user_id': userId,
       });
 
+      if (Get.isRegistered<RoomRealtimeController>()) {
+        await RoomRealtimeController.to.broadcastKickEviction(
+          roomId: roomId,
+          targetUserId: userId,
+        );
+      }
+
       final targetProfile =
           await UserProfileCacheManager.fetchUserProfile(userId);
       final targetName = targetProfile?.username ?? 'Member';
@@ -219,6 +201,14 @@ class RoomModerationController extends GetxController {
         'user_kicked',
         userId,
         '🥾 $targetName was kicked out of the room.',
+      );
+
+      Get.snackbar(
+        'User Kicked 🥾',
+        '$targetName has been removed from the room.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444),
+        colorText: Colors.white,
       );
     } catch (e) {
       Get.snackbar(
@@ -248,6 +238,14 @@ class RoomModerationController extends GetxController {
       if (bannedUsers[roomId] == null) bannedUsers[roomId] = [];
       if (!bannedUsers[roomId]!.contains(userId)) {
         bannedUsers[roomId]!.add(userId);
+      }
+
+      if (Get.isRegistered<RoomRealtimeController>()) {
+        await RoomRealtimeController.to.broadcastBanEviction(
+          roomId: roomId,
+          targetUserId: userId,
+          reason: reason,
+        );
       }
 
       Get.snackbar(

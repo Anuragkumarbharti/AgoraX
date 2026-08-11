@@ -69,6 +69,48 @@ class RoomRealtimeController extends GetxController {
     }
   }
 
+  Future<void> broadcastKickEviction({
+    required String roomId,
+    required String targetUserId,
+  }) async {
+    try {
+      if (_roomMembersChannel != null) {
+        await _roomMembersChannel?.sendBroadcastMessage(
+          event: 'kick_event',
+          payload: {
+            'room_id': roomId,
+            'target_user_id': targetUserId,
+            'timestamp': DateTime.now().toIso8601String(),
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('[RoomRealtimeController] Error broadcasting kick eviction: $e');
+    }
+  }
+
+  Future<void> broadcastBanEviction({
+    required String roomId,
+    required String targetUserId,
+    String? reason,
+  }) async {
+    try {
+      if (_roomMembersChannel != null) {
+        await _roomMembersChannel?.sendBroadcastMessage(
+          event: 'ban_event',
+          payload: {
+            'room_id': roomId,
+            'target_user_id': targetUserId,
+            'reason': reason,
+            'timestamp': DateTime.now().toIso8601String(),
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('[RoomRealtimeController] Error broadcasting ban eviction: $e');
+    }
+  }
+
   /// Broadcasts one Realtime GiftSent event to everyone in the room.
   Future<void> broadcastGiftSentEvent(String roomId, Map<String, dynamic> eventPayload) async {
     try {
@@ -231,6 +273,47 @@ class RoomRealtimeController extends GetxController {
                     reason: reason,
                   );
                 }
+              }
+            },
+          )
+          .onBroadcast(
+            event: 'kick_event',
+            callback: (payload) {
+              final String? tUserId = payload['target_user_id']?.toString();
+              if (tUserId == currentUserId) {
+                if (Get.isRegistered<RoomConnectionController>()) {
+                  RoomConnectionController.to.exitRoom(roomId);
+                }
+                Get.snackbar(
+                  'Kicked Out 🥾',
+                  'You have been removed from the room by a moderator.',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: const Color(0xFFEF4444),
+                  colorText: Colors.white,
+                  duration: const Duration(seconds: 4),
+                );
+              }
+            },
+          )
+          .onBroadcast(
+            event: 'ban_event',
+            callback: (payload) {
+              final String? tUserId = payload['target_user_id']?.toString();
+              final String? reason = payload['reason']?.toString();
+              if (tUserId == currentUserId) {
+                if (Get.isRegistered<RoomConnectionController>()) {
+                  RoomConnectionController.to.exitRoom(roomId);
+                }
+                Get.snackbar(
+                  'Banned 🚫',
+                  reason != null && reason.isNotEmpty
+                      ? 'You have been banned from this room: $reason'
+                      : 'You have been banned from this room by a moderator.',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: const Color(0xFFDC2626),
+                  colorText: Colors.white,
+                  duration: const Duration(seconds: 4),
+                );
               }
             },
           );

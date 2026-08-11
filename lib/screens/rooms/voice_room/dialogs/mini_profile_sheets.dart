@@ -160,7 +160,7 @@ class MiniProfileSheets {
                     controller: controller);
               },
             ),
-            if (callerWeight >= 8)
+            if (callerWeight >= 7)
               ListTile(
                 leading: const Icon(Icons.manage_accounts_rounded,
                     color: Colors.cyanAccent),
@@ -247,10 +247,18 @@ class MiniProfileSheets {
     final callerRole = room != null
         ? controller.getUserRole(room, callerUserId)
         : 'Audience';
+    final targetRole = room != null
+        ? controller.getUserRole(room, targetUserId)
+        : 'Audience';
 
     final callerWeight = controller.permissionCtrl.getRoleWeight(callerRole);
     final isCreator = callerWeight >= 10;
     final isCoOwner = callerWeight >= 8;
+    final isAdmin = callerWeight >= 7;
+
+    final bool isTargetCoOwner = targetRole == 'Co-Owner' || (room?.coOwnerIds.contains(targetUserId) == true);
+    final bool isTargetAdmin = targetRole == 'Admin' || (room?.adminIds.contains(targetUserId) == true);
+    final bool isTargetHost = targetRole == 'Host' || (room?.hostIds.contains(targetUserId) == true);
 
     final limits = controller.permissionCtrl.getRoomRoleLimits(room?.level ?? 1);
     final maxCoOwners = limits['co_owners'] ?? 1;
@@ -271,7 +279,7 @@ class MiniProfileSheets {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Select Role Action',
+              'Manage Roles',
               style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -279,50 +287,84 @@ class MiniProfileSheets {
               ),
             ),
             const SizedBox(height: 20),
-            if (isCreator)
-              ListTile(
-                leading:
-                    const Icon(Icons.diamond_rounded, color: Color(0xFFCE93D8)),
-                title: Text('Promote to 💎 Co Owner',
-                    style: GoogleFonts.poppins(color: Colors.white)),
-                subtitle: Text('Level ${room?.level ?? 1} Limit: Max $maxCoOwners Co Owner(s)',
-                    style: GoogleFonts.poppins(
-                        color: Colors.white54, fontSize: 10)),
-                onTap: () async {
-                  Get.back();
-                  await controller.promoteRoomMemberRole(
-                      roomId, targetUserId, 'Co-Owner');
-                  onStateChanged();
-                },
-              ),
-            if (isCreator || isCoOwner)
-              ListTile(
-                leading: const Icon(Icons.shield_rounded,
-                    color: Color(0xFF60A5FA)),
-                title: Text('Promote to 🛡 Admin',
-                    style: GoogleFonts.poppins(color: Colors.white)),
-                subtitle: Text('Level ${room?.level ?? 1} Limit: Max $maxAdmins Admin(s)',
-                    style: GoogleFonts.poppins(
-                        color: Colors.white54, fontSize: 10)),
-                onTap: () async {
-                  Get.back();
-                  await controller.promoteRoomMemberRole(
-                      roomId, targetUserId, 'Admin');
-                  onStateChanged();
-                },
-              ),
-            ListTile(
-              leading: const Icon(Icons.person_outline_rounded,
-                  color: Colors.white70),
-              title: Text('Demote to 👤 Audience',
-                  style: GoogleFonts.poppins(color: Colors.white)),
-              onTap: () async {
-                Get.back();
-                await controller.demoteRoomMemberRole(
-                    roomId, targetUserId);
-                onStateChanged();
-              },
-            ),
+
+            // 1. Co-Owner Assign / Remove (Owner Only)
+            if (isCreator) ...[
+              if (isTargetCoOwner)
+                ListTile(
+                  leading: const Icon(Icons.remove_moderator_rounded, color: Colors.orangeAccent),
+                  title: Text('Remove 💎 Co-Owner Role', style: GoogleFonts.poppins(color: Colors.white)),
+                  subtitle: Text('Demote user from Co-Owner', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                  onTap: () async {
+                    Get.back();
+                    await controller.demoteRoomMemberRole(roomId, targetUserId, 'Co-Owner');
+                    onStateChanged();
+                  },
+                )
+              else
+                ListTile(
+                  leading: const Icon(Icons.diamond_rounded, color: Color(0xFFCE93D8)),
+                  title: Text('Assign 💎 Co-Owner Role', style: GoogleFonts.poppins(color: Colors.white)),
+                  subtitle: Text('Level ${room?.level ?? 1} Limit: Max $maxCoOwners Co-Owner(s)', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                  onTap: () async {
+                    Get.back();
+                    await controller.promoteRoomMemberRole(roomId, targetUserId, 'Co-Owner');
+                    onStateChanged();
+                  },
+                ),
+            ],
+
+            // 2. Admin Assign / Remove (Owner & Co-Owner)
+            if (isCreator || isCoOwner) ...[
+              if (isTargetAdmin)
+                ListTile(
+                  leading: const Icon(Icons.shield_outlined, color: Colors.amberAccent),
+                  title: Text('Remove 🛡 Admin Role', style: GoogleFonts.poppins(color: Colors.white)),
+                  subtitle: Text('Remove Admin privileges from user', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                  onTap: () async {
+                    Get.back();
+                    await controller.demoteRoomMemberRole(roomId, targetUserId, 'Admin');
+                    onStateChanged();
+                  },
+                )
+              else
+                ListTile(
+                  leading: const Icon(Icons.shield_rounded, color: Color(0xFF60A5FA)),
+                  title: Text('Assign 🛡 Admin Role', style: GoogleFonts.poppins(color: Colors.white)),
+                  subtitle: Text('Level ${room?.level ?? 1} Limit: Max $maxAdmins Admin(s)', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                  onTap: () async {
+                    Get.back();
+                    await controller.promoteRoomMemberRole(roomId, targetUserId, 'Admin');
+                    onStateChanged();
+                  },
+                ),
+            ],
+
+            // 3. Host Assign / Remove (Owner, Co-Owner & Admin)
+            if (isCreator || isCoOwner || isAdmin) ...[
+              if (isTargetHost)
+                ListTile(
+                  leading: const Icon(Icons.mic_off_rounded, color: Colors.deepOrangeAccent),
+                  title: Text('Remove 🎙 Host Role', style: GoogleFonts.poppins(color: Colors.white)),
+                  subtitle: Text('Remove Host tag & permissions', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                  onTap: () async {
+                    Get.back();
+                    await controller.demoteRoomMemberRole(roomId, targetUserId, 'Host');
+                    onStateChanged();
+                  },
+                )
+              else
+                ListTile(
+                  leading: const Icon(Icons.mic_rounded, color: Color(0xFF34D399)),
+                  title: Text('Assign 🎙 Host Role', style: GoogleFonts.poppins(color: Colors.white)),
+                  subtitle: Text('Grant Host tag & stage privileges', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10)),
+                  onTap: () async {
+                    Get.back();
+                    await controller.promoteRoomMemberRole(roomId, targetUserId, 'Host');
+                    onStateChanged();
+                  },
+                ),
+            ],
           ],
         ),
       ),

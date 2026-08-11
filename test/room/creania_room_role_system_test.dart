@@ -202,5 +202,36 @@ void main() {
       expect(audienceWeight > hostWeight, isFalse);
       expect(audienceWeight > audienceWeight, isFalse);
     });
+
+    test('6. Role Assignment and Removal Granular Permissions Matrix', () {
+      final ownerWeight = permissionCtrl.getRoleWeight('Creator');
+      final coOwnerWeight = permissionCtrl.getRoleWeight('Co-Owner');
+      final adminWeight = permissionCtrl.getRoleWeight('Admin');
+      final hostWeight = permissionCtrl.getRoleWeight('Host');
+
+      // Owner can assign/remove Co-Owner (8), Admin (7), Host (6)
+      final ownerCanAssignCoOwner = ownerWeight >= 10;
+      final ownerCanAssignAdmin = ownerWeight >= 10 || ownerWeight >= 8;
+      final ownerCanAssignHost = ownerWeight >= 10 || ownerWeight >= 8 || ownerWeight >= 7;
+      expect(ownerCanAssignCoOwner, isTrue);
+      expect(ownerCanAssignAdmin, isTrue);
+      expect(ownerCanAssignHost, isTrue);
+
+      // Co-Owner can assign/remove Admin (7), Host (6) but NOT Co-Owner (8)
+      final coOwnerCanAssignCoOwner = coOwnerWeight >= 10;
+      final coOwnerCanAssignAdmin = coOwnerWeight >= 8;
+      final coOwnerCanAssignHost = coOwnerWeight >= 8 || coOwnerWeight >= 7;
+      expect(coOwnerCanAssignCoOwner, isFalse);
+      expect(coOwnerCanAssignAdmin, isTrue);
+      expect(coOwnerCanAssignHost, isTrue);
+
+      // Admin can assign/remove Host (6) but NOT Admin (7) or Co-Owner (8)
+      final adminCanAssignCoOwner = adminWeight >= 10;
+      final adminCanAssignAdmin = adminWeight >= 8;
+      final adminCanAssignHost = adminWeight >= 7;
+      expect(adminCanAssignCoOwner, isFalse);
+      expect(adminCanAssignAdmin, isFalse);
+      expect(adminCanAssignHost, isTrue);
+    });
   });
 }
