@@ -94,6 +94,7 @@ class MiniProfileSheets {
   }) {
     final room = controller.rooms.firstWhere((r) => r.id == roomId);
     final callerRole = controller.getUserRole(room, callerUserId);
+    final callerWeight = controller.permissionCtrl.getRoleWeight(callerRole);
 
     final isMuted =
         controller.mutedUsers[roomId]?.contains(targetUserId) ?? false;
@@ -159,7 +160,7 @@ class MiniProfileSheets {
                     controller: controller);
               },
             ),
-            if (callerRole == 'Owner')
+            if (callerWeight >= 8)
               ListTile(
                 leading: const Icon(Icons.manage_accounts_rounded,
                     color: Colors.cyanAccent),
@@ -247,8 +248,9 @@ class MiniProfileSheets {
         ? controller.getUserRole(room, callerUserId)
         : 'Audience';
 
-    final isCreator = callerRole == 'Creator' || callerRole == 'Owner';
-    final isCoOwner = callerRole == 'Co-Owner' || callerRole == 'Co Owner';
+    final callerWeight = controller.permissionCtrl.getRoleWeight(callerRole);
+    final isCreator = callerWeight >= 10;
+    final isCoOwner = callerWeight >= 8;
 
     final limits = controller.permissionCtrl.getRoomRoleLimits(room?.level ?? 1);
     final maxCoOwners = limits['co_owners'] ?? 1;

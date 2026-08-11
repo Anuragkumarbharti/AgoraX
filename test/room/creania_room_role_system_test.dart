@@ -168,5 +168,39 @@ void main() {
       // Audience CANNOT change entry rules
       expect(permissionCtrl.canChangeEntryRules(level1Room, audienceId), isFalse);
     });
+
+    test('5. Role Hierarchy Manage Button Visibility Matrix', () {
+      final ownerWeight = permissionCtrl.getRoleWeight('Creator');
+      final coOwnerWeight = permissionCtrl.getRoleWeight('Co-Owner');
+      final adminWeight = permissionCtrl.getRoleWeight('Admin');
+      final hostWeight = permissionCtrl.getRoleWeight('Host');
+      final audienceWeight = permissionCtrl.getRoleWeight('Audience');
+
+      // OWNER sees Manage on Co-Owner, Admin, Host, Audience
+      expect(ownerWeight > coOwnerWeight, isTrue);
+      expect(ownerWeight > adminWeight, isTrue);
+      expect(ownerWeight > hostWeight, isTrue);
+      expect(ownerWeight > audienceWeight, isTrue);
+
+      // CO-OWNER sees Manage on Admin, Host, Audience
+      expect(coOwnerWeight > ownerWeight, isFalse);
+      expect(coOwnerWeight > adminWeight, isTrue);
+      expect(coOwnerWeight > hostWeight, isTrue);
+      expect(coOwnerWeight > audienceWeight, isTrue);
+
+      // ADMIN sees Manage on Host, Audience
+      expect(adminWeight > ownerWeight, isFalse);
+      expect(adminWeight > coOwnerWeight, isFalse);
+      expect(adminWeight > hostWeight, isTrue);
+      expect(adminWeight > audienceWeight, isTrue);
+
+      // HOST sees Manage on Audience
+      expect(hostWeight > adminWeight, isFalse);
+      expect(hostWeight > audienceWeight, isTrue);
+
+      // AUDIENCE sees Manage on no one
+      expect(audienceWeight > hostWeight, isFalse);
+      expect(audienceWeight > audienceWeight, isFalse);
+    });
   });
 }

@@ -34,24 +34,16 @@ class SeatActionSheets {
     final String callerRole = Get.isRegistered<RoomController>()
         ? RoomController.to.getUserRole(liveRoom ?? VoiceRoom.dummy(), callerUserId)
         : 'Guest';
-    final String callerRoleLower = callerRole.toLowerCase();
+    final String actualTargetRole = (liveRoom != null && Get.isRegistered<RoomController>())
+        ? RoomController.to.getUserRole(liveRoom, targetUserId)
+        : targetRole;
 
-    final bool isCallerOwner = isHost ||
-        callerRoleLower == 'owner' ||
-        callerRoleLower == 'founder' ||
-        callerRoleLower == 'creator' ||
-        (liveRoom?.hostId == callerUserId);
-
-    final bool isCallerCoOwner = callerRoleLower == 'co-owner' ||
-        callerRoleLower == 'co-host' ||
-        callerRoleLower == 'coowner' ||
-        callerRoleLower == 'cohost';
-
-    final String targetRoleLower = targetRole.toLowerCase();
-    final bool isTargetOwner = targetRoleLower == 'owner' ||
-        targetRoleLower == 'founder' ||
-        targetRoleLower == 'creator' ||
-        (liveRoom?.hostId == targetUserId);
+    final int callerWeight = Get.isRegistered<RoomController>()
+        ? RoomController.to.permissionCtrl.getRoleWeight(callerRole)
+        : 1;
+    final int targetWeight = Get.isRegistered<RoomController>()
+        ? RoomController.to.permissionCtrl.getRoleWeight(actualTargetRole)
+        : 1;
 
     bool canMute = false;
     bool canRemoveFromSeat = false;
@@ -60,14 +52,9 @@ class SeatActionSheets {
       canMute = true;
       canRemoveFromSeat = true;
     } else {
-      if (isCallerOwner) {
+      if (callerWeight > targetWeight) {
         canMute = true;
         canRemoveFromSeat = true;
-      } else if (isCallerCoOwner) {
-        if (!isTargetOwner) {
-          canMute = true;
-          canRemoveFromSeat = true;
-        }
       }
     }
 

@@ -677,29 +677,32 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
     final avatarUrl = _getUserDp(widget.targetUserId);
     final room = _controller.rooms.firstWhere((r) => r.id == widget.roomId);
 
-    final callerRole = _controller.getUserRole(room, widget.callerUserId);
-    final targetRole = _controller.getUserRole(room, widget.targetUserId);
-    final currentUid = Supabase.instance.client.auth.currentUser?.id;
-    final isMe = widget.targetUserId == widget.callerUserId ||
-        (currentUid != null && widget.targetUserId == currentUid);
+    final String currentUid =
+        Supabase.instance.client.auth.currentUser?.id ?? widget.callerUserId;
+    final String actualCallerId =
+        (currentUid.isNotEmpty) ? currentUid : widget.callerUserId;
+
+    final String callerRole = _controller.getUserRole(room, actualCallerId);
+    final String targetRole = _controller.getUserRole(room, widget.targetUserId);
+
+    final int callerWeight =
+        _controller.permissionCtrl.getRoleWeight(callerRole);
+    int targetWeight =
+        _controller.permissionCtrl.getRoleWeight(targetRole);
+
+    if (widget.role.isNotEmpty) {
+      final widgetRoleWeight =
+          _controller.permissionCtrl.getRoleWeight(widget.role);
+      if (widgetRoleWeight > targetWeight) {
+        targetWeight = widgetRoleWeight;
+      }
+    }
+
+    final bool isMe = widget.targetUserId == actualCallerId;
 
     bool showThreeDotMenu = false;
-    if (widget.callerUserId != widget.targetUserId) {
-      if (callerRole == 'Owner') {
-        showThreeDotMenu = true;
-      } else if (callerRole == 'Co-owner') {
-        if (targetRole != 'Owner' &&
-            targetRole != 'Co-owner' &&
-            targetRole != 'Admin') {
-          showThreeDotMenu = true;
-        }
-      } else if (callerRole == 'Admin') {
-        if (targetRole != 'Owner' &&
-            targetRole != 'Co-owner' &&
-            targetRole != 'Admin') {
-          showThreeDotMenu = true;
-        }
-      }
+    if (!isMe) {
+      showThreeDotMenu = callerWeight > targetWeight;
     }
 
     return Obx(() {

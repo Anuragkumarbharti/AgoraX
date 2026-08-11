@@ -51,18 +51,23 @@ class RoomPermissionController extends GetxController {
       }
     }
 
+    if (room.hostIds.contains(userId) == true) return 'Host';
+
     return 'Audience';
   }
 
   int getRoleWeight(String role) {
-    switch (role.toLowerCase()) {
+    switch (role.toLowerCase().trim()) {
       case 'creator':
       case 'owner':
       case 'founder':
+      case 'arena owner':
         return 10;
       case 'co-owner':
       case 'co owner':
       case 'co-host':
+      case 'cohost':
+      case 'coowner':
         return 8;
       case 'admin':
       case 'moderator':
@@ -71,7 +76,9 @@ class RoomPermissionController extends GetxController {
         return 6;
       case 'audience':
       case 'listener':
+      case 'speaker':
       case 'guest':
+      case 'member':
       default:
         return 1;
     }
