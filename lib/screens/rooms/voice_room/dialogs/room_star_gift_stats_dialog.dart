@@ -358,7 +358,7 @@ class _RoomStarGiftStatsDialogState extends State<RoomStarGiftStatsDialog> {
                             radius: 16,
                             backgroundColor: Colors.white10,
                             backgroundImage: avatar.isNotEmpty
-                                ? NetworkImage(avatar)
+                                ? OptimizedImage.getOptimizedImageProvider(avatar)
                                 : null,
                             child: avatar.isEmpty
                                 ? const Icon(Icons.person,

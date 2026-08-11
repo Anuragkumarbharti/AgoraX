@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../utils/number_formatter.dart';
 import '../gems/gem_widgets.dart';
+import '../common/optimized_image.dart';
 
 class RoomContributionDialog extends StatefulWidget {
   final String roomId;
@@ -240,7 +241,7 @@ class _RoomContributionDialogState extends State<RoomContributionDialog> with Si
               CircleAvatar(
                 radius: 14,
                 backgroundImage: avatar.isNotEmpty
-                    ? NetworkImage(avatar)
+                    ? OptimizedImage.getOptimizedImageProvider(avatar)
                     : const AssetImage('assets/images/placeholder.png') as ImageProvider,
               ),
               const SizedBox(width: 12),

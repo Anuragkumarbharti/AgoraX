@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../../utils/number_formatter.dart';
 import '../../widgets/gems/gem_widgets.dart';
+import '../../widgets/common/optimized_image.dart';
 
 class GiftingContributionScreen extends StatefulWidget {
   final String userId;
@@ -673,7 +674,7 @@ class _GiftingContributionScreenState extends State<GiftingContributionScreen> w
           CircleAvatar(
             radius: 16,
             backgroundImage: avatar.isNotEmpty
-                ? NetworkImage(avatar)
+                ? OptimizedImage.getOptimizedImageProvider(avatar)
                 : const AssetImage('assets/images/placeholder.png') as ImageProvider,
           ),
           const SizedBox(width: 12),

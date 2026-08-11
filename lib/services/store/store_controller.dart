@@ -236,8 +236,8 @@ class StoreController extends GetxController with WidgetsBindingObserver {
           .maybeSingle();
 
       if (walletData != null) {
-        final int fetchedCoins = (walletData['coins_balance'] ?? walletData['gold_coins'] ?? 1000000) as int;
-        final int fetchedSilver = (walletData['silver_coins_balance'] ?? walletData['silver_coins'] ?? 1000000) as int;
+        final int fetchedCoins = ((walletData['coins_balance'] ?? walletData['gold_coins']) ?? 0) as int;
+        final int fetchedSilver = ((walletData['silver_coins_balance'] ?? walletData['silver_coins']) ?? 0) as int;
         final double fetchedIncome = ((walletData['withdrawable_balance'] ?? 0.0) as num).toDouble();
 
         coinsBalance.value = fetchedCoins;
@@ -532,22 +532,8 @@ class StoreController extends GetxController with WidgetsBindingObserver {
         });
       }
     } catch (e) {
-      debugPrint('[StoreController] rechargeGoldCoins RPC error: $e. Executing local wallet table fallback.');
-      try {
-        final client = Supabase.instance.client;
-        final uid = client.auth.currentUser?.id ?? UserProfileCacheManager.currentUserId;
-        if (uid.isNotEmpty) {
-          final wallet = await client.from('wallets').select('coins_balance, gold_coins').eq('id', uid).maybeSingle();
-          final curCoins = (wallet?['coins_balance'] ?? wallet?['gold_coins'] ?? 0) as int;
-          await client.from('wallets').upsert({
-            'id': uid,
-            'coins_balance': curCoins + coinsAdded,
-            'gold_coins': curCoins + coinsAdded,
-          });
-        }
-      } catch (fallbackErr) {
-        debugPrint('[StoreController] Wallet upsert fallback error: $fallbackErr');
-      }
+      debugPrint('[StoreController] rechargeGoldCoins RPC error: $e.');
+      await syncWithDatabase(force: true);
     }
     
     // 3. Log history & coin ledger
