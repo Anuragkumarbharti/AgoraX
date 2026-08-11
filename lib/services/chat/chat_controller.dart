@@ -804,7 +804,7 @@ class ChatController extends GetxController {
       if (!a.isMuted && b.isMuted) return -1;
 
       // 4. Most recent message on top
-      return b.lastMessageTime.compareTo(a.lastMessageTime);
+      return b.lastMessageTime.toUtc().compareTo(a.lastMessageTime.toUtc());
     });
   }
 
