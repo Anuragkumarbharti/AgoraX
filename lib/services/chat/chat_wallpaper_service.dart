@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../models/chat_message.dart';
+import '../../models/chat/chat_model.dart';
 import '../user/user_profile_cache_manager.dart';
 
 enum WallpaperType {
