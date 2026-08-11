@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:creania/core/theme.dart';
 import '../../../../services/room/room_controller.dart';
 import '../../../../services/room/room_seat_controller.dart';
+import '../../../../widgets/common/optimized_image.dart';
 
 class SeatApplicationsDialog extends StatefulWidget {
   final String roomId;
@@ -204,7 +205,7 @@ class _SeatApplicationsDialogState extends State<SeatApplicationsDialog> {
                                         CircleAvatar(
                                           radius: 16,
                                           backgroundImage: avatarUrl.isNotEmpty
-                                              ? NetworkImage(avatarUrl)
+                                              ? OptimizedImage.getOptimizedImageProvider(avatarUrl)
                                               : null,
                                           child: avatarUrl.isEmpty
                                               ? const Icon(Icons.person,

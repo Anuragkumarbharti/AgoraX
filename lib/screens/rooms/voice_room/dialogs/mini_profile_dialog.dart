@@ -216,7 +216,9 @@ class _MiniProfileDialogState extends State<MiniProfileDialog>
   }
 
   String _getNumericId(String userId) {
-    return (userId.hashCode.abs() % 90000000 + 10000000).toString();
+    final u = UserProfileCacheManager.getCachedUser(userId);
+    if (u != null && u.sid.isNotEmpty) return u.sid;
+    return (userId.hashCode.abs() % 900000 + 100000).toString();
   }
 
   String _formatStatValue(int value) {

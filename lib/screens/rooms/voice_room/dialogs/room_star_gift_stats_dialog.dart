@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../utils/number_formatter.dart';
 import '../../../../widgets/gems/gem_widgets.dart';
 import '../../../../services/room/room_progression_controller.dart';
+import '../../../../widgets/common/optimized_image.dart';
 
 class RoomStarGiftStatsDialog extends StatefulWidget {
   final String roomId;

@@ -113,7 +113,7 @@ class RoomSettingsManagement {
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
                           radius: 18,
-                          backgroundImage: NetworkImage(getRoomUserAvatar(blockedId)),
+                          backgroundImage: OptimizedImage.getOptimizedImageProvider(getRoomUserAvatar(blockedId)),
                         ),
                         title: Text(
                           name,
@@ -467,13 +467,16 @@ class RoomSettingsManagement {
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
                         radius: 18,
-                        backgroundImage: NetworkImage(avatar),
+                        backgroundImage: OptimizedImage.getOptimizedImageProvider(avatar),
                       ),
                       title: Text(
                         name,
                         style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
-                      subtitle: Text('ID: ${mem.userId}', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 11)),
+                      subtitle: Text(
+                          'ID: ${mem.userId.hashCode.abs() % 900000 + 100000}',
+                          style: GoogleFonts.poppins(
+                              color: Colors.white38, fontSize: 11)),
                       trailing: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.cyanAccent,

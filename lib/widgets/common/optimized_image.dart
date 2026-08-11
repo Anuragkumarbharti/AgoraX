@@ -39,22 +39,31 @@ class OptimizedImage extends StatelessWidget {
     double? height,
     double devicePixelRatio = 1.0,
   }) {
-    if (url.isEmpty) {
+    if (url.trim().isEmpty) {
       return const AssetImage('assets/images/default_avatar.png');
     }
     String cleanUrl = url.trim();
     if (cleanUrl.startsWith('file:///assets/')) {
       cleanUrl = cleanUrl.replaceFirst('file:///', '');
+    } else if (cleanUrl.startsWith('file://assets/')) {
+      cleanUrl = cleanUrl.replaceFirst('file://', '');
     }
     if (cleanUrl.startsWith('assets/')) {
       return AssetImage(cleanUrl);
     }
+    if (cleanUrl.contains('assets/')) {
+      cleanUrl = cleanUrl.substring(cleanUrl.indexOf('assets/'));
+      return AssetImage(cleanUrl);
+    }
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      return const AssetImage('assets/images/default_avatar.png');
+    }
     final optimizedUrl = AssetCacheManager.getOptimizedUrl(
-      url,
+      cleanUrl,
       quality,
       preset: preset,
-      customWidth: (width != null && width!.isFinite) ? width!.round() : null,
-      customHeight: (height != null && height!.isFinite) ? height!.round() : null,
+      customWidth: (width != null && width.isFinite) ? width.round() : null,
+      customHeight: (height != null && height.isFinite) ? height.round() : null,
       devicePixelRatio: devicePixelRatio,
     );
     return CachedNetworkImageProvider(
@@ -65,25 +74,32 @@ class OptimizedImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl.isEmpty) {
+    if (imageUrl.trim().isEmpty) {
       return _buildErrorWidget();
     }
 
     String cleanUrl = imageUrl.trim();
     if (cleanUrl.startsWith('file:///assets/')) {
       cleanUrl = cleanUrl.replaceFirst('file:///', '');
+    } else if (cleanUrl.startsWith('file://assets/')) {
+      cleanUrl = cleanUrl.replaceFirst('file://', '');
     }
 
     Widget imageWidget;
-    if (cleanUrl.startsWith('assets/')) {
+    if (cleanUrl.startsWith('assets/') || cleanUrl.contains('assets/')) {
+      final assetPath = cleanUrl.contains('assets/')
+          ? cleanUrl.substring(cleanUrl.indexOf('assets/'))
+          : cleanUrl;
       imageWidget = Image.asset(
-        cleanUrl,
+        assetPath,
         fit: fit,
         width: width,
         height: height,
         filterQuality: FilterQuality.medium,
         errorBuilder: (context, error, stackTrace) => errorWidget ?? _buildErrorWidget(),
       );
+    } else if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      imageWidget = errorWidget ?? _buildErrorWidget();
     } else {
       final dpr = MediaQuery.of(context).devicePixelRatio;
       final optimizedUrl = AssetCacheManager.getOptimizedUrl(

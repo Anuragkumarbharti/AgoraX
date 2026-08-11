@@ -13,6 +13,7 @@ import '../../../../services/room/room_seat_controller.dart';
 import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/index.dart';
+import '../../../../widgets/common/optimized_image.dart';
 import 'mini_profile_dialog.dart';
 
 class MemberListDialog extends StatelessWidget {
@@ -128,7 +129,7 @@ class MemberListDialog extends StatelessWidget {
               child: CircleAvatar(
                 radius: 17,
                 backgroundImage:
-                    avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                    avatarUrl.isNotEmpty ? OptimizedImage.getOptimizedImageProvider(avatarUrl) : null,
                 child: avatarUrl.isEmpty
                     ? const Icon(Icons.person, size: 18)
                     : null,

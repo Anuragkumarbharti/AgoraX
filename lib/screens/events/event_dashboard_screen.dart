@@ -45,7 +45,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
       Get.dialog(
         AlertDialog(
           backgroundColor: context.secondaryBackgroundColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
@@ -67,7 +68,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
           actions: [
             TextButton(
               onPressed: () => Get.back(),
-              child: Text('Cancel Event', style: TextStyle(color: context.errorColor)),
+              child: Text('Cancel Event',
+                  style: TextStyle(color: context.errorColor)),
             ),
             TextButton(
               onPressed: () => Get.back(),
@@ -90,7 +92,9 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final liveEvent = _controller.events.firstWhereOrNull((e) => e.id == widget.event.id) ?? widget.event;
+      final liveEvent =
+          _controller.events.firstWhereOrNull((e) => e.id == widget.event.id) ??
+              widget.event;
       final currentUserId = EventController.currentUserId;
       final isOwner = liveEvent.creatorId == currentUserId;
       final isCoOwner = liveEvent.coOwnerId == currentUserId;
@@ -110,13 +114,18 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
       // Admin Reward Splits
       final int adminCount = liveEvent.adminIds.length;
       double adminPctEach = 0.0;
-      if (adminCount == 1) adminPctEach = 10.0;
-      else if (adminCount == 2) adminPctEach = 5.0;
-      else if (adminCount == 3) adminPctEach = 3.33;
-      else if (adminCount == 4) adminPctEach = 2.50;
+      if (adminCount == 1)
+        adminPctEach = 10.0;
+      else if (adminCount == 2)
+        adminPctEach = 5.0;
+      else if (adminCount == 3)
+        adminPctEach = 3.33;
+      else if (adminCount == 4)
+        adminPctEach = 2.50;
       else if (adminCount == 5) adminPctEach = 2.00;
 
-      final double adminEarnEach = adminCount > 0 ? (adminPoolEarnings / adminCount) : 0.0;
+      final double adminEarnEach =
+          adminCount > 0 ? (adminPoolEarnings / adminCount) : 0.0;
 
       return ListView(
         padding: EdgeInsets.all(16),
@@ -205,7 +214,10 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   children: [
                     Text(
                       '🛡️ Admin Reward Pool splits',
-                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold),
                     ),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -215,7 +227,10 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       ),
                       child: Text(
                         'Total Pool: 10%',
-                        style: TextStyle(color: context.primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: context.primaryColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -224,10 +239,17 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Active Admins: $adminCount / 5', style: TextStyle(color: context.textSecondary, fontSize: 12)),
+                    Text('Active Admins: $adminCount / 5',
+                        style: TextStyle(
+                            color: context.textSecondary, fontSize: 12)),
                     Text(
-                      adminCount > 0 ? 'Each Admin: $adminPctEach%' : 'Each Admin: 0%',
-                      style: TextStyle(color: context.accentOrange, fontSize: 12, fontWeight: FontWeight.bold),
+                      adminCount > 0
+                          ? 'Each Admin: $adminPctEach%'
+                          : 'Each Admin: 0%',
+                      style: TextStyle(
+                          color: context.accentOrange,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -241,7 +263,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                 SizedBox(height: 14),
                 Divider(color: context.borderColor),
                 SizedBox(height: 10),
-                
+
                 // Live Mock Control Buttons
                 Row(
                   children: [
@@ -251,14 +273,18 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                           foregroundColor: context.primaryColor,
                           side: BorderSide(color: context.primaryColor),
                           padding: EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                         icon: Icon(Icons.add, size: 14),
-                        label: Text('Add Mock Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        label: Text('Add Mock Admin',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: adminCount < 5
                             ? () {
                                 final nextId = 'admin_${adminCount + 1}';
-                                _controller.addAdminToEvent(liveEvent.id, nextId);
+                                _controller.addAdminToEvent(
+                                    liveEvent.id, nextId);
                               }
                             : null,
                       ),
@@ -270,14 +296,18 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                           foregroundColor: Colors.redAccent,
                           side: BorderSide(color: Colors.redAccent),
                           padding: EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                         icon: Icon(Icons.remove, size: 14),
-                        label: Text('Remove Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        label: Text('Remove Admin',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: adminCount > 0
                             ? () {
                                 final lastId = liveEvent.adminIds.last;
-                                _controller.removeAdminFromEvent(liveEvent.id, lastId);
+                                _controller.removeAdminFromEvent(
+                                    liveEvent.id, lastId);
                               }
                             : null,
                       ),
@@ -300,7 +330,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildPayoutCol('Pending Prize Payout', '₹${prizePool.toInt()}', Colors.amber),
+                _buildPayoutCol('Pending Prize Payout', '₹${prizePool.toInt()}',
+                    Colors.amber),
                 Container(width: 1, height: 32, color: context.borderColor),
                 _buildPayoutCol('Paid Prize Money', '₹0', Colors.white30),
                 Container(width: 1, height: 32, color: context.borderColor),
@@ -322,7 +353,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
           SizedBox(height: 10),
           ..._cheatReports.map((c) => _buildCheatReportRow(c)),
           SizedBox(height: 24),
-          
+
           // 5. Members: Registration Summary
           _buildRegistrationSummary(liveEvent),
           SizedBox(height: 20),
@@ -340,12 +371,16 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [context.primaryColor.withOpacity(0.12), context.accentOrange.withOpacity(0.12)],
+                  colors: [
+                    context.primaryColor.withOpacity(0.12),
+                    context.accentOrange.withOpacity(0.12)
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: context.primaryColor.withOpacity(0.3)),
+                border:
+                    Border.all(color: context.primaryColor.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
@@ -355,7 +390,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       color: context.primaryColor.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.enhanced_encryption_rounded, color: context.primaryColor, size: 22),
+                    child: Icon(Icons.enhanced_encryption_rounded,
+                        color: context.primaryColor, size: 22),
                   ),
                   SizedBox(width: 14),
                   Expanded(
@@ -364,14 +400,19 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       children: [
                         Text(
                           'Secure Question Bank 🔒',
-                          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 2),
                         Text(
-                          liveEvent.registrationDeadline.isBefore(DateTime.now())
+                          liveEvent.registrationDeadline
+                                  .isBefore(DateTime.now())
                               ? 'LOCKED (registration ended)'
                               : 'Configure password & upload questions.',
-                          style: TextStyle(color: context.caption, fontSize: 10),
+                          style:
+                              TextStyle(color: context.caption, fontSize: 10),
                         ),
                       ],
                     ),
@@ -379,10 +420,16 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: context.primaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    onPressed: () => Get.to(() => OrganizerQuestionManagementScreen(event: liveEvent)),
-                    child: Text('Manage', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                    onPressed: () => Get.to(() =>
+                        OrganizerQuestionManagementScreen(event: liveEvent)),
+                    child: Text('Manage',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -390,13 +437,15 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             SizedBox(height: 20),
           ],
           SizedBox(height: 24),
-          
+
           // 7. Action buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _actionButton('Invite Member', Icons.person_add_alt_1_outlined, context.accentOrange, _showInviteDialog),
-              _actionButton('Archive Event', Icons.archive_outlined, Colors.white60, () {
+              _actionButton('Invite Member', Icons.person_add_alt_1_outlined,
+                  context.accentOrange, _showInviteDialog),
+              _actionButton(
+                  'Archive Event', Icons.archive_outlined, Colors.white60, () {
                 Get.snackbar(
                   '🗳️ Archived',
                   'Event archived successfully',
@@ -405,7 +454,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   colorText: context.textPrimary,
                 );
               }),
-              _actionButton('Delete Event', Icons.delete_outline_rounded, context.errorColor, _deleteEvent),
+              _actionButton('Delete Event', Icons.delete_outline_rounded,
+                  context.errorColor, _deleteEvent),
             ],
           ),
           SizedBox(height: 40),
@@ -436,38 +486,61 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('📋 Registration Summary',
-              style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold)),
           SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _regMetric('Total Registered', '$total', Colors.white)),
-              Expanded(child: _regMetric('Min Required', '${e.minParticipants}', Colors.amber)),
-              Expanded(child: _regMetric('Max Allowed', '${e.maxParticipants}', Colors.white)),
+              Expanded(
+                  child:
+                      _regMetric('Total Registered', '$total', Colors.white)),
+              Expanded(
+                  child: _regMetric(
+                      'Min Required', '${e.minParticipants}', Colors.amber)),
+              Expanded(
+                  child: _regMetric(
+                      'Max Allowed', '${e.maxParticipants}', Colors.white)),
             ],
           ),
           SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _regMetric('Confirmed', '$confirmed', Colors.green)),
+              Expanded(
+                  child: _regMetric('Confirmed', '$confirmed', Colors.green)),
               Expanded(child: _regMetric('Pending', '$pending', Colors.orange)),
-              Expanded(child: _regMetric('Seats Left', '$remaining', Color(0xFF6366F1))),
+              Expanded(
+                  child: _regMetric(
+                      'Seats Left', '$remaining', Color(0xFF6366F1))),
             ],
           ),
           Divider(color: context.borderColor, height: 20),
           Text('💰 Earnings Breakdown',
-              style: TextStyle(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  color: context.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold)),
           SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: _regMetric('Platform (17%)', '₹${platform.toInt()}', Colors.red)),
-              Expanded(child: _regMetric('Creator (10%)', '₹${creator.toInt()}', Colors.pink)),
+              Expanded(
+                  child: _regMetric(
+                      'Platform (17%)', '₹${platform.toInt()}', Colors.red)),
+              Expanded(
+                  child: _regMetric(
+                      'Creator (10%)', '₹${creator.toInt()}', Colors.pink)),
             ],
           ),
           SizedBox(height: 6),
           Row(
             children: [
-              Expanded(child: _regMetric('Co-Owner (5%)', '₹${coOwner.toInt()}', Colors.purple)),
-              Expanded(child: _regMetric('Admin Pool (10%)', '₹${adminPool.toInt()}', Colors.blue)),
+              Expanded(
+                  child: _regMetric(
+                      'Co-Owner (5%)', '₹${coOwner.toInt()}', Colors.purple)),
+              Expanded(
+                  child: _regMetric('Admin Pool (10%)', '₹${adminPool.toInt()}',
+                      Colors.blue)),
             ],
           ),
         ],
@@ -478,9 +551,13 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
   Widget _regMetric(String label, String value, Color color) {
     return Column(
       children: [
-        Text(value, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w900)),
+        Text(value,
+            style: TextStyle(
+                color: color, fontSize: 14, fontWeight: FontWeight.w900)),
         SizedBox(height: 2),
-        Text(label, style: TextStyle(color: context.caption, fontSize: 9), textAlign: TextAlign.center),
+        Text(label,
+            style: TextStyle(color: context.caption, fontSize: 9),
+            textAlign: TextAlign.center),
       ],
     );
   }
@@ -489,8 +566,12 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     final allMembers = _controller.getParticipantsForEvent(e.id);
     final List<Map<String, dynamic>> filtered = allMembers.where((p) {
       final nameMatch = _memberSearch.isEmpty ||
-          (p['name'] as String).toLowerCase().contains(_memberSearch.toLowerCase()) ||
-          (p['userId'] as String).toLowerCase().contains(_memberSearch.toLowerCase());
+          (p['name'] as String)
+              .toLowerCase()
+              .contains(_memberSearch.toLowerCase()) ||
+          (p['userId'] as String)
+              .toLowerCase()
+              .contains(_memberSearch.toLowerCase());
       final filterMatch = _memberFilter == 'All' ||
           (_memberFilter == 'Banned' && p['status'] == 'Banned') ||
           (_memberFilter == 'Muted' && p['status'] == 'Muted') ||
@@ -510,7 +591,10 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('👤 Members Moderation',
-              style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold)),
           SizedBox(height: 10),
           // Search bar
           TextField(
@@ -519,7 +603,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             decoration: InputDecoration(
               hintText: 'Search by name or user ID…',
               hintStyle: TextStyle(color: context.caption, fontSize: 12),
-              prefixIcon: Icon(Icons.search_rounded, color: context.caption, size: 18),
+              prefixIcon:
+                  Icon(Icons.search_rounded, color: context.caption, size: 18),
               filled: true,
               fillColor: context.scaffoldBackgroundColor,
               border: OutlineInputBorder(
@@ -535,16 +620,22 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: ['All', 'Online', 'Banned', 'Muted', 'Pending'].map((f) {
+              children:
+                  ['All', 'Online', 'Banned', 'Muted', 'Pending'].map((f) {
                 final isSel = _memberFilter == f;
                 return Padding(
                   padding: EdgeInsets.only(right: 6),
                   child: ChoiceChip(
-                    label: Text(f, style: TextStyle(color: isSel ? Colors.white : context.textSecondary, fontSize: 10)),
+                    label: Text(f,
+                        style: TextStyle(
+                            color: isSel ? Colors.white : context.textSecondary,
+                            fontSize: 10)),
                     selected: isSel,
                     selectedColor: context.primaryColor,
                     backgroundColor: context.scaffoldBackgroundColor,
-                    onSelected: (v) { if (v) setState(() => _memberFilter = f); },
+                    onSelected: (v) {
+                      if (v) setState(() => _memberFilter = f);
+                    },
                   ),
                 );
               }).toList(),
@@ -554,7 +645,9 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
           if (filtered.isEmpty)
             Padding(
               padding: EdgeInsets.all(20),
-              child: Center(child: Text('No members found.', style: TextStyle(color: context.caption, fontSize: 12))),
+              child: Center(
+                  child: Text('No members found.',
+                      style: TextStyle(color: context.caption, fontSize: 12))),
             )
           else
             ...filtered.map((p) => _buildMemberRow(e, p)),
@@ -585,7 +678,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => _navigateToUserProfile(p['userId'] as String, p['name'] as String, p['avatar'] as String),
+            onTap: () => _navigateToUserProfile(p['userId'] as String,
+                p['name'] as String, p['avatar'] as String),
             child: Stack(
               children: [
                 CircleAvatar(
@@ -601,7 +695,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isOnline ? Colors.green : Colors.grey,
-                      border: Border.all(color: context.scaffoldBackgroundColor, width: 1.5),
+                      border: Border.all(
+                          color: context.scaffoldBackgroundColor, width: 1.5),
                     ),
                   ),
                 ),
@@ -617,16 +712,32 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => _navigateToUserProfile(p['userId'] as String, p['name'] as String, p['avatar'] as String),
+                        onTap: () => _navigateToUserProfile(
+                            p['userId'] as String,
+                            p['name'] as String,
+                            p['avatar'] as String),
                         child: Text(
                           p['name'] as String,
-                          style: TextStyle(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: context.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
-                    if (isBanned) Text('🚫 Banned', style: TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
-                    if (isMuted) Text('🔇 Muted', style: TextStyle(color: Colors.orange, fontSize: 9, fontWeight: FontWeight.bold)),
+                    if (isBanned)
+                      Text('🚫 Banned',
+                          style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold)),
+                    if (isMuted)
+                      Text('🔇 Muted',
+                          style: TextStyle(
+                              color: Colors.orange,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold)),
                   ],
                 ),
                 Text(
@@ -647,18 +758,24 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             onSelected: (act) {
               final uid = p['userId'] as String;
               final eid = e.id;
-              if (act == 'view_profile') _navigateToUserProfile(uid, p['name'] as String, p['avatar'] as String);
+              if (act == 'view_profile')
+                _navigateToUserProfile(
+                    uid, p['name'] as String, p['avatar'] as String);
               if (act == 'kick') _controller.kickMember(eid, uid);
               if (act == 'ban') _controller.banMember(eid, uid);
               if (act == 'unban') _controller.unbanMember(eid, uid);
               if (act == 'mute') _controller.muteMember(eid, uid);
               if (act == 'refund') _controller.refundEntryFee(eid, uid);
-              if (act == 'promote_admin') _controller.promoteMember(eid, uid, 'Admin');
-              if (act == 'promote_mod') _controller.promoteMember(eid, uid, 'Moderator');
-              if (act == 'promote_coowner') _controller.promoteToCoOwner(eid, uid);
+              if (act == 'promote_admin')
+                _controller.promoteMember(eid, uid, 'Admin');
+              if (act == 'promote_mod')
+                _controller.promoteMember(eid, uid, 'Moderator');
+              if (act == 'promote_coowner')
+                _controller.promoteToCoOwner(eid, uid);
               if (act == 'demote') _controller.demoteAdmin(eid, uid);
             },
-            icon: Icon(Icons.more_vert_rounded, color: context.caption, size: 18),
+            icon:
+                Icon(Icons.more_vert_rounded, color: context.caption, size: 18),
             color: context.secondaryBackgroundColor,
             itemBuilder: (ctx) {
               final currentUserId = EventController.currentUserId;
@@ -672,42 +789,81 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               final targetIsAdmin = e.adminIds.contains(p['userId']);
 
               // Normal Admins cannot moderate co-owners or owners
-              if (isAdmin && (targetIsOwner || targetIsCoOwner || targetIsAdmin)) {
+              if (isAdmin &&
+                  (targetIsOwner || targetIsCoOwner || targetIsAdmin)) {
                 return [
-                  const PopupMenuItem(value: 'view_profile', child: Text('👤 View Profile', style: TextStyle(color: Colors.white, fontSize: 12))),
+                  const PopupMenuItem(
+                      value: 'view_profile',
+                      child: Text('👤 View Profile',
+                          style: TextStyle(color: Colors.white, fontSize: 12))),
                 ];
               }
 
               // Co-owners cannot moderate owners
               if (isCoOwner && targetIsOwner) {
                 return [
-                  const PopupMenuItem(value: 'view_profile', child: Text('👤 View Profile', style: TextStyle(color: Colors.white, fontSize: 12))),
+                  const PopupMenuItem(
+                      value: 'view_profile',
+                      child: Text('👤 View Profile',
+                          style: TextStyle(color: Colors.white, fontSize: 12))),
                 ];
               }
 
               return [
-                const PopupMenuItem(value: 'view_profile', child: Text('👤 View Profile', style: TextStyle(color: Colors.white, fontSize: 12))),
-                
+                const PopupMenuItem(
+                    value: 'view_profile',
+                    child: Text('👤 View Profile',
+                        style: TextStyle(color: Colors.white, fontSize: 12))),
+
                 // Moderator powers (Kick, Ban, Mute)
-                const PopupMenuItem(value: 'kick', child: Text('🥾 Kick Member', style: TextStyle(color: Colors.white, fontSize: 12))),
+                const PopupMenuItem(
+                    value: 'kick',
+                    child: Text('🥾 Kick Member',
+                        style: TextStyle(color: Colors.white, fontSize: 12))),
                 if (!isBanned)
-                  const PopupMenuItem(value: 'ban', child: Text('🚫 Ban Member', style: TextStyle(color: Colors.red, fontSize: 12))),
+                  const PopupMenuItem(
+                      value: 'ban',
+                      child: Text('🚫 Ban Member',
+                          style: TextStyle(color: Colors.red, fontSize: 12))),
                 if (isBanned)
-                  const PopupMenuItem(value: 'unban', child: Text('🟢 Unban Member', style: TextStyle(color: Colors.green, fontSize: 12))),
+                  const PopupMenuItem(
+                      value: 'unban',
+                      child: Text('🟢 Unban Member',
+                          style: TextStyle(color: Colors.green, fontSize: 12))),
                 if (!isMuted)
-                  const PopupMenuItem(value: 'mute', child: Text('🔇 Mute in Chat', style: TextStyle(color: Colors.orange, fontSize: 12))),
-                
+                  const PopupMenuItem(
+                      value: 'mute',
+                      child: Text('🔇 Mute in Chat',
+                          style:
+                              TextStyle(color: Colors.orange, fontSize: 12))),
+
                 // Co-Owner/Owner powers (Promoting admins/mods, Refunds)
                 if (isOwner || isCoOwner) ...[
-                  const PopupMenuItem(value: 'promote_admin', child: Text('🛡️ Promote to Admin', style: TextStyle(color: Colors.white, fontSize: 12))),
-                  const PopupMenuItem(value: 'promote_mod', child: Text('⭐ Promote to Moderator', style: TextStyle(color: Colors.white, fontSize: 12))),
-                  const PopupMenuItem(value: 'demote', child: Text('👤 Demote to Guest', style: TextStyle(color: Colors.white, fontSize: 12))),
-                  const PopupMenuItem(value: 'refund', child: Text('💰 Refund Entry Fee', style: TextStyle(color: Colors.amber, fontSize: 12))),
+                  const PopupMenuItem(
+                      value: 'promote_admin',
+                      child: Text('🛡️ Promote to Admin',
+                          style: TextStyle(color: Colors.white, fontSize: 12))),
+                  const PopupMenuItem(
+                      value: 'promote_mod',
+                      child: Text('⭐ Promote to Moderator',
+                          style: TextStyle(color: Colors.white, fontSize: 12))),
+                  const PopupMenuItem(
+                      value: 'demote',
+                      child: Text('👤 Demote to Guest',
+                          style: TextStyle(color: Colors.white, fontSize: 12))),
+                  const PopupMenuItem(
+                      value: 'refund',
+                      child: Text('💰 Refund Entry Fee',
+                          style: TextStyle(color: Colors.amber, fontSize: 12))),
                 ],
 
                 // Owner powers (Promoting to Co-Owner)
                 if (isOwner)
-                  const PopupMenuItem(value: 'promote_coowner', child: Text('🤝 Make Co-Owner', style: TextStyle(color: Colors.purpleAccent, fontSize: 12))),
+                  const PopupMenuItem(
+                      value: 'promote_coowner',
+                      child: Text('🤝 Make Co-Owner',
+                          style: TextStyle(
+                              color: Colors.purpleAccent, fontSize: 12))),
               ];
             },
           ),
@@ -722,7 +878,9 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
       children: [
         Text(label, style: TextStyle(color: context.caption, fontSize: 9)),
         SizedBox(height: 4),
-        Text(value, style: TextStyle(color: valColor, fontSize: 12, fontWeight: FontWeight.w900)),
+        Text(value,
+            style: TextStyle(
+                color: valColor, fontSize: 12, fontWeight: FontWeight.w900)),
       ],
     );
   }
@@ -737,10 +895,12 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
         builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: context.secondaryBackgroundColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Row(
               children: [
-                Icon(Icons.person_add_rounded, color: context.primaryColor, size: 24),
+                Icon(Icons.person_add_rounded,
+                    color: context.primaryColor, size: 24),
                 SizedBox(width: 10),
                 Text(
                   'Invite Member (Free)',
@@ -761,7 +921,9 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                   style: TextStyle(color: context.caption, fontSize: 11),
                 ),
                 SizedBox(height: 14),
-                Text('Nickname or User ID', style: TextStyle(color: context.textSecondary, fontSize: 11)),
+                Text('Nickname or User ID',
+                    style:
+                        TextStyle(color: context.textSecondary, fontSize: 11)),
                 SizedBox(height: 6),
                 TextField(
                   controller: inviteNameCtrl,
@@ -771,12 +933,17 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                     hintStyle: TextStyle(color: context.caption, fontSize: 12),
                     filled: true,
                     fillColor: context.scaffoldBackgroundColor,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
                 ),
                 SizedBox(height: 14),
-                Text('Assign Role', style: TextStyle(color: context.textSecondary, fontSize: 11)),
+                Text('Assign Role',
+                    style:
+                        TextStyle(color: context.textSecondary, fontSize: 11)),
                 SizedBox(height: 6),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12),
@@ -790,7 +957,10 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       items: roles
                           .map((e) => DropdownMenuItem(
                               value: e,
-                              child: Text(e, style: TextStyle(color: context.textPrimary, fontSize: 13))))
+                              child: Text(e,
+                                  style: TextStyle(
+                                      color: context.textPrimary,
+                                      fontSize: 13))))
                           .toList(),
                       onChanged: (val) {
                         setDialogState(() => selectedRole = val!);
@@ -810,24 +980,29 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: context.primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () {
                   final name = inviteNameCtrl.text.trim();
                   if (name.isNotEmpty) {
                     Get.back();
-                    final participants = _controller.getParticipantsForEvent(widget.event.id);
+                    final participants =
+                        _controller.getParticipantsForEvent(widget.event.id);
                     participants.add({
-                      'userId': 'invited_${name.toLowerCase().replaceAll(' ', '_')}',
+                      'userId':
+                          'invited_${name.toLowerCase().replaceAll(' ', '_')}',
                       'name': name,
-                      'avatar': 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde',
+                      'avatar':
+                          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde',
                       'role': selectedRole,
                       'status': 'Approved',
                       'joinTime': 'Just now',
                       'paymentStatus': 'Free Invite',
                       'online': false,
                     });
-                    _controller.eventParticipants[widget.event.id] = List.from(participants);
+                    _controller.eventParticipants[widget.event.id] =
+                        List.from(participants);
                     Get.snackbar(
                       '🎉 Invite Sent!',
                       'Successfully invited $name as $selectedRole (Free admission)',
@@ -837,7 +1012,9 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                     );
                   }
                 },
-                child: Text('Send Invite', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text('Send Invite',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ],
           );
@@ -846,7 +1023,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     );
   }
 
-  Widget _buildMetricCard(String label, String value, IconData icon, Color color) {
+  Widget _buildMetricCard(
+      String label, String value, IconData icon, Color color) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -908,8 +1086,7 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                 ),
                 Text(
                   '${report['reason']} • ${report['confidence']}',
-                  style: TextStyle(
-                      color: context.caption, fontSize: 11),
+                  style: TextStyle(color: context.caption, fontSize: 11),
                 ),
               ],
             ),
@@ -934,7 +1111,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     );
   }
 
-  Widget _actionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _actionButton(
+      String label, IconData icon, Color color, VoidCallback onTap) {
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
         backgroundColor: color.withOpacity(0.12),
@@ -957,7 +1135,8 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
     );
   }
 
-  void _navigateToUserProfile(String userId, String username, String avatarUrl) {
+  void _navigateToUserProfile(
+      String userId, String username, String avatarUrl) {
     final targetUser = User(
       id: userId,
       username: username.toLowerCase().replaceAll(' ', '_'),
@@ -1009,7 +1188,10 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             children: [
               Text(
                 '🏁 Live Tournament Controls',
-                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold),
               ),
               DropdownButton<int>(
                 value: _selectedAnalyticsRound,
@@ -1017,7 +1199,9 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                 style: TextStyle(color: Colors.white, fontSize: 12),
                 underline: SizedBox.shrink(),
                 items: List.generate(rounds.length, (i) {
-                  return DropdownMenuItem(value: i, child: Text('Round ${i + 1}: ${rounds[i].name}'));
+                  return DropdownMenuItem(
+                      value: i,
+                      child: Text('Round ${i + 1}: ${rounds[i].name}'));
                 }),
                 onChanged: (v) {
                   setState(() {
@@ -1033,8 +1217,10 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             children: [
               Expanded(child: _roundMetricCol('Remaining', '15', Colors.green)),
               Expanded(child: _roundMetricCol('Eliminated', '27', Colors.red)),
-              Expanded(child: _roundMetricCol('Attendance', '92%', Colors.blue)),
-              Expanded(child: _roundMetricCol('Avg Score', '74 pts', Colors.amber)),
+              Expanded(
+                  child: _roundMetricCol('Attendance', '92%', Colors.blue)),
+              Expanded(
+                  child: _roundMetricCol('Avg Score', '74 pts', Colors.amber)),
             ],
           ),
           Divider(color: context.borderColor, height: 24),
@@ -1043,7 +1229,10 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             children: [
               Text(
                 '⏱️ Question Timer: ${_overrideQuestionTimer.toInt()}s',
-                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold),
               ),
               Icon(Icons.timer_outlined, color: context.primaryColor, size: 14),
             ],
@@ -1067,9 +1256,13 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
             children: [
               Text(
                 '📅 Shift Next Round: ${_nextRoundTimeShift.toInt()} mins',
-                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold),
               ),
-              Icon(Icons.schedule_rounded, color: context.accentOrange, size: 14),
+              Icon(Icons.schedule_rounded,
+                  color: context.accentOrange, size: 14),
             ],
           ),
           Slider(
@@ -1088,7 +1281,10 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
           Divider(color: context.borderColor, height: 24),
           Text(
             'Admin Actions',
-            style: TextStyle(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: context.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 10),
           Row(
@@ -1096,8 +1292,11 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isRoundPaused ? Colors.green.withOpacity(0.15) : Colors.orange.withOpacity(0.15),
-                    side: BorderSide(color: _isRoundPaused ? Colors.green : Colors.orange),
+                    backgroundColor: _isRoundPaused
+                        ? Colors.green.withOpacity(0.15)
+                        : Colors.orange.withOpacity(0.15),
+                    side: BorderSide(
+                        color: _isRoundPaused ? Colors.green : Colors.orange),
                   ),
                   onPressed: () {
                     setState(() {
@@ -1109,8 +1308,16 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       snackPosition: SnackPosition.BOTTOM,
                     );
                   },
-                  icon: Icon(_isRoundPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, color: _isRoundPaused ? Colors.green : Colors.orange, size: 14),
-                  label: Text(_isRoundPaused ? 'Resume Round' : 'Pause Round', style: TextStyle(color: _isRoundPaused ? Colors.green : Colors.orange, fontSize: 10)),
+                  icon: Icon(
+                      _isRoundPaused
+                          ? Icons.play_arrow_rounded
+                          : Icons.pause_rounded,
+                      color: _isRoundPaused ? Colors.green : Colors.orange,
+                      size: 14),
+                  label: Text(_isRoundPaused ? 'Resume Round' : 'Pause Round',
+                      style: TextStyle(
+                          color: _isRoundPaused ? Colors.green : Colors.orange,
+                          fontSize: 10)),
                 ),
               ),
               SizedBox(width: 8),
@@ -1129,8 +1336,11 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       snackPosition: SnackPosition.BOTTOM,
                     );
                   },
-                  icon: Icon(Icons.alarm_add_rounded, color: context.primaryColor, size: 14),
-                  label: Text('Delay 10m ($_roundDelayMinutes)', style: TextStyle(color: context.primaryColor, fontSize: 10)),
+                  icon: Icon(Icons.alarm_add_rounded,
+                      color: context.primaryColor, size: 14),
+                  label: Text('Delay 10m ($_roundDelayMinutes)',
+                      style:
+                          TextStyle(color: context.primaryColor, fontSize: 10)),
                 ),
               ),
             ],
@@ -1147,15 +1357,25 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                     Get.dialog(
                       AlertDialog(
                         backgroundColor: context.secondaryBackgroundColor,
-                        title: Text('Emergency Stop Event 🚨', style: TextStyle(color: Colors.white, fontSize: 15)),
-                        content: Text('This will immediately terminate all active rounds and lock the event results. This action cannot be undone.', style: TextStyle(color: context.textSecondary, fontSize: 12)),
+                        title: Text('Emergency Stop Event 🚨',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 15)),
+                        content: Text(
+                            'This will immediately terminate all active rounds and lock the event results. This action cannot be undone.',
+                            style: TextStyle(
+                                color: context.textSecondary, fontSize: 12)),
                         actions: [
-                          TextButton(onPressed: () => Get.back(), child: Text('Cancel', style: TextStyle(color: context.caption))),
+                          TextButton(
+                              onPressed: () => Get.back(),
+                              child: Text('Cancel',
+                                  style: TextStyle(color: context.caption))),
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: context.errorColor),
                             onPressed: () {
                               Get.back();
-                              Get.snackbar('🚨 Emergency Stop Executed', 'Event terminated and locked.');
+                              Get.snackbar('🚨 Emergency Stop Executed',
+                                  'Event terminated and locked.');
                             },
                             child: Text('Terminate'),
                           ),
@@ -1163,8 +1383,11 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
                       ),
                     );
                   },
-                  icon: Icon(Icons.stop_circle_rounded, color: context.errorColor, size: 14),
-                  label: Text('Emergency Stop', style: TextStyle(color: context.errorColor, fontSize: 10)),
+                  icon: Icon(Icons.stop_circle_rounded,
+                      color: context.errorColor, size: 14),
+                  label: Text('Emergency Stop',
+                      style:
+                          TextStyle(color: context.errorColor, fontSize: 10)),
                 ),
               ),
             ],
@@ -1177,7 +1400,9 @@ class _EventDashboardScreenState extends State<EventDashboardScreen> {
   Widget _roundMetricCol(String label, String value, Color color) {
     return Column(
       children: [
-        Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
+        Text(value,
+            style: TextStyle(
+                color: color, fontSize: 13, fontWeight: FontWeight.bold)),
         SizedBox(height: 2),
         Text(label, style: TextStyle(color: context.caption, fontSize: 9)),
       ],

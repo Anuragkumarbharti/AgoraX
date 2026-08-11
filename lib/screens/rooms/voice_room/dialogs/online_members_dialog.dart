@@ -10,6 +10,7 @@ import '../../../../services/voice/voice_controller.dart';
 import '../../../../services/user/user_profile_cache_manager.dart';
 import '../../../../widgets/user_tags/user_badge_widgets.dart';
 import '../../../../widgets/profile/custom_avatar_frame.dart';
+import '../../../../widgets/common/optimized_image.dart';
 import 'mini_profile_dialog.dart';
 
 class OnlineMembersDialog extends StatelessWidget {
@@ -199,7 +200,7 @@ class OnlineMembersDialog extends StatelessWidget {
                                 child: CircleAvatar(
                                   radius: 18,
                                   backgroundImage: avatarUrl.isNotEmpty
-                                      ? NetworkImage(avatarUrl)
+                                      ? OptimizedImage.getOptimizedImageProvider(avatarUrl)
                                       : null,
                                   child: avatarUrl.isEmpty
                                       ? const Icon(Icons.person,
@@ -236,7 +237,7 @@ class OnlineMembersDialog extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'ID: ${u.userID}',
+                                      'ID: ${profile?.sid != null && profile!.sid.isNotEmpty ? profile.sid : (u.userID.hashCode.abs() % 900000 + 100000)}',
                                       style: GoogleFonts.poppins(
                                         color: Colors.white38,
                                         fontSize: 9,
