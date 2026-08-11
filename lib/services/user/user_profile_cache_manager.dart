@@ -21,6 +21,7 @@ import '../../core/api_error_handler.dart';
 import './smart_default_avatar_service.dart';
 import 'package:flutter/material.dart';
 import '../auth/auth_memory_service.dart';
+import '../auth/device_session_service.dart';
 
 class UserProfileCacheManager {
   static final Map<String, User> _cache = {};
@@ -546,24 +547,16 @@ class UserProfileCacheManager {
         // Ban check network error — keep logged in
       }
 
-      // Ensure active session registration (non-blocking)
-      registerSession(currentUser.id).catchError((_) => false);
-
-      // Validate session ID on backend via RPC
+      // Ensure active session registration & validation via DeviceSessionService
       try {
-        final bool isSessionActive = await client.rpc('validate_active_session', params: {
-          'p_user_id': currentUser.id,
-          'p_session_id': currentSessionId,
-        }).timeout(const Duration(seconds: 3));
-
-        if (!isSessionActive) {
-          await forceLogout(
-              message: "Your account has been logged in from another device.");
+        final deviceSessService = DeviceSessionService.to;
+        await deviceSessService.registerSessionOnLogin();
+        final isValidSess = await deviceSessService.validateCurrentSession();
+        if (!isValidSess) {
           return false;
         }
       } catch (e) {
-        debugPrint('[CacheManager] Active session RPC validation warning (keeping logged in): $e');
-        // Network error during session check — keep user logged in
+        debugPrint('[CacheManager] DeviceSessionService validation warning (keeping logged in): $e');
       }
 
       return true;
