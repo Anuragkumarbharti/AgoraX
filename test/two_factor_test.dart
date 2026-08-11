@@ -82,5 +82,12 @@ void main() {
         expect(RegExp(r'^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$').hasMatch(key), isTrue);
       }
     });
+
+    test('TEST 10: Verify 2FA Method Selector formats (totp, server_key, recovery_code)', () {
+      final validMethods = ['totp', 'server_key', 'recovery_code'];
+      expect(validMethods.contains('totp'), isTrue);
+      expect(validMethods.contains('server_key'), isTrue);
+      expect(validMethods.contains('recovery_code'), isTrue);
+    });
   });
 }

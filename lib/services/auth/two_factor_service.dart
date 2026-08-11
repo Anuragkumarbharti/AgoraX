@@ -80,22 +80,35 @@ class TwoFactorService {
     return null;
   }
 
-  /// Verifies setup code and enables 2FA in backend with hashed recovery codes and 64-bit server keys.
+  /// Verifies setup code and enables 2FA in backend for chosen method (totp, server_key, or recovery_code).
   static Future<Map<String, dynamic>> verifyAndEnable2FA({
     required String secret,
     required String code,
     required List<String> recoveryCodes,
     List<String> serverSecurityKeys = const [],
+    String method = 'totp',
   }) async {
     final uid = UserProfileCacheManager.currentUserId;
     if (uid.isEmpty) {
       return {'success': false, 'error': 'User session not found.'};
     }
 
-    // 1. Verify TOTP code client-side
-    final isValid = TotpHelper.verifyTotpCode(secret, code);
+    // 1. Verify code based on chosen method
+    bool isValid = false;
+    final cleanedCode = code.toUpperCase().trim();
+
+    if (method == 'totp') {
+      isValid = TotpHelper.verifyTotpCode(secret, code);
+    } else if (method == 'server_key') {
+      isValid = serverSecurityKeys.any((k) => k.toUpperCase().replaceAll('-', '') == cleanedCode.replaceAll('-', ''));
+    } else if (method == 'recovery_code') {
+      isValid = recoveryCodes.any((c) => c.toUpperCase().replaceAll('-', '') == cleanedCode.replaceAll('-', ''));
+    } else {
+      isValid = TotpHelper.verifyTotpCode(secret, code);
+    }
+
     if (!isValid) {
-      return {'success': false, 'error': 'Invalid verification code. Please try again.'};
+      return {'success': false, 'error': 'Invalid verification code for chosen method. Please try again.'};
     }
 
     // 2. Compute SHA-256 hashes of recovery codes & server keys
@@ -113,6 +126,7 @@ class TwoFactorService {
         'p_user_id': uid,
         'p_totp_secret': secret,
         'p_recovery_code_hashes': codeHashes,
+        'p_method': method,
       });
 
       if (res != null && res['success'] == true) {

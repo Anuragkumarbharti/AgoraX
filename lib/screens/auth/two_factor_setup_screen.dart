@@ -25,7 +25,8 @@ class TwoFactorSetupScreen extends StatefulWidget {
 }
 
 class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
-  int _currentStep = 1; // 1: QR & Secret Setup, 2: Verification, 3: Recovery Codes
+  int _currentStep = 0; // 0: Choose Method, 1: Setup Details, 2: Verification, 3: Success & Backup
+  String _selectedMethod = 'totp'; // 'totp', 'server_key', 'recovery_code'
   bool _isLoading = true;
   TwoFactorSetupData? _setupData;
 
@@ -71,8 +72,8 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
 
   void _verifyAndCompleteSetup() async {
     final code = _codeCtrl.text.trim();
-    if (code.length != 6 || int.tryParse(code) == null) {
-      setState(() => _errorMessage = 'Please enter a valid 6-digit verification code.');
+    if (code.isEmpty) {
+      setState(() => _errorMessage = 'Please enter a verification code.');
       return;
     }
 
@@ -98,13 +99,14 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
       code: code,
       recoveryCodes: _setupData!.recoveryCodes,
       serverSecurityKeys: _setupData!.serverSecurityKeys,
+      method: _selectedMethod,
     );
 
     if (!mounted) return;
     setState(() => _isVerifying = false);
 
     if (res['success'] == true) {
-      setState(() => _currentStep = 3); // Move to Recovery Codes screen
+      setState(() => _currentStep = 3); // Move to Success & Backup screen
     } else {
       setState(() {
         _errorMessage = res['error'] ?? 'Invalid verification code. Please try again.';
@@ -118,7 +120,9 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
       backgroundColor: context.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          _currentStep == 3 ? 'Two-Step Verification Enabled' : 'Setup 2FA',
+          _currentStep == 0
+              ? 'Choose 2FA Method'
+              : (_currentStep == 3 ? 'Two-Step Verification Enabled' : 'Setup 2FA'),
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.textPrimary),
         ),
         leading: IconButton(
@@ -126,8 +130,11 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
           onPressed: () {
             if (_currentStep == 3) {
               Get.back();
-            } else if (_currentStep == 2) {
-              setState(() => _currentStep = 1);
+            } else if (_currentStep > 0) {
+              setState(() {
+                _currentStep--;
+                _errorMessage = null;
+              });
             } else {
               Get.back();
             }
@@ -142,9 +149,10 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      _buildStepProgressHeader(),
-                      const SizedBox(height: 24),
-                      if (_currentStep == 1) _buildStep1QrSetup(),
+                      if (_currentStep > 0) _buildStepProgressHeader(),
+                      if (_currentStep > 0) const SizedBox(height: 24),
+                      if (_currentStep == 0) _buildStep0MethodSelection(),
+                      if (_currentStep == 1) _buildStep1SetupDetails(),
                       if (_currentStep == 2) _buildStep2CodeVerification(),
                       if (_currentStep == 3) _buildStep3RecoveryCodes(),
                     ],
@@ -217,6 +225,332 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
   }
 
   Widget _buildStep1QrSetup() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildStep0MethodSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: context.borderColor, width: 0.5),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: context.primaryColor.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.security_rounded, size: 44, color: context.primaryColor),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Choose 2FA Method',
+                style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: context.textPrimary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Select your preferred authentication method to secure your account during login.',
+                style: GoogleFonts.poppins(fontSize: 12, color: context.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+
+              _buildMethodCard(
+                methodKey: 'totp',
+                icon: Icons.qr_code_scanner_rounded,
+                title: 'Authenticator App (6-digit TOTP)',
+                subtitle: 'Use Google Authenticator, Authy, or Microsoft Authenticator app.',
+                badge: 'Recommended',
+                badgeColor: const Color(0xFF10B981),
+              ),
+              const SizedBox(height: 12),
+
+              _buildMethodCard(
+                methodKey: 'server_key',
+                icon: Icons.key_rounded,
+                title: 'Server Security Key (64-bit)',
+                subtitle: 'Cryptographically secure 64-bit emergency keys generated by the server.',
+                badge: 'Fast & Easy',
+                badgeColor: context.primaryColor,
+              ),
+              const SizedBox(height: 12),
+
+              _buildMethodCard(
+                methodKey: 'recovery_code',
+                icon: Icons.shield_rounded,
+                title: 'Backup Recovery Codes (8-digit)',
+                subtitle: '10 one-time backup recovery codes formatted as XXXX-XXXX.',
+                badge: 'Offline Access',
+                badgeColor: context.accentOrange,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMethodCard({
+    required String methodKey,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String badge,
+    required Color badgeColor,
+  }) {
+    final isSelected = _selectedMethod == methodKey;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedMethod = methodKey;
+          _currentStep = 1;
+          _errorMessage = null;
+        });
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? context.primaryColor.withOpacity(0.08) : context.scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? context.primaryColor : context.borderColor,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: badgeColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 24, color: badgeColor),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: context.textPrimary),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          badge,
+                          style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: badgeColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.poppins(fontSize: 11, color: context.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+              color: isSelected ? context.primaryColor : context.textSecondary,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep1SetupDetails() {
+    if (_selectedMethod == 'server_key') {
+      final keys = _setupData?.serverSecurityKeys ?? [];
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: context.surfaceColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.borderColor, width: 0.5),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.key_rounded, size: 48, color: context.primaryColor),
+                const SizedBox(height: 12),
+                Text(
+                  '64-Bit Server Security Keys',
+                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: context.textPrimary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The server generated these cryptographically secure emergency keys for your account:',
+                  style: GoogleFonts.poppins(fontSize: 12, color: context.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: context.primaryColor.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: context.primaryColor.withOpacity(0.3)),
+                  ),
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: keys.map((k) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: context.surfaceColor,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: context.primaryColor.withOpacity(0.4)),
+                        ),
+                        child: Text(
+                          k,
+                          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: context.primaryColor),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  label: Text('Copy All Keys', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: () => _copyToClipboard(keys.join('\n'), 'Server Security Keys'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.primaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => setState(() => _currentStep = 2),
+              child: Text(
+                'Next: Verify Server Key',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_selectedMethod == 'recovery_code') {
+      final codes = _setupData?.recoveryCodes ?? [];
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: context.surfaceColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.borderColor, width: 0.5),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.shield_rounded, size: 48, color: context.accentOrange),
+                const SizedBox(height: 12),
+                Text(
+                  'Backup Recovery Codes',
+                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: context.textPrimary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Save these 10 one-time recovery codes to sign in if you lose access to your device:',
+                  style: GoogleFonts.poppins(fontSize: 12, color: context.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: context.scaffoldBackgroundColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: context.borderColor),
+                  ),
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: codes.map((c) {
+                      return Container(
+                        width: 120,
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: context.surfaceColor,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: context.borderColor.withOpacity(0.5)),
+                        ),
+                        child: Text(
+                          c,
+                          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: context.textPrimary),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  label: Text('Copy All Codes', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: () => _copyToClipboard(codes.join('\n'), 'Recovery Codes'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.primaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => setState(() => _currentStep = 2),
+              child: Text(
+                'Next: Verify Recovery Code',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Default TOTP QR Scan Method
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -327,6 +661,20 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
   }
 
   Widget _buildStep2CodeVerification() {
+    String verifyTitle = 'Enter 6-Digit Verification Code';
+    String verifySubtitle = 'Open your authenticator app and enter the code generated for Creania.';
+    String labelHint = '• • • • • •';
+
+    if (_selectedMethod == 'server_key') {
+      verifyTitle = 'Enter a Server Security Key';
+      verifySubtitle = 'Enter one of your 64-bit server security keys to confirm receipt.';
+      labelHint = 'A7F9-3B2E-8C4D-1E9F';
+    } else if (_selectedMethod == 'recovery_code') {
+      verifyTitle = 'Enter a Recovery Code';
+      verifySubtitle = 'Enter one of your backup recovery codes (format: XXXX-XXXX) to confirm.';
+      labelHint = 'XXXX-XXXX';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -342,13 +690,13 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
               Icon(Icons.dialpad_rounded, size: 44, color: context.primaryColor),
               const SizedBox(height: 12),
               Text(
-                'Enter 6-Digit Verification Code',
+                verifyTitle,
                 style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: context.textPrimary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                'Open your authenticator app and enter the code generated for Creania.',
+                verifySubtitle,
                 style: GoogleFonts.poppins(fontSize: 12, color: context.textSecondary),
                 textAlign: TextAlign.center,
               ),
@@ -356,19 +704,17 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
 
               TextField(
                 controller: _codeCtrl,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
-                  fontSize: 28,
+                  fontSize: _selectedMethod == 'totp' ? 28 : 18,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 10,
+                  letterSpacing: _selectedMethod == 'totp' ? 10 : 2,
                   color: context.textPrimary,
                 ),
                 decoration: InputDecoration(
                   counterText: '',
-                  hintText: '• • • • • •',
-                  hintStyle: GoogleFonts.outfit(fontSize: 28, letterSpacing: 10, color: context.textSecondary.withOpacity(0.4)),
+                  hintText: labelHint,
+                  hintStyle: GoogleFonts.outfit(fontSize: _selectedMethod == 'totp' ? 28 : 18, color: context.textSecondary.withOpacity(0.4)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -376,7 +722,7 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
                   ),
                 ),
                 onChanged: (val) {
-                  if (val.length == 6) {
+                  if (_selectedMethod == 'totp' && val.length == 6) {
                     _verifyAndCompleteSetup();
                   }
                 },
