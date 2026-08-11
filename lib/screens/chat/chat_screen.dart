@@ -469,7 +469,7 @@ class _ChatScreenState extends State<ChatScreen>
 
       return ListView.builder(
         controller: _scrollCtrl,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         itemCount: messages.length + 1,
         itemBuilder: (context, index) {
           if (index == messages.length) {
@@ -488,10 +488,33 @@ class _ChatScreenState extends State<ChatScreen>
             }
           }
 
+          // WhatsApp / StarMaker Grouping Logic
+          bool isSameSenderAsPrevious = false;
+          bool isSameSenderAsNext = false;
+
+          if (index > 0) {
+            final prev = messages[index - 1];
+            if (prev.senderId == msg.senderId && msg.timestamp.difference(prev.timestamp).inMinutes < 2 && !showDateSep) {
+              isSameSenderAsPrevious = true;
+            }
+          }
+
+          if (index < messages.length - 1) {
+            final next = messages[index + 1];
+            if (next.senderId == msg.senderId && next.timestamp.difference(msg.timestamp).inMinutes < 2 && next.timestamp.day == msg.timestamp.day) {
+              isSameSenderAsNext = true;
+            }
+          }
+
           return Column(
             children: [
               if (showDateSep) _buildStitchDateSeparator(msg.timestamp),
-              _buildStitchMessageBubble(msg, isMe),
+              _buildStitchMessageBubble(
+                msg,
+                isMe,
+                isSameSenderAsPrevious: isSameSenderAsPrevious,
+                isSameSenderAsNext: isSameSenderAsNext,
+              ),
             ],
           );
         },
@@ -509,8 +532,8 @@ class _ChatScreenState extends State<ChatScreen>
     }
     return Center(
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+        margin: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         decoration: BoxDecoration(
           color: const Color(0xFFE0E3E6).withOpacity(0.6),
           borderRadius: BorderRadius.circular(16),
@@ -527,12 +550,21 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
-  Widget _buildStitchMessageBubble(ChatMessage msg, bool isMe) {
+  Widget _buildStitchMessageBubble(
+    ChatMessage msg,
+    bool isMe, {
+    bool isSameSenderAsPrevious = false,
+    bool isSameSenderAsNext = false,
+  }) {
+    final double verticalMargin = (isSameSenderAsPrevious && isSameSenderAsNext)
+        ? 1.5
+        : (isSameSenderAsPrevious || isSameSenderAsNext ? 2.5 : 6.0);
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.80),
+        margin: EdgeInsets.symmetric(vertical: verticalMargin),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.76), // 76% max width
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -544,30 +576,87 @@ class _ChatScreenState extends State<ChatScreen>
                     ? _buildStitchRoomInviteCard(msg, isMe)
                     : msg.type == MessageType.document || msg.type == MessageType.file
                         ? _buildStitchDocumentCard(msg, isMe)
-                        : _buildStitchStandardBubble(msg, isMe),
+                        : _buildStitchStandardBubble(
+                            msg,
+                            isMe,
+                            isSameSenderAsPrevious: isSameSenderAsPrevious,
+                            isSameSenderAsNext: isSameSenderAsNext,
+                          ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildStitchStandardBubble(ChatMessage msg, bool isMe) {
+  Widget _buildStitchStandardBubble(
+    ChatMessage msg,
+    bool isMe, {
+    bool isSameSenderAsPrevious = false,
+    bool isSameSenderAsNext = false,
+  }) {
+    if (msg.isPureEmoji) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Text(
+              msg.content,
+              style: const TextStyle(fontSize: 34),
+            ),
+            const SizedBox(height: 2),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  DateFormat('h:mm a').format(msg.timestamp),
+                  style: GoogleFonts.inter(fontSize: 9.5, color: const Color(0xFF6C7B6B)),
+                ),
+                if (isMe) ...[
+                  const SizedBox(width: 3),
+                  _buildDeliveryStatusTick(msg.status, isMe: true),
+                ],
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Dynamic border radii for WhatsApp/StarMaker bubble grouping
+    double topLeft = 16;
+    double topRight = 16;
+    double bottomLeft = 16;
+    double bottomRight = 16;
+
+    if (isMe) {
+      bottomRight = isSameSenderAsNext ? 4 : 16;
+      topRight = isSameSenderAsPrevious ? 4 : 16;
+      bottomLeft = 16;
+      topLeft = 16;
+    } else {
+      bottomLeft = isSameSenderAsNext ? 4 : 16;
+      topLeft = isSameSenderAsPrevious ? 4 : 16;
+      bottomRight = 16;
+      topRight = 16;
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
       decoration: BoxDecoration(
         color: isMe ? const Color(0xFF25D366) : Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(16),
-          topRight: const Radius.circular(16),
-          bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4),
-          bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16),
+          topLeft: Radius.circular(topLeft),
+          topRight: Radius.circular(topRight),
+          bottomLeft: Radius.circular(bottomLeft),
+          bottomRight: Radius.circular(bottomRight),
         ),
         border: isMe ? null : Border.all(color: const Color(0xFFE0E3E6).withOpacity(0.5), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 3,
+            offset: const Offset(0, 1.5),
           ),
         ],
       ),
@@ -578,8 +667,8 @@ class _ChatScreenState extends State<ChatScreen>
           // Reply Preview
           if (msg.replyToContent != null) ...[
             Container(
-              padding: const EdgeInsets.all(8),
-              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.all(7),
+              margin: const EdgeInsets.only(bottom: 5),
               decoration: BoxDecoration(
                 color: isMe ? Colors.black.withOpacity(0.08) : const Color(0xFFF2F4F7),
                 borderRadius: BorderRadius.circular(8),
@@ -587,14 +676,14 @@ class _ChatScreenState extends State<ChatScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 3, height: 22, color: isMe ? const Color(0xFF005523) : const Color(0xFF006D2F)),
-                  const SizedBox(width: 8),
+                  Container(width: 3, height: 20, color: isMe ? const Color(0xFF005523) : const Color(0xFF006D2F)),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       msg.replyToContent!,
                       style: GoogleFonts.inter(
                         color: isMe ? const Color(0xFF005523) : const Color(0xFF191C1E),
-                        fontSize: 11.5,
+                        fontSize: 11,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -614,13 +703,13 @@ class _ChatScreenState extends State<ChatScreen>
               msg.content,
               style: GoogleFonts.inter(
                 color: isMe ? const Color(0xFF003916) : const Color(0xFF191C1E),
-                fontSize: 14.5,
-                height: 1.35,
+                fontSize: 14,
+                height: 1.3,
                 fontWeight: isMe ? FontWeight.w500 : FontWeight.w400,
               ),
             ),
           ],
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
@@ -629,13 +718,13 @@ class _ChatScreenState extends State<ChatScreen>
               Text(
                 DateFormat('h:mm a').format(msg.timestamp),
                 style: GoogleFonts.inter(
-                  fontSize: 10.5,
+                  fontSize: 10,
                   color: isMe ? const Color(0xFF005523).withOpacity(0.8) : const Color(0xFF6C7B6B),
                   fontWeight: FontWeight.w400,
                 ),
               ),
               if (isMe) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 3),
                 _buildDeliveryStatusTick(msg.status, isMe: true),
               ],
             ],
@@ -644,6 +733,7 @@ class _ChatScreenState extends State<ChatScreen>
       ),
     );
   }
+
 
   Widget _buildStitchGiftMessageCard(ChatMessage msg, bool isMe) {
     return Container(

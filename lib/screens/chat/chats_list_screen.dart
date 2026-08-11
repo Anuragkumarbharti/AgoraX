@@ -583,10 +583,24 @@ class _ChatsListScreenState extends State<ChatsListScreen>
       }
 
       final query = _ctrl.searchQuery.value.trim().toLowerCase();
-      final filtered = _ctrl.conversations.where((c) {
-        return c.otherUserName.toLowerCase().contains(query) ||
-            c.lastMessage.toLowerCase().contains(query);
-      }).toList();
+      final Map<String, Conversation> dedupMap = {};
+
+      for (final c in _ctrl.conversations) {
+        if (c.otherUserId.isEmpty) continue;
+        if (query.isNotEmpty &&
+            !c.otherUserName.toLowerCase().contains(query) &&
+            !c.lastMessage.toLowerCase().contains(query)) {
+          continue;
+        }
+
+        // Deduplicate by otherUserId or canonical ID
+        if (!dedupMap.containsKey(c.otherUserId) ||
+            c.lastMessageTime.isAfter(dedupMap[c.otherUserId]!.lastMessageTime)) {
+          dedupMap[c.otherUserId] = c;
+        }
+      }
+
+      final filtered = dedupMap.values.toList();
 
       final listWidget = filtered.isEmpty
           ? ListView(
@@ -628,6 +642,7 @@ class _ChatsListScreenState extends State<ChatsListScreen>
       );
     });
   }
+
 
   Widget _buildSwipeableConversationTile(Conversation conv) {
     return Dismissible(

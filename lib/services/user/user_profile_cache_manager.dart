@@ -391,14 +391,14 @@ class UserProfileCacheManager {
       debugPrint('[CacheManager] Profile fetch failed for $idToQuery: $e');
     }
 
-    // Fallback if not found or query fails
+    // Fallback if not found or query fails — DO NOT save fake placeholder to global cache maps
     return User(
       id: idToQuery,
-      username: 'User_${idToQuery.substring(0, min(idToQuery.length, 5))}',
+      username: 'user_${idToQuery.substring(0, min(idToQuery.length, 5))}',
       email: '',
-      displayName: 'Creaniaa Student',
-      interests: [],
-      communities: [],
+      displayName: 'User',
+      interests: const [],
+      communities: const [],
       followers: 0,
       following: 0,
       isVerified: false,
@@ -407,6 +407,7 @@ class UserProfileCacheManager {
       sid: '123456',
     );
   }
+
 
   static void invalidateCache(String userId) {
     _cache.remove(userId);

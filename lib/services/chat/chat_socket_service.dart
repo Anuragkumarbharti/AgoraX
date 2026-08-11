@@ -11,6 +11,8 @@ import '../../models/chat/isar_chat_model.dart';
 import '../../core/chat_crypto.dart';
 import '../storage/isar_storage_service.dart';
 import './chat_controller.dart';
+import './message_normalizer_deduplicator.dart';
+import './chat_data_deletion_service.dart';
 import '../room/room_controller.dart';
 import '../voice/room_voice_manager.dart';
 import '../user/user_profile_cache_manager.dart';
@@ -18,6 +20,7 @@ import '../../utils/secure_dto_sanitizer.dart';
 
 class ChatSocketService extends GetxService with WidgetsBindingObserver {
   static ChatSocketService get to => Get.find();
+
 
   late IO.Socket _socket;
   final RxBool isConnected = false.obs;
@@ -516,100 +519,31 @@ class ChatSocketService extends GetxService with WidgetsBindingObserver {
     _log('Unsubscribed from Supabase Realtime channels');
   }
 
-  // Common Message Delivery & Processing Logic
+  // Common Message Delivery & Processing Logic (Single Pipeline Architecture)
   Future<void> _handleIncomingMessagePayload(Map<String, dynamic> payload, {required String source}) async {
-    final String msgUuid = payload['id'] ?? payload['uuid'] ?? '';
-    final String senderId = payload['senderId'] ?? payload['sender_id'] ?? '';
-    final String receiverId = payload['receiverId'] ?? payload['receiver_id'] ?? '';
-    final String conversationId = ChatController.getDeterministicConversationId(senderId, receiverId);
-    final String encryptedContent = payload['content'] ?? payload['encrypted_content'] ?? '';
-    final String timestampStr = payload['timestamp'] ?? payload['created_at'] ?? '';
-    final int typeValue = int.tryParse(payload['type']?.toString() ?? '0') ?? 0;
+    try {
+      final msg = await MessageNormalizerDeduplicator.processIncomingPayload(payload, source: source);
+      if (msg == null) return;
 
-    if (msgUuid.isEmpty || senderId.isEmpty) return;
+      // Notify GetX ChatController stream
+      if (Get.isRegistered<ChatController>()) {
+        final chatCtrl = Get.find<ChatController>();
+        chatCtrl.onMessageReceivedFromSocket(msg);
+      }
 
-    // O(1) in-memory pre-check — avoids async Isar read for already-seen IDs
-    if (_seenMessageIds.contains(msgUuid)) {
-      _log('Duplicate (cache hit) Suppressed ($source): $msgUuid');
-      return;
-    }
-
-    // Check if message already exists locally (Deduplication — slow path)
-    final existingMsg = await IsarStorageService.to.getMessageByUuid(msgUuid);
-    if (existingMsg != null) {
-      _recordSeenId(msgUuid); // warm the cache for future checks
-      _log('Duplicate Message Suppressed ($source): $msgUuid');
-      return;
-    }
-    _recordSeenId(msgUuid);
-
-    // Derive E2EE Shared Key (AES-256-GCM)
-    final aesKey = ChatCrypto.deriveFallbackKey(senderId, receiverId);
-    final decryptedText = ChatCrypto.decryptMessage(encryptedContent, aesKey);
-    final cleanContent = SecureDtoSanitizer.sanitizeChatMessageContent(decryptedText, fallback: 'Encrypted message');
-    final dt = timestampStr.isNotEmpty ? DateTime.parse(timestampStr) : DateTime.now();
-
-    _log('Message Saved ($source): $msgUuid ("${cleanContent.length > 20 ? cleanContent.substring(0, 20) + '...' : cleanContent}")');
-
-    // Write to local Isar DB
-    final isarMsg = IsarChatMessage()
-      ..uuid = msgUuid
-      ..senderId = senderId
-      ..receiverId = receiverId
-      ..conversationId = conversationId
-      ..content = cleanContent
-      ..typeValue = typeValue
-      ..statusValue = MessageStatus.delivered.index
-      ..timestamp = dt
-      ..mediaUrl = payload['mediaUrl']
-      ..fileName = payload['fileName']
-      ..fileSize = payload['fileSize'] != null ? (payload['fileSize'] as num).toInt() : null
-      ..thumbnailUrl = payload['thumbnailUrl']
-      ..locationLat = payload['locationLat'] != null ? (payload['locationLat'] as num).toDouble() : null
-      ..locationLng = payload['locationLng'] != null ? (payload['locationLng'] as num).toDouble() : null
-      ..locationName = payload['locationName']
-      ..contactName = payload['contactName']
-      ..contactPhone = payload['contactPhone']
-      ..isDeleted = false
-      ..isEdited = false;
-
-    await IsarStorageService.to.saveMessage(isarMsg);
-
-    // Notify GetX ChatController stream
-    if (Get.isRegistered<ChatController>()) {
-      final chatCtrl = Get.find<ChatController>();
-      chatCtrl.onMessageReceivedFromSocket(
-        ChatMessage(
-          id: msgUuid,
-          senderId: senderId,
-          receiverId: receiverId,
-          conversationId: conversationId,
-          content: decryptedText,
-          timestamp: dt,
-          status: MessageStatus.delivered,
-          type: MessageType.values[typeValue.clamp(0, MessageType.values.length - 1)],
-          mediaUrl: payload['mediaUrl'],
-          fileName: payload['fileName'],
-          fileSize: payload['fileSize'] != null ? (payload['fileSize'] as num).toInt() : null,
-          thumbnailUrl: payload['thumbnailUrl'],
-          locationLat: payload['locationLat'] != null ? (payload['locationLat'] as num).toDouble() : null,
-          locationLng: payload['locationLng'] != null ? (payload['locationLng'] as num).toDouble() : null,
-          locationName: payload['locationName'],
-          contactName: payload['contactName'],
-          contactPhone: payload['contactPhone'],
-        ),
-      );
-    }
-
-    // Emit Delivery ACK
-    if (_socket.connected) {
-      _socket.emit('delivery_ack', {
-        'messageId': msgUuid,
-        'senderId': senderId,
-        'receiverId': receiverId,
-      });
+      // Emit Delivery ACK
+      if (_socket.connected) {
+        _socket.emit('delivery_ack', {
+          'messageId': msg.id,
+          'senderId': msg.senderId,
+          'receiverId': msg.receiverId,
+        });
+      }
+    } catch (e) {
+      _log('Error processing message payload ($source): $e');
     }
   }
+
 
   // Connect / Disconnect lifecycle
   void connect() => _socket.connect();

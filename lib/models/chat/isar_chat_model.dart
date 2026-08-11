@@ -35,6 +35,12 @@ class IsarChatMessage {
   late String uuid; // e.g. 'msg_12345'
 
   @Index()
+  String? clientMessageId;
+
+  @Index()
+  String? inviteId;
+
+  @Index()
   late String ownerUserId;
 
   late String senderId;
@@ -51,6 +57,10 @@ class IsarChatMessage {
   late DateTime timestamp;
   late bool isDeleted;
 
+  DateTime? deletedAt;
+  String? deletedBy;
+  String? deletionType;
+
   String? replyToId;
   String? replyToContent;
 
@@ -64,6 +74,9 @@ class IsarChatMessage {
   String? locationName;
   String? contactName;
   String? contactPhone;
+  String? roomId;
+  String? roomName;
   late bool isEdited;
 }
+
 

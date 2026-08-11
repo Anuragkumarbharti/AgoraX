@@ -3,6 +3,8 @@ enum MessageStatus { sending, sent, delivered, read }
 
 class ChatMessage {
   final String id;
+  final String? clientMessageId;
+  final String? inviteId;
   final String senderId;
   final String receiverId;
   final String conversationId;
@@ -11,6 +13,9 @@ class ChatMessage {
   final MessageStatus status;
   final DateTime timestamp;
   final bool isDeleted;
+  final DateTime? deletedAt;
+  final String? deletedBy;
+  final String? deletionType;
   final String? replyToId;
   final String? replyToContent;
   final List<String>? reactions; // emoji list
@@ -23,11 +28,38 @@ class ChatMessage {
   final String? locationName;
   final String? contactName;
   final String? contactPhone;
+  final String? roomId;
+  final String? roomName;
   final bool isEdited;
   final bool isUnlockGift;
   final int audioDurationSeconds;
 
+  static String getDeterministicConversationId(String u1, String u2) {
+    if (u1.isEmpty && u2.isEmpty) return 'dm_unknown';
+    final cleanU1 = u1.startsWith('dm_') ? u1.substring(3) : (u1.startsWith('conv_') ? u1.substring(5) : u1);
+    final cleanU2 = u2.startsWith('dm_') ? u2.substring(3) : (u2.startsWith('conv_') ? u2.substring(5) : u2);
+    if (cleanU1.isEmpty) return 'dm_$cleanU2';
+    if (cleanU2.isEmpty) return 'dm_$cleanU1';
+    if (cleanU1 == cleanU2) return 'dm_$cleanU1';
+    final sorted = [cleanU1, cleanU2]..sort();
+    return 'dm_${sorted[0]}_${sorted[1]}';
+  }
+
+  bool get isPureEmoji {
+    if (type != MessageType.text) return false;
+    final trimmed = content.trim();
+    if (trimmed.isEmpty || trimmed.length > 24) return false;
+    final emojiRegExp = RegExp(
+      r'^(?:[\u2700-\u27bf]|\p{Emoji_Presentation}|\p{Extended_Pictographic}|\u200d|\ufe0f)+$',
+      unicode: true,
+    );
+    return emojiRegExp.hasMatch(trimmed);
+  }
+
   String get inviteRoomId {
+    if (roomId != null && roomId!.trim().isNotEmpty) {
+      return roomId!.trim();
+    }
     if (contactPhone != null && contactPhone!.trim().isNotEmpty) {
       return contactPhone!.trim();
     }
@@ -46,9 +78,11 @@ class ChatMessage {
     }
     return '';
   }
-  String get inviteRoomTitle => (locationName != null && locationName!.isNotEmpty && !locationName!.startsWith('CRN-RM-'))
-      ? locationName!
-      : (content.startsWith('🎙️ Room Invite: ') ? content.substring(16) : 'Voice Room');
+  String get inviteRoomTitle => (roomName != null && roomName!.isNotEmpty)
+      ? roomName!
+      : ((locationName != null && locationName!.isNotEmpty && !locationName!.startsWith('CRN-RM-'))
+          ? locationName!
+          : (content.startsWith('🎙️ Room Invite: ') ? content.substring(16) : 'Voice Room'));
   String get inviteHostName => (contactName != null && contactName!.isNotEmpty && contactName != 'Host')
       ? contactName!
       : 'Owner';
@@ -56,6 +90,8 @@ class ChatMessage {
 
   const ChatMessage({
     required this.id,
+    this.clientMessageId,
+    this.inviteId,
     required this.senderId,
     required this.receiverId,
     required this.conversationId,
@@ -64,6 +100,9 @@ class ChatMessage {
     this.status = MessageStatus.sent,
     required this.timestamp,
     this.isDeleted = false,
+    this.deletedAt,
+    this.deletedBy,
+    this.deletionType,
     this.replyToId,
     this.replyToContent,
     this.reactions,
@@ -76,6 +115,8 @@ class ChatMessage {
     this.locationName,
     this.contactName,
     this.contactPhone,
+    this.roomId,
+    this.roomName,
     this.isEdited = false,
     this.isUnlockGift = false,
     this.audioDurationSeconds = 0,
@@ -84,6 +125,9 @@ class ChatMessage {
   ChatMessage copyWith({
     MessageStatus? status,
     bool? isDeleted,
+    DateTime? deletedAt,
+    String? deletedBy,
+    String? deletionType,
     List<String>? reactions,
     bool? isEdited,
     String? content,
@@ -98,9 +142,13 @@ class ChatMessage {
     String? locationName,
     String? contactName,
     String? contactPhone,
+    String? roomId,
+    String? roomName,
   }) {
     return ChatMessage(
       id: id,
+      clientMessageId: clientMessageId,
+      inviteId: inviteId,
       senderId: senderId,
       receiverId: receiverId,
       conversationId: conversationId,
@@ -109,6 +157,9 @@ class ChatMessage {
       status: status ?? this.status,
       timestamp: timestamp,
       isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deletedBy: deletedBy ?? this.deletedBy,
+      deletionType: deletionType ?? this.deletionType,
       replyToId: replyToId,
       replyToContent: replyToContent,
       reactions: reactions ?? this.reactions,
@@ -121,6 +172,8 @@ class ChatMessage {
       locationName: locationName ?? this.locationName,
       contactName: contactName ?? this.contactName,
       contactPhone: contactPhone ?? this.contactPhone,
+      roomId: roomId ?? this.roomId,
+      roomName: roomName ?? this.roomName,
       isEdited: isEdited ?? this.isEdited,
       isUnlockGift: isUnlockGift ?? this.isUnlockGift,
       audioDurationSeconds: audioDurationSeconds ?? this.audioDurationSeconds,
@@ -129,6 +182,8 @@ class ChatMessage {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'clientMessageId': clientMessageId,
+        'inviteId': inviteId,
         'senderId': senderId,
         'receiverId': receiverId,
         'conversationId': conversationId,
@@ -137,6 +192,9 @@ class ChatMessage {
         'status': status.index,
         'timestamp': timestamp.toIso8601String(),
         'isDeleted': isDeleted,
+        'deletedAt': deletedAt?.toIso8601String(),
+        'deletedBy': deletedBy,
+        'deletionType': deletionType,
         'replyToId': replyToId,
         'replyToContent': replyToContent,
         'reactions': reactions,
@@ -149,6 +207,8 @@ class ChatMessage {
         'locationName': locationName,
         'contactName': contactName,
         'contactPhone': contactPhone,
+        'roomId': roomId,
+        'roomName': roomName,
         'isEdited': isEdited,
         'isUnlockGift': isUnlockGift,
         'audioDurationSeconds': audioDurationSeconds,
@@ -156,6 +216,8 @@ class ChatMessage {
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
         id: json['id'] ?? '',
+        clientMessageId: json['clientMessageId'] ?? json['client_message_id'],
+        inviteId: json['inviteId'] ?? json['invite_id'],
         senderId: json['senderId'] ?? json['sender_id'] ?? '',
         receiverId: json['receiverId'] ?? json['receiver_id'] ?? '',
         conversationId: json['conversationId'] ?? json['conversation_id'] ?? '',
@@ -164,6 +226,9 @@ class ChatMessage {
         status: MessageStatus.values[((json['status'] as int?) ?? 0).clamp(0, MessageStatus.values.length - 1)],
         timestamp: DateTime.parse(json['timestamp'] ?? json['created_at'] ?? DateTime.now().toIso8601String()),
         isDeleted: json['isDeleted'] ?? json['is_deleted'] ?? false,
+        deletedAt: json['deletedAt'] != null ? DateTime.parse(json['deletedAt']) : (json['deleted_at'] != null ? DateTime.parse(json['deleted_at']) : null),
+        deletedBy: json['deletedBy'] ?? json['deleted_by'],
+        deletionType: json['deletionType'] ?? json['deletion_type'],
         replyToId: json['replyToId'] ?? json['reply_to_id'],
         replyToContent: json['replyToContent'] ?? json['reply_to_content'],
         reactions: json['reactions'] != null ? List<String>.from(json['reactions']) : null,
@@ -175,7 +240,9 @@ class ChatMessage {
         locationLng: json['locationLng'] != null ? (json['locationLng'] as num).toDouble() : (json['location_lng'] != null ? (json['location_lng'] as num).toDouble() : null),
         locationName: json['locationName'] ?? json['location_name'],
         contactName: json['contactName'] ?? json['contact_name'],
-        contactPhone: json['contactPhone'] ?? json['contact_phone'] ?? json['room_id'] ?? json['roomId'],
+        contactPhone: json['contactPhone'] ?? json['contact_phone'],
+        roomId: json['roomId'] ?? json['room_id'],
+        roomName: json['roomName'] ?? json['room_name'],
         isEdited: json['isEdited'] ?? json['is_edited'] ?? false,
         isUnlockGift: json['isUnlockGift'] ?? json['is_unlock_gift'] ?? false,
         audioDurationSeconds: json['audioDurationSeconds'] ?? json['audio_duration_seconds'] ?? 0,
@@ -257,3 +324,4 @@ class Conversation {
         isMutualFollow: json['isMutualFollow'] ?? false,
       );
 }
+
