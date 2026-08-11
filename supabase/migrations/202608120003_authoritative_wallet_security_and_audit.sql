@@ -28,10 +28,25 @@ CREATE TABLE IF NOT EXISTS public.wallet_transactions (
 );
 
 -- Safely add missing columns to pre-existing wallet_transactions table if created in earlier migrations
+ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS wallet_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS currency_type text DEFAULT 'Gold';
+ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS currency text DEFAULT 'Gold';
 ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS previous_balance numeric(12,2) DEFAULT 0.00;
 ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS new_balance numeric(12,2) DEFAULT 0.00;
 ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS transaction_id text;
+ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS reference_id text;
+ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS details text;
+
+-- Backfill user_id from wallet_id if pre-existing rows have user_id null
+UPDATE public.wallet_transactions 
+SET user_id = wallet_id 
+WHERE user_id IS NULL AND wallet_id IS NOT NULL;
+
+-- Backfill wallet_id from user_id if pre-existing rows have wallet_id null
+UPDATE public.wallet_transactions 
+SET wallet_id = user_id 
+WHERE wallet_id IS NULL AND user_id IS NOT NULL;
 
 -- Add UNIQUE constraint to transaction_id if not present
 DO $$
