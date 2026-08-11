@@ -224,9 +224,6 @@ class _TwoFactorSetupScreenState extends State<TwoFactorSetupScreen> {
     );
   }
 
-  Widget _buildStep1QrSetup() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
   Widget _buildStep0MethodSelection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
