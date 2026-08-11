@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
 import '../../core/theme.dart';
 import '../../models/community/post_model.dart';
 import '../../models/community/post_type.dart';

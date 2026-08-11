@@ -18,6 +18,8 @@ import '../../models/community/question_model.dart';
 import '../settings/settings_screen.dart';
 import './gifting_contribution_screen.dart';
 import '../../widgets/community/post_attachments_widget.dart';
+import '../../widgets/community/post_card.dart';
+import '../../services/post/post_event_service.dart';
 import '../../widgets/profile/custom_avatar_frame.dart';
 import '../../widgets/common/network_error_widget.dart';
 import '../../widgets/skeletons/profile_skeleton_widget.dart';
@@ -121,6 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   final RxBool _isLoadingGiftStats = true.obs;
 
   late final Worker _giftStatsWorker;
+  StreamSubscription<Post>? _postCreatedSubscription;
 
   bool get _isMe =>
       widget.visitorUser == null ||
@@ -141,6 +144,19 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     _loadUserProfile();
+    _loadUserPosts();
+
+    // Subscribe to post creation events for realtime profile posts feed update
+    _postCreatedSubscription = PostEventService.to.onPostCreated.listen((newPost) {
+      if (!mounted) return;
+      final profileId = _isMe ? UserProfileCacheManager.currentUserId : (widget.visitorUser?.id ?? UserProfileCacheManager.currentUserId);
+      if (newPost.userId == profileId || _isMe) {
+        setState(() {
+          _posts.insert(0, newPost);
+          _postsLoaded = true;
+        });
+      }
+    });
 
     // Trigger offline-first cached fetches immediately, fresh in background
     _fetchUserArenasBackground();
@@ -163,6 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   void dispose() {
+    _postCreatedSubscription?.cancel();
     UserProfileCacheManager.removeListener(_onProfileCacheChanged);
     _giftStatsWorker.dispose();
     _tabController.dispose();
@@ -3159,10 +3176,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     if (_isLoadingPosts) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: CircularProgressIndicator(color: Color(0xFFBEC2FF)),
+      return Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2, color: context.primaryColor),
         ),
       );
     }
@@ -3171,71 +3189,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       return _buildPlaceholderFeed('No Posts Shared Yet');
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       itemCount: _posts.length,
       itemBuilder: (context, index) {
         final post = _posts[index];
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(
-                bottom: BorderSide(color: context.borderColor, width: 0.5)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundImage: NetworkImage(
-                      _user.avatar != null && _user.avatar!.isNotEmpty
-                          ? _user.avatar!
-                          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_user.displayName,
-                          style: GoogleFonts.inter(
-                              color: context.textPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold)),
-                      Text('${index + 1}h ago',
-                          style: GoogleFonts.inter(
-                              color: context.textSecondary, fontSize: 10)),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(post.content,
-                  style: GoogleFonts.inter(
-                      color: context.textPrimary, fontSize: 13, height: 1.45)),
-              PostAttachmentsWidget(post: post),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.favorite_rounded,
-                      color: Colors.redAccent, size: 14),
-                  const SizedBox(width: 4),
-                  Text('${post.likes}',
-                      style: TextStyle(
-                          color: context.textSecondary, fontSize: 11)),
-                  const SizedBox(width: 16),
-                  Icon(Icons.chat_bubble_rounded,
-                      color: context.primaryColor, size: 14),
-                  const SizedBox(width: 4),
-                  Text('${post.comments}',
-                      style: TextStyle(
-                          color: context.textSecondary, fontSize: 11)),
-                ],
-              ),
-            ],
-          ),
-        );
+        return PostCard(post: post);
       },
     );
   }
