@@ -316,11 +316,8 @@ class RoomChatController extends GetxController {
   bool addLuckyGiftMessage(String roomId, Map<String, dynamic> luckyResult) {
     try {
       if (luckyResult['is_lucky_gift'] != true) return false;
-      final int cashbackGold = ((luckyResult['cashback_gold'] ?? luckyResult['coins_back'] ?? 0) as num).toInt();
-
-      // Suppress 0 Coin Back messages completely
-      if (cashbackGold <= 0) {
-        debugPrint('[RoomChatController] 0 Coin Back message suppressed.');
+      if (luckyResult['is_blocked'] == true) {
+        debugPrint('[RoomChatController] Blocked/anti-farming lucky gift message ignored.');
         return false;
       }
 
@@ -335,10 +332,14 @@ class RoomChatController extends GetxController {
       }
 
       final String senderName = (luckyResult['sender_name'] ?? 'User').toString();
-      final num multNum = luckyResult['multiplier'] ?? 0;
-      final String tier = (luckyResult['tier'] ?? 'no_reward').toString();
-      final String eventType = tier == 'jackpot' ? 'lucky_jackpot' : ArenaEventTypes.luckyCoinWon;
-      final String canonicalLuckyMsg = ArenaEventFormatter.formatLuckyCoinWinMessage(senderName, cashbackGold);
+      final int goldCoins = ((luckyResult['gold_coins'] ?? luckyResult['gold_coin_value'] ?? 0) as num).toInt();
+      final int ap = ((luckyResult['ap'] ?? 0) as num).toInt();
+      final int gem = ((luckyResult['gem'] ?? 0) as num).toInt();
+      final int cashbackGold = ((luckyResult['cashback_gold'] ?? luckyResult['coins_back'] ?? 0) as num).toInt();
+
+      final String compactMessage = cashbackGold > 0
+          ? '🎁 Lucky Gift\n$goldCoins Gold\n\n+$ap AP\n+$gem Gem\n🎉 Won $cashbackGold Gold Coins Back!'
+          : '🎁 Lucky Gift\n$goldCoins Gold\n\n+$ap AP\n+$gem Gem';
       final String eventId = txId.isNotEmpty ? 'lucky-$txId' : 'lucky-${DateTime.now().microsecondsSinceEpoch}';
 
       // 1. Add Chat Box Message with deduplication
@@ -346,17 +347,21 @@ class RoomChatController extends GetxController {
       if (!addSystemActivityWithDeduplication(
         roomId: roomId,
         eventId: eventId,
-        text: canonicalLuckyMsg,
+        text: compactMessage,
         senderId: 'system_lucky',
-        senderName: 'Lucky Draw 🎰',
+        senderName: 'Lucky Gift 🎁',
         messageType: 'activity',
-        activityKey: eventType,
+        activityKey: ArenaEventTypes.luckyCoinWon,
       )) {
         return false;
       }
 
       // 2. Trigger Top Floating Notification Pill for everyone in the room
-      activeSystemNotification.value = '🎰 $senderName won $cashbackGold Gold back (${multNum}×)!';
+      if (cashbackGold > 0) {
+        activeSystemNotification.value = '🎰 $senderName won $cashbackGold Gold Coins back from Lucky Gift! (+$ap AP • +$gem Gem)';
+      } else {
+        activeSystemNotification.value = '🎁 $senderName sent Lucky Gift ($goldCoins Gold)! +$ap AP • +$gem Gem';
+      }
 
       return true;
     } catch (e) {
