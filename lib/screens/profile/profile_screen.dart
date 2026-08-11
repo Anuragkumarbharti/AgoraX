@@ -938,57 +938,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     ));
   }
 
-  void _showMoreMenu() {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: const BoxDecoration(
-          color: Color(0xFF11131C),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border(top: BorderSide(color: Colors.white10)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.share_rounded, color: Colors.white),
-              title: const Text('Share Profile',
-                  style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Get.back();
-                Share.share(
-                    'Check out ${_user.displayName}\'s profile on Creaniaa: https://creaniaa.com/user/${_user.username}');
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.block_rounded,
-                  color: _isBlocked ? Colors.green : Colors.redAccent),
-              title: Text(_isBlocked ? 'Unblock User' : 'Block User',
-                  style: const TextStyle(color: Colors.white)),
-              onTap: () {
-                Get.back();
-                setState(() => _isBlocked = !_isBlocked);
-                Get.snackbar(_isBlocked ? 'Blocked 🚫' : 'Unblocked 🟢',
-                    'User has been ${_isBlocked ? 'blocked' : 'unblocked'}.');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.report_problem_rounded,
-                  color: Colors.orangeAccent),
-              title: const Text('Report User',
-                  style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Get.back();
-                Get.snackbar('Report Submitted ⚠️',
-                    'Thank you for keeping Creaniaa safe. Our moderation team will review this profile.');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoadingProfile || !_isUserInitialized) {
