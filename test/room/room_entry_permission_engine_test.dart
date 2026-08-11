@@ -72,6 +72,7 @@ void main() {
         language: 'English',
         tags: [],
         rules: [],
+        whoCanJoin: 'Password, Followers Only, VIP Level 3+',
         entryPermission: 'password',
         entryPermissions: ['password', 'followers_only', 'vip_only'],
         roomPassword: '5555',

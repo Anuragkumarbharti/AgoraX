@@ -522,7 +522,7 @@ class RoomProfileScreen extends StatelessWidget {
       children: [
         // Owner
         _buildRoleGroupHeader(context, 'Arena Owner', '1/1', Colors.amber),
-        _buildUserTile(context, 'Current Owner (Anurag Kumar Bharti)', 'Owner', Colors.amber),
+        _buildUserTile(context, 'Current Owner (${room.ownerName.isNotEmpty ? room.ownerName : "Owner"})', 'Owner', Colors.amber),
         const SizedBox(height: 12),
 
         // Co-owners

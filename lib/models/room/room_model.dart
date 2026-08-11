@@ -152,7 +152,11 @@ class VoiceRoom {
       endedAt: json['endedAt'] != null ? DateTime.parse(json['endedAt']) : (json['ended_at'] != null ? DateTime.parse(json['ended_at']) : null),
       avatar: json['avatar'],
       banner: json['banner'],
-      ownerName: json['ownerName'] ?? json['owner_name'] ?? 'Anurag Kumar Bharti',
+      ownerName: json['ownerName'] ??
+          json['owner_name'] ??
+          (json['profiles'] is Map ? (json['profiles']['username'] ?? json['profiles']['full_name']) : null) ??
+          json['host_name'] ??
+          'Owner',
       category: json['category'] ?? 'Education',
       country: json['country'] ?? 'India',
       language: json['language'] ?? 'English',

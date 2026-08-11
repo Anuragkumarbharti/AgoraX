@@ -823,160 +823,450 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _buildStitchRoomInviteCard(ChatMessage msg, bool isMe) {
-    final roomId = msg.inviteRoomId;
-    final roomTitle = msg.inviteRoomTitle;
-    final hostName = msg.inviteHostName;
+    return Obx(() {
+      String roomId = msg.inviteRoomId;
+      if (roomId.isEmpty && msg.contactPhone != null && msg.contactPhone!.isNotEmpty) {
+        roomId = msg.contactPhone!;
+      }
+      final roomTitle = msg.inviteRoomTitle;
+      final hostName = msg.inviteHostName;
 
-    return Container(
-      width: 250,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF1E293B) : const Color(0xFF121927),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.cyanAccent.withOpacity(0.4),
-          width: 1.5,
+      VoiceRoom? roomObj;
+      if (Get.isRegistered<RoomController>()) {
+        final roomCtrl = Get.find<RoomController>();
+        if (roomId.isNotEmpty) {
+          roomObj = roomCtrl.rooms.firstWhereOrNull((r) => r.id == roomId);
+        }
+        if (roomObj == null && roomTitle.isNotEmpty) {
+          roomObj = roomCtrl.rooms.firstWhereOrNull((r) => r.name.toLowerCase().trim() == roomTitle.toLowerCase().trim());
+        }
+      }
+
+      roomObj ??= RoomMetadataCache.getRoom(roomId, roomTitle);
+
+      if (roomObj != null) {
+        roomId = roomObj.id;
+      }
+
+      String ownerName = '';
+      if (roomObj != null) {
+        if (roomObj.hostId.isNotEmpty) {
+          final u = UserProfileCacheManager.rxCache[roomObj.hostId] ?? UserProfileCacheManager.getCachedUser(roomObj.hostId);
+          if (u != null && u.username.isNotEmpty) {
+            ownerName = u.username.replaceAll('@', '');
+          }
+        }
+        if (ownerName.isEmpty && roomObj.ownerName.isNotEmpty && roomObj.ownerName != 'Host' && roomObj.ownerName != 'Anurag Kumar Bharti') {
+          ownerName = roomObj.ownerName;
+        }
+        if (ownerName.isEmpty && roomObj.username.isNotEmpty && roomObj.username != '@host') {
+          ownerName = roomObj.username.replaceAll('@', '');
+        }
+      }
+
+      if (ownerName.isEmpty || ownerName == 'Owner' || ownerName == 'Host' || ownerName == 'Anurag Kumar Bharti') {
+        ownerName = (hostName.isNotEmpty && hostName != 'Host' && hostName != 'Anurag Kumar Bharti')
+            ? hostName
+            : (roomObj?.username.replaceAll('@', '') ?? 'Arena Owner');
+      }
+
+      final String coverUrl = (msg.inviteRoomCover.isNotEmpty)
+          ? msg.inviteRoomCover
+          : (roomObj?.avatar ?? roomObj?.roomCoverUrl ?? '');
+
+      final int totalUsers = roomObj?.participantCount ?? (roomObj?.totalMembers ?? 0);
+
+      final List<String> realAvatars = [];
+      if (roomObj != null) {
+        if (roomObj.avatar != null && roomObj.avatar!.isNotEmpty && (roomObj.avatar!.startsWith('http://') || roomObj.avatar!.startsWith('https://'))) {
+          realAvatars.add(roomObj.avatar!);
+        }
+        final List<String> userIds = [
+          ...roomObj.speakerIds,
+          ...roomObj.listenerIds,
+          ...roomObj.memberIds,
+        ];
+        for (final uid in userIds) {
+          if (realAvatars.length >= 4) break;
+          final u = UserProfileCacheManager.rxCache[uid];
+          if (u != null && u.avatar != null && u.avatar!.isNotEmpty && (u.avatar!.startsWith('http://') || u.avatar!.startsWith('https://')) && !realAvatars.contains(u.avatar!)) {
+            realAvatars.add(u.avatar!);
+          }
+        }
+      }
+
+      final String displayRoomId = roomId.isNotEmpty
+          ? roomId
+          : (roomObj?.id != null && roomObj!.id.isNotEmpty ? roomObj.id : (roomTitle.isNotEmpty ? roomTitle : 'CRN-RM-101'));
+
+      return Container(
+        width: 270,
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: Colors.cyanAccent.withOpacity(0.6),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.cyanAccent.withOpacity(0.18),
+              blurRadius: 12,
+              spreadRadius: 1,
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.cyanAccent.withOpacity(0.12),
-            blurRadius: 10,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16.5),
+          child: Stack(
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.cyanAccent,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.mic_rounded, color: Colors.black, size: 16),
+              // 1. Background Room Cover photo display
+              Positioned.fill(
+                child: coverUrl.isNotEmpty
+                    ? Image.network(
+                        coverUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(color: const Color(0xFF121927)),
+                      )
+                    : Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                      ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Join Arena',
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
+
+              // 2. Dark Overlay for text legibility & glassmorphism finish
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.black.withOpacity(0.65),
+                        Colors.black.withOpacity(0.90),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ),
+
+              // 3. Card Content
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Top Header with LIVE indicator
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: const BoxDecoration(
+                                color: Colors.cyanAccent,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.mic_rounded, color: Colors.black, size: 14),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Join Arena',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.85),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'LIVE',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Room Name
+                    Text(
+                      roomTitle.isNotEmpty ? roomTitle : 'Arena Room',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 2),
+
+                    // Room ID
+                    Row(
+                      children: [
+                        Icon(Icons.tag_rounded, color: Colors.cyanAccent.withOpacity(0.8), size: 12),
+                        const SizedBox(width: 2),
+                        Text(
+                          'ID: $displayRoomId',
+                          style: GoogleFonts.poppins(
+                            color: Colors.cyanAccent.withOpacity(0.9),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    // Room Owner
+                    Row(
+                      children: [
+                        const Icon(Icons.star_rounded, color: Colors.amberAccent, size: 13),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Owner: $ownerName',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Real Avatars (NO Fake Avatars) + Real Member Count
+                    Row(
+                      children: [
+                        if (realAvatars.isNotEmpty) ...[
+                          SizedBox(
+                            width: (realAvatars.length == 1)
+                                ? 24
+                                : 24 + (realAvatars.length - 1) * 16.0,
+                            height: 24,
+                            child: Stack(
+                              children: List.generate(realAvatars.length, (index) {
+                                return Positioned(
+                                  left: index * 16.0,
+                                  child: Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 1.2),
+                                      image: DecorationImage(
+                                        image: NetworkImage(realAvatars[index]),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          '$totalUsers total user',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Join Room Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 40,
+                      child: ElevatedButton(
+                        onPressed: () => _handleJoinRoomFromInvite(displayRoomId, roomTitle),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.cyanAccent,
+                          foregroundColor: Colors.black,
+                          elevation: 3,
+                          shadowColor: Colors.cyanAccent.withOpacity(0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Join Room',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // Timestamp & Delivery status
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          DateFormat('h:mm a').format(msg.timestamp),
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: Colors.white38,
+                          ),
+                        ),
+                        if (isMe) ...[
+                          const SizedBox(width: 4),
+                          _buildDeliveryStatusTick(msg.status, isMe: true),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Room: $roomTitle',
-            style: GoogleFonts.poppins(
-              color: Colors.cyanAccent,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Host: $hostName',
-            style: GoogleFonts.poppins(
-              color: Colors.white70,
-              fontSize: 12,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            height: 38,
-            child: ElevatedButton(
-              onPressed: () => _handleJoinRoomFromInvite(roomId, roomTitle),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyanAccent,
-                foregroundColor: Colors.black,
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Join Room',
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(
-                DateFormat('h:mm a').format(msg.timestamp),
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  color: Colors.white38,
-                ),
-              ),
-              if (isMe) ...[
-                const SizedBox(width: 4),
-                _buildDeliveryStatusTick(msg.status, isMe: true),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
+        ),
+      );
+    });
   }
 
   void _handleJoinRoomFromInvite(String roomId, String roomTitle) async {
-    if (roomId.isEmpty) {
-      Get.snackbar('Unavailable', 'Room has ended or is unavailable.',
-          backgroundColor: Colors.redAccent, colorText: Colors.white);
+    String targetId = roomId.trim();
+
+    // 1. If targetId is empty, attempt roomTitle search in local RoomController
+    if (targetId.isEmpty && Get.isRegistered<RoomController>()) {
+      final roomCtrl = Get.find<RoomController>();
+      if (roomTitle.isNotEmpty) {
+        final matchedRoom = roomCtrl.rooms.firstWhereOrNull(
+          (r) => r.name.toLowerCase().trim() == roomTitle.toLowerCase().trim(),
+        );
+        if (matchedRoom != null) {
+          targetId = matchedRoom.id;
+        }
+      }
+      if (targetId.isEmpty && roomCtrl.activeRoomId != null && roomCtrl.activeRoomId!.isNotEmpty) {
+        targetId = roomCtrl.activeRoomId!;
+      }
+    }
+
+    // 2. If targetId is still empty, search Supabase DB by roomTitle
+    if (targetId.isEmpty && roomTitle.isNotEmpty) {
+      try {
+        final res = await Supabase.instance.client
+            .from('rooms')
+            .select('id')
+            .ilike('name', roomTitle)
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+
+        if (res != null && res['id'] != null) {
+          targetId = res['id'].toString();
+        }
+      } catch (e) {
+        debugPrint('[ChatScreen] Error querying room by title: $e');
+      }
+    }
+
+    if (targetId.isEmpty) {
+      Get.snackbar(
+        'Invalid Room',
+        'Room ID is missing.',
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
       return;
     }
 
     HapticFeedback.mediumImpact();
 
-    bool isLive = false;
     VoiceRoom? roomObj;
 
     if (Get.isRegistered<RoomController>()) {
       final roomCtrl = Get.find<RoomController>();
-      roomObj = roomCtrl.rooms.firstWhereOrNull((r) => r.id == roomId);
-      if (roomObj != null && roomObj.isLive) {
-        isLive = true;
+      roomObj = roomCtrl.rooms.firstWhereOrNull((r) => r.id == targetId);
+    }
+
+    if (roomObj == null) {
+      try {
+        final res = await Supabase.instance.client
+            .from('rooms')
+            .select('*, profiles:host_id(id, username, avatar_url, avatar_frame, level, vip_level, novel_level)')
+            .eq('id', targetId)
+            .maybeSingle();
+
+        if (res != null && res is Map<String, dynamic>) {
+          roomObj = VoiceRoom.fromJson(res);
+        }
+      } catch (e) {
+        debugPrint('[ChatScreen] Error fetching room from Supabase: $e');
       }
     }
 
-    if (!isLive) {
-      try {
-        final res = await Supabase.instance.client.rpc('validate_room_invite_status', params: {'p_room_id': roomId});
-        if (res != null && res is Map && res['is_live'] == true) {
-          isLive = true;
-        }
-      } catch (_) {}
-    }
+    final targetRoom = roomObj ??
+        VoiceRoom.fromJson({
+          'id': targetId,
+          'name': roomTitle.isNotEmpty ? roomTitle : 'Arena Room',
+          'is_live': true,
+          'status': 'live',
+        });
 
-    if (!isLive && roomObj == null) {
+    if (!targetRoom.isLive && roomObj != null) {
       Get.snackbar(
-        'Room Closed',
-        'Room has ended or is unavailable.',
+        'Room Ended',
+        'This voice room has been ended by the host.',
         backgroundColor: Colors.redAccent.withOpacity(0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
       return;
     }
-
-    final targetRoom = roomObj ?? VoiceRoom.dummy(roomId);
 
     // Enforce room entry permission engine: password prompts if locked, VIP/role checks, etc.
     RoomEntryPermissionEngine.validateAndJoin(context, targetRoom);
@@ -1004,7 +1294,7 @@ class _ChatScreenState extends State<ChatScreen>
     }
 
     _sendMessage(
-      text: '🎙️ Room Invite: ${activeRoom.name}',
+      text: '🎙️ Room Invite: ${activeRoom.name} (ID: ${activeRoom.id})',
       type: MessageType.roomInvite,
       locationName: activeRoom.name,
       contactName: activeRoom.ownerName,
@@ -1400,5 +1690,67 @@ class _ChatScreenState extends State<ChatScreen>
         ),
       ),
     );
+  }
+}
+
+class RoomMetadataCache {
+  static final RxMap<String, VoiceRoom> roomCache = <String, VoiceRoom>{}.obs;
+  static final Set<String> _pendingFetches = {};
+
+  static VoiceRoom? getRoom(String roomId, String roomTitle) {
+    if (roomId.isNotEmpty && roomCache.containsKey(roomId)) {
+      return roomCache[roomId];
+    }
+    if (roomTitle.isNotEmpty) {
+      final cleanTitle = roomTitle.toLowerCase().trim();
+      for (final r in roomCache.values) {
+        if (r.name.toLowerCase().trim() == cleanTitle) {
+          return r;
+        }
+      }
+    }
+    fetchRoom(roomId: roomId, roomTitle: roomTitle);
+    return null;
+  }
+
+  static Future<void> fetchRoom({String roomId = '', String roomTitle = ''}) async {
+    final key = roomId.isNotEmpty ? roomId : roomTitle.toLowerCase().trim();
+    if (key.isEmpty || _pendingFetches.contains(key)) return;
+    _pendingFetches.add(key);
+
+    try {
+      var query = Supabase.instance.client
+          .from('rooms')
+          .select('*, profiles:host_id(id, username, avatar_url, avatar_frame, level, vip_level, novel_level)');
+
+      dynamic res;
+      if (roomId.isNotEmpty) {
+        res = await query.eq('id', roomId).maybeSingle();
+      } else if (roomTitle.isNotEmpty) {
+        final list = await query.ilike('name', roomTitle).order('created_at', ascending: false).limit(1);
+        if (list != null && list is List && list.isNotEmpty) {
+          res = list.first;
+        }
+      }
+
+      if (res != null && res is Map<String, dynamic>) {
+        final room = VoiceRoom.fromJson(res);
+        roomCache[room.id] = room;
+        if (room.name.isNotEmpty) {
+          roomCache[room.name.toLowerCase().trim()] = room;
+        }
+        final hostData = res['profiles'];
+        if (hostData != null && hostData is Map<String, dynamic> && hostData['id'] != null) {
+          try {
+            final userObj = User.fromJson(hostData);
+            UserProfileCacheManager.rxCache[userObj.id] = userObj;
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      debugPrint('[RoomMetadataCache] Error fetching room: $e');
+    } finally {
+      _pendingFetches.remove(key);
+    }
   }
 }

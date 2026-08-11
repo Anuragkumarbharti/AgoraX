@@ -562,7 +562,7 @@ class ChatController extends GetxController {
     if (targetUserId.isEmpty || roomId.isEmpty) return false;
 
     final String convId = getDeterministicConversationId(currentUserId, targetUserId);
-    final String textContent = '🎙️ Room Invite: $roomTitle';
+    final String textContent = '🎙️ Room Invite: $roomTitle (ID: $roomId)';
 
     sendMessage(
       convId,

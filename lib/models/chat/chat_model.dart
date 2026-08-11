@@ -27,9 +27,31 @@ class ChatMessage {
   final bool isUnlockGift;
   final int audioDurationSeconds;
 
-  String get inviteRoomId => contactPhone ?? '';
-  String get inviteRoomTitle => locationName ?? (content.startsWith('🎙️ Room Invite: ') ? content.substring(16) : 'Voice Room');
-  String get inviteHostName => contactName ?? 'Host';
+  String get inviteRoomId {
+    if (contactPhone != null && contactPhone!.trim().isNotEmpty) {
+      return contactPhone!.trim();
+    }
+    if (locationName != null && (locationName!.trim().startsWith('CRN-RM-') || locationName!.trim().startsWith('room_'))) {
+      return locationName!.trim();
+    }
+    if (content.contains('(ID:')) {
+      final match = RegExp(r'\(ID:\s*([^\)]+)\)').firstMatch(content);
+      if (match != null && match.group(1) != null) {
+        return match.group(1)!.trim();
+      }
+    }
+    final matchId = RegExp(r'(CRN-RM-[A-Za-z0-9_\-]+|room_[A-Za-z0-9_\-]+)').firstMatch(content);
+    if (matchId != null && matchId.group(1) != null) {
+      return matchId.group(1)!.trim();
+    }
+    return '';
+  }
+  String get inviteRoomTitle => (locationName != null && locationName!.isNotEmpty && !locationName!.startsWith('CRN-RM-'))
+      ? locationName!
+      : (content.startsWith('🎙️ Room Invite: ') ? content.substring(16) : 'Voice Room');
+  String get inviteHostName => (contactName != null && contactName!.isNotEmpty && contactName != 'Host')
+      ? contactName!
+      : 'Owner';
   String get inviteRoomCover => mediaUrl ?? '';
 
   const ChatMessage({
@@ -134,29 +156,29 @@ class ChatMessage {
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
         id: json['id'] ?? '',
-        senderId: json['senderId'] ?? '',
-        receiverId: json['receiverId'] ?? '',
-        conversationId: json['conversationId'] ?? '',
+        senderId: json['senderId'] ?? json['sender_id'] ?? '',
+        receiverId: json['receiverId'] ?? json['receiver_id'] ?? '',
+        conversationId: json['conversationId'] ?? json['conversation_id'] ?? '',
         content: json['content'] ?? '',
-        type: MessageType.values[((json['type'] as int?) ?? 0).clamp(0, MessageType.values.length - 1)],
+        type: MessageType.values[((json['type'] as int?) ?? (json['media_type'] == 'roomInvite' ? MessageType.roomInvite.index : 0)).clamp(0, MessageType.values.length - 1)],
         status: MessageStatus.values[((json['status'] as int?) ?? 0).clamp(0, MessageStatus.values.length - 1)],
-        timestamp: DateTime.parse(json['timestamp'] ?? DateTime.now().toIso8601String()),
-        isDeleted: json['isDeleted'] ?? false,
-        replyToId: json['replyToId'],
-        replyToContent: json['replyToContent'],
+        timestamp: DateTime.parse(json['timestamp'] ?? json['created_at'] ?? DateTime.now().toIso8601String()),
+        isDeleted: json['isDeleted'] ?? json['is_deleted'] ?? false,
+        replyToId: json['replyToId'] ?? json['reply_to_id'],
+        replyToContent: json['replyToContent'] ?? json['reply_to_content'],
         reactions: json['reactions'] != null ? List<String>.from(json['reactions']) : null,
-        mediaUrl: json['mediaUrl'],
-        fileName: json['fileName'],
-        fileSize: json['fileSize'],
-        thumbnailUrl: json['thumbnailUrl'],
-        locationLat: json['locationLat'] != null ? (json['locationLat'] as num).toDouble() : null,
-        locationLng: json['locationLng'] != null ? (json['locationLng'] as num).toDouble() : null,
-        locationName: json['locationName'],
-        contactName: json['contactName'],
-        contactPhone: json['contactPhone'],
-        isEdited: json['isEdited'] ?? false,
-        isUnlockGift: json['isUnlockGift'] ?? false,
-        audioDurationSeconds: json['audioDurationSeconds'] ?? 0,
+        mediaUrl: json['mediaUrl'] ?? json['media_url'],
+        fileName: json['fileName'] ?? json['file_name'],
+        fileSize: json['fileSize'] ?? json['file_size'],
+        thumbnailUrl: json['thumbnailUrl'] ?? json['thumbnail_url'],
+        locationLat: json['locationLat'] != null ? (json['locationLat'] as num).toDouble() : (json['location_lat'] != null ? (json['location_lat'] as num).toDouble() : null),
+        locationLng: json['locationLng'] != null ? (json['locationLng'] as num).toDouble() : (json['location_lng'] != null ? (json['location_lng'] as num).toDouble() : null),
+        locationName: json['locationName'] ?? json['location_name'],
+        contactName: json['contactName'] ?? json['contact_name'],
+        contactPhone: json['contactPhone'] ?? json['contact_phone'] ?? json['room_id'] ?? json['roomId'],
+        isEdited: json['isEdited'] ?? json['is_edited'] ?? false,
+        isUnlockGift: json['isUnlockGift'] ?? json['is_unlock_gift'] ?? false,
+        audioDurationSeconds: json['audioDurationSeconds'] ?? json['audio_duration_seconds'] ?? 0,
       );
 }
 
