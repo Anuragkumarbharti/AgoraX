@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:creania/core/theme.dart';
 import '../auth/login_screen.dart';
@@ -8,11 +10,17 @@ import '../vip/vip_purchase_screen.dart';
 import '../novel/novel_purchase_screen.dart';
 import '../store/store_home_screen.dart';
 import '../wallet/creania_balance_wallet_screen.dart';
+import '../profile/edit_profile_screen.dart';
 import '../../services/user/user_profile_cache_manager.dart';
 import '../../services/storage/theme_controller.dart';
 import '../../services/community/community_controller.dart';
-import './notification_settings_screen.dart';
 import '../../services/auth/auth_memory_service.dart';
+import './notification_settings_screen.dart';
+import './blocked_users_screen.dart';
+import './devices_screen.dart';
+import './login_activity_screen.dart';
+import './help_support_screen.dart';
+import './legal_terms_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -22,10 +30,216 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  bool _darkModeEnabled = true;
+  final SupabaseClient _supabase = Supabase.instance.client;
   bool _privateProfile = false;
   bool _twoFactorEnabled = false;
+  String _currentLanguage = 'English (US)';
+  final _pinCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserSettingStates();
+  }
+
+  @override
+  void dispose() {
+    _pinCtrl.dispose();
+    super.dispose();
+  }
+
+  void _loadUserSettingStates() async {
+    final user = UserProfileCacheManager.currentUser;
+    if (user != null) {
+      setState(() {
+        _privateProfile = user.isPrivate;
+        _twoFactorEnabled = user.twoFactorEnabled;
+      });
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final savedLangCode = prefs.getString('app_language_code') ?? 'en';
+    setState(() {
+      _currentLanguage = _getLanguageLabel(savedLangCode);
+    });
+  }
+
+  String _getLanguageLabel(String code) {
+    if (code == 'en_GB') return 'English (UK)';
+    if (code == 'hi') return 'Hindi (India)';
+    return 'English (US)';
+  }
+
+  Future<void> _togglePrivateProfile(bool val) async {
+    final userId = UserProfileCacheManager.currentUserId;
+    if (userId.isEmpty) return;
+
+    setState(() => _privateProfile = val);
+
+    try {
+      await _supabase.from('profiles').update({'is_private': val}).eq('id', userId);
+      final currentUser = UserProfileCacheManager.currentUser;
+      if (currentUser != null) {
+        final updatedUser = currentUser.copyWith(isPrivate: val);
+        UserProfileCacheManager.setCurrentUser(updatedUser);
+        UserProfileCacheManager.rxCache[userId] = updatedUser;
+        UserProfileCacheManager.rxCache['me'] = updatedUser;
+      }
+      Get.snackbar(
+        val ? 'Private Profile Enabled 🔒' : 'Public Profile Enabled 🌐',
+        val
+            ? 'Only followers can now view your posts and activities.'
+            : 'Your profile and posts are visible to the Creania community.',
+        backgroundColor: const Color(0xFF10B981),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      setState(() => _privateProfile = !val);
+      Get.snackbar('Error', 'Failed to update privacy settings: $e');
+    }
+  }
+
+  void _handle2FAChange(bool enable) {
+    _pinCtrl.clear();
+    if (enable) {
+      // Prompt setup Security PIN
+      Get.defaultDialog(
+        title: 'Enable Two-Factor Auth 🛡️',
+        backgroundColor: context.secondaryBackgroundColor,
+        titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.textPrimary),
+        middleTextStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
+        content: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Text(
+                'Set a 4 to 6 digit Security PIN to secure your account during logins.',
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _pinCtrl,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 6,
+                style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  labelText: 'Security PIN',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        confirm: ElevatedButton(
+          onPressed: () async {
+            final pin = _pinCtrl.text.trim();
+            if (pin.length < 4 || pin.length > 6) {
+              Get.snackbar('Error', 'PIN must be 4 to 6 digits');
+              return;
+            }
+            Get.back();
+            try {
+              final res = await _supabase.rpc('enable_2fa', params: {'p_pin': pin});
+              if (res != null && res['success'] == true) {
+                setState(() => _twoFactorEnabled = true);
+                final user = UserProfileCacheManager.currentUser;
+                if (user != null) {
+                  final updated = user.copyWith(twoFactorEnabled: true);
+                  UserProfileCacheManager.setCurrentUser(updated);
+                }
+                Get.snackbar(
+                  '2FA Enabled 🛡️',
+                  'Your Security PIN has been set.',
+                  backgroundColor: const Color(0xFF10B981),
+                  colorText: Colors.white,
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              } else {
+                Get.snackbar('Error', res?['error'] ?? 'Failed to enable 2FA');
+              }
+            } catch (e) {
+              Get.snackbar('Error', 'Failed to enable 2FA: $e');
+            }
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: context.primaryColor),
+          child: const Text('Enable 2FA'),
+        ),
+        cancel: OutlinedButton(
+          onPressed: () => Get.back(),
+          child: const Text('Cancel'),
+        ),
+      );
+    } else {
+      // Prompt verification to disable
+      Get.defaultDialog(
+        title: 'Disable 2FA?',
+        backgroundColor: context.secondaryBackgroundColor,
+        titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.errorColor),
+        content: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Text(
+                'Enter your Security PIN to turn off Two-Factor Authentication.',
+                style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _pinCtrl,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 6,
+                style: GoogleFonts.poppins(color: context.textPrimary, fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  labelText: 'Current Security PIN',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        confirm: ElevatedButton(
+          onPressed: () async {
+            final pin = _pinCtrl.text.trim();
+            if (pin.isEmpty) return;
+            Get.back();
+            try {
+              final res = await _supabase.rpc('disable_2fa', params: {'p_pin': pin});
+              if (res != null && res['success'] == true) {
+                setState(() => _twoFactorEnabled = false);
+                final user = UserProfileCacheManager.currentUser;
+                if (user != null) {
+                  final updated = user.copyWith(twoFactorEnabled: false);
+                  UserProfileCacheManager.setCurrentUser(updated);
+                }
+                Get.snackbar(
+                  '2FA Disabled',
+                  'Two-Factor Authentication has been turned off.',
+                  backgroundColor: Colors.orangeAccent,
+                  colorText: Colors.white,
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              } else {
+                Get.snackbar('Error', res?['error'] ?? 'Incorrect Security PIN');
+              }
+            } catch (e) {
+              Get.snackbar('Error', 'Failed to disable 2FA: $e');
+            }
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
+          child: const Text('Disable'),
+        ),
+        cancel: OutlinedButton(
+          onPressed: () => Get.back(),
+          child: const Text('Cancel'),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.textPrimary),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Get.back(),
         ),
       ),
@@ -53,7 +267,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Account Details',
               'Manage username, display name, and basic info',
               icon: Icons.person_outline_rounded,
-              onTap: () {},
+              onTap: () => Get.to(() => const EditProfileScreen()),
             ),
             _buildSettingsTile(
               context,
@@ -71,7 +285,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _buildSettingsTile(
               context,
-              'Creaniaa Store',
+              'Creania Store',
               'Purchase frames, entry effects, and gifts',
               icon: Icons.storefront_rounded,
               onTap: () => Get.to(() => const StoreHomeScreen()),
@@ -93,35 +307,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Only followers can see your posts and rooms',
               Icons.privacy_tip_outlined,
               _privateProfile,
-              (val) => setState(() => _privateProfile = val),
+              (val) => _togglePrivateProfile(val),
             ),
             _buildSettingsTile(
               context,
               'Blocked Users',
               'Manage accounts you have blocked',
               icon: Icons.block_flipped,
-              onTap: () => _showComingSoon('Blocked Users'),
+              onTap: () => Get.to(() => const BlockedUsersScreen()),
             ),
             _buildSettingsTile(
               context,
               'Devices',
-              'View and manage authorized devices for offline reading',
+              'View and manage authorized devices and active sessions',
               icon: Icons.devices_rounded,
-              onTap: () => _showComingSoon('Authorized Devices'),
+              onTap: () => Get.to(() => const DevicesScreen()),
             ),
             _buildSettingsTile(
               context,
               'Login Activity',
               'Check recent login locations and active sessions',
               icon: Icons.history_toggle_off_rounded,
-              onTap: () => _showComingSoon('Login Activity'),
+              onTap: () => Get.to(() => const LoginActivityScreen()),
             ),
             _buildToggleSetting(
               'Two-Factor Authentication',
               'Secure your account with 2FA verification codes',
               Icons.security_rounded,
               _twoFactorEnabled,
-              (val) => setState(() => _twoFactorEnabled = val),
+              (val) => _handle2FAChange(val),
             ),
 
             Divider(color: context.borderColor, height: 32, thickness: 0.5),
@@ -140,7 +354,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               String displayVal = 'System (Auto)';
               if (pref == 'light') displayVal = 'Light';
               if (pref == 'dark') displayVal = 'Dark';
-              
+
               return _buildSettingsTile(
                 context,
                 'Appearance ($displayVal)',
@@ -151,10 +365,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }),
             _buildSettingsTile(
               context,
-              'Language',
-              'Select display language (English)',
+              'Language ($_currentLanguage)',
+              'Select display language',
               icon: Icons.language_rounded,
-              onTap: () => _showComingSoon('Language Settings'),
+              onTap: () => _showLanguageSelectionBottomSheet(context),
             ),
 
             Divider(color: context.borderColor, height: 32, thickness: 0.5),
@@ -164,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSettingsTile(
               context,
               'Leave Official Community',
-              'Leave your currently joined Creaniaa Official Community',
+              'Leave your currently joined Creania Official Community',
               icon: Icons.group_remove_outlined,
               onTap: () => _showLeaveCommunityConfirm(),
             ),
@@ -178,55 +392,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Help & Support Center',
               'Submit reports, requests, and account recovery help',
               icon: Icons.help_outline_rounded,
-              onTap: () => _showComingSoon('Help Center'),
+              onTap: () => Get.to(() => const HelpSupportScreen()),
             ),
             _buildSettingsTile(
               context,
-              'About Creaniaa',
+              'About Creania',
               'View terms of service, privacy policy and app version',
               icon: Icons.info_outline_rounded,
-              onTap: () {
-                Get.defaultDialog(
-                  title: 'About Creaniaa',
-                  titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-                  content: Column(
-                    children: [
-                      Image.asset(
-                        'assets/images/logo.png',
-                        height: 80,
-                        width: 80,
-                        fit: BoxFit.contain,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Creaniaa v1.0.0',
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Create. Connect. Grow.',
-                        style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                  backgroundColor: context.secondaryBackgroundColor,
-                  confirm: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.primaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    onPressed: () => Get.back(),
-                    child: Text('Close', style: TextStyle(color: Colors.white)),
-                  ),
-                );
-              },
+              onTap: () => _showAboutDialog(context),
             ),
 
             Divider(color: context.borderColor, height: 32, thickness: 0.5),
 
-            // Danger Zone Actions
+            // Actions
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
                   SizedBox(
@@ -248,8 +428,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 12),
-                  // ── Logout & Forget Device ────────────────────────────────
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -270,27 +449,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: OutlinedButton(
-                      onPressed: _showDeleteConfirm,
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: context.errorColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: Text(
-                        'Delete Account',
-                        style: GoogleFonts.poppins(
-                          color: context.errorColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 40),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -302,7 +461,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Text(
         title,
         style: GoogleFonts.outfit(
@@ -322,7 +481,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -332,18 +491,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: context.borderColor, width: 0.5),
           ),
-          padding: EdgeInsets.all(12),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: context.scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: context.textSecondary, size: 20),
               ),
-              SizedBox(width: 14),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,7 +515,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         fontSize: 13,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: GoogleFonts.poppins(
@@ -383,25 +542,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Function(bool) onChanged,
   ) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Container(
         decoration: BoxDecoration(
           color: context.surfaceColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: context.borderColor, width: 0.5),
         ),
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: context.scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: context.primaryColor, size: 20),
             ),
-            SizedBox(width: 14),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,7 +573,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontSize: 13,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: GoogleFonts.poppins(
@@ -437,16 +596,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showComingSoon(String feature) {
-    Get.snackbar(
-      'Coming Soon 🚀',
-      '$feature will be editable in the next update.',
-      backgroundColor: context.primaryColor.withOpacity(0.9),
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
-  }
-
   void _showLogoutConfirm() {
     Get.defaultDialog(
       title: 'Sign Out?',
@@ -459,11 +608,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           await UserProfileCacheManager.forceLogout(message: "You have signed out.");
         },
         style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
-        child: Text('Logout'),
+        child: const Text('Logout'),
       ),
       cancel: OutlinedButton(
         onPressed: () => Get.back(),
-        child: Text('Cancel'),
+        child: const Text('Cancel'),
       ),
     );
   }
@@ -477,48 +626,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
       middleTextStyle: GoogleFonts.poppins(color: context.textSecondary, fontSize: 13),
       confirm: ElevatedButton(
         onPressed: () async {
-          // Full device memory wipe first
+          // Revoke device session in backend
+          final userId = UserProfileCacheManager.currentUserId;
+          if (userId.isNotEmpty) {
+            final String platform = Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : 'Web/Desktop');
+            final String deviceId = '${userId}_${platform.toLowerCase()}';
+            try {
+              await _supabase.rpc('revoke_user_device', params: {'p_device_id': deviceId});
+            } catch (_) {}
+          }
+          // Memory wipe & force logout
           await AuthMemoryService.forgetDevice();
-          // Then logout
           await UserProfileCacheManager.forceLogout(message: "Device forgotten. Please log in again.");
         },
         style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
-        child: Text('Forget Device'),
+        child: const Text('Forget Device'),
       ),
       cancel: OutlinedButton(
         onPressed: () => Get.back(),
-        child: Text('Cancel'),
+        child: const Text('Cancel'),
       ),
     );
   }
 
-  void _showDeleteConfirm() {
+  void _showAboutDialog(BuildContext context) {
     Get.defaultDialog(
-      title: 'Delete Account?',
-      middleText: 'Deleting your account is permanent. All your coins, diamond balances, and library assets will be deleted.',
+      title: 'About Creania',
+      titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
       backgroundColor: context.secondaryBackgroundColor,
-      titleStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: context.errorColor),
-      middleTextStyle: GoogleFonts.poppins(color: context.textSecondary),
-      confirm: ElevatedButton(
-        onPressed: () async {
-          try {
-            final canonicalId = UserProfileCacheManager.currentUserId;
-            if (canonicalId.isNotEmpty && canonicalId != 'me') {
-              await Supabase.instance.client.from('profiles').delete().eq('id', canonicalId);
-              UserProfileCacheManager.clear();
-              await Supabase.instance.client.auth.signOut();
-            }
-          } catch (_) {}
-          // Wipe all device memory on account deletion
-          await AuthMemoryService.onAccountDeleted();
-          Get.offAll(() => const LoginScreen());
-        },
-        style: ElevatedButton.styleFrom(backgroundColor: context.errorColor),
-        child: Text('Delete Permanently'),
+      content: Column(
+        children: [
+          Image.asset(
+            'assets/images/logo.png',
+            height: 80,
+            width: 80,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Icon(Icons.school_rounded, size: 64, color: context.primaryColor),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Creania v1.0.0 (Build 1)',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Learn, Discuss & Connect',
+            style: GoogleFonts.poppins(color: context.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              Get.to(() => const LegalTermsScreen(initialTabIndex: 0));
+            },
+            child: Text(
+              'Terms of Service',
+              style: GoogleFonts.poppins(color: context.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              Get.to(() => const LegalTermsScreen(initialTabIndex: 1));
+            },
+            child: Text(
+              'Privacy Policy',
+              style: GoogleFonts.poppins(color: context.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+        ],
       ),
-      cancel: OutlinedButton(
+      confirm: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: context.primaryColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
         onPressed: () => Get.back(),
-        child: Text('Cancel'),
+        child: const Text('Close', style: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -528,14 +712,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: context.secondaryBackgroundColor,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return Obx(() {
           final currentPref = themeCtrl.currentThemePreference.value;
           return Container(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,7 +732,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: context.textPrimary,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   'Choose your preferred theme for the app.',
                   style: GoogleFonts.poppins(
@@ -556,7 +740,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: context.textSecondary,
                   ),
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
                 _buildThemeOption(
                   context,
                   title: 'System (Recommended)',
@@ -564,9 +748,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.settings_brightness_rounded,
                   value: 'system',
                   isSelected: currentPref == 'system',
-                  onTap: () => themeCtrl.updateThemePreference('system'),
+                  onTap: () {
+                    themeCtrl.updateThemePreference('system');
+                    Get.back();
+                  },
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 _buildThemeOption(
                   context,
                   title: 'Light Theme',
@@ -574,19 +761,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.light_mode_rounded,
                   value: 'light',
                   isSelected: currentPref == 'light',
-                  onTap: () => themeCtrl.updateThemePreference('light'),
+                  onTap: () {
+                    themeCtrl.updateThemePreference('light');
+                    Get.back();
+                  },
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 _buildThemeOption(
                   context,
-                  title: 'Dark Theme (Coming Soon)',
+                  title: 'Dark Theme',
                   subtitle: 'Always use a dark interface',
                   icon: Icons.dark_mode_rounded,
                   value: 'dark',
                   isSelected: currentPref == 'dark',
-                  onTap: () => _showComingSoon('Dark Theme'),
+                  onTap: () {
+                    themeCtrl.updateThemePreference('dark');
+                    Get.back();
+                  },
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
               ],
             ),
           );
@@ -607,7 +800,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
               ? context.primaryColor.withOpacity(0.08)
@@ -627,7 +820,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: isSelected ? context.primaryColor : context.textSecondary,
               size: 24,
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -640,7 +833,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: isSelected ? context.primaryColor : context.textPrimary,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: GoogleFonts.poppins(
@@ -657,6 +850,111 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: context.primaryColor,
                 size: 20,
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageSelectionBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.secondaryBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Language Settings',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: context.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Select your preferred display language.',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: context.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildLangOption('English (US)', 'en'),
+              const SizedBox(height: 10),
+              _buildLangOption('English (UK)', 'en_GB'),
+              const SizedBox(height: 10),
+              _buildLangOption('Hindi (India - Beta)', 'hi'),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLangOption(String name, String code) {
+    final isSelected = _currentLanguage == name;
+    return GestureDetector(
+      onTap: () async {
+        setState(() => _currentLanguage = name);
+        Get.back();
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('app_language_code', code);
+
+        final userId = UserProfileCacheManager.currentUserId;
+        if (userId.isNotEmpty) {
+          try {
+            await _supabase.from('profiles').update({'language': code}).eq('id', userId);
+          } catch (_) {}
+        }
+
+        Get.snackbar(
+          'Language Updated',
+          'Display language set to $name.',
+          backgroundColor: const Color(0xFF10B981),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected ? context.primaryColor.withOpacity(0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? context.primaryColor.withOpacity(0.4) : context.borderColor,
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.language_rounded,
+              color: isSelected ? context.primaryColor : context.textSecondary,
+              size: 20,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                name,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isSelected ? context.primaryColor : context.textPrimary,
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle_rounded, color: context.primaryColor, size: 20),
           ],
         ),
       ),

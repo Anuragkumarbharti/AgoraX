@@ -69,6 +69,8 @@ class User {
     this.communityLeaveTime,
     this.communityNextJoinTime,
     this.signupStatus = 'completed',
+    this.isPrivate = false,
+    this.twoFactorEnabled = false,
     String? displayName,
   });
 
@@ -201,6 +203,8 @@ class User {
               .map((key, value) => MapEntry(key.toString(), value.toString())))
           : const {},
       signupStatus: json['signup_status'] ?? json['signupStatus'] ?? 'completed',
+      isPrivate: json['is_private'] ?? json['isPrivate'] ?? false,
+      twoFactorEnabled: json['two_factor_enabled'] ?? json['twoFactorEnabled'] ?? false,
     );
   }
 
@@ -280,6 +284,8 @@ class User {
   final TagSystem? tagSystem;
   final Map<String, String> membershipAssets;
   final String signupStatus;
+  final bool isPrivate;
+  final bool twoFactorEnabled;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -361,6 +367,8 @@ class User {
         'tag_system': tagSystem?.toJson(),
         'membership_assets': membershipAssets,
         'signup_status': signupStatus,
+        'is_private': isPrivate,
+        'two_factor_enabled': twoFactorEnabled,
       };
 
   User copyWith({
@@ -434,6 +442,8 @@ class User {
     DateTime? communityLeaveTime,
     DateTime? communityNextJoinTime,
     String? signupStatus,
+    bool? isPrivate,
+    bool? twoFactorEnabled,
   }) {
     return User(
       id: id ?? this.id,
@@ -508,6 +518,8 @@ class User {
       tagSystem: tagSystem ?? this.tagSystem,
       membershipAssets: membershipAssets ?? this.membershipAssets,
       signupStatus: signupStatus ?? this.signupStatus,
+      isPrivate: isPrivate ?? this.isPrivate,
+      twoFactorEnabled: twoFactorEnabled ?? this.twoFactorEnabled,
     );
   }
 }
