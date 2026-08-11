@@ -155,7 +155,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                 message: 'This will permanently delete all messages in this conversation. This action cannot be undone.',
                 confirmText: 'Clear',
                 onConfirm: () {
-                  _ctrl.clearChat(widget.conversationId);
+                  _ctrl.clearChat(widget.conversationId, otherUserId: _otherUserId);
                   _showSuccessToast('Chat cleared successfully!');
                 },
               ),
@@ -171,7 +171,7 @@ class _ChatSettingsScreenState extends State<ChatSettingsScreen> {
                 message: 'This will delete the conversation and all of its messages. This action is permanent.',
                 confirmText: 'Delete',
                 onConfirm: () {
-                  _ctrl.deleteConversation(widget.conversationId);
+                  _ctrl.deleteConversation(widget.conversationId, otherUserId: _otherUserId);
                   _showSuccessToast('Chat deleted!');
                   Get.back();
                   Get.back(); // Return past ChatScreen to chat list

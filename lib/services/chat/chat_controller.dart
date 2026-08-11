@@ -1034,15 +1034,27 @@ class ChatController extends GetxController {
     }
   }
 
-  void deleteConversation(String conversationId) async {
+  void deleteConversation(String conversationId, {String? otherUserId}) async {
+    final String targetOtherId = (otherUserId != null && otherUserId.isNotEmpty)
+        ? otherUserId
+        : extractOtherUserId(conversationId, currentUserId);
+    final String detConvId = getDeterministicConversationId(currentUserId, targetOtherId);
+
     final bool allowed = await ChatDataDeletionService.to.deleteConversationExplicitly(
       conversationId: conversationId,
       reason: DeletionReason.userDeleteConversation,
     );
+    await ChatDataDeletionService.to.deleteConversationExplicitly(
+      conversationId: detConvId,
+      reason: DeletionReason.userDeleteConversation,
+    );
 
     if (allowed) {
-      conversations.removeWhere((c) => c.id == conversationId);
+      conversations.removeWhere((c) => c.id == conversationId || c.id == detConvId || c.otherUserId == targetOtherId);
       _messages.remove(conversationId);
+      _messages.remove(detConvId);
+      _messages.refresh();
+      conversations.refresh();
     }
   }
 
@@ -1260,16 +1272,24 @@ class ChatController extends GetxController {
     }
   }
 
-  void clearChat(String conversationId) async {
+  void clearChat(String conversationId, {String? otherUserId}) async {
     final now = DateTime.now().toUtc();
+    final String targetOtherId = (otherUserId != null && otherUserId.isNotEmpty)
+        ? otherUserId
+        : extractOtherUserId(conversationId, currentUserId);
+    final String detConvId = getDeterministicConversationId(currentUserId, targetOtherId);
+
     await ChatWallpaperService.to.setConversationClearedAt(conversationId, now);
+    await ChatWallpaperService.to.setConversationClearedAt(detConvId, now);
 
     _messages[conversationId] = [];
+    _messages[detConvId] = [];
     _messages.refresh();
 
     await IsarStorageService.to.clearMessagesForConversation(conversationId);
+    await IsarStorageService.to.clearMessagesForConversation(detConvId);
 
-    final idx = conversations.indexWhere((c) => c.id == conversationId);
+    final idx = conversations.indexWhere((c) => c.id == conversationId || c.id == detConvId || c.otherUserId == targetOtherId);
     if (idx != -1) {
       final conv = conversations[idx];
       conversations[idx] = Conversation(
@@ -1291,7 +1311,7 @@ class ChatController extends GetxController {
       );
       conversations.refresh();
 
-      final isarConv = await IsarStorageService.to.getConversation(conversationId);
+      final isarConv = await IsarStorageService.to.getConversation(conv.id);
       if (isarConv != null) {
         isarConv.lastMessage = '';
         isarConv.unreadCount = 0;
