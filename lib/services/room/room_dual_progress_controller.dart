@@ -28,30 +28,39 @@ class RoomDualProgressController extends GetxController {
     return isOverflowingMap[roomId] == true || prog.isOverflowActive;
   }
 
-  /// Fetch initial dual progress state from backend database
+  /// Fetch initial dual progress state from backend database (runs automatic daily reset)
   Future<RoomDualProgress> fetchDualProgress(String roomId) async {
     if (roomId.isEmpty) return const RoomDualProgress(roomId: '');
 
     try {
       final client = Supabase.instance.client;
-      final resp = await client
-          .from('room_dual_progress')
-          .select()
-          .eq('room_id', roomId)
-          .maybeSingle();
+      dynamic resp;
+      try {
+        resp = await client.rpc('get_or_reset_room_dual_progress', params: {'p_room_id': roomId});
+      } catch (rpcErr) {
+        debugPrint('[RoomDualProgressController] RPC fetch fallback: $rpcErr');
+        resp = await client
+            .from('room_dual_progress')
+            .select()
+            .eq('room_id', roomId)
+            .maybeSingle();
+      }
 
       if (resp != null) {
-        final model = RoomDualProgress.fromJson(resp as Map<String, dynamic>);
-        dualProgresses[roomId] = model;
-        isOverflowingMap[roomId] = model.isOverflowActive;
-        dualProgresses.refresh();
-        return model;
-      } else {
-        final defaultModel = RoomDualProgress(roomId: roomId);
-        dualProgresses[roomId] = defaultModel;
-        dualProgresses.refresh();
-        return defaultModel;
+        final Map<String, dynamic> dataMap = (resp is Map) ? Map<String, dynamic>.from(resp) : {};
+        if (dataMap.isNotEmpty) {
+          final model = RoomDualProgress.fromJson(dataMap);
+          dualProgresses[roomId] = model;
+          isOverflowingMap[roomId] = model.isOverflowActive;
+          dualProgresses.refresh();
+          return model;
+        }
       }
+
+      final defaultModel = RoomDualProgress(roomId: roomId);
+      dualProgresses[roomId] = defaultModel;
+      dualProgresses.refresh();
+      return defaultModel;
     } catch (e) {
       debugPrint('[RoomDualProgressController] Fetch error: $e');
       final fallback = dualProgresses[roomId] ?? RoomDualProgress(roomId: roomId);

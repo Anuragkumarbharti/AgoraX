@@ -102,11 +102,29 @@ class RoomDualProgress {
     return val.isNaN || val.isInfinite ? 0.0 : val;
   }
 
+  static String get currentResetDateString {
+    final now = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30)).subtract(const Duration(hours: 4));
+    return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+  }
+
   factory RoomDualProgress.fromJson(Map<String, dynamic> json) {
-    final free = int.tryParse((json['daily_free_progress'] ?? json['normal_points'] ?? json['normalPoints'] ?? 0).toString()) ?? 0;
-    final freeLimit = int.tryParse((json['free_task_limit'] ?? json['normal_target'] ?? json['normalTarget'] ?? FREE_TASK_LIMIT).toString()) ?? FREE_TASK_LIMIT;
-    final gold = int.tryParse((json['daily_gold_progress'] ?? json['gold_points'] ?? json['goldPoints'] ?? 0).toString()) ?? 0;
-    final goldLimit = int.tryParse((json['gold_task_limit'] ?? json['gold_target'] ?? json['goldTarget'] ?? GOLD_TASK_LIMIT).toString()) ?? GOLD_TASK_LIMIT;
+    final lastResetDateStr = json['last_reset_date']?.toString();
+    bool isStaleDay = false;
+    if (lastResetDateStr != null && lastResetDateStr.isNotEmpty) {
+      final todayStr = currentResetDateString;
+      if (lastResetDateStr.compareTo(todayStr) < 0) {
+        isStaleDay = true;
+      }
+    }
+
+    final rawFree = int.tryParse((json['daily_free_progress'] ?? json['normal_points'] ?? json['normalPoints'] ?? 0).toString()) ?? 0;
+    final rawGold = int.tryParse((json['daily_gold_progress'] ?? json['gold_points'] ?? json['goldPoints'] ?? 0).toString()) ?? 0;
+
+    final free = isStaleDay ? 0 : rawFree;
+    final gold = isStaleDay ? 0 : rawGold;
+
+    final freeLimit = int.tryParse((json['free_task_limit'] ?? json['normal_target'] ?? json['normalTarget'] ?? defaultFreeTaskLimit).toString()) ?? defaultFreeTaskLimit;
+    final goldLimit = int.tryParse((json['gold_task_limit'] ?? json['gold_target'] ?? json['goldTarget'] ?? defaultGoldTaskLimit).toString()) ?? defaultGoldTaskLimit;
 
     final level = int.tryParse((json['room_level'] ?? json['roomLevel'] ?? 1).toString()) ?? 1;
     final defaultTarget = getRequiredTaskForLevel(level);
