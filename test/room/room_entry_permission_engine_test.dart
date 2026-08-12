@@ -95,10 +95,10 @@ void main() {
     });
 
     test('1. Role Determination Test', () {
-      expect(engine.getUserRole(publicRoom, 'owner_uid_1'), equals('Creator'));
+      expect(engine.getUserRole(publicRoom, 'owner_uid_1'), equals('Owner'));
       expect(engine.getUserRole(publicRoom, 'coowner_uid_1'), equals('Co-Owner'));
       expect(engine.getUserRole(publicRoom, 'admin_uid_1'), equals('Admin'));
-      expect(engine.getUserRole(publicRoom, 'host_uid_1'), equals('Host'));
+      expect(engine.getUserRole(publicRoom, 'host_uid_1'), equals('Mod'));
       expect(engine.getUserRole(publicRoom, 'audience_uid_999'), equals('Audience'));
     });
 
@@ -110,7 +110,7 @@ void main() {
       );
       expect(ownerResult.isAllowed, isTrue);
       expect(ownerResult.isPriorityBypass, isTrue);
-      expect(ownerResult.role, equals('Creator'));
+      expect(ownerResult.role, equals('Owner'));
 
       // Co-Owner trying to enter lockedRoom
       final coOwnerResult = engine.validateEntry(

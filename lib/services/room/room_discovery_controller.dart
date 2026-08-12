@@ -159,13 +159,36 @@ class RoomDiscoveryController extends GetxController {
     final idx = rooms.indexWhere((r) => r.id == roomId);
     if (idx != -1) {
       final old = rooms[idx];
+      final coOwnerIds = (Set<String>.from(old.coOwnerIds)
+            ..addAll(members
+                .where((m) => m.role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '') == 'coowner')
+                .map((m) => m.userId)))
+          .toList();
+      final adminIds = (Set<String>.from(old.adminIds)
+            ..addAll(members
+                .where((m) => m.role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '') == 'admin')
+                .map((m) => m.userId)))
+          .toList();
+      final hostIds = (Set<String>.from(old.hostIds)
+            ..addAll(members
+                .where((m) {
+                  final r = m.role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
+                  return r == 'mod' || r == 'moderator' || r == 'host';
+                })
+                .map((m) => m.userId)))
+          .toList();
       final speakerIds = members.where((m) => m.role == 'Speaker').map((m) => m.userId).toList();
-      final listenerIds = members.where((m) => m.role == 'Listener').map((m) => m.userId).toList();
+      final listenerIds = members.where((m) => m.role == 'Listener' || m.role == 'Audience').map((m) => m.userId).toList();
+
       final json = old.toJson();
       json['participantCount'] = members.length;
+      json['coOwnerIds'] = coOwnerIds;
+      json['adminIds'] = adminIds;
+      json['hostIds'] = hostIds;
       json['speakerIds'] = speakerIds;
       json['listenerIds'] = listenerIds;
       rooms[idx] = VoiceRoom.fromJson(json);
+      rooms.refresh();
     }
   }
 

@@ -442,20 +442,24 @@ class MemberListDialog extends StatelessWidget {
 
   Widget _buildManagementTab(BuildContext context, Set<String> onlineUserIds) {
     return Obx(() {
-      final staffRoles = [
-        'Founder',
-        'Owner',
-        'Arena Owner',
-        'Co-owner',
-        'Co-Owner',
-        'Admin',
-        'Moderator'
-      ];
-      final staff = RoomController.to.activeMembers.where((m) {
-        return staffRoles.any((r) => r.toLowerCase() == m.role.toLowerCase());
-      }).toList();
+      final staffUserIds = <String>{};
+      if (room.ownerUserId.isNotEmpty) staffUserIds.add(room.ownerUserId);
+      if (room.hostId.isNotEmpty) staffUserIds.add(room.hostId);
+      staffUserIds.addAll(room.coOwnerIds);
+      staffUserIds.addAll(room.adminIds);
+      staffUserIds.addAll(room.hostIds);
+      staffUserIds.addAll(room.moderatorIds);
 
-      if (staff.isEmpty) {
+      for (final m in RoomController.to.activeMembers) {
+        final r = m.role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
+        if (r == 'owner' || r == 'coowner' || r == 'admin' || r == 'mod' || r == 'moderator' || r == 'host') {
+          staffUserIds.add(m.userId);
+        }
+      }
+
+      final List<String> staffList = staffUserIds.toList();
+
+      if (staffList.isEmpty) {
         return Center(
             child: Text('No management staff found',
                 style: TextStyle(color: context.textSecondary)));
@@ -463,26 +467,35 @@ class MemberListDialog extends StatelessWidget {
 
       return ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: staff.length,
+        itemCount: staffList.length,
         itemBuilder: (context, index) {
-          final m = staff[index];
-          final isOnline = onlineUserIds.contains(m.userId);
+          final uid = staffList[index];
+          final isOnline = onlineUserIds.contains(uid);
+          final role = RoomController.to.getUserRole(room, uid);
           final seatsList = RoomController.to.roomSeatsInfo[roomId] ?? [];
           final seatIndex =
-              seatsList.indexWhere((s) => s['userId'] == m.userId);
+              seatsList.indexWhere((s) => s['userId'] == uid);
           final seatText =
-              seatIndex != -1 ? RoomSeatController.getSeatName(seatIndex) : 'Audience';
+              seatIndex != -1 ? RoomSeatController.getSeatName(seatIndex) : (isOnline ? 'Audience' : 'Offline');
 
-          return _buildMemberTile(
-            context,
-            userId: m.userId,
-            fallbackName: 'Staff Member',
-            role: m.role,
-            isOnline: isOnline,
-            isSpeaking: false,
-            seatText: seatText,
-            onViewProfile: () => _handleViewProfile(m.userId, 'Staff', m.role),
-            onChatPressed: () => _handleChatPressed(m.userId, 'Staff'),
+          return FutureBuilder<dynamic>(
+            future: UserProfileCacheManager.fetchUserProfile(uid),
+            builder: (context, snapshot) {
+              final String name = (snapshot.data != null)
+                  ? (snapshot.data.username ?? 'Staff Member')
+                  : 'Staff Member';
+              return _buildMemberTile(
+                context,
+                userId: uid,
+                fallbackName: name,
+                role: role,
+                isOnline: isOnline,
+                isSpeaking: false,
+                seatText: seatText,
+                onViewProfile: () => _handleViewProfile(uid, name, role),
+                onChatPressed: () => _handleChatPressed(uid, name),
+              );
+            },
           );
         },
       );

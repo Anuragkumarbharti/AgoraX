@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:creania/models/room/room_model.dart';
 import 'package:creania/services/room/room_permission_controller.dart';
+import 'package:creania/services/room/room_moderation_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -62,8 +63,8 @@ void main() {
 
     test('1. Requirement 1 & 8: Permanent Owner linkage via hostId', () {
       expect(room.hostId, equals(ownerId));
-      expect(permissionCtrl.getUserRole(room, ownerId), equals('Creator'));
-      expect(permissionCtrl.getRoleWeight('Creator'), equals(10));
+      expect(permissionCtrl.getUserRole(room, ownerId), equals('Owner'));
+      expect(permissionCtrl.getRoleWeight('Owner'), equals(10));
       expect(permissionCtrl.isHost(testRoomId, ownerId, room: room), isTrue);
     });
 
@@ -87,8 +88,7 @@ void main() {
       expect(permissionCtrl.isCoHost(testRoomId, coOwnerId, room: room), isTrue);
       // Co-owner CAN change entry rules
       expect(permissionCtrl.canChangeEntryRules(room, coOwnerId), isTrue);
-      // Co-owner role is NOT Creator/Owner
-      expect(permissionCtrl.getUserRole(room, coOwnerId), isNot(equals('Creator')));
+      // Co-owner role is NOT Owner
       expect(permissionCtrl.getUserRole(room, coOwnerId), isNot(equals('Owner')));
     });
 
@@ -101,24 +101,21 @@ void main() {
       });
 
       expect(roomAfterRejoin.hostId, equals(ownerId));
-      expect(permissionCtrl.getUserRole(roomAfterRejoin, ownerId), equals('Creator'));
+      expect(permissionCtrl.getUserRole(roomAfterRejoin, ownerId), equals('Owner'));
       expect(permissionCtrl.canChangeEntryRules(roomAfterRejoin, ownerId), isTrue);
     });
 
-    test('5. Requirement 6 & 11: Manual Transfer updates hostId permanently', () {
+    test('5. Requirement 6 & 11: Ownership Transfer is permanently disabled', () async {
+      final moderationCtrl = RoomModerationController();
       final newOwnerId = 'uid_new_owner_505';
-      final transferredRoom = VoiceRoom.fromJson({
-        ...room.toJson(),
-        'hostId': newOwnerId,
-        'host_id': newOwnerId,
-        'room_owner': newOwnerId,
-        'coOwnerIds': [ownerId],
-        'co_owner_ids': [ownerId], // Old owner becomes Co-Owner or Member
-      });
 
-      expect(transferredRoom.hostId, equals(newOwnerId));
-      expect(permissionCtrl.getUserRole(transferredRoom, newOwnerId), equals('Creator'));
-      expect(permissionCtrl.getUserRole(transferredRoom, ownerId), equals('Co-Owner'));
+      expect(
+        () async => await moderationCtrl.transferHost(testRoomId, newOwnerId),
+        throwsA(isA<Exception>()),
+      );
+
+      final result = await moderationCtrl.transferRoomOwnership(testRoomId, newOwnerId);
+      expect(result, isFalse);
     });
   });
 }

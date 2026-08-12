@@ -187,17 +187,17 @@ class VoiceRoom {
       todayRoomStars: ((json['todayRoomGems'] ?? json['today_room_gems'] ?? json['todayRoomStars'] ?? json['today_room_stars'] ?? 0) as num).toInt(),
 
       // New Roles Hierarchy
-      founderId: json['founderId'] ?? 'uid_anurag_101',
-      managerIds: List<String>.from(json['managerIds'] ?? []),
-      moderatorIds: List<String>.from(json['moderatorIds'] ?? []),
-      hostIds: List<String>.from(json['hostIds'] ?? []),
-      mentorIds: List<String>.from(json['mentorIds'] ?? []),
-      judgeIds: List<String>.from(json['judgeIds'] ?? []),
-      performerIds: List<String>.from(json['performerIds'] ?? []),
-      eliteMemberIds: List<String>.from(json['eliteMemberIds'] ?? []),
-      vipMemberIds: List<String>.from(json['vipMemberIds'] ?? []),
-      memberIds: List<String>.from(json['memberIds'] ?? []),
-      visitorIds: List<String>.from(json['visitorIds'] ?? []),
+      founderId: json['founderId'] ?? json['founder_id'] ?? 'uid_anurag_101',
+      managerIds: List<String>.from(json['managerIds'] ?? json['manager_ids'] ?? []),
+      moderatorIds: List<String>.from(json['moderatorIds'] ?? json['moderator_ids'] ?? []),
+      hostIds: List<String>.from(json['hostIds'] ?? json['host_ids'] ?? []),
+      mentorIds: List<String>.from(json['mentorIds'] ?? json['mentor_ids'] ?? []),
+      judgeIds: List<String>.from(json['judgeIds'] ?? json['judge_ids'] ?? []),
+      performerIds: List<String>.from(json['performerIds'] ?? json['performer_ids'] ?? []),
+      eliteMemberIds: List<String>.from(json['eliteMemberIds'] ?? json['elite_member_ids'] ?? []),
+      vipMemberIds: List<String>.from(json['vipMemberIds'] ?? json['vip_member_ids'] ?? []),
+      memberIds: List<String>.from(json['memberIds'] ?? json['member_ids'] ?? []),
+      visitorIds: List<String>.from(json['visitorIds'] ?? json['visitor_ids'] ?? []),
 
       // Settings
       bulletin: json['bulletin'] ?? 'Welcome to Creaniaa! Be respectful and have fun.',

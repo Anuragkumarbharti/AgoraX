@@ -565,39 +565,42 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                       ? _controller.rooms.first
                       : widget.room);
 
-              final activeMembersList = _controller.activeMembers;
+              final activeMemberUserIds = _controller.activeMembers.map((m) => m.userId).toSet();
 
-              final coOwners = <String>{
-                ...room.coOwnerIds,
-                ...activeMembersList
-                    .where((m) {
-                      final l = m.role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
-                      return l == 'coowner' || l == 'cohost';
-                    })
-                    .map((m) => m.userId),
-              }.toList();
+              final coOwners = room.coOwnerIds
+                  .where((id) => activeMemberUserIds.contains(id))
+                  .toSet();
+              for (final m in _controller.activeMembers) {
+                final l = m.role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
+                if (l == 'coowner' || l == 'cohost') {
+                  coOwners.add(m.userId);
+                }
+              }
 
-              final admins = <String>{
-                ...room.adminIds,
-                ...activeMembersList
-                    .where((m) {
-                      final l = m.role.trim().toLowerCase();
-                      return l == 'admin' || l == 'moderator';
-                    })
-                    .map((m) => m.userId),
-              }.toList();
+              final admins = room.adminIds
+                  .where((id) => activeMemberUserIds.contains(id))
+                  .toSet();
+              for (final m in _controller.activeMembers) {
+                final l = m.role.trim().toLowerCase();
+                if (l == 'admin') {
+                  admins.add(m.userId);
+                }
+              }
 
-              final starMembers = <String>{
-                ...room.starMemberIds,
-                ...activeMembersList
-                    .where((m) {
-                      final l = m.role.trim().toLowerCase().replaceAll(' ', '');
-                      return l == 'starmember' || l == 'speaker';
-                    })
-                    .map((m) => m.userId),
-              }.toList();
+              final starMembers = room.starMemberIds
+                  .where((id) => activeMemberUserIds.contains(id))
+                  .toSet();
+              for (final m in _controller.activeMembers) {
+                final l = m.role.trim().toLowerCase().replaceAll(' ', '');
+                if (l == 'starmember' || l == 'host' || l == 'mod' || l == 'moderator') {
+                  starMembers.add(m.userId);
+                }
+              }
 
-              final ownerId = room.hostId.isNotEmpty ? room.hostId : room.ownerUserId;
+              final rawOwnerId = room.hostId.isNotEmpty ? room.hostId : room.ownerUserId;
+              final ownerIds = (rawOwnerId.isNotEmpty && activeMemberUserIds.contains(rawOwnerId))
+                  ? [rawOwnerId]
+                  : <String>[];
 
               return Container(
                 decoration: BoxDecoration(
@@ -610,7 +613,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     RoomSettingsManagement.buildRoleGroupTile(
                       context: context,
                       role: 'Owner',
-                      memberIds: [ownerId],
+                      memberIds: ownerIds,
                       color: const Color(0xFFFFD700),
                       room: widget.room,
                     ),
@@ -619,7 +622,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     RoomSettingsManagement.buildRoleGroupTile(
                       context: context,
                       role: 'Co-owner',
-                      memberIds: coOwners,
+                      memberIds: coOwners.toList(),
                       color: Colors.amber,
                       room: widget.room,
                     ),
@@ -628,7 +631,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     RoomSettingsManagement.buildRoleGroupTile(
                       context: context,
                       role: 'Admin',
-                      memberIds: admins,
+                      memberIds: admins.toList(),
                       color: Colors.purpleAccent,
                       room: widget.room,
                     ),
@@ -637,7 +640,7 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
                     RoomSettingsManagement.buildRoleGroupTile(
                       context: context,
                       role: 'Star Member',
-                      memberIds: starMembers,
+                      memberIds: starMembers.toList(),
                       color: Colors.cyanAccent,
                       room: widget.room,
                     ),

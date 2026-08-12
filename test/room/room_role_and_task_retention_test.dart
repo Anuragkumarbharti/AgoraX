@@ -67,7 +67,7 @@ void main() {
     });
 
     test('1. Assigned Roles Retention: Co-Owner, Admin, Star Member are permanent for room', () {
-      expect(permissionCtrl.getUserRole(room, ownerId), equals('Creator'));
+      expect(permissionCtrl.getUserRole(room, ownerId), equals('Owner'));
       expect(permissionCtrl.getUserRole(room, coOwnerId), equals('Co-Owner'));
       expect(permissionCtrl.getUserRole(room, adminId), equals('Admin'));
     });

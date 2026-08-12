@@ -256,10 +256,12 @@ class RoomRealtimeController extends GetxController {
                 );
               }
 
+              // Re-fetch members and permissions for EVERY user in the room to update tags & roles instantly
+              await onFetchMembers(roomId);
+              await onFetchPermissions(roomId);
+
               if (tUserId == currentUserId) {
                 await UserProfileCacheManager.rebuildAndSyncCurrentUserTagSystem();
-                await onFetchPermissions(roomId);
-                await onFetchMembers(roomId);
 
                 if (action == 'PROMOTED') {
                   RoleUpdatePopupDialog.showRoleAssigned(

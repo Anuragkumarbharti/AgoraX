@@ -48,18 +48,18 @@ class RoomPermissionController extends GetxController {
 
   String getUserRole(VoiceRoom room, String userId,
       {List<Map<String, dynamic>>? seatsInfo}) {
-    if (room.ownerUserId == userId || room.hostId == userId || room.founderId == userId) {
+    if ((room.ownerUserId.isNotEmpty && room.ownerUserId == userId) ||
+        (room.hostId.isNotEmpty && room.hostId == userId)) {
       return 'Owner';
     }
 
-    // Check active members from DB room_members via RoomMemberController
+    // Check active assigned roles from DB room_members via RoomMemberController
     if (Get.isRegistered<RoomMemberController>()) {
       final member = RoomMemberController.to.activeMembers
           .firstWhereOrNull((m) => m.userId == userId);
       if (member != null && member.role.isNotEmpty) {
         final r = member.role.trim();
         final l = r.toLowerCase().replaceAll('-', '').replaceAll(' ', '');
-        if (l == 'owner' || l == 'creator' || l == 'founder') return 'Owner';
         if (l == 'coowner') return 'Co-Owner';
         if (l == 'admin') return 'Admin';
         if (l == 'mod' || l == 'moderator' || l == 'host') return 'Mod';
@@ -122,7 +122,8 @@ class RoomPermissionController extends GetxController {
                 .firstWhereOrNull((item) => item.id == roomId)
             : null);
     if (r != null) {
-      return r.ownerUserId == userId || r.hostId == userId || r.founderId == userId;
+      return (r.ownerUserId.isNotEmpty && r.ownerUserId == userId) ||
+          (r.hostId.isNotEmpty && r.hostId == userId);
     }
     return currentPermissions['is_owner'] == true || currentPermissions['is_host'] == true;
   }

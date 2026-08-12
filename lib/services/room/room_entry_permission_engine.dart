@@ -97,12 +97,9 @@ class RoomEntryPermissionEngine {
 
   /// Determine user role in room
   String getUserRole(VoiceRoom room, String userId, {List<Map<String, dynamic>>? seatsInfo}) {
-    // Owner / Creator check
-    if (room.ownerUserId == userId ||
-        room.hostId == userId ||
-        room.founderId == userId ||
-        room.ownerName == 'Current User' ||
-        userId == 'uid_anurag_101') {
+    // Owner check (immutable room owner)
+    if ((room.ownerUserId.isNotEmpty && room.ownerUserId == userId) ||
+        (room.hostId.isNotEmpty && room.hostId == userId)) {
       return 'Owner';
     }
 

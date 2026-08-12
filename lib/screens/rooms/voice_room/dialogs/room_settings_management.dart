@@ -900,12 +900,17 @@ class RoomSettingsManagement {
     VoiceRoom room,
   ) {
     final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? 'uid_anurag_101';
-    final bool isOwner = currentUserId == room.hostId || currentUserId == room.founderId || currentUserId == room.ownerUserId;
-    final bool isSelf = userId == currentUserId;
     final controller = RoomController.to;
+    final String callerRole = controller.getUserRole(room, currentUserId);
+    final bool isOwner = callerRole == 'Owner' || currentUserId == room.hostId || currentUserId == room.founderId || currentUserId == room.ownerUserId;
+    final bool isCoOwner = callerRole == 'Co-Owner';
+    final bool isAdmin = callerRole == 'Admin';
+    final bool isSelf = userId == currentUserId;
+
     final normCurrentRole = currentRole.toLowerCase().replaceAll('-', '').replaceAll(' ', '');
     final isTargetCoOwner = normCurrentRole == 'coowner';
-    final isTargetAdmin = normCurrentRole == 'admin' || normCurrentRole == 'moderator';
+    final isTargetAdmin = normCurrentRole == 'admin';
+    final isTargetMod = normCurrentRole == 'mod' || normCurrentRole == 'moderator' || normCurrentRole == 'host';
     final avatarUrl = getRoomUserAvatar(userId);
     final cachedUser = UserProfileCacheManager.getCachedUser(userId);
     final String effectiveAvatar = avatarUrl.isNotEmpty ? avatarUrl : (cachedUser?.avatar ?? '');
@@ -951,7 +956,7 @@ class RoomSettingsManagement {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+ crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         name,
@@ -1007,7 +1012,7 @@ class RoomSettingsManagement {
             const Divider(color: Colors.white10, height: 1),
             const SizedBox(height: 16),
 
-            if (isOwner && !isSelf) ...[
+            if (!isSelf && (isOwner || isCoOwner || isAdmin)) ...[
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -1017,35 +1022,56 @@ class RoomSettingsManagement {
               ),
               const SizedBox(height: 8),
 
-              _actionTile(
-                context: context,
-                icon: Icons.workspace_premium_rounded,
-                color: Colors.amber,
-                label: isTargetCoOwner ? 'Demote from Co-Owner' : 'Make Co-Owner',
-                onTap: () {
-                  Get.back();
-                  if (isTargetCoOwner) {
-                    controller.demoteRoomMemberRole(room.id, userId);
-                  } else {
-                    controller.promoteRoomMemberRole(room.id, userId, 'Co-Owner');
-                  }
-                },
-              ),
+              // Owner can assign/remove Co-Owner
+              if (isOwner)
+                _actionTile(
+                  context: context,
+                  icon: Icons.workspace_premium_rounded,
+                  color: Colors.amber,
+                  label: isTargetCoOwner ? 'Remove Co-Owner Role' : 'Assign Co-Owner Role',
+                  onTap: () {
+                    Get.back();
+                    if (isTargetCoOwner) {
+                      controller.demoteRoomMemberRole(room.id, userId, 'Co-Owner');
+                    } else {
+                      controller.promoteRoomMemberRole(room.id, userId, 'Co-Owner');
+                    }
+                  },
+                ),
 
-              _actionTile(
-                context: context,
-                icon: Icons.security_rounded,
-                color: Colors.purpleAccent,
-                label: isTargetAdmin ? 'Demote from Admin' : 'Make Admin',
-                onTap: () {
-                  Get.back();
-                  if (isTargetAdmin) {
-                    controller.demoteRoomMemberRole(room.id, userId);
-                  } else {
-                    controller.promoteRoomMemberRole(room.id, userId, 'Admin');
-                  }
-                },
-              ),
+              // Owner & Co-Owner can assign/remove Admin
+              if (isOwner || isCoOwner)
+                _actionTile(
+                  context: context,
+                  icon: Icons.security_rounded,
+                  color: Colors.purpleAccent,
+                  label: isTargetAdmin ? 'Remove Admin Role' : 'Assign Admin Role',
+                  onTap: () {
+                    Get.back();
+                    if (isTargetAdmin) {
+                      controller.demoteRoomMemberRole(room.id, userId, 'Admin');
+                    } else {
+                      controller.promoteRoomMemberRole(room.id, userId, 'Admin');
+                    }
+                  },
+                ),
+
+              // Owner, Co-Owner & Admin can assign/remove Mod
+              if (isOwner || isCoOwner || isAdmin)
+                _actionTile(
+                  context: context,
+                  icon: Icons.verified_user_rounded,
+                  color: Colors.tealAccent,
+                  label: isTargetMod ? 'Remove Mod Role' : 'Assign Mod Role',
+                  onTap: () {
+                    Get.back();
+                    if (isTargetMod) {
+                      controller.demoteRoomMemberRole(room.id, userId, 'Mod');
+                    } else {
+                      controller.promoteRoomMemberRole(room.id, userId, 'Mod');
+                    }
+                  },
+                ),
 
               _actionTile(
                 context: context,
