@@ -5,7 +5,7 @@ void main() {
   group('Voice Room Seat System Naming Convention Tests', () {
     test('Verifies exact 10 seat names mapping', () {
       expect(RoomSeatController.getSeatName(0), equals('Host'));
-      expect(RoomSeatController.getSeatName(1), equals('Co Host'));
+      expect(RoomSeatController.getSeatName(1), equals('Co-Host'));
       expect(RoomSeatController.getSeatName(2), equals('No.1'));
       expect(RoomSeatController.getSeatName(3), equals('No.2'));
       expect(RoomSeatController.getSeatName(4), equals('No.3'));
@@ -18,7 +18,7 @@ void main() {
 
     test('Verifies 1-based seat number mapping', () {
       expect(RoomSeatController.getSeatNameByNumber(1), equals('Host'));
-      expect(RoomSeatController.getSeatNameByNumber(2), equals('Co Host'));
+      expect(RoomSeatController.getSeatNameByNumber(2), equals('Co-Host'));
       expect(RoomSeatController.getSeatNameByNumber(3), equals('No.1'));
       expect(RoomSeatController.getSeatNameByNumber(4), equals('No.2'));
       expect(RoomSeatController.getSeatNameByNumber(5), equals('No.3'));

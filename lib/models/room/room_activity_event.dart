@@ -73,24 +73,40 @@ abstract class ArenaEventTypes {
 
 class ArenaEventFormatter {
   static String formatCanonicalSeatLabel(int seatIndex) {
-    if (seatIndex == 0) return 'Host Seat';
-    if (seatIndex == 1) return 'Co-Host Seat';
-    if (seatIndex >= 2 && seatIndex <= 9) return 'Seat ${seatIndex - 1}';
-    return 'Seat $seatIndex';
+    switch (seatIndex) {
+      case 0:
+        return 'Host';
+      case 1:
+        return 'Co-Host';
+      case 2:
+        return 'No.1';
+      case 3:
+        return 'No.2';
+      case 4:
+        return 'No.3';
+      case 5:
+        return 'No.4';
+      case 6:
+        return 'No.5';
+      case 7:
+        return 'No.6';
+      case 8:
+        return 'No.7';
+      case 9:
+        return 'No.8';
+      default:
+        return 'No.${seatIndex - 1}';
+    }
   }
 
   static String formatSeatTakeMessage(String username, int seatIndex) {
-    if (seatIndex == 0) return '$username took Host Seat';
-    if (seatIndex == 1) return '$username took Co-Host Seat';
-    final seatNum = seatIndex >= 2 && seatIndex <= 9 ? seatIndex - 1 : seatIndex;
-    return '$username took Seat $seatNum';
+    final label = formatCanonicalSeatLabel(seatIndex);
+    return '$username joined $label';
   }
 
   static String formatSeatLeaveMessage(String username, int seatIndex) {
-    if (seatIndex == 0) return '$username left Host Seat';
-    if (seatIndex == 1) return '$username left Co-Host Seat';
-    final seatNum = seatIndex >= 2 && seatIndex <= 9 ? seatIndex - 1 : seatIndex;
-    return '$username left Seat $seatNum';
+    final label = formatCanonicalSeatLabel(seatIndex);
+    return '$username left $label';
   }
 
   static String formatSeatMoveMessage(String username, int fromSeatIndex, int toSeatIndex) {

@@ -16,7 +16,30 @@ class RoomSeatController extends GetxController {
   final RxMap<String, int> roomSeatGiftsCounters = <String, int>{}.obs;
 
   static String getSeatName(int seatIndex) {
-    return 'Seat ${seatIndex + 1}';
+    switch (seatIndex) {
+      case 0:
+        return 'Host';
+      case 1:
+        return 'Co-Host';
+      case 2:
+        return 'No.1';
+      case 3:
+        return 'No.2';
+      case 4:
+        return 'No.3';
+      case 5:
+        return 'No.4';
+      case 6:
+        return 'No.5';
+      case 7:
+        return 'No.6';
+      case 8:
+        return 'No.7';
+      case 9:
+        return 'No.8';
+      default:
+        return 'No.${seatIndex - 1}';
+    }
   }
 
   static String getSeatNameByNumber(int seatNumber) {

@@ -33,7 +33,7 @@ void main() {
 
     test('Room seat controller getSeatName maps seat indices correctly', () {
       expect(RoomSeatController.getSeatName(0), equals('Host'));
-      expect(RoomSeatController.getSeatName(1), equals('Co Host'));
+      expect(RoomSeatController.getSeatName(1), equals('Co-Host'));
       expect(RoomSeatController.getSeatName(2), equals('No.1'));
       expect(RoomSeatController.getSeatName(9), equals('No.8'));
     });
