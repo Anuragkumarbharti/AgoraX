@@ -567,35 +567,18 @@ class _RoomSettingsDialogState extends State<RoomSettingsDialog> {
 
               final activeMemberUserIds = _controller.activeMembers.map((m) => m.userId).toSet();
 
+              // Strictly check explicitly assigned role IDs from backend DB, filtered by active in-room presence
               final coOwners = room.coOwnerIds
                   .where((id) => activeMemberUserIds.contains(id))
-                  .toSet();
-              for (final m in _controller.activeMembers) {
-                final l = m.role.trim().toLowerCase().replaceAll('-', '').replaceAll(' ', '');
-                if (l == 'coowner' || l == 'cohost') {
-                  coOwners.add(m.userId);
-                }
-              }
+                  .toList();
 
               final admins = room.adminIds
                   .where((id) => activeMemberUserIds.contains(id))
-                  .toSet();
-              for (final m in _controller.activeMembers) {
-                final l = m.role.trim().toLowerCase();
-                if (l == 'admin') {
-                  admins.add(m.userId);
-                }
-              }
+                  .toList();
 
               final starMembers = room.starMemberIds
                   .where((id) => activeMemberUserIds.contains(id))
-                  .toSet();
-              for (final m in _controller.activeMembers) {
-                final l = m.role.trim().toLowerCase().replaceAll(' ', '');
-                if (l == 'starmember' || l == 'host' || l == 'mod' || l == 'moderator') {
-                  starMembers.add(m.userId);
-                }
-              }
+                  .toList();
 
               final rawOwnerId = room.hostId.isNotEmpty ? room.hostId : room.ownerUserId;
               final ownerIds = (rawOwnerId.isNotEmpty && activeMemberUserIds.contains(rawOwnerId))

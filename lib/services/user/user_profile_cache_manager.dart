@@ -269,12 +269,22 @@ class UserProfileCacheManager {
       throw Exception("User ID cannot be empty");
     }
 
-    // ── Guard: reject malformed IDs (e.g. concatenated roomId_userId keys) ──
-    // A valid Supabase UUID has exactly 36 chars in format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    // ── Guard: resolve or sanitize malformed/composite IDs (e.g. concatenated roomId_userId keys) ──
     final uuidPattern = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
     if (!uuidPattern.hasMatch(idToQuery)) {
-      debugPrint('[CacheManager] Rejected malformed userId: $idToQuery');
-      throw FormatException('Invalid user ID format: $idToQuery');
+      if (idToQuery.contains('_')) {
+        final segments = idToQuery.split('_');
+        final validSegment = segments.firstWhereOrNull((s) => uuidPattern.hasMatch(s) && s != currentId) ??
+            segments.firstWhereOrNull((s) => uuidPattern.hasMatch(s));
+        if (validSegment != null) {
+          idToQuery = validSegment;
+        }
+      }
+    }
+
+    if (!uuidPattern.hasMatch(idToQuery)) {
+      debugPrint('[CacheManager] Handled malformed userId safely: $idToQuery');
+      return User.fromJson({'id': idToQuery, 'username': 'User', 'email': ''});
     }
 
     if (!forceRefresh && idToQuery == currentId && _currentUser != null) {
